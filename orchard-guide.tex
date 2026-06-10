@@ -3,6 +3,7 @@
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
+\usepackage{placeins}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
 \definecolor{tierspend}{RGB}{200,60,60}
@@ -502,6 +503,15 @@ arithmetisation-friendliness is irrelevant here.
 
 \begin{figure}[htbp]
 \centering
+% measure the fvk tuple label so the nk/rivk arrows land exactly on their slots;
+% suffix subtraction keeps the inter-atom math glue at the cut inside the prefix
+\newlength{\fvkWfull}\settowidth{\fvkWfull}{$\fvk=(\aksym,\,\nksym,\,\rivk)$}%
+\newlength{\fvkWnk}\settowidth{\fvkWnk}{$\nksym$}%
+\newlength{\fvkWrivk}\settowidth{\fvkWrivk}{$\rivk$}%
+\newlength{\fvkWsufnk}\settowidth{\fvkWsufnk}{$\nksym,\,\rivk)$}%
+\newlength{\fvkWsufrivk}\settowidth{\fvkWsufrivk}{$\rivk)$}%
+\newlength{\fvknkX}\setlength{\fvknkX}{\dimexpr.5\fvkWfull-\fvkWsufnk+.5\fvkWnk\relax}%
+\newlength{\fvkrivkX}\setlength{\fvkrivkX}{\dimexpr.5\fvkWfull-\fvkWsufrivk+.5\fvkWrivk\relax}%
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   >={Stealth[length=2.4mm,width=1.9mm]},
@@ -554,9 +564,10 @@ arithmetisation-friendliness is irrelevant here.
 \draw[fork] (sk.east) to[out=20,in=108] (nk.north);
 \draw[fork] (sk.east) to[out=2,in=100]  (rivk.north);
 
-% ak, nk, rivk bundle into fvk; nk and rivk point at their own slot in the fvk tuple
-\coordinate (fvknk)   at ($(fvk.north)+(0.15,0)$);
-\coordinate (fvkrivk) at ($(fvk.north)+(1.25,0)$);
+% ak, nk, rivk bundle into fvk; nk and rivk land exactly on their slot in the
+% fvk tuple (positions measured from the label's own widths above)
+\coordinate (fvknk)   at ($(fvk.north)+(\fvknkX,0)$);
+\coordinate (fvkrivk) at ($(fvk.north)+(\fvkrivkX,0)$);
 \draw[fork] (nk.south)   to[out=-90,in=80] (fvknk);
 \draw[fork] (rivk.south) to[out=-90,in=80] (fvkrivk);
 
@@ -663,6 +674,7 @@ A5--A7 below), which a one-way hash would not permit it to open algebraically.
 capability to compute nullifiers (which a viewing key needs to determine which
 of the holder's notes are already spent) \emph{without} conferring the ability to
 spend --- the viewing key holds $\nksym$ but never $\ask$.
+\FloatBarrier
 \subsection{Representation of a note: notes and note commitments}\label{sec:notes}
 
 The first requirement is to represent a note such that it stays invisible
