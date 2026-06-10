@@ -311,17 +311,23 @@ its $x$-coordinate, a base-field element rather than a curve point:
 \[
 \ShortCommit_r(D, M) := \Extract\bigl(\mathsf{SinsemillaCommit}_r(D, M)\bigr) \;\in\; \F_{p_{\Pallas}},
 \]
-with $\Extract$ the coordinate map of \S\ref{sec:prelim-curve}.
+with $\Extract$ the coordinate map of \S\ref{sec:prelim-curve}. The unkeyed
+\emph{short hash} omits the blinding term altogether:
+\[
+\mathsf{ShortHash}_D(M) := \Extract\bigl(\Sinsemilla_D(M)\bigr) \;\in\; \F_{p_{\Pallas}},
+\]
+the unblinded analogue of $\ShortCommit$ --- no randomness argument,
+collision-resistant (Theorem~\ref{thm:sinsemilla-cr}) but not hiding.
 \end{definition}
 
 The commitment is perfectly hiding and computationally binding --- the two
 properties §\ref{sec:notes} requires of $\NoteCommit$. Indeed the note
 commitment $\NoteCommit_{\rcm}(\cdot)$ is exactly
 $\mathsf{SinsemillaCommit}_{\rcm}$ under the domain
-$\mathtt{z.cash:Orchard\text{-}NoteCommit}$. The short form $\ShortCommit$
-appears wherever the consumer requires a field element instead of a point ---
-the Merkle-tree node hash (\S\ref{sec:tree}) and the incoming viewing key
-$\ivk$ (\S\ref{sec:orchard-keys}). When we write $\ShortCommit$ with two
+$\mathtt{z.cash:Orchard\text{-}NoteCommit}$. The short forms appear wherever the
+consumer requires a field element instead of a point: $\mathsf{ShortHash}$ in
+the Merkle-tree node hash (\S\ref{sec:tree}), $\ShortCommit$ in the incoming
+viewing key $\ivk$ (\S\ref{sec:orchard-keys}). When we write $\ShortCommit$ with two
 message arguments, as in $\ShortCommit_{\rivk}(\Extract(\aksym), \nksym)$, the
 message $M$ is the concatenation of the $255$-bit little-endian encodings of
 the two field elements ($510$ bits in all);
@@ -748,16 +754,12 @@ is trivial: the output is present in the UTXO set. But Alice must prove
 it \emph{without revealing which note}, because revealing the note would
 deanonymise the payment.
 
-This is the canonical use case for a Merkle tree as a privacy set. The
-network maintains one append-only tree whose leaves are \emph{every note
-commitment ever created}, in order. To prove that her note is valid, Alice
-proves \emph{membership}: she exhibits a Merkle authentication path from
-her leaf $\cmx$ up to a root the network already trusts. The proof reveals
-that her note is \emph{one of} the leaves, but a Merkle path inside the
-zero-knowledge circuit hides \emph{which} leaf --- the verifier checks the
-path arithmetic without seeing the position or the sibling values. The
-anonymity set is the entire tree: the larger it grows, the better the
-privacy.
+The network maintains one append-only Merkle tree whose leaves are
+\emph{every note commitment ever published}, in creation order. Alice proves
+\emph{membership}: a Merkle authentication path from her leaf $\cmx$ to a
+root the network trusts. Inside the circuit the path is a private witness
+(check~A3), so the verifier learns that her note is one of the leaves but not
+which one; the anonymity set is the entire tree.
 
 \begin{definition}[Orchard commitment tree]\label{def:tree}
 The Orchard \emph{note commitment tree} is an append-only Merkle tree of
@@ -767,11 +769,12 @@ layer $\ell'$ is
 \[
 \mathsf{MerkleCRH}^{\mathsf{Orchard}}_{\ell'}(\ell, r) := \mathsf{ShortHash}_{\mathtt{Orchard\text{-}MerkleCRH}}(\mathrm{LE}_{10}(\ell') \,\|\, \ell \,\|\, r) \;\in\; \F_{p_{\Pallas}},
 \]
-a layer-tagged Sinsemilla short hash (so leaves $\cmx$, internal nodes, and
-the root all live in $\F_{p_{\Pallas}}$). We call a historic tree root an
-\emph{anchor} (a single field element, $\mathsf{anchor} \in
-\F_{p_{\Pallas}}$); the network tracks the set of historical anchors, a
-spend may prove membership against any of them, and all Actions of one
+a layer-tagged Sinsemilla short hash (Definition~\ref{def:sinsemilla-commit};
+leaves $\cmx$, internal nodes, and the root all live in $\F_{p_{\Pallas}}$).
+Appending a block's note commitments yields a new root: the root of the tree
+after block $h$ is the \emph{anchor} of block $h$ (a single field element),
+so every main-chain block defines exactly one anchor. A spend proves
+membership against the anchor of any main-chain block, and all Actions of one
 bundle prove against a single shared anchor (\S\ref{sec:netverify}).
 \end{definition}
 
@@ -785,25 +788,45 @@ Pallas point, hence can never equal a valid $\cmx$ and can never be silently
 confused with a genuine commitment.
 
 \paragraph{Derivation of the authentication path.}
-The path is \emph{not} something Alice stored or had to track; it is a
-deterministic function of \emph{public} data. The tree's leaves are every
-$\cmx$ ever published, in order, and the path is the sibling at each level
-on the route from her leaf up to the root (Figure~\ref{fig:merklepath}); and
-every one of those siblings is either itself a public leaf or a hash of public leaves. Hence anyone holding
-the public commitments can \emph{recompute} any note's path, against any past
-root, at any time. The only secret is \emph{which} leaf is hers, and that
-remains hidden because she proves the path in zero knowledge (check~A3), not
-because the leaves are hidden.
+Alice's commitment occupies a fixed \emph{position} $\mathsf{pos}$ --- its
+index in creation order --- which her wallet records when it detects the note
+(\S\ref{sec:noteenc}). Fix an anchor of any block at or after the one that
+mined her note, and let $n$ be the number of leaves in that block's tree. The
+authentication path of leaf $\mathsf{pos}$ against that anchor consists of
+one node per level: writing $\mathsf{pos} = b_{31} \cdots b_1 b_0$ in binary,
+the level-$i$ ancestor of her leaf is a left child when $b_i = 0$ and a right
+child when $b_i = 1$, and the path's level-$i$ entry is that ancestor's
+\emph{sibling} in the tree of size $n$ (Figure~\ref{fig:merklepath}).
+Check~A3 reverses the construction: starting from $\cmx$ it folds in one path
+entry per level, on the side $b_i$ dictates, and asserts that the final value
+equals the public anchor; the bits $b_i$ and the siblings stay inside the
+witness.
 
-Seen this way, a years-old note is no special case. To spend it Alice selects an
-\emph{anchor} --- a recent root the network already trusts --- reads the public
-commitments that were in the tree at that anchor, and hashes them up to obtain
-her siblings. A freshly restored, long-offline wallet performs exactly this: it
-rebuilds the path from the chain. (The ``incremental witness'' a
-continuously-online wallet maintains as the tree grows is only an optimisation; a
-cold wallet recomputes from public data instead.) The wallet performs this
-\emph{locally} and never requests a particular note's path from a server, which would
-reveal which note is hers.
+Each entry is one of two kinds. When $b_i = 1$ the sibling subtree lies to
+the \emph{left} of her leaf: it spans commitments older than hers, every one
+of its positions is filled, and --- because the tree appends only on the
+right --- its root is final and identical at every anchor. When $b_i = 0$ the
+sibling subtree lies to her \emph{right}, and its value depends on the
+anchor: its root hashes the commitments it holds at size $n$, with positions
+not yet filled taking the uncommitted sentinel $2$; a sibling subtree still
+entirely empty at size $n$ contributes a per-level constant, the sentinel
+folded up through the layer-tagged hash. The path is therefore a
+deterministic function of $\mathsf{pos}$ and the first $n$ public leaves, and
+of nothing else; the only secret is which leaf is hers.
+
+In practice the wallet computes the path incrementally rather than from
+scratch. While scanning the chain it appends every published $\cmx$ --- its
+own and everyone else's --- to a local copy of the tree. The moment its note
+enters at position $\mathsf{pos}$, all left siblings are determined; the
+wallet stores them once and for all. From then on each block's appends
+advance only the right siblings: whenever a right sibling subtree fills
+completely the wallet records its now-final root, and the single
+partially-filled one is recomputed on demand from the tree's
+\emph{frontier} --- the roots of the maximal complete subtrees along the
+right edge, at most one per level, the compact state from which an
+append-only tree is grown and its root computed. Snapshotting this witness
+at block boundaries lets the wallet emit her path against the anchor of any
+recent block.
 
 \begin{figure}[htbp]
 \centering
@@ -860,59 +883,36 @@ $\mathsf{GetSubtreeRoots}$ shortcut that lets even a freshly restored wallet
 witness a years-old note.}\label{fig:merklepath}
 \end{figure}
 
-The one substantive difficulty is efficiency: the live tree holds up to $2^{32}$
-leaves, and Alice wishes neither to download all of them nor to hash the whole
-tree for one path. This is unnecessary. Her note resides in a single small subtree (a
-``shard'' of $2^{16}$ leaves in Orchard), and she needs only \emph{that} shard's leaves,
-to build the siblings nearest her own. Every \emph{other} subtree
---- millions of leaves of no relevance to her --- enters her path through its
-single \emph{root} alone (the faded subtree of Figure~\ref{fig:merklepath},
-folded into $F$). A light wallet therefore fetches only the precomputed roots of
-the other shards ($\mathsf{GetSubtreeRoots}$), the leaves of its own shard, and
-a frontier checkpoint, and hashes them into the path --- the protocol merely
-serves the public data in a form that skips the irrelevant leaves. The result
-is the private witness for check~A3; only the roots (anchors) are ever public.
+Nothing above requires Alice to have been online: the inputs are public, so a
+freshly restored wallet rebuilds the same state by replaying the chain's note
+commitments. Nor must it touch all $2^{32}$ positions. Her note resides in
+one \emph{shard} of $2^{16}$ leaves, and only that shard's leaves enter her
+siblings at the low levels; every other shard enters her path through its
+root alone (the faded subtree of Figure~\ref{fig:merklepath}, folded into
+$F$). A light wallet therefore fetches the other shards' precomputed roots
+($\mathsf{GetSubtreeRoots}$), its own shard's leaves, and a frontier
+checkpoint. It performs the computation \emph{locally}, never asking a server
+for one particular note's path, which would reveal which note is hers. The
+finished path is the private witness of check~A3; only the anchor is public.
 
-\paragraph{Verification of an anchor as the tree grows.}
-An \emph{anchor} is the value of the Merkle root at some past moment ---
-a single field element. The apparent difficulty is that the tree is
-append-only and continues to grow, so by the time Alice's transaction is
-mined the live root has advanced. Three facts make proving against a
-fixed anchor both possible and sound:
-\begin{itemize}[leftmargin=*]
-\item \emph{A root is a fixed commitment to a fixed leaf set.} The root
-is a deterministic hash of all leaves present when someone took it. It does
-not change retroactively: appending new leaves later produces \emph{new}
-roots but leaves every \emph{past} root exactly as it was. Thus ``the
-anchor'' unambiguously denotes one historical state of the tree.
-\item \emph{A membership path is relative to one root.} Alice's
-authentication path proves $\cmx_{\mathrm{old}}$ is a leaf of the tree
-\emph{whose root is that anchor}. Because her note arose before anyone took the
-anchor, such a path exists and she can compute it. The circuit
-(check A3) recomputes the root from her leaf and path and asserts it
-equals the public anchor --- collision resistance of the layer-tagged
-hash (\S\ref{sec:sinsemilla}) renders forging a path to a root for a
-non-member infeasible.
-\item \emph{Consensus accepts any historical main-chain root, not just
-recent ones.} A node treats a value as a valid anchor once it has appeared
-as the Orchard tree root at the end of some block on the node's accepted
-main chain. There is \emph{no} short sliding window: an anchor may be
-arbitrarily old, the only floor being the Orchard activation height (NU5,
-mainnet block $1{,}687{,}104$) --- one cannot anchor to a root that
-predates the tree's existence. A spend names which anchor it used; the
-node accepts the proof iff that root belongs to a block it accepts. This
-fully decouples proving from broadcasting: Alice need not race the chain
-tip. The only \emph{recency} caveat runs in the opposite direction --- if she anchors
-to a very recent block that a later reorganisation removes, her anchor is no
-longer on the main chain and she must rebuild the transaction; anchoring at
-least $100$ blocks deep (Zcash's reorg/finality limit) avoids this
-entirely.
-\end{itemize}
-Crucially, proving against an old root is \emph{not} a soundness hole:
-membership in an older, smaller tree implies the note was committed even
-earlier, which is precisely what Alice must establish. The nullifier
-mechanism (\S\ref{sec:nullifier}), not the anchor, is what prevents
-spending the same old note twice.
+\paragraph{Anchor choice as the tree grows.}
+By the time Alice's transaction reaches a block, the live tree has advanced
+past her chosen anchor. This costs nothing: appending leaves creates new
+roots and alters no old one, so the anchor still names one fixed historical
+tree, her path still folds to exactly that root, and check~A3 asserts exactly
+that equality --- collision resistance of the layer-tagged hash
+(\S\ref{sec:sinsemilla}) makes a path to that root for a non-member
+infeasible. Consensus accepts the anchor of \emph{any} main-chain block from
+Orchard activation onward (NU5, mainnet block $1{,}687{,}104$); there is no
+sliding window, so proving is fully decoupled from broadcasting --- Alice
+need not race the chain tip. The one recency caveat runs in the opposite
+direction: a reorganisation can strike the anchoring block from the main
+chain, invalidating the anchor and forcing her to rebuild the transaction;
+anchoring at least $100$ blocks deep (Zcash's reorg limit) avoids this
+entirely. Nor is an old anchor a soundness hole: membership in an older,
+smaller tree implies the note was committed even earlier, which is precisely
+what Alice must establish --- the nullifier (\S\ref{sec:nullifier}), not the
+anchor, prevents a second spend.
 
 \subsection{Prevention of double-spending: nullifiers}\label{sec:nullifier}
 
