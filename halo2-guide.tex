@@ -218,9 +218,12 @@ gate-equation combination), and $x$ (the final evaluation point). Its final chec
 PLONK gate equation $C(x) = h(x) \cdot Z_H(x)$, which the verifier checks from
 the evaluations of the oracles at $x$ (and possibly $\omega x$).
 
-This is precisely the PIOP that phases 1--6 of the Halo 2
-protocol of \S\ref{sec:halo2-full} compile; phase 7 is the IPA-PCS
-opening of the combined polynomial.
+This is precisely the PIOP that phases 1--5 of the Halo 2
+protocol of \S\ref{sec:halo2-full} compile, phase 5's claimed evaluations
+answering its oracle queries; phases 6--7 bind those answers to the
+commitments --- the multipoint reduction (the challenges
+$x_1, \dots, x_4$ and the combined polynomial $f^*$) followed by a single
+IPA-PCS opening of $f^*$.
 
 \section{A rigorous treatment of knowledge soundness}\label{sec:ks}
 
@@ -231,9 +234,9 @@ framework (the \emph{Crypto Guide}) with the algebraic group model.
 \subsection{Definitional refinements}
 
 The bare definition of the \emph{Crypto Guide} suffices for $\Sigma$-protocols
-but is awkward for compound systems. We adopt the following standard refinement.
+but is awkward for compound systems. We record the following standard refinement.
 
-\begin{definition}[Witness-extended emulation]\label{def:wee}
+\begin{remark}[Witness-extended emulation]\label{def:wee}
 An interactive argument $(\Prov, \Ver)$ has \emph{witness-extended
 emulation} if there is a $\PPT$ emulator $\Ext$ such that for every $\PPT$
 prover $\Prov^*$ and every input $x$:
@@ -245,22 +248,26 @@ $b$ the verifier's accept/reject bit.
 The distributions of $(\tau, b)$ and $(\tau', b')$ are computationally
 indistinguishable, and moreover whenever $b' = 1$, $(x, w) \in \Rel$ except
 with negligible probability.
-\end{definition}
+\end{remark}
 
 WEE captures simultaneously two properties: ``the extractor produces a witness whenever
 the protocol accepts'' and ``the extractor's external behaviour resembles
 a normal protocol execution.'' It is the appropriate notion for arguments
 embedded in larger protocols, such as the batched verification of many
-proofs at once (\S\ref{sec:halo-acc}).
+proofs at once (\S\ref{sec:halo-acc}); plain knowledge soundness,
+however, suffices for this volume's statements.
 
 \subsection{The algebraic group model}
 
 The IPA's knowledge-soundness proof proceeds through the tree extractor of
-\S\ref{sec:ipa-detail}, with knowledge error $O(d / |\F|)$. Obtaining the
-tree of accepting transcripts in the standard model by iterated forking,
-however, is loose: each of the $\log d$ rounds contributes a
-multiplicative blow-up, so the standard-model reduction to DL runs in
-quasi-polynomial time $d^{O(\log d)}$ rather than strict polynomial time.
+\S\ref{sec:ipa-detail}, with knowledge error $O(d / |\F|)$. The
+interactive tree extractor costs $3^{\log_2 d} = d^{\log_2 3}$
+transcripts and runs in expected polynomial time
+(\S\ref{sec:tree-extract}); the looseness arises for the non-interactive
+argument, where the naive Fiat--Shamir analysis of the $\log d$-round
+protocol loses a factor $q^{O(\log d)}$ in the adversary's random-oracle
+query count $q$ --- quasi-polynomial for polynomial $q$ --- a loss the
+AGM analysis of Ghoshal--Tessaro removes.
 The \emph{algebraic group model} (AGM; Fuchsbauer, Kiltz, Loss; CRYPTO
 2018) removes this loss by restricting the adversary's group operations.
 
@@ -289,7 +296,7 @@ contrast, does not invoke the AGM: it proves
 security in the random oracle model under the DL assumption
 (Theorem~\ref{thm:bcms20-acc}).
 
-\subsection{Tree-extractor analysis}
+\subsection{Tree-extractor analysis}\label{sec:tree-extract}
 
 To render the tree extractor concrete, consider the key step at each round of the
 IPA halving (see \S\ref{sec:ipa-detail}):
@@ -330,9 +337,11 @@ yielding total cost $O(d^{\log_2 3} \cdot \mathsf{poly}(\lambda) / \varepsilon)$
 The literature on knowledge soundness contains numerous tightness gaps. The
 more important ones include:
 \begin{itemize}[leftmargin=*]
-\item Bulletproofs' standard-model knowledge-soundness reduction loses a
-factor exponential in the round count $\log d$ (equivalently,
-quasi-polynomial $d^{O(\log d)}$ in the degree bound $d$).
+\item Bulletproofs' naive Fiat--Shamir knowledge-soundness analysis
+loses a factor $q^{O(\log d)}$, exponential in the round count $\log d$
+with base the query count $q$; the interactive standard-model extraction
+itself is polynomial ($d^{\log_2 3}$ transcripts, expected polynomial
+time).
 \item Halo 2's deployed parameters assume the AGM and/or the random oracle
 model heuristically.
 \end{itemize}
@@ -590,7 +599,12 @@ $< n$, so $d = n = 2^k$ there. The letter $H$ likewise does double duty,
 inherited from two literatures: $H \subset \F$ is the PLONK evaluation
 domain (as in $Z_H$), while $H \in \G$ is the Pedersen blinding generator
 of the \emph{Crypto Guide}; the ambient set ($\F$ versus $\G$)
-disambiguates every occurrence.
+disambiguates every occurrence. Two further letters carry double duty:
+$p$ denotes the group order (as in $\F_p$) and, with an argument or in
+$\deg p$, the committed polynomial $p(X)$; and the permutation
+polynomials $s_i(X) \in \F[X]$ of \S\ref{sec:perm} are distinct from the
+IPA structured scalars $s_i \in \F_p$ of \S\ref{sec:gpoly}. Type and
+argument disambiguate every occurrence.
 
 \begin{construction}[IPA-based polynomial commitment]\label{const:ipa}
 Let $\G$ be a cyclic group of prime order $p$ in which DL is hard. Choose
@@ -1040,8 +1054,9 @@ against the instance commitment the \emph{verifier} computes from the
 genuine $\vec{\pi}$, and must satisfy the copy constraints against those
 values. Knowledge soundness
 (\S\ref{sec:ks}) then extracts a witness for the relation instantiated at
-exactly those public values; no witness exists for the wrong ones except
-with negligible probability. This binds the proof to its public
+exactly those public values; a prover that does not know such a witness
+--- whatever witnesses it holds for other instances --- convinces the
+verifier with at most negligible probability. This binds the proof to its public
 statement: an Action proof that a node verifies against an anchor it accepts,
 a nullifier it will mark spent, and a value commitment it will sum into
 the net balance check (the \emph{Orchard Guide}) can only verify if the
@@ -1065,9 +1080,13 @@ with \(\vec p\) the coefficient vector of \(p\) and \(H\) an independent generat
 of no known discrete-log relation to \(\vec G\). The \([r]H\) term makes the
 commitment a \emph{uniform} group element for every \(p\), so a commitment by
 itself leaks nothing about what the prover committed (the perfect hiding of a Pedersen
-commitment, \emph{Crypto Guide}). Every commitment the verifier sees --- the
-advice columns, the permutation and lookup products, the quotient chunks --- has
-this form.
+commitment, \emph{Crypto Guide}). Every commitment the prover sends in
+phases 1--6 --- the advice columns, the permuted lookup columns $A'$, $S'$,
+the permutation and lookup running products, the quotient chunks, and the
+multipoint polynomial $f$ --- has this form. The verifying-key and instance
+commitments are deliberately unblinded: they commit public data both parties
+recompute (\S\ref{sec:halo2-full}, \S\ref{sec:instance}), so there is
+nothing to hide.
 
 \paragraph{Blinding the witness polynomials.} The prover eventually
 \emph{opens} a commitment, and an opening reveals evaluations. The prover interpolates the advice columns

@@ -206,6 +206,17 @@ top bit, recording which of the two square roots $\pm y$ is meant. Unlike $\Extr
 this encoding is injective --- it determines $P$ completely --- and it is what
 we feed, as a bit-string, into a hash or commitment.
 
+\paragraph{Integer encodings $\mathrm{LE}_n$.}
+$\mathrm{LE}_n(m) \in \{0,1\}^n$ denotes the $n$-bit little-endian encoding
+of an integer $m \in \{0, \dots, 2^n - 1\}$: the bit string
+$b_0 b_1 \cdots b_{n-1}$ with $m = \sum_{i=0}^{n-1} b_i\, 2^{i}$ (a field
+element encodes via its integer representative). It renders integers and
+field elements as bit strings wherever they enter a hash or commitment:
+$\mathrm{LE}_{32}$ indexes the Sinsemilla generator table
+(\S\ref{sec:sinsemilla}), $\mathrm{LE}_{10}$ tags the Merkle-tree layers
+(\S\ref{sec:tree}), and $\mathrm{LE}_{64}$, $\mathrm{LE}_{255}$ encode note
+values and field elements (\S\ref{sec:notes}).
+
 \paragraph{The hash-to-curve $\GroupHash$.}
 $\GroupHash^{\G} : \{0,1\}^* \times \{0,1\}^* \to \G$ takes a pair
 (domain separator $D$, message $M$) and returns a point of $\G$. It is
@@ -262,8 +273,8 @@ primitive: a commitment/hash that the spender must recompute \emph{inside
 the zero-knowledge circuit}. In-circuit cost is therefore the binding
 constraint, and it is what Sinsemilla (Bowe and Hopwood) is designed to
 minimise. Its collision resistance reduces to DL on a prime-order curve,
-so it inherits the same hardness assumption as everything else in Orchard
-rather than introducing a new one. It builds directly on the preliminaries of
+so it introduces no assumption beyond the DL hardness that Orchard's
+algebraic core already requires. It builds directly on the preliminaries of
 \S\ref{sec:prelim-curve}: its generators are $\GroupHash$ outputs, and its
 short form returns an $\Extract$ed coordinate.
 
@@ -309,9 +320,12 @@ H_D := \GroupHash^{\G}\bigl(D \,\|\, \texttt{-r},\ \varepsilon\bigr) \in \G
 message $\varepsilon$ (a nothing-up-my-sleeve point, \S\ref{sec:prelim-curve}). Because $H_D$ is
 a $\GroupHash$ output in its own sub-domain, no party knows a discrete-log relation between it and
 the generators $Q(D \,\|\, \texttt{-M}), P[m]$ that the hash uses; this independence is
-exactly what makes the $[r]H_D$ term a hiding blinding factor whose presence
-no one can forge, the same role the independent base $H$ plays in a Pedersen
-commitment (the \emph{Crypto Guide}). The \emph{short commitment} returns only
+exactly what keeps the commitment binding --- a party knowing such a relation
+could trade the blinding term against the message and open one commitment to
+two distinct messages --- while hiding needs no assumption at all: for
+uniform $r$ the term $[r]H_D$ is uniform on $\G$ and masks the hash
+completely. This is the same division of roles the independent base $H$
+supports in a Pedersen commitment (the \emph{Crypto Guide}). The \emph{short commitment} returns only
 its $x$-coordinate, a base-field element rather than a curve point:
 \[
 \ShortCommit_r(D, M) := \Extract\bigl(\mathsf{SinsemillaCommit}_r(D, M)\bigr) \;\in\; \F_{p_{\Pallas}},
@@ -485,8 +499,11 @@ is forbidden --- any $88$-bit string is a valid diversifier index. The wallet
 allocates indices on demand,
 conventionally sequentially from $d_{\mathrm{plain}} = 0$ (so index $0$ is the
 \emph{default diversifier}), assigning a fresh index per payee or per
-invoice to keep their addresses mutually unlinkable; selecting indices
-uniformly at random is equally valid and avoids leaking a count. Every
+invoice to keep their addresses mutually unlinkable; a randomly drawn index
+would yield an equally valid address, but the specification states that
+diversifier indices SHOULD NOT be chosen at random: ZIP-32 specifies their
+usage in hierarchical-deterministic wallets, whose seed-only recovery of
+issued addresses depends on deterministic allocation. Every
 index works for a reason specific to Orchard: the hash-to-curve
 $\GroupHash^{\Pallas}$ of \S\ref{sec:prelim-curve} is total --- it returns a
 point for every input --- so every index yields a well-defined $\gd$; in the
@@ -625,8 +642,13 @@ arithmetisation-friendliness is irrelevant here.
 \end{tikzpicture}%
 }
 \caption{The Orchard key hierarchy as a capability ladder, read top to
-bottom. Each arrow is a one-way derivation; the right-hand gutter shows the
-operation that produces the child from its parent(s). The $\dk$ and
+bottom. Each arrow is a derivation; the right-hand gutter shows the
+operation that produces the child from its parent(s). Not every edge is
+one-way: the bundling edges ($\aksym,\nksym,\rivk$ into the tuple $\fvk$;
+$d$ into the address) invert by projection, and the FF1 edge is a keyed
+permutation the $\dk$ holder inverts --- the tiers are separated by the
+one-way steps $\mathsf{sk}\to(\ask,\nksym,\rivk)$, $\ask\to\aksym$,
+$\fvk\to(\ivk,\dk,\ovk)$, and $\ivk\to\pkd$. The $\dk$ and
 $\ovk$ keys are the two halves of one $\mathsf{PRFexpand}_{\rivk}$ output (tag
 $\mathtt{0x82}$, input $\aksym\|\nksym$); they play different roles and land
 in different tiers --- $\ovk$ is the \emph{outgoing} viewing key, grouped with
@@ -776,10 +798,12 @@ fixed depth $32$ (so up to $2^{32}$ notes). Leaves are $\cmx$ values in
 creation order. The parent of a left child $\ell$ and right child $r$ at
 layer $\ell'$ is
 \[
-\mathsf{MerkleCRH}^{\mathsf{Orchard}}_{\ell'}(\ell, r) := \mathsf{ShortHash}_{\mathtt{z.cash:Orchard\text{-}MerkleCRH}}(\mathrm{LE}_{10}(\ell') \,\|\, \ell \,\|\, r) \;\in\; \F_{p_{\Pallas}},
+\mathsf{MerkleCRH}^{\mathsf{Orchard}}_{\ell'}(\ell, r) := \mathsf{ShortHash}_{\mathtt{z.cash:Orchard\text{-}MerkleCRH}}(\mathrm{LE}_{10}(\ell') \,\|\, \mathrm{LE}_{255}(\ell) \,\|\, \mathrm{LE}_{255}(r)) \in \F_{p_{\Pallas}},
 \]
-a layer-tagged Sinsemilla short hash (Definition~\ref{def:sinsemilla-commit};
-leaves $\cmx$, internal nodes, and the root all live in $\F_{p_{\Pallas}}$).
+a layer-tagged Sinsemilla short hash (Definition~\ref{def:sinsemilla-commit})
+of the $10 + 255 + 255 = 520$-bit message --- $52$ ten-bit chunks, the same
+$\mathrm{LE}$-encoded input convention as $\CommitIvk$ and $\NoteCommit$
+(leaves $\cmx$, internal nodes, and the root all live in $\F_{p_{\Pallas}}$).
 Appending a block's note commitments yields a new root: the root of the tree
 after block $h$ is the \emph{anchor} of block $h$ (a single field element),
 so every main-chain block defines exactly one anchor. A spend proves
@@ -1008,8 +1032,10 @@ $C_{\mathrm{enc}} := \mathsf{Enc}_{K_{\mathrm{enc}}}(\mathsf{np})$. The KDF is
 BLAKE2b-256 with personalisation \texttt{Zcash\_OrchardKDF} over
 $\mathsf{s}^\star \,\|\, \mathsf{epk}^\star$. Because
 $\pkd = [\ivk]\gd$, Bob can reach the same secret from his side as
-$[\ivk]\,\mathsf{epk} = [\ivk][\mathsf{esk}]\gd = [\mathsf{esk}]\pkd$, so exactly
-the holder of $\ivk$ can recover $K_{\mathrm{enc}}$. A second ciphertext
+$[\ivk]\,\mathsf{epk} = [\ivk][\mathsf{esk}]\gd = [\mathsf{esk}]\pkd$, so,
+beside the sender (who knows $\mathsf{esk}$), exactly the holder of $\ivk$
+can recover $K_{\mathrm{enc}}$ from the published
+$(\mathsf{epk}, C_{\mathrm{enc}})$. A second ciphertext
 $C_{\mathrm{out}}$, sealed under the \emph{outgoing cipher key}
 $\mathsf{ock} := \mathrm{BLAKE2b\text{-}256}(\texttt{Zcash\_Orchardock},\
 \ovk \,\|\, \cvsym^{\mathsf{net}} \,\|\, \cmx \,\|\, \mathsf{epk})$ (points in
@@ -1547,8 +1573,8 @@ cannot mint zatoshi out of nothing.
 \subsection{Zero knowledge of the SNARK}\label{sec:halo-zk}
 
 Halo 2 is statistical zero knowledge in the random-oracle model
-(the \emph{Halo 2 Guide}'s zero-knowledge analysis). The simulator on input
-$x := (\mathsf{anchor}, \cvsym^{\mathsf{net}}, \nfsym_{\mathrm{old}}, \rk, \cmx, \ldots)$
+(the \emph{Halo 2 Guide}'s zero-knowledge analysis). The simulator on input the instance
+$(\mathsf{anchor}, \cvsym^{\mathsf{net}}, \nfsym_{\mathrm{old}}, \rk, \cmx, \ldots)$
 operates as follows:
 \begin{enumerate}[leftmargin=*]
 \item Sample the Fiat--Shamir challenges $\theta, \beta, \gamma, y, x, x_1, x_2, x_3, x_4$
@@ -1557,16 +1583,23 @@ circuit-size exponent) uniformly, programming the
 random oracle to return these on the relevant transcript prefixes.
 \item Sample the final IPA scalar $a$ uniformly.
 \item Use the freedom in the blinding terms $\ell_j, r_j$ (added at each
-IPA round) and the polynomial blinders (added in phase 1) to satisfy
+IPA round) and the polynomial blinders (added to each committed prover
+polynomial: the advice columns in phase 1, the running products in phase 3,
+and the quotient chunks in phase 4) to satisfy
 the verifier's equations algebraically without knowing the witness.
 \end{enumerate}
 The resulting transcript is statistically indistinguishable from a real
 proof; the only gap from perfect ZK is the random-oracle programming,
 which a verifier that observes only the transcript cannot detect.
 
-ZK furnishes Orchard its privacy: the public chain state reveals
-only the public inputs of each Action; nothing about the spent note,
-recipient, or value beyond the explicit transparent total leaks.
+ZK supplies the proof's share of Orchard's privacy: the SNARK transcript
+reveals nothing beyond the public inputs of each Action. That the published
+data leak nothing further is a separate, computational matter: the
+nullifier --- itself a public input (\S\ref{sec:nullifier}) --- hides its
+note under the PRF security of Poseidon, and the $\mathsf{epk}$ and
+ciphertexts published alongside the public inputs (\S\ref{sec:noteenc})
+hide recipient and value under the DDH and KDF/AEAD assumptions that
+Theorem~\ref{thm:orchard-e2e}(iv) adds.
 
 \subsection{Composition of end-to-end soundness}\label{sec:e2e-snd}
 
@@ -1599,12 +1632,17 @@ primitives, Vesta for the IPA commitment) in the random-oracle model ---
 and, for property (iv), additionally DDH on Pallas, the PRF security of
 Poseidon (\S\ref{sec:nullifier}), and the KDF/AEAD securing the note
 ciphertext (\S\ref{sec:noteenc}) --- no efficient adversary
-can (i) produce an accepted Action whose public inputs do not correspond
-to a real spent note, (ii) cause two Actions to share a nullifier
-without spending the same note twice, (iii) cause a bundle's value flow
-to exceed the transparent balance, or (iv) link a published Action to
-any specific recipient or value beyond what is explicit in the public
-inputs.
+can (i) produce an accepted Action without knowing a witness satisfying
+A1--A9 --- in particular, any Action whose witnessed $v_{\mathrm{old}}$ is
+nonzero must spend a genuine leaf of the commitment tree (zero-value dummy
+spends, A3's gate, are accepted by design), (ii) cause two Actions to share
+a nullifier without spending the same note twice, (iii) cause a bundle's
+declared transparent balance $v_{\mathrm{balance}}^{\mathsf{Orchard}}$ to
+differ from its true net value flow
+$\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i})$ --- in particular, to
+exceed it, which would create value (Proposition~\ref{prop:balance}), or
+(iv) link a published Action to any specific recipient or value beyond
+what is explicit in the public inputs.
 \end{theorem}
 
 The four properties are, respectively, soundness of the Action SNARK,
@@ -1668,7 +1706,7 @@ setup.
 \item Pasta cycle: Pallas as the application curve, with Vesta as the
 proving curve in the IPA layer. Designed for recursion.
 \item Sinsemilla hash: an algebraic hash whose collision resistance reduces
-to DL on Pallas --- the same assumption the rest of the protocol rests on
+to DL on Pallas --- an assumption the protocol already requires elsewhere
 --- and whose chunk-table structure maps directly onto Halo~2's lookup
 argument (\S\ref{sec:sinsemilla}).
 \item Poseidon: serves the nullifier PRF (\S\ref{sec:nullifier}), where a

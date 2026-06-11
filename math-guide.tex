@@ -460,7 +460,7 @@ For \(n\ge 2\), the ring \(\Z/n\Z\) has no zero divisors if and only if \(n\) is
 \end{proposition}
 
 \begin{proof}
-If \(n=ab\) with \(1<a,b<n\) is composite, then \([a]_n\neq[0]_n\neq[b]_n\) but \([a]_n[b]_n=[n]_n=[0]_n\), so there are zero divisors. Conversely, if \(n=p\) is prime and \([a]_p[b]_p=[0]_p\), then \(p\mid ab\), so by Lemma~\ref{intmod:lem:primedivides} \(p\mid a\) or \(p\mid b\), i.e.\ \([a]_p=[0]_p\) or \([b]_p=[0]_p\). That a finite commutative ring without zero divisors and with \(1\neq 0\) is a field follows from the discussion of units below (Corollary~\ref{intmod:cor:fpfield}).
+If \(n=ab\) with \(1<a,b<n\) is composite, then \([a]_n\neq[0]_n\neq[b]_n\) but \([a]_n[b]_n=[n]_n=[0]_n\), so there are zero divisors. Conversely, if \(n=p\) is prime and \([a]_p[b]_p=[0]_p\), then \(p\mid ab\), so by Lemma~\ref{intmod:lem:primedivides} \(p\mid a\) or \(p\mid b\), i.e.\ \([a]_p=[0]_p\) or \([b]_p=[0]_p\). That \(\Z/p\Z\) is a field follows from the discussion of units below (Corollary~\ref{intmod:cor:fpfield}).
 \end{proof}
 
 \subsection{Units modulo \texorpdfstring{\(n\)}{n} and modular inverses}\label{intmod:sub:units}
@@ -491,7 +491,7 @@ If \(p\) is prime then every nonzero class in \(\Z/p\Z\) is a unit, so \(\Z/p\Z=
 \end{corollary}
 
 \begin{proof}
-If \(p\) is prime and \([a]_p\neq[0]_p\) then \(p\nmid a\), so \(\gcd(a,p)=1\) (the only positive divisors of \(p\) are \(1,p\)), and Theorem~\ref{intmod:thm:unitiff} makes \([a]_p\) a unit. Thus every nonzero element is invertible and \(\Fp\) is a field. If \(n\) is composite, \(n=ab\) with \(1<a,b<n\), then \([a]_n\neq[0]_n\) yet \(\gcd(a,n)=a>1\), so \([a]_n\) is not a unit; a ring with a nonzero non-unit (equivalently, with zero divisors, by Proposition~\ref{intmod:prop:zndomain}) is not a field. The case \(n=1\) gives the zero ring, not a field by convention.
+If \(p\) is prime and \([a]_p\neq[0]_p\) then \(p\nmid a\), so \(\gcd(a,p)=1\) (the only positive divisors of \(p\) are \(1,p\)), and Theorem~\ref{intmod:thm:unitiff} makes \([a]_p\) a unit. Thus every nonzero element is invertible and \(\Fp\) is a field. If \(n\) is composite, \(n=ab\) with \(1<a,b<n\), then \([a]_n\neq[0]_n\) yet \(\gcd(a,n)=a>1\), so \([a]_n\) is not a unit; a ring with a nonzero non-unit is not a field. The case \(n=1\) gives the zero ring, not a field by convention.
 \end{proof}
 
 \begin{example}\label{intmod:exa:modinverse}
@@ -2194,8 +2194,10 @@ multivariate polynomials \(f \in \F[X_1, \dots, X_n]\): a nonzero polynomial of
 total degree \(d\) vanishes at a uniformly random point of \(S^n\) with
 probability at most \(d / |S|\). The univariate case proved here is both the base
 case of its inductive proof and the version most directly used in the analysis of
-Halo~2; the later volumes develop the multivariate ring \(\F[X_1, \dots, X_n]\)
-and this generalization where they require it.
+Halo~2; the later volumes invoke only the univariate case directly; where an
+identity in several challenges arises (e.g.\ the permutation argument's pair
+\((\beta,\gamma)\) in the \emph{Halo~2 Guide}), the stated multivariate bound
+applies, and follows from the univariate lemma by applying it once per variable.
 \end{remark}
 
 \clearpage
@@ -2577,7 +2579,7 @@ Let \(p\) be an odd prime, \(p-1 = 2^s d\) with \(d\) odd, and let \(a\) be a qu
 \end{theorem}
 
 \begin{proof}[Sketch]
-Fix a non-residue \(z\) (found by trying random elements; by Proposition~\ref{numbertheory:prop:half-qr} a random element is a non-residue with probability \(\tfrac12\), and one checks \(\legendre{z}{p}\) in \(O((\log p)^2)\) time). Set \(c = z^{d}\); this generates the unique cyclic subgroup \(H\) of order \(2^s\) in \(\Fp^\times\). Indeed, by Euler's criterion \(z^{(p-1)/2} \equiv -1\), so \((z^d)^{2^{s-1}} = z^{(p-1)/2} = -1 \neq 1\) while \((z^d)^{2^s} = z^{p-1} = 1\); hence \(\ord_p(z^d) = 2^s\). Initialise
+Fix a non-residue \(z\) (found by trying random elements; by Proposition~\ref{numbertheory:prop:half-qr} a random element is a non-residue with probability \(\tfrac12\), and one checks \(\legendre{z}{p}\) by one modular exponentiation (Euler's criterion, Definition~\ref{numbertheory:def:legendre}), i.e.\ \(O(\log p)\) modular multiplications). Set \(c = z^{d}\); this generates the unique cyclic subgroup \(H\) of order \(2^s\) in \(\Fp^\times\). Indeed, by Euler's criterion \(z^{(p-1)/2} \equiv -1\), so \((z^d)^{2^{s-1}} = z^{(p-1)/2} = -1 \neq 1\) while \((z^d)^{2^s} = z^{p-1} = 1\); hence \(\ord_p(z^d) = 2^s\). Initialise
 \[
 x = a^{\frac{d+1}{2}}, \qquad t = a^{d}, \qquad m = s.
 \]
@@ -2613,7 +2615,7 @@ Let \(G = \langle g\rangle\) be cyclic of order \(N = \prod_{i=1}^{r} q_i^{e_i}\
 \[
 O\!\left(\sum_i e_i\bigl(\log N + \sqrt{q_i}\bigr)\right)
 \]
-group operations, dominated by \(O(\sqrt{q_{\max}})\).
+group operations; when \(N\) has a large prime factor the \(O(\sqrt{q_{\max}})\) term dominates, whereas for smooth \(N\) every term is polynomial in \(\log N\) and the DLP is easy---the failure mode that Corollary~\ref{numbertheory:cor:prime-order} explains how to avoid.
 \end{theorem}
 
 \begin{proof}[Sketch]
@@ -3016,7 +3018,7 @@ Let \(g\) be a generator of \(\Fq^\times\), which is cyclic of order \(q-1\) by 
 using the standard formula for the order of a power in a cyclic group together with \(m \mid q-1\) (so \(\gcd(m,q-1)=m\)). Thus \(\omega\) is a primitive \(n\)-th root of unity. By \cref{rootsofunity:prp-cyclic}, \(\mu_n(\Fq) = \langle \omega \rangle\) is cyclic of order exactly \(n\).
 
 \smallskip
-\noindent\emph{Count.} In the cyclic group \(\mu_n(\Fq) = \langle \omega \rangle\) of order \(n\), the element \(\omega^k\) has order \(n / \gcd(k,n)\). This equals \(n\) precisely when \(\gcd(k,n) = 1\). The number of \(k \in \{0,1,\dots,n-1\}\) with \(\gcd(k,n)=1\) is by definition \(\varphi(n)\). Hence there are exactly \(\varphi(n)\) primitive \(n\)-th roots of unity. (The coprimality hypothesis \(\gcd(n,q)=1\) is what guarantees \(X^n-1\) is separable and that \(\mu_n\) has the full \(n\) elements; if \(p = \operatorname{char}\Fq\) divided \(n\), then \(X^n - 1\) would have repeated roots and \(\mu_n(\Fq)\) would be strictly smaller. But \(n \mid q-1\) already forces \(\gcd(n,q)=1\), since \(\gcd(q-1,q)=1\), so the hypothesis is in fact subsumed.)
+\noindent\emph{Count.} In the cyclic group \(\mu_n(\Fq) = \langle \omega \rangle\) of order \(n\), the element \(\omega^k\) has order \(n / \gcd(k,n)\). This equals \(n\) precisely when \(\gcd(k,n) = 1\). The number of \(k \in \{0,1,\dots,n-1\}\) with \(\gcd(k,n)=1\) is by definition \(\varphi(n)\). Hence there are exactly \(\varphi(n)\) primitive \(n\)-th roots of unity. (The coprimality hypothesis \(\gcd(n,q)=1\) is what guarantees \(X^n-1\) is separable, hence has \(n\) distinct roots in any field containing \(\Fq\) (\cref{polynomials:thm:multiple-root}); that all \(n\) of them lie in \(\Fq\) itself is exactly the condition \(n \mid q-1\); if \(p = \operatorname{char}\Fq\) divided \(n\), then \(X^n - 1\) would have repeated roots and \(\mu_n(\Fq)\) would be strictly smaller. But \(n \mid q-1\) already forces \(\gcd(n,q)=1\), since \(\gcd(q-1,q)=1\), so the hypothesis is in fact subsumed.)
 \end{proof}
 
 \begin{remark}\label{rootsofunity:rem-subsumed}
@@ -3405,7 +3407,7 @@ Let \(f(x) = x^3 + ax + b \in K[x]\). The following are equivalent.
 \end{proposition}
 
 \begin{proof}
-\((2)\Leftrightarrow(3)\): a polynomial has a repeated root iff it shares a root with its derivative, i.e. iff \(\gcd(f, f') \neq 1\) in \(\overline{K}[x]\). \((1)\Leftrightarrow(2)\): the discriminant of the cubic \(x^3 + ax + b\) equals, up to the nonzero factor \(-16\), \(4a^3 + 27 b^2\); a univariate polynomial has a repeated root iff its discriminant vanishes. One may verify the identity directly: if \(f(x) = (x-r_1)(x-r_2)(x-r_3)\) then \(\prod_{i<j}(r_i - r_j)^2 = -(4a^3 + 27b^2)\), using \(r_1 + r_2 + r_3 = 0\) (the coefficient of \(x^2\) is zero). \((4)\Leftrightarrow(2)\): a singular point of the affine curve \(y^2 = f(x)\) is a point where both partial derivatives of \(g(x,y) = y^2 - f(x)\) vanish, namely \(\partial g/\partial y = 2y = 0\) and \(\partial g/\partial x = -f'(x) = 0\). Since \(\mathrm{char}(K) \neq 2\), the first forces \(y_0 = 0\), and then the curve equation gives \(f(x_0) = 0\); combined with \(f'(x_0) = 0\) this says \(x_0\) is a repeated root of \(f\). Conversely a repeated root \(x_0\) yields the singular point \((x_0, 0)\).
+\((2)\Leftrightarrow(3)\): a polynomial has a repeated root iff it shares a root with its derivative, i.e. iff \(\gcd(f, f') \neq 1\) in \(\overline{K}[x]\). \((1)\Leftrightarrow(2)\): the discriminant of the cubic \(x^3 + ax + b\) equals \(-(4a^3 + 27 b^2)\), i.e.\ agrees with \(4a^3 + 27 b^2\) up to sign (the curve discriminant \(\Delta\) of Definition~\ref{ellipticcurves:def-discriminant} carries the additional conventional factor \(16\)); a univariate polynomial has a repeated root iff its discriminant vanishes. One may verify the identity directly: if \(f(x) = (x-r_1)(x-r_2)(x-r_3)\) then \(\prod_{i<j}(r_i - r_j)^2 = -(4a^3 + 27b^2)\), using \(r_1 + r_2 + r_3 = 0\) (the coefficient of \(x^2\) is zero). \((4)\Leftrightarrow(2)\): a singular point of the affine curve \(y^2 = f(x)\) is a point where both partial derivatives of \(g(x,y) = y^2 - f(x)\) vanish, namely \(\partial g/\partial y = 2y = 0\) and \(\partial g/\partial x = -f'(x) = 0\). Since \(\mathrm{char}(K) \neq 2\), the first forces \(y_0 = 0\), and then the curve equation gives \(f(x_0) = 0\); combined with \(f'(x_0) = 0\) this says \(x_0\) is a repeated root of \(f\). Conversely a repeated root \(x_0\) yields the singular point \((x_0, 0)\).
 \end{proof}
 
 \begin{definition}[elliptic curve, affine points]\label{ellipticcurves:def-curve}
@@ -4101,7 +4103,7 @@ A function \(f\colon \N \to \R_{\ge 0}\) is \emph{polynomially bounded}, written
 \end{definition}
 
 \begin{definition}[Exponential]\label{probability:def-exp-fn}
-A function \(f\) is \emph{exponential} if \(f(\lambda) = 2^{\Omega(\lambda^{\epsilon})}\) for some constant \(\epsilon > 0\); the prototypical case is \(f(\lambda) = 2^{c\lambda}\) for a constant \(c > 0\). Every exponential function is super-polynomial, but the converse fails: e.g.\ \(\lambda^{\log \lambda} = 2^{(\log\lambda)^2}\) is super-polynomial yet sub-exponential.
+A function \(f\) is \emph{exponential} if \(f(\lambda) = 2^{\Omega(\lambda)}\); the prototypical case is \(f(\lambda) = 2^{c\lambda}\) for a constant \(c > 0\). A super-polynomial function with \(f(\lambda) = 2^{o(\lambda)}\) is \emph{sub-exponential}; examples are \(\lambda^{\log \lambda} = 2^{(\log\lambda)^2}\) and the index-calculus running time \(L_p[1/3] = 2^{\Theta(\lambda^{1/3} (\log \lambda)^{2/3})}\) in the bit length \(\lambda = \log_2 p\). Every exponential function is super-polynomial; the converse fails by the examples above.
 \end{definition}
 
 The central cryptographic notion is that of a \emph{negligible} function: one that shrinks faster than the reciprocal of every polynomial. A negligible probability is one we may ignore, because no efficient (polynomially many) repetition of an experiment can amplify it to a noticeable chance.
@@ -4169,7 +4171,7 @@ A computational task parameterised by the security parameter \(\lambda\) is \emp
 \[
 \Pr\big[\Adv \text{ solves the task on parameter } \lambda\big] = \negl(\lambda),
 \]
-where the probability is over the task's randomness and \(\Adv\)'s coins. Equivalently, no efficient algorithm does noticeably better than the trivial strategy.
+where the probability is over the task's randomness and \(\Adv\)'s coins. Equivalently, no efficient algorithm succeeds with non-negligible probability.
 \end{definition}
 
 \begin{remark}[Reading a hardness assumption]\label{probability:rem-hardness}
@@ -4187,7 +4189,7 @@ This section closes by making explicit the parameter that threads through every 
 \begin{definition}[Security parameter]\label{probability:def-secparam}
 The \emph{security parameter} is a positive integer \(\lambda \in \N\) that one supplies to all algorithms of a cryptographic scheme, conventionally in unary as the string \(1^\lambda\) (so that ``polynomial in the input length'' coincides with ``polynomial in \(\lambda\)''). It governs simultaneously:
 \begin{itemize}
-\item the \emph{sizes} of objects (key lengths, group order \(\approx 2^{2\lambda}\), field size), each \(\poly(\lambda)\);
+\item the \emph{sizes} of objects---key lengths and the encodings of group and field elements (\(\approx 2\lambda\) bits, the group order being \(\approx 2^{2\lambda}\))---each \(\poly(\lambda)\);
 \item the \emph{running time} of honest algorithms, which must be \(\poly(\lambda)\); and
 \item the \emph{security level}: every PPT adversary's advantage must be \(\negl(\lambda)\).
 \end{itemize}
