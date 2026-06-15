@@ -821,6 +821,21 @@ membership against the anchor of any main-chain block, and all Actions of one
 bundle prove against a single shared anchor (\S\ref{sec:netverify}).
 \end{definition}
 
+Every node is a single base-field element by necessity, not convention. The
+spender recomputes this hash layer by layer \emph{inside} the Action circuit to
+prove membership (check~A3 of \S\ref{sec:action-stmt}), and that circuit is
+arithmetic over $\F_{p_{\Pallas}}$: every wire carries one such field element.
+A curve-point node would carry two coordinates and an on-curve constraint at
+each of the $32$ layers; reducing each node to its $x$-coordinate halves the
+path data the circuit threads and removes that bookkeeping. This is precisely
+why $\mathsf{MerkleCRH}$ ends in $\Extract$: $\Sinsemilla$ yields a point, and
+$\Extract$ returns it to the field, so that each layer's output is directly the
+next layer's input and the one hash composes all the way to the root. Dropping
+the $y$-coordinate is harmless here (\S\ref{sec:prelim-curve}): the tree uses
+each node only as a binding digest, never to recover a child point, and a
+collision in the $x$-coordinate still reduces to one in $\Sinsemilla$
+(Theorem~\ref{thm:sinsemilla-cr}).
+
 Two design details are significant. The tag carries the layer
 index $\ell'$ so that a path at one height cannot replay at another.
 And empty leaf positions take an ``uncommitted'' sentinel value
