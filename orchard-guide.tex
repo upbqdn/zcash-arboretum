@@ -1121,6 +1121,14 @@ $R^{\mathsf{Orchard}} := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}cv},
 (\S\ref{sec:prelim-curve}), hence independent Pallas generators.
 \end{definition}
 
+The spender draws each $\rcv$ uniformly at random and afresh for every Action,
+at the moment of bundle assembly. In contrast to the note's $\rcm$, $\psi$, and
+$\mathsf{esk}$ --- all derived deterministically from the note seed
+$\mathsf{rseed}$ (\S\ref{sec:noteenc}) --- $\rcv$ belongs to no note and is never
+transmitted; its uniformity and secrecy are precisely what make
+$\cvsym^{\mathsf{net}}$ hiding, and what keep the aggregate $\mathsf{bsk}$
+introduced below known only to the transaction author.
+
 We now apply the homomorphism. Summing over the $m$ Actions in a transaction,
 \[
 \sum_{i=1}^{m} \cvsym^{\mathsf{net},i} = \Bigl[\textstyle\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i})\Bigr] V^{\mathsf{Orchard}} + [\mathsf{bsk}]\,R^{\mathsf{Orchard}}, \qquad \mathsf{bsk} := \sum_i \rcv_i \;\in\; \F_{p_{\Vesta}}.
@@ -1282,8 +1290,8 @@ The Action SNARK proves, with public inputs
 \[
 (\mathsf{anchor},\, \cvsym^{\mathsf{net}},\, \nfsym_{\mathrm{old}},\, \rk,\, \cmx,\, \mathsf{enableSpends},\, \mathsf{enableOutputs})
 \]
-and the note, keys, Merkle path, randomiser $\alpha$, and randomness as
-private witness, the conjunction:
+and the note, keys, Merkle path, randomiser $\alpha$, and the
+value-commitment trapdoor $\rcv$ as private witness, the conjunction:
 
 \medskip\noindent
 \textbf{[A1] Old-note commitment integrity} --- the spent note is
@@ -1368,8 +1376,8 @@ actually executes is a \emph{circuit} that proves membership in it in zero
 knowledge. Halo~2 (the \emph{Halo~2 Guide}) proves satisfiability of a fixed
 PLONKish circuit, so the task of the application layer is to encode the
 conjunction A1--A9 as one such circuit --- the \emph{Action circuit}, identical
-for every Action --- supplied the note, keys, Merkle path, randomiser, and
-randomness as private witness. We sketch this encoding here; the gate-level
+for every Action --- supplied the note, keys, Merkle path, randomiser $\alpha$, and the
+value-commitment trapdoor $\rcv$ as private witness. We sketch this encoding here; the gate-level
 details appear in the \emph{halo2 Book} and the \emph{Orchard Book}.
 
 We assemble the circuit from a small set of reusable \emph{gadgets} (``chips''),
