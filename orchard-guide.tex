@@ -855,10 +855,11 @@ one node per level: writing $\mathsf{pos} = b_{31} \cdots b_1 b_0$ in binary,
 the level-$i$ ancestor of her leaf is a left child when $b_i = 0$ and a right
 child when $b_i = 1$, and the path's level-$i$ entry is that ancestor's
 \emph{sibling} in the tree of size $n$ (Figure~\ref{fig:merklepath}).
-Check~A3 reverses the construction: starting from $\cmx$ it folds in one path
-entry per level, on the side $b_i$ dictates, and asserts that the final value
-equals the public anchor; the bits $b_i$ and the siblings stay inside the
-witness.
+Check~A3 reverses the construction: starting from $\cmx$ it combines the
+running node with one path entry per level --- placing the node on the side
+$b_i$ dictates (left when $b_i = 0$, right when $b_i = 1$) and the sibling
+opposite --- and asserts that the final value equals the public anchor; the
+bits $b_i$ and the siblings stay inside the witness.
 
 Each entry is one of two kinds. When $b_i = 1$ the sibling subtree lies to
 the \emph{left} of her leaf: it spans commitments older than hers, every one
@@ -879,10 +880,10 @@ needs: the nodes from each of its own notes up to the root, the
 complete-subtree roots flanking those paths, and one \emph{checkpoint} per
 block; the rest it prunes (this is the design of librustzcash's
 \textsf{shardtree}). It marks its note's position the moment trial decryption
-succeeds (\S\ref{sec:noteenc}). A checkpoint stores merely the number of
-leaves $n$ present at that block --- the size that fixes the block's anchor;
-the anchor itself is recomputed from the retained nodes on demand, never
-stored.
+succeeds (\S\ref{sec:noteenc}). A checkpoint stores merely the position of
+that block's last leaf, equivalently the leaf count $n$ --- the size that
+fixes the block's anchor; the anchor itself is recomputed from the retained
+nodes on demand, never stored.
 
 To produce the path for a spend against a chosen block, the wallet descends
 its retained tree to the marked leaf and, on the way back to the root, reads
