@@ -980,7 +980,18 @@ need not race the chain tip. The one recency caveat runs in the opposite
 direction: a reorganisation can strike the anchoring block from the main
 chain, invalidating the anchor and forcing her to rebuild the transaction;
 anchoring at least $100$ blocks deep (Zcash's reorg limit) avoids this
-entirely. Nor is an old anchor a soundness hole: membership in an older,
+entirely. Deployed wallets nonetheless anchor close to the tip, by
+deliberate choice rather than necessity. The anchor's tree is the anonymity
+set in which check~A3 conceals the spent note --- the proof reveals only that
+the note is \emph{some} leaf committed by that anchor --- so the most recent
+admissible anchor, naming the largest such tree, maximises that set, while an
+idiosyncratically old or deep anchor would instead fingerprint the spender.
+\textsf{librustzcash} accordingly selects the most recent block it has
+checkpointed that lies at least a fixed number of confirmations behind the tip
+(by default, per ZIP-315, $3$ confirmations for notes the wallet produced
+itself and $10$ for notes received from third parties), trading a sliver of
+reorg robustness for set size and uniformity. Consensus mandates none of this;
+it is wallet policy. Nor is an old anchor a soundness hole: membership in an older,
 smaller tree implies the note was committed even earlier, which is precisely
 what Alice must establish --- the nullifier (\S\ref{sec:nullifier}), not the
 anchor, prevents a second spend.
