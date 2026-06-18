@@ -864,9 +864,10 @@ opposite --- and asserts that the final value equals the public anchor; the
 bits $b_i$ and the siblings stay inside the witness.
 
 Each entry is one of two kinds. When $b_i = 1$ the sibling subtree lies to
-the \emph{left} of her leaf: it spans commitments older than hers, every one
-of its positions is filled, and --- because the tree appends only on the
-right --- its root is final and identical at every anchor. When $b_i = 0$ the
+the \emph{left} of her leaf: it spans commitments older than hers, so every
+one of its positions is filled --- a \emph{complete} subtree --- and, because
+the tree appends only on the right, its root is final and identical at every
+anchor. When $b_i = 0$ the
 sibling subtree lies to her \emph{right}, and its value depends on the
 anchor: its root hashes the commitments it holds at size $n$, with positions
 not yet filled taking the uncommitted sentinel $2$; a sibling subtree still
@@ -894,12 +895,7 @@ root, a subtree lying wholly beyond the leaf count $n$ contributes the
 per-level empty root, and the single subtree straddling position $n$ is
 rehashed from its retained nodes. The leaf count enters only as this cutoff
 --- every position $\ge n$ counts as empty --- so one retained tree
-reproduces the path against any block it has checkpointed. Because the
-flanking siblings are \emph{complete-subtree roots}, the wallet never stores
-or rescans their leaves; a freshly restored wallet fetches those roots
-directly --- one $32$-byte root per $2^{16}$-leaf subtree
-($\mathsf{GetSubtreeRoots}$) --- and scans leaf by leaf only the subtree that
-holds its own note.
+reproduces the path against any block it has checkpointed.
 
 \begin{figure}[htbp]
 \centering
@@ -919,7 +915,7 @@ holds its own note.
 \node[lf,near]  (L0) at (0,0) {};
 \node[lf,near]  (L1) at (1,0) {};
 \node[lf,route] (L2) at (2,0) {};
-\node[lf,sibl]  (L3) at (3,0) {};
+\node[lf,sibl]  (L3) at (3,0) {\scriptsize$L_3$};
 \node[lf,faded] (L4) at (4,0) {};
 \node[lf,faded] (L5) at (5,0) {};
 \node[lf,faded] (L6) at (6,0) {};
@@ -958,15 +954,52 @@ witness a years-old note.}\label{fig:merklepath}
 
 Nothing above requires Alice to have been online: the inputs are public, so a
 freshly restored wallet rebuilds the same state by replaying the chain's note
-commitments. Nor must it touch all $2^{32}$ positions. Her note resides in
-one \emph{shard} of $2^{16}$ leaves, and only that shard's leaves enter her
-siblings at the low levels; every other shard enters her path through its
-root alone (the faded subtree of Figure~\ref{fig:merklepath}, folded into
-$F$). A light wallet therefore fetches the other shards' precomputed roots
-($\mathsf{GetSubtreeRoots}$), its own shard's leaves, and a frontier
-checkpoint. It performs the computation \emph{locally}, never asking a server
-for one particular note's path, which would reveal which note is hers. The
-finished path is the private witness of check~A3; only the anchor is public.
+commitments. Nor need it touch all $2^{32}$ positions, and here the tree's
+structure earns its keep. Cut the tree at half its depth. Below the cut lie
+the \emph{shards} --- the height-$16$ subtrees, $2^{16}$ leaves apiece, up to
+$2^{16}$ of them --- and above it a height-$16$ \emph{cap} whose own leaves are
+the shard roots (librustzcash sets the shard height to half the tree depth,
+$32/2 = 16$). A leaf's $32$ siblings divide along the same cut: the low $16$
+(levels $0$ through $15$) lie inside its own shard, and the high $16$ (levels
+$16$ through $31$) are cap nodes, each the root of a subtree spanning whole
+shards. The two halves reach Alice by entirely different routes, and that
+asymmetry is the economy of the scheme.
+
+Her own shard she must hash from leaves. Its $16$ low siblings are the
+within-shard subtrees of the descent above --- complete to her left, straddling
+or empty to her right --- so she scans that shard's commitments block by block,
+her own and everyone else's, and folds them; this is the one subtree whose
+$2^{16}$ leaves she handles individually. Every \emph{other} shard she takes as
+a single $32$-byte root. The cap's leaves are exactly those roots, which a light
+server streams one per completed shard ($\mathsf{GetSubtreeRoots}$); Alice folds
+them upward with the same layer-tagged $\mathsf{MerkleCRH}$, one application per
+cap level --- the upper half of the tree's $32$ layers --- and reads her high
+siblings off the result (Figure~\ref{fig:merklepath} is the toy-depth analogue:
+the faded subtree enters only through its root $F$). A shard that does not yet
+exist --- the empty right of the cap --- contributes the per-level empty
+constant rather than a download, and her own shard she holds from leaves whether
+or not it has completed, so she never needs its root from the server. Her
+level-$16$ sibling is thus a neighbouring shard's root, and each sibling above
+it a fold of $2, 4, 8, \dots$ roots she already holds.
+
+A concrete case fixes the shape. Let Alice's note be the \emph{last} leaf of the
+newest shard $k$. Below the cut, all $16$ low siblings are complete left
+subtrees tiling the shard's earlier $2^{16} - 1$ positions, so she ingests
+essentially the whole shard. Above the cut, the cap's right side is empty --- no
+shard succeeds $k$, so those siblings are the empty constant --- while its left
+side folds the roots of shards $0, \dots, k-1$, each supplied by
+$\mathsf{GetSubtreeRoots}$. Stitching the halves --- her leaf folds up to the
+shard-$k$ root, which folds up the cap to the anchor --- gives the full
+$32$-level path.
+
+The $2^{16}$ throughout bounds the cap's \emph{capacity} --- $2^{32}$ leaves over
+$2^{16}$ per shard --- not Alice's traffic. She fetches one root per shard that
+actually exists, $\lceil n/2^{16} \rceil$ of them: a few hundred at present tree
+sizes, and growing by one every $2^{16}$ outputs. The whole history above her
+shard thus arrives as a few kilobytes of roots in place of millions of leaves.
+She performs the fold \emph{locally}, never asking a server for one particular
+note's path, which would reveal which note is hers; the finished path is the
+private witness of check~A3, and only the anchor is public.
 
 \paragraph{Anchor choice as the tree grows.}
 By the time Alice's transaction reaches a block, the live tree has advanced
