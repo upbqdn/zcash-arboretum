@@ -1,0 +1,608 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[protrusion=true,expansion=false]{microtype}
+\usepackage{booktabs,enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\definecolor{tierspend}{RGB}{200,60,60}
+\definecolor{tierfull}{RGB}{210,140,40}
+\definecolor{tierin}{RGB}{60,130,180}
+\definecolor{tierrecv}{RGB}{70,150,90}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\emergencystretch=3em
+\hbadness=10000
+\hfuzz=2pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{construction}[theorem]{Construction}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\G}{\mathbb{G}}
+\renewcommand{\Pr}{\mathrm{Pr}}
+\newcommand{\Fp}{\F_p}
+\newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
+\newcommand{\Comm}{\mathsf{Commit}}
+\newcommand{\Prov}{\mathcal{P}}
+\newcommand{\Ver}{\mathcal{V}}
+\newcommand{\Ext}{\mathcal{E}}
+\newcommand{\ZH}{Z_H}
+\DeclareMathOperator{\degr}{deg}
+
+\renewenvironment{abstract}{%
+  \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
+}{\par\medskip}
+
+\title{\textbf{\Huge How Halo 2 Proves}\\[6pt]\large One computation, carried from claim to conviction}
+\author{m@rek.onl}
+\date{}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\begin{abstract}
+A companion to the \emph{Halo~2 Guide}. That volume develops the proof system
+top-down --- the polynomial-IOP design pattern, knowledge soundness, the
+inner-product commitment, accumulation. This one is bottom-up and has a single
+aim: to make it \emph{obvious} why a Halo~2 proof convinces anyone of anything.
+We fix one tiny statement --- ``I know $x$ with $x^3 + x + 5 = 35$'' --- and
+carry it the entire distance: into a grid of constraints, into polynomials,
+into a single polynomial identity, into a commitment, and finally into the
+verifier's check of a handful of field elements. Every number is real
+(we work in $\F_{97}$ so the arithmetic fits on the page), and at each turn we
+let a cheating prover try to lie and watch precisely where the lie is caught.
+The heavy machinery (the inner-product argument, the formal extractor,
+accumulation) is sketched and deferred to the \emph{Halo~2 Guide}; the
+\emph{idea of proving} is developed in full here.
+\end{abstract}
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{What we are going to prove, and what ``prove'' means}\label{sec:intro}
+
+Pick a claim small enough to hold in one hand:
+\[
+\text{``I know a secret } x \text{ such that } x^3 + x + 5 = 35\text{.''}
+\]
+The secret is $x = 3$ (indeed $27 + 3 + 5 = 35$). The whole of this guide
+follows that one sentence until a sceptic is convinced of it --- without ever
+being told that $x = 3$.
+
+Three demands make this nontrivial, and a Halo~2 proof meets all three. The
+proof is \emph{complete}: an honest prover who knows $x$ always convinces the
+verifier. It is \emph{sound} (more precisely, \emph{knowledge sound}): a prover
+who does \emph{not} know a valid $x$ is rejected, except with negligible
+probability --- and ``knowledge'' is meant literally, in the sense that a
+satisfying $x$ could in principle be extracted from any prover who succeeds.
+And it is \emph{zero-knowledge}: the verifier finishes convinced yet learns
+nothing about $x$ beyond the bare truth of the claim. Completeness is easy;
+the content of the subject is \emph{soundness with zero-knowledge}, and that is
+what we will watch being built.
+
+Why this toy? Because it is the Orchard spend statement in miniature. When Alice
+spends a note she proves ``I know a note, a key, and a Merkle path such that
+the nullifier is computed correctly, the value commitment opens, and the note
+sits in the tree'' --- a conjunction of a few thousand small arithmetic facts
+over $\F_{p_{\mathsf{Pallas}}}$ (the \emph{Orchard Guide}, check~A1--A9). Our claim is
+a conjunction of \emph{four} small arithmetic facts. The proof system does not
+care which; it is the same machine at two scales. Master $x^3 + x + 5 = 35$ and
+the Action circuit is only larger, not different.
+
+\paragraph{The journey.} The route has five legs, and each is a translation
+that loses nothing:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item \textbf{Computation $\to$ grid} (\S\ref{sec:arith}). Rewrite the claim as
+a table of rows, each row one elementary gate ($\times$ or $+$), with wires
+between rows forcing shared values.
+\item \textbf{Grid $\to$ polynomials} (\S\ref{sec:polys}). Interpolate each
+column of the table into a polynomial. ``Every row obeys its gate'' becomes
+``one polynomial $G(X)$ is zero at every row.''
+\item \textbf{Vanishing $\to$ identity} (\S\ref{sec:vanish}). ``$G$ is zero on
+all rows'' becomes the clean algebraic identity $G(X) = t(X)\,\ZH(X)$ for some
+quotient $t$. A correct computation \emph{is} a polynomial identity; an
+incorrect one cannot be.
+\item \textbf{Identity $\to$ one random check} (\S\ref{sec:random}). The
+verifier tests the identity at a single random point $z$. Here lives the
+magic: a false identity survives a random point with vanishing probability
+(Schwartz--Zippel).
+\item \textbf{Trust the openings} (\S\ref{sec:commit}--\S\ref{sec:zk}). A
+binding \emph{commitment} stops the prover from changing her polynomials after
+seeing $z$; the permutation argument enforces the wiring; an instance column
+pins the public ``$35$''; and blinding makes the whole transcript reveal
+nothing.
+\end{enumerate}
+Section~\ref{sec:assemble} threads the legs back together into one sentence:
+why the verifier, having checked a few numbers, is right to be convinced.
+
+We work throughout in the prime field $\F_{97}$. This is a toy size chosen so
+the reader can check every product by hand; the security of the real system
+comes from running the identical argument over a $255$-bit field, where the
+``vanishing probability'' below is genuinely $2^{-240}$ rather than our
+visible $3/97$.
+
+\section{From computation to a grid of constraints}\label{sec:arith}
+
+A verifier cannot re-run Alice's computation: that would need her secret. So we
+first dismantle the computation into \emph{local} facts, each so simple it
+involves only a handful of values, and arrange them so that ``all the local
+facts hold, and the values are consistently shared'' is equivalent to ``the
+whole computation ran correctly.'' This rearrangement is \emph{arithmetisation};
+the Halo~2 dialect of it is \emph{PLONKish} (the \emph{Halo~2 Guide},
+\S\,PLONKish arithmetisation).
+
+\paragraph{Break the computation into gates.} Evaluate $x^3 + x + 5$ the way a
+machine would, naming each intermediate:
+\[
+x^2 = x \cdot x, \qquad x^3 = x^2 \cdot x, \qquad s = x^3 + x, \qquad s + 5 = 35.
+\]
+Four elementary operations, two multiplications and two additions. Each becomes
+one row of a table. A row has three \emph{wires} --- call them $a, b, c$, the
+two inputs and the output --- and a bank of \emph{selectors}
+$q_M, q_L, q_R, q_O, q_C$ that switch on whichever gate this row performs. The
+universal gate equation, evaluated at every row, is
+\begin{equation}\label{eq:gate}
+q_M\,a\,b \;+\; q_L\,a \;+\; q_R\,b \;+\; q_O\,c \;+\; q_C \;+\; \mathrm{PI} \;=\; 0,
+\end{equation}
+where $\mathrm{PI}$ carries any public input on that row (here, the target
+$35$). A multiplication gate $a\cdot b = c$ is the choice
+$q_M = 1,\ q_O = -1$, the rest zero; an addition gate $a + b = c$ is
+$q_L = q_R = 1,\ q_O = -1$. Filling in our four operations gives the
+\emph{execution trace}, Table~\ref{tab:trace}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{c ccc c ccccc c l}
+\toprule
+row & $a$ & $b$ & $c$ & \phantom{x} & $q_M$ & $q_L$ & $q_R$ & $q_O$ & $q_C$ & $\mathrm{PI}$ & gate performed \\
+\midrule
+$0$ & $3$  & $3$ & $9$  && $1$ & $0$ & $0$ & $-1$ & $0$ & $0$   & $x\cdot x = x^2$ \\
+$1$ & $9$  & $3$ & $27$ && $1$ & $0$ & $0$ & $-1$ & $0$ & $0$   & $x^2\cdot x = x^3$ \\
+$2$ & $27$ & $3$ & $30$ && $0$ & $1$ & $1$ & $-1$ & $0$ & $0$   & $x^3 + x = s$ \\
+$3$ & $30$ & $0$ & $0$  && $0$ & $1$ & $0$ & $0$  & $5$ & $-35$ & $s + 5 = 35$ \\
+\bottomrule
+\end{tabular}
+\caption{The execution trace for $x = 3$. Each row satisfies the gate
+equation~\eqref{eq:gate}: e.g.\ row $0$ gives $1\cdot 3\cdot 3 + (-1)\cdot 9 = 0$,
+and row $3$ gives $1\cdot 30 + 5 + (-35) = 0$. The selector columns
+$q_\bullet$ and the public input $\mathrm{PI}$ are \emph{fixed} (known to the
+verifier); the wires $a,b,c$ are the prover's \emph{advice} (her secret
+trace).}\label{tab:trace}
+\end{table}
+
+\paragraph{Wire the rows together: copy constraints.} The table as printed has
+a fatal loophole. Nothing yet forces the $x$ in row~$0$ to be the same $x$ in
+rows~$1$ and~$2$, nor the output $x^2 = 9$ of row~$0$ to be the input of
+row~$1$. A cheating prover could put $x = 3$ in row~$0$ but $x = 8$ in
+row~$2$ and satisfy each gate \emph{in isolation} while computing nonsense
+overall. We must assert that certain cells are \emph{equal}. These are the
+\emph{copy constraints} (or \emph{equality constraints}):
+\[
+\underbrace{a_0 = b_0 = b_1 = b_2}_{\text{all are } x = 3}, \qquad
+\underbrace{c_0 = a_1}_{x^2 = 9}, \qquad
+\underbrace{c_1 = a_2}_{x^3 = 27}, \qquad
+\underbrace{c_2 = a_3}_{s = 30}.
+\]
+They are what turn a list of unrelated gates into a single dataflow. Enforcing
+them is a small argument in its own right (\S\ref{sec:perm}); for now simply
+note what they say.
+
+\paragraph{What the grid achieves.} The claim is now equivalent to a purely
+combinatorial assertion: \emph{there exist values for the advice cells
+$a, b, c$ such that (i) every row satisfies the gate
+equation~\eqref{eq:gate} with the fixed selectors, and (ii) every copy
+constraint holds.} Knowing $x$ is exactly knowing how to fill the advice
+columns. The verifier knows the fixed columns and the public input; the
+prover must convince him that satisfying advice exists, while revealing none
+of it. Everything from here is machinery for doing precisely that.
+
+\section{From the grid to polynomials}\label{sec:polys}
+
+The grid has a finite number of rows, and we want to make statements about
+``all rows at once'' that a verifier can check by looking at \emph{one} place.
+Polynomials are the tool: a low-degree polynomial is rigid --- pinned down
+everywhere by its behaviour at a few points --- and that rigidity is what we
+will weaponise.
+
+\paragraph{An index set for the rows.} Our table has $n = 4$ rows. Choose four
+distinct field elements to name them. The inspired choice is the
+\emph{$n$-th roots of unity}: a value $\omega$ with $\omega^4 = 1$ and no
+smaller power equal to $1$. In $\F_{97}$ we may take $\omega = 22$, for which
+$\omega^2 = 96 = -1$ and $\omega^4 = 1$, so the row labels are
+\[
+H \;=\; \{\,\omega^0, \omega^1, \omega^2, \omega^3\,\}
+   \;=\; \{\,1,\ 22,\ 96,\ 75\,\}
+   \;=\; \{\,1,\ 22,\ -1,\ -22\,\}.
+\]
+Row $i$ now lives at the point $\omega^i$. (The roots of unity are chosen not
+for elegance but for speed: they make the polynomial arithmetic below an FFT.
+Any $4$ distinct points would do for correctness.)
+
+\paragraph{Columns become polynomials.} Each column of the table is four
+numbers, one per row. \emph{Interpolate}: for the advice column $a$ there is a
+unique polynomial $a(X)$ of degree $< 4$ with
+\[
+a(\omega^0) = 3,\quad a(\omega^1) = 9,\quad a(\omega^2) = 27,\quad a(\omega^3) = 30,
+\]
+and likewise $b(X), c(X)$, and the (publicly known) selector polynomials
+$q_M, q_L, q_R, q_O, q_C$ and the public-input polynomial $\mathrm{PI}$, each a
+polynomial in $X$ of degree $< 4$. The column \emph{is} the polynomial, sampled at the rows.
+A polynomial of degree $< 4$ is exactly four coefficients, so no information is
+gained or lost --- only re-encoded into a form that bends to algebra.
+
+\paragraph{All gates at once, as one polynomial.} Now assemble the left-hand
+side of the gate equation~\eqref{eq:gate}, but with the \emph{polynomials} in
+place of the per-row numbers:
+\begin{equation}\label{eq:Gpoly}
+G(X) \;:=\; q_M(X)\,a(X)\,b(X) \;+\; q_L(X)\,a(X) \;+\; q_R(X)\,b(X)
+        \;+\; q_O(X)\,c(X) \;+\; q_C(X) \;+\; \mathrm{PI}(X).
+\end{equation}
+This $G$ has degree at most $9$ (the term $q_M a b$ multiplies three
+degree-$3$ polynomials). Here is the point of the whole construction. Evaluate
+$G$ at the label of row $i$: because each polynomial returns that row's value
+at $\omega^i$, $G(\omega^i)$ is \emph{exactly} the gate
+equation~\eqref{eq:gate} for row $i$. Therefore
+\[
+\boxed{\;G(\omega^i) = 0 \text{ for every row } i \;\Longleftrightarrow\; \text{every gate is satisfied.}\;}
+\]
+For our honest trace this is true by construction: $G$ vanishes at all four
+points of $H$. ``The computation is correct'' has become ``$G$ vanishes on
+$H$.'' We have replaced four separate checks with a single statement about one
+polynomial --- and it is a statement we can now make checkable in one shot.
+
+\section{From vanishing to a single identity}\label{sec:vanish}
+
+``$G$ vanishes on the set $H$'' is still a statement about four points. One
+more step compresses it into a statement with \emph{no} reference to the
+individual rows at all --- a bare algebraic identity --- and this is the
+technical heart of arithmetic proving.
+
+\paragraph{The vanishing polynomial.} The polynomial that is zero exactly on
+$H$, and nowhere else, and as simply as possible, is
+\[
+\ZH(X) \;:=\; \prod_{i=0}^{3}(X - \omega^i) \;=\; X^4 - 1.
+\]
+(The product of $(X - \zeta)$ over all $n$-th roots of unity $\zeta$ telescopes
+to $X^n - 1$; that is the only reason roots of unity are convenient here.) The
+elementary fact we lean on is the factor theorem, applied $n$ times:
+\begin{equation}\label{eq:divis}
+G \text{ vanishes on all of } H \quad\Longleftrightarrow\quad
+(X-\omega^i)\mid G \text{ for each } i \quad\Longleftrightarrow\quad
+\ZH(X) \mid G(X).
+\end{equation}
+Divisibility is the same as the existence of a quotient. So:
+\[
+\boxed{\;\text{every gate holds} \;\Longleftrightarrow\;
+G(X) = t(X)\,\ZH(X)\ \text{ for some polynomial } t(X).\;}
+\]
+A correct computation is \emph{precisely} the existence of this quotient $t$.
+For our honest trace the division comes out even: $G$ has degree $9$,
+$\ZH$ has degree $4$, and
+\[
+t(X) \;=\; \frac{G(X)}{X^4 - 1}
+\]
+is an honest polynomial of degree $5$ --- the remainder is zero, as it must be.
+
+\paragraph{Why a cheat cannot produce $t$.} Suppose the prover's advice is
+\emph{wrong} --- some gate fails. Then $G$ does \emph{not} vanish on all of
+$H$, so by~\eqref{eq:divis} $\ZH$ does \emph{not} divide $G$, so \emph{no}
+polynomial $t$ satisfies $G = t\,\ZH$. The dividing line is exact: the quotient
+exists if and only if the trace is valid. This is the lever the verifier will
+pull. Concretely, take a prover who claims $x^2 = 10$ and writes $c_0 = 10$ in
+row~$0$ (Table~\ref{tab:trace}) instead of $9$. Now row~$0$'s gate reads
+$3\cdot 3 - 10 = -1 \neq 0$, so the tampered $G^{\!*}$ has
+$G^{\!*}(\omega^0) = -1 = 96$ while still vanishing at the other three rows.
+Dividing $G^{\!*}$ by $\ZH$ leaves a nonzero remainder; the best the cheater
+can do is publish the quotient $t^{\!*} = \lfloor G^{\!*}/\ZH\rfloor$, and then
+\[
+D(X) \;:=\; G^{\!*}(X) - t^{\!*}(X)\,\ZH(X) \;=\; 24\,(1 + X + X^2 + X^3)
+\]
+is a \emph{nonzero} polynomial of degree $3$. The identity she needs is false,
+and $D$ measures exactly by how much. Keep $D$ in view: the next section is
+about catching it cheaply.
+
+\section{Why checking one random point is a proof}\label{sec:random}
+
+The prover wishes to convince the verifier that $G(X) = t(X)\,\ZH(X)$ as
+polynomials, with $G$ built from her secret advice. The verifier will not read
+the polynomials --- they encode the witness, and there are too many
+coefficients to be cheap anyway. Instead:
+
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item The prover \emph{commits} to her polynomials $a, b, c$ and the quotient
+$t$ (Section~\ref{sec:commit} says what a commitment is and why it binds her);
+the selector and public-input polynomials the verifier already knows.
+\item The verifier picks a point $z \in \F$ \emph{uniformly at random} and
+sends it.
+\item The prover \emph{opens} her commitments at $z$: she returns the field
+elements $a(z), b(z), c(z), t(z)$ together with short proofs that these are the
+true evaluations of the committed polynomials.
+\item The verifier forms $G(z)$ from the openings and the (self-evaluated)
+public polynomials via~\eqref{eq:Gpoly}, computes $\ZH(z) = z^4 - 1$, and
+checks the \emph{single field equation}
+\begin{equation}\label{eq:check}
+G(z) \;\overset{?}{=}\; t(z)\,\ZH(z).
+\end{equation}
+\end{enumerate}
+He accepts if and only if~\eqref{eq:check} holds. That is the entire test: one
+equation between numbers.
+
+\paragraph{The honest case (completeness).} If the prover is honest then
+$G = t\,\ZH$ holds as polynomials, hence at every point, hence at $z$. With our
+trace and $z = 20$:
+\[
+\ZH(20) = 20^4 - 1 = 46, \qquad t(20) = 67, \qquad
+G(20) = 75 = 67 \cdot 46 = t(20)\,\ZH(20). \quad\checkmark
+\]
+The verifier accepts, every time, for every $z$.
+
+\paragraph{The dishonest case (soundness), and the one idea that makes it
+work.} Suppose the trace is invalid --- some gate fails, say at row $i$, so
+$G^{\!*}(\omega^i) \neq 0$ and $G^{\!*}$ does \emph{not} vanish on all of $H$.
+Take \emph{any} polynomial $t^{\!*}$ the cheating prover might commit to (the
+honest quotient, or anything else) and set
+\[
+D(X) \;:=\; G^{\!*}(X) - t^{\!*}(X)\,\ZH(X).
+\]
+Were $D$ the zero polynomial, then $G^{\!*} = t^{\!*}\,\ZH$ would be divisible
+by $\ZH$ and so vanish on all of $H$ --- which it does not. Hence $D$ is a
+\emph{nonzero} polynomial, however cleverly $t^{\!*}$ was chosen. And $D$ is
+fixed \emph{before} $z$ is drawn: committing to $a, b, c$ pins down the
+polynomial $G^{\!*}$ (the verifier never receives $G^{\!*}$ itself --- from the
+openings at $z$ he reconstructs only the single \emph{number} $G^{\!*}(z)$),
+and committing to $t^{\!*}$ pins down the rest, so the entire polynomial $D$ is
+frozen by the commitments before the challenge is revealed. The
+check~\eqref{eq:check} passes at $z$ exactly when $D(z) = 0$ --- that is,
+exactly when the random $z$ happens to be a \emph{root} of $D$. And here is the
+lever: \emph{a nonzero polynomial of degree $d$ has at most $d$ roots}
+(Schwartz--Zippel, in one variable just the factor theorem). A degree-$d$
+polynomial is pinned down by any $d + 1$ of its values, so it has no freedom to
+vanish at more than $d$ points without collapsing to zero everywhere; a nonzero
+low-degree polynomial is therefore \emph{mostly} nonzero, its roots a sparse
+set that a random probe almost surely misses. So
+\[
+\Pr_{z}\bigl[\text{cheat accepted}\bigr] \;=\;
+\Pr_{z}\bigl[D(z) = 0\bigr] \;\le\; \frac{\degr D}{|\F|}.
+\]
+A liar is caught with overwhelming probability over the verifier's single coin
+toss. \emph{This} is what ``proving'' means here: not that the verifier
+re-checks the work, but that a false statement is an algebraic object so rigid
+it cannot hide --- it disagrees with the truth almost everywhere, and one
+random probe almost surely lands where it disagrees.
+
+\paragraph{Watch it happen.} For our $x^2 = 10$ cheat, $D(X) = 24(1 + X + X^2
++ X^3)$ has degree $3$, so at most $3$ roots --- and in $\F_{97}$ its roots are
+exactly $\{22, 96, 75\}$, the three rows where the tampered gate still held.
+The cheat therefore slips past only if the verifier's random $z$ lands in that
+three-element set:
+\[
+\Pr[\text{cheat accepted}] \;=\; \frac{3}{97}.
+\]
+At the verifier's actual draw $z = 20 \notin \{22,96,75\}$, we get
+$G^{\!*}(20) = 20$ but $t^{\!*}(20)\,\ZH(20) = 64$, and $20 \neq 64$: caught.
+The fraction $3/97$ is large only because our field is a toy. Over Orchard's
+$255$-bit Pallas field the gap polynomial still has at most $\degr D$ roots ---
+now a vanishingly small fraction of the $\approx 2^{255}$ candidate points, a
+soundness error on the order of $2^{-240}$ from a \emph{single} draw of $z$ ---
+so one random challenge already suffices, and the deployed proof even replaces
+that coin toss with a hash of the transcript (Fiat--Shamir, the \emph{Halo~2
+Guide}).
+
+\paragraph{Bounding the degree.} The argument needs $D$ to have \emph{low}
+degree relative to $|\F|$ --- otherwise ``$d/|\F|$ roots'' is no constraint.
+This is why a circuit's gates are kept to low degree and why $t$, of degree
+$\le 5$ here (and up to a few times $n$ in general), is split into bounded
+pieces in the deployed system. Low degree is not an efficiency footnote; it is
+the source of soundness.
+
+\section{Why the prover cannot wriggle: binding commitments}\label{sec:commit}
+
+The random-point argument has an obvious gap: it assumed the prover's
+polynomials were \emph{fixed before} she saw $z$. If she could choose
+$a, b, c, t$ \emph{after} learning $z$, she would simply pick numbers making
+\eqref{eq:check} hold and reveal nothing real. A \emph{polynomial commitment}
+closes exactly this gap.
+
+\paragraph{What a commitment must do.} A commitment to a polynomial $f$ is a
+short string $C = \Comm(f)$ with two properties (the \emph{Crypto Guide}
+develops both):
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+\item \textbf{Binding.} Having published $C$, the prover cannot later open it as
+two different polynomials; $C$ pins down $f$. So committing first, then
+receiving $z$, then opening, leaves her no freedom: she is answering for the
+\emph{one} polynomial she fixed in advance --- the situation
+Section~\ref{sec:random} assumed.
+\item \textbf{Hiding.} $C$ reveals nothing about $f$ itself. (This is what
+will let the proof be zero-knowledge, \S\ref{sec:zk}.)
+\end{itemize}
+Add an \emph{evaluation proof}: given $C$ and a point $z$, the prover can prove
+``$f(z) = v$'' for the committed $f$ without exposing $f$. With binding plus
+trustworthy evaluation proofs, the four-step protocol of
+Section~\ref{sec:random} is exactly as sound as its idealised version: the
+opened numbers $a(z), \dots, t(z)$ are forced to be the true evaluations of
+fixed polynomials, so the check~\eqref{eq:check} tests a genuine, pre-committed
+identity at a genuinely random point.
+
+\paragraph{How Halo 2 commits, in one breath.} Halo~2 uses the
+\emph{inner-product argument} (IPA). Encode $f$ by its coefficient vector
+$\vec f = (f_0, \dots, f_{m})$ and fix a public list of independent curve
+points $\vec G = (G_0, \dots, G_{m})$ with no known relationship. The
+commitment is the single curve point
+\[
+C \;=\; \ip{\vec f}{\vec G} \;=\; \sum_i f_i\,G_i,
+\]
+a \emph{Pedersen} vector commitment: binding because finding two openings would
+solve a discrete-log relation among the $G_i$, and hiding once a random
+blinding term is added. To prove $f(z) = v$ is to prove a statement about the
+inner product of $\vec f$ with the vector $(1, z, z^2, \dots)$, and the IPA
+does this in a logarithmic number of rounds, each \emph{halving} the vectors,
+until the claim is trivial --- so the evaluation proof is $O(\log m)$ group
+elements and, decisively, needs \emph{no trusted setup}. The full fold, its
+soundness, and the accumulation trick that makes it recursion-friendly are the
+business of the \emph{Halo~2 Guide} (\S\,the inner-product polynomial
+commitment, and \S\,the Halo trick). For our purposes one property is enough:
+\emph{the commitment binds}, so the prover is honestly answering for
+polynomials she could not change once $z$ was on the table.
+
+\section{Enforcing the wiring: the permutation argument}\label{sec:perm}
+
+One promise from Section~\ref{sec:arith} is still unpaid: the copy constraints.
+The gate identity of Sections~\ref{sec:polys}--\ref{sec:random} checks each row
+\emph{in isolation}; it never says that $a_0, b_0, b_1, b_2$ are the same value
+$x$, or that row~$1$'s input is row~$0$'s output. Without that, a prover could
+satisfy every gate with an incoherent dataflow. The \emph{permutation argument}
+adds the missing constraint, and it does so with the same philosophy: turn
+``these cells are equal'' into ``a certain product is $1$,'' then check the
+product at a random point.
+
+\paragraph{Equalities as a permutation.} Group the cells into classes that must
+share a value --- here $\{a_0, b_0, b_1, b_2\}$, $\{c_0, a_1\}$,
+$\{c_1, a_2\}$, $\{c_2, a_3\}$ --- and let $\sigma$ be the permutation that
+cycles each class. Give every cell a distinct \emph{label}: cell in row $j$ of
+the $a$-, $b$-, $c$-column gets $\omega^j$, $k_1\omega^j$, $k_2\omega^j$
+respectively, where $k_1, k_2$ place the three columns in disjoint cosets so no
+two labels collide (in $\F_{97}$ we may take $k_1 = 2, k_2 = 3$). Asserting
+``cells in a class are equal'' is then equivalent to asserting that the map
+sending each cell's \emph{value-with-label} to its \emph{value-with-$\sigma$-permuted-label}
+is consistent --- a balance between two multisets.
+
+\paragraph{The grand product.} With verifier challenges $\beta, \gamma$, the
+prover builds a running product that telescopes across all $3n$ cells:
+\[
+\prod_{\text{cells } (i,j)}
+\frac{v_{i}(\omega^j) + \beta\,(\text{label}) + \gamma}
+     {v_{i}(\omega^j) + \beta\,(\text{$\sigma$-label}) + \gamma}
+\;=\; 1
+\quad\Longleftrightarrow\quad
+\text{every copy constraint holds.}
+\]
+If the wiring is honest, numerator and denominator run over the \emph{same}
+multiset of factors (just reordered by $\sigma$), so the ratio is $1$ identically;
+if any wired pair disagrees, the multisets differ and the product misses $1$
+except with probability $O(n/|\F|)$ over $\beta, \gamma$ --- Schwartz--Zippel
+again. The prover commits to this running-product polynomial and the verifier
+checks its boundary ($=1$ at the first row) and its row-to-row update at the
+random $z$, just another handful of openings.
+
+\paragraph{A two-cell glimpse.} Strip the product down to a single wired pair,
+$c_0 = a_1$ (both should be $9$), carrying labels $L_{c_0}, L_{a_1}$ that
+$\sigma$ swaps. Their combined contribution to numerator-over-denominator is
+\[
+\frac{\bigl(9 + \beta L_{c_0} + \gamma\bigr)\bigl(9 + \beta L_{a_1} + \gamma\bigr)}
+     {\bigl(9 + \beta L_{a_1} + \gamma\bigr)\bigl(9 + \beta L_{c_0} + \gamma\bigr)} \;=\; 1,
+\]
+because the shared value $9$ makes the two numerator factors a mere reordering
+of the two denominator factors --- the labels may permute under $\sigma$
+precisely because the values agree. Now let the prover cheat the copy,
+$a_1 = 8 \neq 9$: the numerator factor $8 + \beta L_{a_1} + \gamma$ matches no
+denominator factor, the cancellation breaks, and the pair's contribution drifts
+off $1$. Equal values let labels permute; one unequal value strands a factor,
+and the whole product feels it.
+
+\paragraph{Watch it happen.} For our honest trace, with $\beta = \gamma = 2$,
+the grand product comes out to exactly $1$. Tamper one wire --- set $b_1 = 4$,
+breaking the copy $b_1 = x = 3$ --- and the same product becomes $61 \neq 1$:
+the inconsistent dataflow is exposed without any value being revealed.
+
+\section{Binding the public statement, and hiding the witness}\label{sec:zk}
+
+Two finishing pieces complete the picture, one for soundness and one for
+secrecy.
+
+\paragraph{Pinning the public ``$35$'': the instance column.} A proof must
+attest to \emph{this} statement, not some other the prover finds convenient.
+The target $35$ is public, so it is not advice but \emph{instance} data: it
+sits in the public-input polynomial $\mathrm{PI}(X)$ of~\eqref{eq:Gpoly}, which
+the verifier builds himself (it is $-35$ on row~$3$ and $0$ elsewhere). Because
+$\mathrm{PI}$ enters the very identity being checked, a prover who tried to
+prove ``$x^3 + x + 5 = 36$'' would be checking a \emph{different} $G$ and her
+honest trace would no longer vanish on $H$. The public input is thus welded
+into the same polynomial identity that soundness already guards (the
+\emph{Halo~2 Guide}, \S\,binding the public statement). The verifier proves
+something about the claim he chose, not one the prover swapped in.
+
+\paragraph{Revealing nothing: zero-knowledge.} So far the prover has handed
+over commitments and a few evaluations $a(z), b(z), \dots$ at a random $z$. Do
+these leak the witness? They could: an evaluation is a linear equation in the
+secret coefficients, and enough of them would pin $x$ down. Halo~2 closes this
+the standard way --- \emph{blinding}. Each committed polynomial is padded with
+a few extra random coefficients (equivalently, the trace reserves a few random
+rows), and the commitment carries an independent random blinding term. The
+gate and permutation arguments are arranged to ignore those random rows
+(the \emph{Halo~2 Guide}'s active-rows remark), so they do not disturb
+soundness; but the openings at $z$ are now masked by fresh randomness and are
+distributed independently of $x$. Formally one exhibits a \emph{simulator} that
+produces an identically distributed transcript knowing only that the statement
+is true --- so whatever the verifier sees, he could have generated alone,
+hence learned nothing. The simulator construction is deferred to the
+\emph{Halo~2 Guide} (\S\,zero knowledge in Halo~2); the intuition is simply:
+\emph{commitments hide, and blinded openings are noise pinned to one honest
+constraint}.
+
+\section{Why the verifier is convinced}\label{sec:assemble}
+
+Stand back and read the chain in the direction the verifier experiences it. He
+accepts a proof. What has he thereby learned?
+
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item The check $G(z) = t(z)\,\ZH(z)$ passed at his random $z$. Because the
+commitment \emph{binds} (\S\ref{sec:commit}), the polynomials behind the
+openings were fixed before $z$; because $z$ was random and a false identity
+disagrees with the true one at all but $\le \degr D$ points
+(\S\ref{sec:random}), passing means $G(X) = t(X)\,\ZH(X)$ holds \emph{as
+polynomials}, save for a $2^{-240}$ fluke.
+\item $G = t\,\ZH$ means $\ZH \mid G$, which means $G$ vanishes on all of $H$
+(\S\ref{sec:vanish}), which means \emph{every gate equation holds at every
+row} (\S\ref{sec:polys}).
+\item The permutation grand product passed (\S\ref{sec:perm}), so the
+\emph{copy constraints} hold too: the per-row gates are wired into one
+coherent computation, not four disconnected coincidences.
+\item The public-input polynomial fixed the target at $35$ (\S\ref{sec:zk}), so
+the computation he has verified is the one he asked about.
+\end{enumerate}
+Putting these together --- and recalling from \S\ref{sec:arith} that filling
+the advice columns \emph{is} knowing $x$, since those cells are the wires
+carrying $x$ and its powers --- there exists an assignment to the advice
+columns, a value of $x$, making the entire arithmetisation of
+``$x^3 + x + 5 = 35$'' hold. The prover demonstrably \emph{knew} such an $x$; indeed the soundness
+proof is constructive --- an \emph{extractor} can rewind a successful prover
+and read $x$ out of her openings (the \emph{Halo~2 Guide}, \S\,knowledge
+soundness). And by zero-knowledge (\S\ref{sec:zk}) the verifier extracted no
+more than this single bit of truth. He has checked perhaps a dozen field
+elements and a logarithmic-size opening proof, yet he is as certain as
+$2^{-240}$ that the prover holds a secret cube-root-ish witness --- without the
+faintest idea what it is.
+
+\paragraph{The same machine, at Orchard scale.} Nothing above used that our
+statement was small. Replace the four gates by the few thousand constraints of
+the Orchard Action --- nullifier integrity, the value-commitment opening, the
+Merkle path recomputation, key re-randomisation (the \emph{Orchard Guide},
+checks~A1--A9) --- and the columns grow from four rows to $2^{k}$, the gate
+polynomial gains custom high-degree terms, and a Sinsemilla lookup table joins
+the permutation. But the spine is identical: arithmetise into a grid, interpolate
+to polynomials, compress ``all rows correct'' into one identity $G = t\,\ZH$,
+commit, and test at a random point. When a Zcash full node verifies a shielded
+spend, it is running exactly the check of Section~\ref{sec:random} --- one
+random evaluation of a committed polynomial identity --- and concluding,
+with cryptographic certainty and learning nothing, that somewhere a valid note
+was spent by its rightful owner.
+
+\paragraph{Where to go next.} Every deferral above is discharged in the
+\emph{Halo~2 Guide}: the inner-product argument and why its openings are
+trustworthy; the algebraic-group-model extractor behind ``the prover knows
+$x$''; the accumulation/Halo trick that lets one proof verify another so the
+whole chain folds into constant work; and the cycle of curves that makes that
+recursion efficient. This guide has supplied the thing those formalisms are
+formalising: the picture of \emph{why a single random number, checked against a
+committed polynomial, is enough to know that an unseen computation was done
+right}.
+
+\end{document}
