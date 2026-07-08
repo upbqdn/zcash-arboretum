@@ -1,0 +1,1480 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[protrusion=true,expansion=false]{microtype}
+\usepackage{booktabs,enumitem}
+\usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\definecolor{tierspend}{RGB}{200,60,60}
+\definecolor{tierfull}{RGB}{210,140,40}
+\definecolor{tierin}{RGB}{60,130,180}
+\definecolor{tierrecv}{RGB}{70,150,90}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\emergencystretch=3em
+\hbadness=10000
+\hfuzz=2pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{construction}[theorem]{Construction}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\PP}{\mathbb{P}}
+\renewcommand{\Pr}{\mathrm{Pr}}
+\newcommand{\Fp}{\F_p}
+\newcommand{\Fq}{\F_q}
+\newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
+\newcommand{\Comm}{\mathsf{Commit}}
+\newcommand{\Open}{\mathsf{Open}}
+\newcommand{\Setup}{\mathsf{Setup}}
+\newcommand{\Verify}{\mathsf{Verify}}
+\newcommand{\negl}{\mathsf{negl}}
+\newcommand{\poly}{\mathsf{poly}}
+\newcommand{\PPT}{\mathsf{PPT}}
+\newcommand{\Adv}{\mathcal{A}}
+\newcommand{\Prov}{\mathcal{P}}
+\newcommand{\Ver}{\mathcal{V}}
+\newcommand{\Sim}{\mathcal{S}}
+\newcommand{\Ext}{\mathcal{E}}
+\newcommand{\Rel}{\mathcal{R}}
+\newcommand{\Lang}{\mathcal{L}}
+\newcommand{\nfsym}{\mathsf{nf}}
+\newcommand{\cmsym}{\mathsf{cm}}
+\newcommand{\cmx}{\mathsf{cmx}}
+\newcommand{\cvsym}{\mathsf{cv}}
+\newcommand{\rk}{\mathsf{rk}}
+\newcommand{\Pallas}{\ensuremath{\mathsf{Pallas}}}
+\newcommand{\Vesta}{\ensuremath{\mathsf{Vesta}}}
+\newcommand{\Ep}{\ensuremath{\mathcal{E}}}
+\newcommand{\NoteCommit}{\ensuremath{\mathsf{NoteCommit}}}
+\newcommand{\Sinsemilla}{\ensuremath{\mathsf{Sinsemilla}}}
+\newcommand{\ShortCommit}{\ensuremath{\mathsf{ShortCommit}}}
+\newcommand{\CommitIvk}{\ensuremath{\mathsf{Commit}^{\mathsf{ivk}}}}
+\newcommand{\Extract}{\ensuremath{\mathsf{Extract}}}
+\newcommand{\Acc}{\ensuremath{\mathsf{Acc}}}
+\newcommand{\GroupHash}{\ensuremath{\mathsf{GroupHash}}}
+\newcommand{\ask}{\ensuremath{\mathsf{ask}}}
+\newcommand{\aksym}{\ensuremath{\mathsf{ak}}}
+\newcommand{\nksym}{\ensuremath{\mathsf{nk}}}
+\newcommand{\ivk}{\ensuremath{\mathsf{ivk}}}
+\newcommand{\fvk}{\ensuremath{\mathsf{fvk}}}
+\newcommand{\ovk}{\ensuremath{\mathsf{ovk}}}
+\newcommand{\dk}{\ensuremath{\mathsf{dk}}}
+\newcommand{\pkd}{\ensuremath{\mathsf{pk_d}}}
+\newcommand{\gd}{\ensuremath{\mathsf{g_d}}}
+\newcommand{\rcv}{\ensuremath{\mathsf{rcv}}}
+\newcommand{\rcm}{\ensuremath{\mathsf{rcm}}}
+\newcommand{\rivk}{\ensuremath{\mathsf{r_{ivk}}}}
+\newcommand{\rsk}{\ensuremath{\mathsf{rsk}}}
+
+\renewenvironment{abstract}{%
+  \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
+}{\par\medskip}
+
+\title{\textbf{\Huge Voting Guide}\\[6pt]\large The Zally shielded voting protocol, as deployed for Zcash coinholder polling}
+\author{m@rek.onl}
+\date{}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\begin{abstract}
+This volume of the series --- \emph{Math Guide}, \emph{Crypto Guide},
+\emph{Halo~2 Guide}, \emph{Orchard Guide}, \emph{Wallet Guide}, \emph{Voting
+Guide}, \emph{Tachyon Guide} --- documents the shielded voting protocol
+deployed for Zcash coinholder polling. No specification of the protocol has
+merged anywhere; the commit-pinned implementation is the de facto
+specification, and this volume documents that implementation: ballot structure
+and eligibility proving against a snapshot of the note-commitment tree, the
+layered nullifier defences against double voting, threshold ElGamal tallying
+under a validator DKG, and --- stated without euphemism --- the trust
+assumptions and the one confirmed gap between the published description and
+the deployed circuit.
+\end{abstract}
+\clearpage
+\tableofcontents
+\clearpage
+\section{The protocol and its provenance}\label{sec:vote-context}
+
+This volume documents the \emph{Shielded Voting Protocol} --- internally
+``Zally'', shipped to users as \emph{Coinholder Polling} --- the first
+governance mechanism to run over Zcash's shielded pool in production. The
+protocol lets a holder of Orchard notes vote with the weight of their unspent
+funds, privately: the funds never move, the notes and addresses are never
+revealed, and only aggregate totals become public. The internal name appears
+in the client library's own description of itself (``the Zally governance
+protocol'', \texttt{valargroup/zcash\_voting} @ \texttt{624cf198},
+\texttt{README.md}); the draft ZIP carries the public name
+(\texttt{draft-valargroup-shielded-voting.md}, zcash/zips PR \#1200); the
+wallet changelog carries the product name (\texttt{zashi-android} @
+\texttt{b4edd6f6}, \texttt{CHANGELOG.md}). This section fixes what shipped,
+where the design came from, and --- decisive for every citation in this
+volume --- what the specification actually is.
+
+\subsection{What shipped}\label{sec:vote-shipped}
+
+In outline: a voting round pins a snapshot of the Zcash chain --- an Orchard
+note-commitment root and a nullifier-set root. A holder proves in zero
+knowledge that they control notes which existed and were unspent at the
+snapshot, and delegates their quantised weight --- one ballot per $0.125$~ZEC
+($12{,}500{,}000$ zatoshi per ballot,
+\texttt{voting-circuits/src/params.rs}) --- to a round-scoped governance
+hotkey. The hotkey casts each vote as ElGamal-encrypted split shares on a
+dedicated permissioned chain, \texttt{svoted}, whose ballot surface is five
+messages (\texttt{vote-sdk/proto/svote/v1/tx.proto}); relayers reveal shares
+with timing decorrelation; and a per-round threshold \emph{Election
+Authority} --- a distributed key generation among the chain's validators ---
+decrypts aggregates only (\texttt{vote-sdk/x/vote/keeper/keeper\_tally.go}).
+The remainder of this volume constructs each of these objects in turn; here
+we record only their provenance.
+
+\paragraph{Deployment.} Coinholder Polling shipped in Zodl --- the wallet
+formerly Zashi; the team left ECC in January 2026 and the application package
+identity is unchanged --- version 3.5.0 on Android and iOS, released
+2026-05-28, with signing support for the Keystone hardware wallet
+(\texttt{zashi-android} @ \texttt{b4edd6f6}, \texttt{CHANGELOG.md}, entry
+\texttt{[3.5.0 (1736)]}); a follow-up release, 3.5.2, followed on 2026-06-04
+(ibid., entry \texttt{[3.5.2 (1742)]}). The first production use was the NU7
+sentiment coinholder poll, open 2026-06-10 through 2026-06-24 with results
+published by 2026-06-29, run in parallel with a ZCAP poll of the same
+question (statuses checked 2026-07-08).
+%% TODO: pin the poll announcement and results URLs once archived; production
+%% coordinator/validator identities not yet established from public data.
+
+\paragraph{Authorship.} Valar Group designed and implemented the protocol,
+led by Dev Ojha (GitHub \texttt{ValarDragon}); the draft ZIP is authored by
+GitHub user \texttt{p0mvn}, also of Valar Group. The upstream
+\texttt{orchard} crate gained the protocol's one in-tree dependency --- the
+\texttt{unstable-voting-circuits} feature, which widens circuit internals
+(the \NoteCommit{}, nullifier-derivation, and \CommitIvk{} chips) for
+out-of-tree reuse --- in a commit by Adam Tucker (zcash/orchard @
+\texttt{c0b6b917}, 2026-04-23). ZODL engineers str4d (Jack Grigg),
+Daira-Emma Hopwood, and Kris Nuttycombe reviewed --- they did not design ---
+the architecture in Q1~2026 (ZODL retroactive grant application,
+ZcashCoinholderGrantsProgram issue \#33); ZODL also built the wallet
+integration.
+
+\subsection{Lineage}\label{sec:vote-lineage}
+
+Coin-weighted shielded polling on Zcash has one prior implementation:
+hhanh00's \texttt{zcash-vote}, a standalone application that ran the 2024
+developer-fund poll and the April--May 2025 lockbox poll
+(\texttt{hhanh00/zcash-vote} @ \texttt{f05f5f25},
+\texttt{src/election.rs}; it depends on a forked \texttt{orchard} at rev
+\texttt{75448e67} with a \texttt{vote} feature). Its ZIP --- zcash/zips PR
+\#853, ``Coin Voting ZIP'' --- has been open since 2024-05-28 and remains
+unmerged as of 2026-07-08. Zally is independent of it: neither codebase
+references the other (verified by search over both trees, 2026-07-08), and
+Zally reuses the upstream \texttt{orchard} crate through a feature flag
+where \texttt{zcash-vote} patches in its fork. The two share the
+core idea --- pin a snapshot, prove note eligibility against it, and prevent
+double voting with a per-election nullifier --- but Zally adds hotkey
+delegation through a dedicated note type (the Vote Authority Note), split
+ElGamal shares, a threshold Election Authority, relayers, private
+eligibility queries by single-server PIR, a dedicated chain, and hardware
+signing, and it lives inside the production wallet rather than beside it.
+
+Two adjacent mechanisms are not ancestors. ZCAP, the Zcash Community
+Advisory Panel, polls an identified panel through Helios with no coin
+weighting; the June 2026 NU7 question ran through both instruments in
+parallel, which makes the distinction operational, not academic. Hopwood's
+draft \texttt{draft-ecc-onchain-accountable-voting.md} (created 2025-02-21,
+in the merged zips tree at \texttt{c6b70358}) targets the complement ---
+accountable on-chain voting by identified key-holders --- and shares no
+design lineage with either.
+
+\subsection{The source situation: code as the de facto specification}
+\label{sec:vote-source-situation}
+
+No normative document exists. The would-be specification, zcash/zips PR
+\#1200 (``[ZIP TBD] Shielded Voting Protocol'', opened 2026-03-05), is open
+and unmerged as of 2026-07-08, not updated since 2026-06-02, and carries a
+review comment flagging a section as ``Underspecified''; the companion PIR
+draft, PR \#1198, is likewise open. The design
+book the implementation itself cites --- \texttt{valargroup/shielded-vote-book},
+linked from the \texttt{zcash\_voting} README --- is private, as is its
+mirror \texttt{z-cale/shielded-vote-book} (both return 404 to anonymous
+access, verified 2026-07-08). The public documentation
+(\texttt{valargroup.gitbook.io/shielded-vote-docs}, fetched 2026-07-08) is
+prose: its circuit pages list public and private inputs and some Poseidon
+preimages, but omit the governance-nullifier, VAN-nullifier, and
+share-nullifier formulas, the nullifier-domain derivation, the
+proposal-bitmask width, and the indexed-Merkle-tree leaf model --- and it
+misstates the ballot-quantisation rule, the sole open problem this volume
+records (the closing paragraph of this section).
+
+The consequence governs this volume: the commit-pinned implementation of
+Table~\ref{tab:vote-sources} is the de facto specification, and what we
+document is that implementation. Every governance-specific formula in the
+chapters that follow is read from these sources at these commits, never from
+designer prose; where the prose and the code disagree, the code is the
+protocol, and we flag the disagreement.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Repository & Commit & Date & Role \\
+\midrule
+\texttt{valargroup/voting-circuits} & \texttt{4c39abd5} & 2026-06-03 &
+  circuits: prover \emph{and} verifier \\
+\texttt{valargroup/vote-sdk} & \texttt{cb915f51} & 2026-06-05 &
+  vote chain: validation, DKG, tally \\
+\texttt{valargroup/zcash\_voting} & \texttt{624cf198} & 2026-06-07 &
+  client: proofs, scheduling, persistence \\
+\texttt{valargroup/vote-nullifier-pir} & \texttt{603e4e3b} & 2026-06-03 &
+  PIR: nullifier non-membership \\
+\texttt{valargroup/spendability-pir} & \texttt{a924008d} & 2026-06-04 &
+  PIR: spendability and witness queries \\
+\texttt{zcash/orchard} & \texttt{c0b6b917} & 2026-04-23 &
+  \texttt{unstable-voting-circuits} feature \\
+\bottomrule
+\end{tabular}
+\caption{The de facto specification: the sources this volume documents,
+pinned by commit. Wallet-side integration is pinned separately:
+\texttt{zcash-android-wallet-sdk} @ \texttt{f386369e} depends on
+\texttt{zcash\_voting~=0.11.0} and \texttt{orchard~=0.14.0} with the
+\texttt{unstable-voting-circuits} feature
+(\texttt{backend-lib/Cargo.toml}); \texttt{zashi-android} @
+\texttt{b4edd6f6}, \texttt{zashi-ios} @ \texttt{8ab0e6ed}.}
+\label{tab:vote-sources}
+\end{table}
+
+\paragraph{The single-crate caveat.} Crate \texttt{voting-circuits} exposes
+both the provers and the verifiers of all three circuits
+(\texttt{verify\_delegation\_proof}, \texttt{verify\_vote\_proof}, and
+\texttt{verify\_share\_reveal\_proof}, each in its circuit directory's
+\texttt{prove.rs}), and the
+chain consumes the same crate for validation:
+\texttt{vote-sdk/circuits/Cargo.toml} pins \texttt{voting-circuits} at
+version \texttt{0.8.0}, and \texttt{vote-sdk/x/vote/ante/validate.go}
+invokes it. Wallet and chain therefore
+cannot drift apart --- but their agreement is a tautology, not evidence of
+correctness. No independent second implementation exists that could catch a
+mis-transcribed relation, and no merged specification exists against which
+either side could be audited. The reader should weigh every constraint we
+state in later sections with this in mind.
+
+\paragraph{Classification.} Design-stage material in this volume obeys a
+three-bin discipline. Every claim is exactly one of: \emph{specified} --- a
+merged normative artifact exists and we cite it; \emph{designed but
+unspecified} --- the design is concrete and open-source but no normative
+artifact pins it, so we cite the implementation and state what a
+specification would need to fix; or an \emph{open problem} --- the design
+itself leaves the question unresolved. The bin is always visible in the
+prose.
+
+\paragraph{Specified.} Only the inherited primitives: \NoteCommit{},
+nullifier derivation, \CommitIvk{}, the \Sinsemilla{} Merkle instance,
+RedPallas, the ZIP-244 sighash, and ZIP-32 key derivation --- each specified
+in the Zcash protocol specification and the ZIPs, constructed in the
+\emph{Orchard Guide} (\S``Representation of a note: notes and note
+commitments'', \S``Prevention of double-spending: nullifiers'', \S``Keys:
+capabilities for spending and for viewing'', \S``Proof of ownership of
+\emph{some} valid note: the commitment tree'', \S``Authorisation of the
+spend: RedPallas''), and reused unchanged through the
+\texttt{unstable-voting-circuits} feature (zcash/orchard @
+\texttt{c0b6b917}). No governance-specific object has a specification of
+that rigor.
+
+\paragraph{Designed but unspecified.} Everything else this volume presents:
+the five-message ballot structure, the delegation relation with its
+indexed-Merkle-tree non-membership argument, the coordinator-posted snapshot
+roots, the Vote Authority Note and its synthetic-action authorisation, all
+four double-vote layers, the split-share ElGamal encoding and vote
+commitment, the relayer protocol and the trust it grants, the per-round DKG
+and chain-verified tally, and the PIR subsystem. For each we cite the pinned
+commit and file, and we note what PR \#1200 would need to pin down for the
+object to change bins.
+
+\paragraph{Open problems.} One, and only one, was found: the
+ballot-quantisation relation enforced by the delegation circuit is strictly
+weaker than the exact floor division the public documentation states --- the
+relation admits a one-ballot \emph{under}-claim for roughly a third of
+note-value totals, while an over-claim remains impossible
+(\texttt{voting-circuits/src/delegation/circuit.rs},
+\texttt{src/delegation/README.md} \S8). We state and analyse the gap where
+delegation weight is constructed. It is the only spec-versus-code
+disagreement this volume records.
+
+\section{Ballots and eligibility}\label{sec:vote-ballot}
+
+A voting round is a conversation in five messages on the vote chain, and
+admission to it is a zero-knowledge proof against a pinned Zcash snapshot.
+This section constructs both sides of that admission: the wire surface of a
+round (\S\ref{sec:vote-messages}); the eligibility relation the delegation
+circuit proves --- ownership of Orchard notes that existed at the snapshot
+and were unspent at it (\S\ref{sec:vote-zkp1}, \S\ref{sec:vote-imt}); the
+provenance of the two snapshot roots those proofs are checked against
+(\S\ref{sec:vote-snapshot}); and the quantization that turns note value into
+voting weight (\S\ref{sec:vote-weight}). Except where marked otherwise,
+every claim below sits in the \emph{designed but unspecified} bin of
+\S\ref{sec:vote-source-situation}: we read it from the commit-pinned sources
+of Table~\ref{tab:vote-sources}, and each subsection closes by recording its
+bin. The quantization carries this volume's single open problem; we state
+and prove it where it arises.
+
+\subsection{The five-message round}\label{sec:vote-messages}
+
+The ballot surface of the vote chain is five protobuf messages
+(\texttt{vote-sdk/proto/svote/v1/\allowbreak tx.proto}). In lifecycle order: a
+coordinator opens the round, holders delegate weight, governance hotkeys
+cast votes, helper servers reveal shares, and the round closes with a tally.
+The three voter-facing messages (2--4) are not ordinary Cosmos transactions:
+they bypass the Cosmos transaction envelope entirely, and the chain
+authenticates each by its zero-knowledge proof --- messages~2 and~3
+additionally by a RedPallas signature; message~4 carries none --- rather
+than by an account signature (\texttt{tx.proto:10-13};
+\texttt{vote-sdk/x/vote/ante/\allowbreak validate.go}).
+
+\paragraph{Message 1: \texttt{MsgCreateVotingSession}.} The round-opening
+message carries the snapshot pin and the agenda: \texttt{snapshot\_height},
+\texttt{snapshot\_blockhash}, \texttt{proposals\_hash},
+\texttt{vote\_end\_time}, the two ledger anchors
+\texttt{nullifier\_imt\_root} and \texttt{nc\_root}, the proposal list, and
+display metadata (\texttt{tx.proto:36-48}). It is not a public RPC: it is
+absent from the \texttt{Msg} service and executes only as the payload of a
+threshold-approved coordinator action
+(\texttt{vote-sdk/x/vote/keeper/msg\_server\_coordinator\_actions.go:294-298}).
+The handler derives the round identifier on-chain as one Poseidon hash
+over the creation height, the snapshot block hash and the proposals hash
+(each split into two field elements), the end time, and both anchors, so
+\texttt{vote\_round\_id} commits to the snapshot
+(\texttt{tx.proto:32-35}; \texttt{msg\_server.go:30-48}).
+
+\paragraph{Message 2: \texttt{MsgDelegateVote} (ZKP\,1).} The delegation
+message carries \texttt{rk} (the randomized spend-validating key),
+\texttt{spend\_auth\_sig} (RedPallas), \texttt{signed\_note\_nullifier} (the
+nullifier of the synthetic keystone note), \texttt{cmx\_new} (the output
+note commitment), \texttt{van\_cmx} (the Vote Authority Note commitment),
+\texttt{gov\_nullifiers} (up to five governance nullifiers),
+\texttt{proof}, \texttt{vote\_round\_id}, and \texttt{sighash} --- a
+\emph{client-provided} 32-byte value over which the chain verifies the
+RedPallas signature without recomputing it (\texttt{tx.proto:55-65}). This
+section proves the eligibility half of the message; the Vote Authority Note
+is constructed in \S\ref{sec:vote-van}, and the synthetic keystone note
+with its signature binding --- the $\rho$-chain through which the RedPallas
+signature commits to the whole delegation --- in
+\S\ref{sec:vote-keystone}.
+
+\paragraph{Message 3: \texttt{MsgCastVote} (ZKP\,2).} A cast vote carries
+\texttt{van\_nullifier},
+\texttt{vote\_\allowbreak authority\_\allowbreak note\_\allowbreak new}
+(the successor
+Vote Authority Note), \texttt{vote\_commitment}, \texttt{proposal\_id},
+\texttt{proof}, \texttt{vote\_round\_id}, the anchor height
+\texttt{vote\_\allowbreak comm\_\allowbreak tree\_\allowbreak
+anchor\_\allowbreak height}, \texttt{vote\_auth\_sig}, and
+\texttt{r\_vpk}, a compressed Pallas point that the chain decompresses for
+the verifier; unlike message~2, the sighash here is recomputed on-chain
+(\texttt{tx.proto:72-84}, including the removed-field comments).
+
+\paragraph{Message 4: \texttt{MsgRevealShare} (ZKP\,3).} A share reveal
+carries \texttt{share\_nullifier}, \texttt{enc\_share} --- 64 bytes, one
+lifted-ElGamal ciphertext $C_1 \,\|\, C_2$ as compressed Pallas points ---
+\texttt{proposal\_id}, \texttt{vote\_decision}, \texttt{proof},
+\texttt{vote\_round\_id}, and \texttt{vote\_comm\_tree\_anchor\_height}
+(\texttt{tx.proto:89-97}). Helper servers, not wallets, submit it: the
+share nullifier is constructed in \S\ref{sec:vote-layers}, and the helper
+protocol and the trust it grants are treated in
+\S\ref{sec:vote-trust-map}.
+
+\paragraph{Message 5: \texttt{MsgSubmitTally}.} The closing message carries
+\texttt{vote\_round\_id}, \texttt{creator} --- which the chain checks
+against the \emph{block proposer}: the proposer's node injects the message
+during tallying, and the proto comment naming the session creator is
+unenforced (\texttt{x/vote/keeper/msg\_server\_tally\_decrypt.go:77-79};
+\texttt{app/prepare\_proposal.go:194-212}) --- and one \texttt{TallyEntry}
+$\{$\texttt{proposal\_id}, \texttt{vote\_decision}, \texttt{total\_value},
+\texttt{decryption\_proof}$\}$ per (proposal, decision) pair
+(\texttt{tx.proto:104-116}). The \texttt{total\_value} field is denominated
+in ballots despite its proto comment saying zatoshi; we return to this in
+\S\ref{sec:vote-decrypt}.
+
+\paragraph{Classification.} Designed but unspecified: the message set,
+field semantics, and transport exist only in
+\texttt{vote-sdk/proto/svote/v1/tx.proto} at commit \texttt{cb915f51}
+(Table~\ref{tab:vote-sources}). A specification would need to pin the
+byte-level encoding and length of every field, the validation order, the
+envelope-bypass transport, and the round-identifier derivation --- the last
+currently fixed only by a proto comment and the FFI implementation it
+describes.
+
+\subsection{Eligibility: the note-bundle relation (ZKP\,1)}
+\label{sec:vote-zkp1}
+
+To delegate weight, a holder must prove three things about a set of Orchard
+notes without revealing any of them: the notes are theirs; each existed at
+the snapshot; each was unspent at the snapshot. The delegation circuit
+proves the conjunction --- one Halo\,2/IPA circuit over Pallas at $K=14$
+($16{,}384$ rows) with $14$ public inputs
+(\texttt{voting-circuits/src/delegation/circuit.rs:111} and the module
+README, both at commit \texttt{4c39abd5}).
+
+\paragraph{Bundle shape.} The circuit carries exactly five note slots
+(\texttt{MAX\_REAL\_NOTES}); a wallet with fewer notes pads the remaining
+slots with zero-value notes, and one with more produces multiple delegation
+proofs. The fixed width is deliberate: every delegation publishes the same
+shape --- five governance nullifiers at public-input offsets $8$--$12$ ---
+so the published proof does not reveal how many real notes it bundles
+(\texttt{src/delegation/README.md}, Inputs). The two ledger anchors enter as
+public inputs \texttt{nc\_root} (offset $6$) and \texttt{nf\_imt\_root}
+(offset $7$); the nullifier domain $\mathsf{dom}$ (offset $13$) is exposed
+for API compatibility but constrained in-circuit to
+$\mathsf{Poseidon}(\mathsf{tag}, \texttt{vote\_round\_id})$, where
+$\mathsf{tag}$ is the ASCII string \texttt{governance authorization}
+zero-padded to a Pallas base-field element
+(\texttt{src/domain\_tags.rs}; \texttt{src/delegation/imt.rs:26-35}).
+Poseidon throughout the protocol is the P128Pow5T3 instance, width $3$,
+rate $2$ (\texttt{src/protocol\_hash.rs}).
+
+\paragraph{Per-slot conditions.} Each slot proves six conditions, numbered
+$9$--$14$ in the source\footnote{The headline counts disagree ---
+\texttt{circuit.rs} line~3 says ``all 14 conditions'' but line~108 ``all 15
+conditions''; \texttt{README.md} lines~3 and~52 say ``15'' and ``conditions
+9--15'' --- yet both files enumerate exactly conditions 1--14 and neither
+defines a condition~15: the README's numbered sections run 1 through 14 and
+the per-slot list is 9--14 throughout. We state the total as fourteen ---
+eight keystone-global conditions plus six per-slot conditions instantiated
+five times --- and record the ``15'' as a stale count in the sources.}
+(\texttt{src/delegation/circuit.rs:1497-1805}):
+\begin{itemize}
+\item \emph{Note commitment integrity} (condition~9). The prover witnesses
+  the note plaintext $(\gd, \pkd, v, \rho, \psi)$, the trapdoor $\rcm$, and
+  the claimed commitment $\cmsym$; the circuit recomputes
+  $\NoteCommit_{\rcm}$ over the witnessed fields, constrains it equal to
+  $\cmsym$, and extracts $\cmx = \Extract(\cmsym)$ as an internal wire. The
+  commitment scheme is the deployed Orchard \NoteCommit{} --- specified
+  bin, reused unchanged through the \texttt{unstable-voting-circuits}
+  feature (\S\ref{sec:vote-source-situation}).
+\item \emph{Address ownership} (condition~11). The circuit checks
+  $\pkd = [\ivk^{*}]\,\gd$, where $\ivk^{*}$ is selected by a witnessed
+  boolean $\mathsf{is\_internal}$ through the custom gate
+  \texttt{q\_scope\_select},
+  $\ivk^{*} = \ivk + \mathsf{is\_internal}\cdot(\ivk_{\mathrm{int}} - \ivk)$;
+  both candidates are derived in-circuit by \CommitIvk{} from the witnessed
+  $\rivk$ and its internal-scope counterpart (condition~5, global). Change
+  notes therefore carry weight on equal terms with externally received
+  ones. A wrong scope flag selects the wrong key and the ownership check
+  rejects.
+\item \emph{Snapshot membership} (condition~10). The circuit computes the
+  \Sinsemilla{} Merkle root from the leaf $\cmx$ over the witnessed
+  $32$-level authentication path, and the per-note gate
+  \texttt{q\_per\_note} enforces
+  \[
+    v \cdot (\mathsf{root} - \mathsf{anchor}) = 0,
+  \]
+  with $\mathsf{anchor}$ the public \texttt{nc\_root}
+  (\texttt{circuit.rs:1777-1798}). A real note ($v \neq 0$) must resolve to
+  the anchor; a zero-value padding note --- which has no leaf in the Zcash
+  tree --- satisfies the gate vacuously.
+\item \emph{Real nullifier} (condition~12). The circuit derives the note's
+  true Orchard nullifier
+  $\nfsym = \mathsf{DeriveNullifier}_{\nksym}(\rho, \psi, \cmsym)$ --- the
+  deployed Orchard rule, constructed in the \emph{Orchard Guide}
+  (\S``Prevention of double-spending: nullifiers'') --- in-circuit and
+  \emph{never publishes it}: it exists only as a private wire feeding
+  conditions~13 and~14 (\texttt{circuit.rs:1682-1701}).
+\item \emph{Snapshot non-spentness} (condition~13). The circuit proves
+  non-membership of $\nfsym$ in the snapshot's nullifier set under the
+  public \texttt{nf\_imt\_root} --- the construction of
+  \S\ref{sec:vote-imt}. The root equality is unconditional: padding notes,
+  too, must carry a valid non-membership proof
+  (\texttt{README.md} \S13).
+\item \emph{Governance nullifier} (condition~14). The circuit computes and
+  publishes
+  $\nfsym^{\mathsf{gov}} = \mathsf{Poseidon}(\nksym, \mathsf{dom}, \nfsym)$
+  at the slot's public-input offset. Keyed by the private $\nksym$, the
+  published value stays unlinkable to $\nfsym$ even after the note is later
+  spent on the main chain (\texttt{circuit.rs:1703-1729}). Its role in
+  double-vote prevention is treated in \S\ref{sec:vote-layers}. Chain-side,
+  the delegation handler applies the same atomic check-and-set to all five
+  published slots, padding included
+  (\texttt{vote-sdk/x/vote/keeper/msg\_server.go:148-154}); a padding
+  slot's nullifier enters the same round-scoped set, unique because the
+  wallet samples fresh $\rho$ and \texttt{rseed} per synthetic padding
+  note (\texttt{src/delegation/builder.rs}, \texttt{build\_padding\_slot}),
+  and a re-used padding witness is rejected as a duplicate delegation ---
+  a completeness cost, never a soundness one.
+\end{itemize}
+
+The conjunction across a slot reads: the prover's key material owns a note
+whose commitment lies in the Zcash note-commitment tree at the snapshot
+(membership under \texttt{nc\_root}) and whose nullifier had not been
+revealed by the snapshot (non-membership under \texttt{nf\_imt\_root}) ---
+existed, and unspent, at the pinned height.
+
+\paragraph{Classification.} The relation as a whole is designed but
+unspecified: it exists only as the circuit at
+\texttt{voting-circuits}~@~\texttt{4c39abd5}, which is simultaneously the
+prover and the verifier (\S\ref{sec:vote-source-situation}). Its
+ingredients \NoteCommit{}, nullifier derivation, \CommitIvk{}, and the
+\Sinsemilla{} Merkle instance are the specified bin, inherited through
+zcash/orchard~@~\texttt{c0b6b917}. A specification would need to pin the
+public-input layout, the custom-gate semantics, the fixed five-slot shape,
+and the padding-note rules.
+
+\subsection{Snapshot non-spentness: the Poseidon indexed Merkle tree}
+\label{sec:vote-imt}
+
+Membership alone would let a spent note vote: the note-commitment tree is
+append-only and a spent note's commitment remains in it forever. Snapshot
+eligibility therefore needs a second, negative statement --- the note's
+nullifier is \emph{not} in the set of nullifiers revealed up to the snapshot
+height. Proving non-membership in a Merkle set requires structure beyond a
+plain accumulator; the protocol uses an indexed Merkle tree over the sorted
+nullifier set.
+
+\paragraph{Construction.} The tree is Poseidon-based with depth $29$
+(\texttt{IMT\_DEPTH},
+\texttt{voting-circuits/\allowbreak src/\allowbreak
+delegation/\allowbreak imt.rs:19}).
+Each leaf is a \emph{punctured range} --- a triple of sorted boundaries,
+hashed and covering the punctured open interval
+\[
+\mathsf{leaf} =
+\mathsf{Poseidon}(\nfsym_{\mathrm{lo}}, \nfsym_{\mathrm{mid}},
+\nfsym_{\mathrm{hi}}),
+\qquad
+(\nfsym_{\mathrm{lo}}, \nfsym_{\mathrm{hi}}) \setminus
+\{\nfsym_{\mathrm{mid}}\},
+\]
+so the set members appear only as interval boundaries or interior
+punctures, and everything strictly between them is certified absent.
+In-circuit, non-membership of the private $\nfsym$ costs
+$31$ Poseidon calls ($2$ for the leaf, $29$ for the path) and proves
+(\texttt{imt.rs:51-70}; \texttt{src/delegation/README.md} \S13):
+\begin{enumerate}
+\item the leaf authenticates: the $29$-level path from the leaf hash
+  resolves to the public \texttt{nf\_imt\_root};
+\item the nullifier lies strictly inside the interval: the offsets
+  $x_{\mathrm{lo}} = \nfsym - \nfsym_{\mathrm{lo}} - 1$ and
+  $x_{\mathrm{hi}} = \nfsym_{\mathrm{hi}} - \nfsym - 1$ are each
+  range-checked to $[0, 2^{250})$; and
+\item the nullifier misses the puncture:
+  $(\nfsym - \nfsym_{\mathrm{mid}}) \cdot \delta = 1$ for a witnessed
+  inverse $\delta$.
+\end{enumerate}
+
+\paragraph{What it excludes --- and what it does not.} The statement
+excludes exactly the nullifiers revealed on the Zcash chain up to the
+snapshot height: the note was unspent when the snapshot was taken. It
+excludes nothing after that height --- a note spent the block after the
+snapshot still delegates its weight, because snapshot voting fixes the
+electorate at a single height by design. Two soundness assumptions live
+\emph{outside} the circuit (\texttt{imt.rs:56-70};
+\texttt{README.md} \S13). First, the tree contract: the circuit checks
+only the one authenticated leaf, so the committed leaves must form the
+canonical punctured-range tree for the set --- sorted, deduplicated,
+non-overlapping except for shared boundaries. A malformed tree in which
+some set member lies strictly inside another leaf's interval would certify
+a spent note as unspent, and no per-leaf gate can detect the global
+overlap. Second, the span bound: the $250$-bit offset checks require
+$\nfsym_{\mathrm{hi}} - \nfsym_{\mathrm{lo}} \le 2^{250}$ in canonical
+field order, which the builder guarantees by pre-populating $33$ sentinel
+nullifiers spaced at most $2^{249}$ apart, plus $p-1$ to close the tail
+(the \texttt{SpacedLeafImtProvider} strategy). The tree is built by the
+PIR operator and its root posted by the coordinator --- which is where the
+next subsection picks up.
+
+\paragraph{Classification.} Designed but unspecified
+(\texttt{voting-circuits}~@~\texttt{4c39abd5}). A specification would need
+to pin the leaf model, the sentinel schedule, and above all the
+canonical-tree contract --- including which party is accountable for the
+tree's well-formedness, since the circuit cannot check it.
+
+\subsection{The snapshot roots: posted, never verified}
+\label{sec:vote-snapshot}
+
+Both anchors originate off-chain, in coordinator tooling. The
+note-commitment root \texttt{nc\_root} is recomputed by Rust FFI as the
+\Sinsemilla{} hash of an Orchard frontier fetched from a public
+lightwalletd server; the nullifier root \texttt{nullifier\_imt\_root} is
+fetched from the running PIR service
+(\texttt{vote-sdk/api/snapshot.go:44-66}). The coordinator posts both in
+message~1; the handler stores them verbatim in the round record and folds
+them into \texttt{vote\_round\_id}
+(\texttt{x/vote/keeper/msg\_server.go:36-138}); and at validation the ante
+handler looks the stored roots up from the round and passes them to the
+FFI verifier as the public inputs of ZKP\,1
+(\texttt{x/vote/ante/validate.go:147-177}).
+
+Nothing on the vote chain verifies that the posted roots match real Zcash
+state: \texttt{svoted} runs no Zcash light client, and the circuit
+documentation is explicit that it ``proves statements relative to the
+public inputs supplied by the verifier; it does not authenticate where
+those inputs came from''
+(\texttt{voting-circuits/src/delegation/README.md}, Public Input
+Provenance). The trust structure that results is asymmetric. Honest
+wallets are safe from a \emph{wrong} snapshot in the sense that their
+proofs simply fail: their witnesses --- Merkle paths and IMT leaves ---
+come from the real chain and cannot resolve to fabricated roots. And the
+roots are public, so anyone with a Zcash node can audit them after the
+fact. But nothing prevents a coordinator quorum from pinning fabricated
+roots for which it alone holds matching witnesses, minting arbitrary
+voting weight that the chain would accept; detection is post hoc and
+protocol-external. The trust root for eligibility is therefore the
+coordinator threshold together with the PIR operator that builds the
+nullifier tree of \S\ref{sec:vote-imt}.
+
+\paragraph{Classification.} Designed but unspecified, with an explicit
+trust assumption that must be flagged wherever eligibility is discussed. A
+specification would need either chain-side verification (a light client or
+a succinct proof that the roots match a Zcash block) or, failing that, a
+normative audit procedure with a defined challenge window.
+
+\subsection{Weight: ballot quantization}\label{sec:vote-weight}
+
+Delegated weight is denominated in ballots. The circuit sums the five slot
+values into $v_{\mathrm{total}} = \sum_{i=1}^{5} v_i$ (internal wires
+produced by condition~9, consumed by conditions~7 and~8;
+\texttt{src/delegation/README.md}, Inputs), and one ballot represents
+$D = 12{,}500{,}000$ zatoshi ($0.125$~ZEC): the constant
+\texttt{BALLOT\_DIVISOR} (\texttt{voting-circuits/src/params.rs:14}). The
+honest ballot count is $q = \lfloor v_{\mathrm{total}} / D \rfloor$.
+
+Condition~8 (\texttt{src/delegation/circuit.rs:1290-1427}) witnesses the
+count $q$ (\texttt{num\_ballots}) and a remainder $r$ as \emph{free
+advice}, and constrains
+\begin{equation}\label{eq:vote-quant}
+q \cdot D + r = v_{\mathrm{total}}, \qquad
+0 \le r < 2^{24}, \qquad
+1 \le q \le 2^{30}.
+\end{equation}
+The range checks run through a $10$-bit lookup table: the circuit
+multiplies $r$ by $2^{6}$ and checks the product to $30$ bits (so
+$r < 2^{24}$), and checks $q - 1$ to $30$ bits directly --- which enforces
+both bounds at once, since $q = 0$ wraps $q-1$ to $p - 1 \approx 2^{254}$
+and fails. The lower bound $q \ge 1$ doubles as a minimum stake: a bundle
+worth less than $0.125$~ZEC admits no valid witness. The upper bound is
+safe slack: $2^{30}$ ballots is about $134$ million ZEC, far above the
+$21$ million supply. The remainder bound $2^{24}$ is the tightest
+power-of-two-aligned bound that keeps completeness --- every honest
+$r < D$ fits --- but it is \emph{looser} than $D$, and that slack admits a
+second witness.
+
+\begin{proposition}[One-ballot under-claim window]\label{thm:vote-underclaim}
+Fix $v_{\mathrm{total}}$ and let
+$\hat{q} = \lfloor v_{\mathrm{total}}/D \rfloor$ and
+$\hat{r} = v_{\mathrm{total}} \bmod D$ form the honest witness, assumed
+valid ($\hat{q} \ge 1$). The pairs satisfying the constraints of
+Equation~\eqref{eq:vote-quant} are exactly $(\hat{q}, \hat{r})$ together
+with $(\hat{q} - 1,\; \hat{r} + D)$, the latter admissible if and only if
+\[
+\hat{r} < 2^{24} - D = 4{,}277{,}216
+\qquad\text{and}\qquad
+\hat{q} \ge 2 .
+\]
+In particular, a prover can claim exactly one ballot fewer than floor
+division yields --- for approximately $34.2\%$ of totals under a uniform
+residue model, since $(2^{24} - D)/D \approx 0.3422$ --- and can never
+claim more.
+\end{proposition}
+
+\begin{proof}
+Suppose $(q_1, r_1)$ and $(q_2, r_2)$ both satisfy
+Equation~\eqref{eq:vote-quant} for the same $v_{\mathrm{total}}$.
+Subtracting the two instances of the linear constraint gives
+$(q_1 - q_2)\,D \equiv r_2 - r_1 \pmod{p}$. The range checks bound the
+canonical representatives: $|q_1 - q_2| \cdot D \le (2^{30} - 1)D <
+2^{54}$ and $|r_2 - r_1| < 2^{24}$, both far below $p > 2^{254}$, so the
+congruence holds over the integers. Then
+$|q_1 - q_2| = |r_2 - r_1| / D < 2^{24}/D < 2$, forcing
+$|q_1 - q_2| \in \{0, 1\}$. The case $0$ gives $r_1 = r_2$. The case
+$q_1 = q_2 + 1$ gives $r_2 = r_1 + D$, which is admissible precisely when
+$r_2 < 2^{24}$ (the remainder range check) and $q_2 \ge 1$ (the count
+range check) --- for the honest pair, the stated window. The over-claim
+direction from the honest witness, $(\hat{q} + 1, \hat{r} - D)$, requires
+$\hat{r} - D < 0$; its canonical field representative is at least
+$p - D$, which fails the shifted $30$-bit range check. No further pairs
+exist.
+\end{proof}
+
+\paragraph{Impact and status.} The deviation is self-harming: the only
+dishonest witness \emph{under}-claims, discarding one ballot of the
+prover's own weight, and aggregate totals consequently err low, never
+high. No downstream check repairs or re-derives the count: the Vote
+Authority Note commitment (condition~7) hashes whatever $q$ the prover
+chose, and the vote-proof circuit later opens the same value. The gap is
+documented by the implementers themselves ---
+\texttt{src/delegation/README.md} \S8, ``Soundness scope'', carries the
+analysis above together with two single-constraint tightenings (a
+$24$-bit check on $(D - 1) - r$, or on $r + (2^{24} - D)$, either of
+which pins $r \in [0, D)$ at a cost of roughly $3$--$4$ rows) --- and it
+is unfixed at commit \texttt{4c39abd5}. The public documentation states
+exact floor division (gitbook ZKP\,1 page, fetched 2026-07-08), which the
+circuit does not enforce: this is the single spec-versus-code
+disagreement recorded in this volume
+(\S\ref{sec:vote-source-situation}), conservative in direction --- the
+code is the protocol, and the code is weaker.
+
+\paragraph{Classification.} The quantization relation as implemented ---
+Equation~\eqref{eq:vote-quant} --- is designed but unspecified. The gap
+between it and the stated floor-division rule is this volume's one
+\emph{open problem}: the design intends exact division, the circuit
+proves less, and the tightening exists on paper only. A specification
+must either adopt the weaker relation and its under-claim window
+explicitly, or mandate one of the documented tightening constraints.
+
+\section{Vote encryption, nullifiers, and tally}\label{sec:vote-tally}
+
+Delegation leaves the governance hotkey holding a Vote Authority Note (VAN): a
+blinded commitment to the hotkey address, a ballot count, and a per-proposal
+authority mask. Three problems remain. The hotkey must cast a vote whose
+weight never appears in public; the protocol must stop every form of
+double-voting --- the same coins delegated twice, the same VAN spent twice,
+the same proposal voted twice along a chain of successor VANs, the same
+encrypted share counted twice; and the aggregate totals must become public in
+a form every chain node verifies, without any single party ever holding the
+decryption key. This section develops the answers in order: the VAN itself,
+the synthetic keystone note whose signature authorises its minting, a
+four-layer double-vote discipline, a sixteen-share lifted-ElGamal encoding, a
+per-round threshold Election Authority, and a chain-verified tally.
+
+\paragraph{Classification.} Every governance-specific object in this section
+is \emph{designed but unspecified}: the normative artifact is the
+implementation, cited commit-pinned ---
+\texttt{valargroup/voting-circuits} at \texttt{4c39abd5} (2026-06-03) and
+\texttt{valargroup/vote-sdk} at \texttt{cb915f51} (2026-06-05). File paths
+beginning \texttt{src/} refer to the former; paths beginning
+\texttt{x/vote/}, \texttt{crypto/}, or \texttt{proto/} to the latter. The
+would-be specification (zcash/zips PR~\#1200, opened 2026-03-05) remains
+unmerged as of 2026-07-08, and the single \texttt{voting-circuits} crate both
+proves and verifies, so no independent implementation cross-checks these
+formulas. The \emph{specified} bin holds only the inherited Orchard
+primitives --- \NoteCommit, nullifier derivation, \CommitIvk, RedPallas, the
+Sinsemilla Merkle instance --- reused through the \texttt{orchard} crate's
+\texttt{unstable-voting-circuits} feature (zcash/orchard commit
+\texttt{c0b6b917}). One \emph{open problem} reaches into this section from
+the delegation circuit; Remark~\ref{rem:vote-quant} flags it where it lands.
+
+Throughout this section, $\mathsf{Poseidon}$ denotes the P128Pow5T3 instance
+over $\F_{p_{\Pallas}}$ (width $3$, rate $2$), applied with the fixed-length
+padding of the stated arity. Domain separation uses two encodings, both
+pinned by unit tests (\texttt{src/domain\_tags.rs}): small numeric tags ($0$
+for VAN commitments, $1$ for vote commitments), and short ASCII tags ---
+\texttt{"governance authorization"}, \texttt{"vote authority spend"},
+\texttt{"share spend"} --- zero-padded to $32$ bytes and read as little-endian
+integers, which are canonical in $\F_{p_{\Pallas}}$ because the top byte
+stays zero. We abbreviate the ASCII tags $T_{\mathsf{gov}}$,
+$T_{\mathsf{spend}}$, $T_{\mathsf{share}}$, and write $\mathsf{rid}$ for the
+voting round identifier and $\mathsf{pid}$ for the proposal identifier.
+
+\subsection{The Vote Authority Note}\label{sec:vote-van}
+
+The VAN is the vote chain's carrier of authority: one field element that
+commits to who may vote (the hotkey address), with how much weight (the
+ballot count), in which round, and on which proposals (the authority mask).
+
+\begin{definition}[VAN commitment]\label{def:vote-van}
+Let $(\gd, \pkd)$ be the hotkey's diversified address in the voting key
+hierarchy, $n_b$ the ballot count, $\mathsf{auth} \in [0, 2^{16})$ the
+proposal-authority mask, and $\mathsf{r}_{\mathsf{van}}$ a uniformly random
+blind. The VAN commitment is the two-layer hash
+\[
+\mathsf{van} := \mathsf{Poseidon}\bigl(\mathsf{core},\
+\mathsf{r}_{\mathsf{van}}\bigr), \qquad
+\mathsf{core} := \mathsf{Poseidon}\bigl(0,\ x(\gd),\ x(\pkd),\ n_b,\
+\mathsf{rid},\ \mathsf{auth}\bigr),
+\]
+with $x(\cdot)$ the $x$-coordinate
+(\texttt{src/gadgets/van\_integrity.rs}, lines 61--78; one gadget is shared
+by the delegation and vote-proof circuits).
+\end{definition}
+
+The two layers divide labour. The inner layer is structural, and its preimage
+is low-entropy: the round id is public, the mask at mint is a fixed constant,
+and ballot counts are small integers --- a bare inner hash would admit
+dictionary attacks on the weight and the address. The outer layer closes them
+with the uniform blind (module documentation,
+\texttt{src/gadgets/van\_integrity.rs}, lines 23--27).
+
+The address enters by $x$-coordinates alone, which identifies
+$(\gd, \pkd)$ only up to coordinated negation. The construction is safe
+because delegation additionally binds the full points through \NoteCommit{}
+into the public $\cmx_{\mathrm{new}}$; the module documentation warns that
+any future caller dropping that side constraint must widen the preimage to
+full points (\texttt{src/gadgets/van\_integrity.rs}, lines 14--22).
+
+The mask $\mathsf{auth}$ is a $16$-bit bitmask minted at
+$2^{16} - 1 = 65535$ --- all bits set, a constant baked into the verification
+key (\texttt{src/delegation/circuit.rs}, lines 162 and 1464--1467). Bit $0$
+is a
+permanent sentinel that no vote may consume, so usable bits are $1$ through
+$15$ and a round supports at most $15$ proposals
+(\texttt{src/vote\_proof/circuit.rs}, lines 123--143).
+
+The vote chain keeps one per-round Poseidon Merkle tree of depth $24$
+(\texttt{src/params.rs}, line 25; per-round state in
+\texttt{x/vote/keeper/keeper\_voting.go}, lines 72--80): delegation appends
+the freshly minted VAN commitment; each cast appends the successor VAN and
+then the vote commitment. The reduced depth is a sizing choice ---
+governance produces one leaf per delegation plus two per vote, well within
+$2^{24} \approx 1.7 \times 10^{7}$ leaves (\texttt{src/params.rs}, lines
+16--25).
+
+\subsection{Keystone authorisation: the synthetic signed note}
+\label{sec:vote-keystone}
+
+The delegation message is authorised by a RedPallas spend-auth signature
+under the randomized key $\rk$ (\S\ref{sec:vote-messages}, message~2), and
+the intended signer is a Keystone-class hardware wallet, which signs only
+Orchard Actions. The voting client therefore wraps the delegation in an
+Orchard-Action shape around a \emph{synthetic} keystone note: a
+$1$-zatoshi note that exists on no chain --- the circuit witnesses no
+Merkle path for it and checks no anchor; the value is $1$ rather than $0$
+only because the wallet UI does not render zero-value spends
+(\texttt{src/delegation/README.md}, ``Integration: the Keystone (signed)
+note is synthetic'').
+
+Conditions~1--6 of the delegation circuit govern this branch
+(\texttt{src/delegation/circuit.rs}, lines 16--29); the load-bearing pair
+is conditions~3 and~2. Condition~3 forces the keystone note's $\rho$ to a
+Poseidon hash of everything the delegation publishes,
+\[
+\rho_{\mathrm{signed}} = \mathsf{Poseidon}\bigl(\cmx_1, \ldots, \cmx_5,\
+\mathsf{van},\ \mathsf{rid}\bigr),
+\]
+the arity-$7$ fixed-length instance (\texttt{rho\_binding\_hash},
+\texttt{circuit.rs:176-190}). Condition~2 then derives the keystone
+nullifier by the deployed Orchard rule --- constructed in the
+\emph{Orchard Guide} (\S``Prevention of double-spending: nullifiers'') ---
+\[
+\nfsym_{\mathrm{signed}} =
+\mathsf{DeriveNullifier}_{\nksym}\bigl(\rho_{\mathrm{signed}},\
+\psi_{\mathrm{signed}},\ \cmsym_{\mathrm{signed}}\bigr),
+\]
+and exposes it as a public input. The chain verifies the RedPallas
+signature under $\rk$ over the \emph{client-provided} sighash and checks
+that the proof's $\nfsym_{\mathrm{signed}}$ equals the wrapping Action's
+nullifier (\texttt{x/vote/ante/validate.go}), so the hardware wallet's
+signature commits --- through the chain
+$\rk \rightarrow \nfsym_{\mathrm{signed}} \rightarrow
+\rho_{\mathrm{signed}} \rightarrow \mathsf{van}$ --- to the five bundle
+commitments, the VAN, and the round identifier. Removing any link breaks
+the binding; this chain is why the chain-side acceptance of a
+client-provided sighash is safe. The remaining conditions are supporting:
+condition~4 proves $\rk = [\alpha]\,\mathsf{SpendAuthG} + \aksym$ for a
+witnessed randomizer $\alpha$ (the \emph{Orchard Guide},
+\S``Authorisation of the spend: RedPallas''); condition~5 ties $\aksym$,
+$\nksym$, and $\rivk$ to the same \CommitIvk{} chain the real-note slots
+use (\S\ref{sec:vote-zkp1}, condition~11); conditions~1 and~6 recompute
+the keystone and output note commitments from witnessed openings ---
+knowledge checks, not membership checks
+(\texttt{src/delegation/README.md}, the three-bucket audit note).
+
+\subsection{Double-vote prevention: four layers}\label{sec:vote-layers}
+
+A ballot can be replayed at four distinct joints: the Zcash note (delegate it
+twice), the VAN (spend it twice), the proposal bit (vote the same proposal
+again through a successor VAN), and the encrypted share (feed it to the
+accumulator twice). One defence guards each joint. The first, second, and
+fourth are nullifiers; chain-side, each kind lands in its own type- and
+round-scoped set under an atomic check-and-set
+(\texttt{x/vote/keeper/keeper\_voting.go}, lines 19--48; type constants
+\texttt{x/vote/types/keys.go}, lines 96--101). The third is arithmetic,
+enforced in-circuit.
+
+\paragraph{Layer 1: the governance nullifier (delegation).} Each delegated
+note exposes
+\[
+\nfsym^{\mathsf{gov}} := \mathsf{Poseidon}\bigl(\nksym,\ \mathsf{dom},\
+\nfsym\bigr), \qquad
+\mathsf{dom} := \mathsf{Poseidon}\bigl(T_{\mathsf{gov}},\ \mathsf{rid}\bigr),
+\]
+where $\nksym$ and $\nfsym$ are the \emph{Zcash} note's nullifier key and
+real Orchard nullifier, both computed in-circuit --- the real nullifier is
+never published (\texttt{src/delegation/circuit.rs}, lines 1703--1729). The
+domain $\mathsf{dom}$ is a public input, but the circuit re-derives it from
+the public round id and constrains equality
+(\texttt{src/delegation/circuit.rs}, lines 1041--1055), so a prover cannot
+substitute a foreign domain to escape the round scoping. The chain rejects
+duplicates in the governance-typed, round-scoped set. The attack closed:
+delegating the same unspent-at-snapshot note into two bundles in one round,
+which would double its weight. Keying by the secret $\nksym$ serves privacy:
+when the note is later spent on mainnet and its real nullifier becomes
+public, no observer can link the pair --- the governance trail does not
+deanonymise the payment trail.
+
+\paragraph{Layer 2: the VAN nullifier (casting).} Spending a VAN publishes
+\[
+\nfsym^{\mathsf{van}} := \mathsf{Poseidon}\bigl(\nksym_{v},\
+T_{\mathsf{spend}},\ \mathsf{rid},\ \mathsf{van}_{\mathrm{old}}\bigr),
+\]
+where $\nksym_{v}$ is the voting hierarchy's nullifier-deriving key, proved
+to belong to the witnessed address through the \CommitIvk{} chain
+(\texttt{src/vote\_proof/circuit.rs}, lines 203--222). A cast proves
+membership of $\mathsf{van}_{\mathrm{old}}$ in the round tree without
+identifying the leaf, and this nullifier is the only spend mark. The attack
+closed: re-spending the old VAN, whose mask still carries the bit the vote
+just consumed --- without the nullifier, one delegation would vote the same
+proposal arbitrarily often from the same leaf.
+
+\paragraph{Layer 3: the authority-mask decrement (casting).} Layer~2 kills
+the parent, not the lineage: every cast mints a successor VAN, and a
+successor still carrying the consumed bit would re-enable the same vote.
+Condition~6 of the vote-proof circuit therefore forces
+\[
+\mathsf{auth}_{\mathrm{new}} = \mathsf{auth}_{\mathrm{old}} -
+2^{\mathsf{pid}}.
+\]
+Field arithmetic cannot express a variable exponent as a polynomial gate, so
+the prover witnesses $2^{\mathsf{pid}}$ and a lookup over the table
+$\{(j, 2^{j})\}_{j=0}^{15}$ proves it; a field-inverse gate excludes
+$\mathsf{pid} = 0$ (the sentinel); a $16$-bit decomposition of
+$\mathsf{auth}_{\mathrm{old}}$ with a one-hot selector anchored at
+$\mathsf{pid}$ proves the consumed bit was actually set ($\sum_j
+\mathsf{sel}_j b_j = 1$), and the recomposition returns
+$\mathsf{auth}_{\mathrm{new}}$ with exactly that bit cleared, implicitly
+range-checked to $16$ bits
+(\texttt{src/vote\_proof/gadgets/authority\_decrement.rs}, lines 34--93).
+The successor VAN commits $\mathsf{auth}_{\mathrm{new}}$ and re-enters the
+tree. The invariant bought by layers 2 and 3 together: one delegation yields
+at most one vote per proposal, and at most $15$ proposals per round.
+
+\paragraph{Layer 4: the share nullifier (reveal).} Revealing the $i$-th
+encrypted share of a vote publishes
+\[
+\nfsym^{\mathsf{share}}_{i} := \mathsf{Poseidon}\bigl(T_{\mathsf{share}},\
+\mathsf{vc},\ i,\ \mathsf{blind}_i\bigr),
+\]
+\begin{sloppypar}
+where $\mathsf{vc}$ is the vote commitment (\S\ref{sec:vote-elgamal}) and
+$\mathsf{blind}_i$ the share-commitment blind
+(\texttt{src/share\_reveal/circuit.rs}, lines 161--187). The attack closed:
+the tally accumulator is a raw homomorphic sum
+(\S\ref{sec:vote-decrypt}), so re-submitting one accepted ciphertext would
+double-count its weight; the share-typed set admits each
+$(\mathsf{vc}, i)$ once. The blind is load-bearing for privacy rather than
+soundness: the vote commitment is public in the cast message and $i$ ranges
+over sixteen values, so an unblinded nullifier could be evaluated by any
+observer against every commitment in the tree, linking each reveal to its
+vote by dictionary test --- collapsing exactly the anonymity that the reveal
+proof's non-identifying membership provides. Blinds never appear on chain.
+\end{sloppypar}
+
+\subsection{Vote encoding: sixteen lifted-ElGamal shares}
+\label{sec:vote-elgamal}
+
+Casting must convey weight to the tally without publishing it per vote. The
+instrument is additively homomorphic encryption to a key that no single
+party holds (\S\ref{sec:vote-dkg}).
+
+\begin{definition}[Vote share encryption]\label{def:vote-elgamal}
+Fix the generator
+\[
+G := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard}, \mathtt{G}),
+\]
+Orchard's spend-authorisation base. A vote on proposal
+$\mathsf{pid}$ splits its ballot count $n_b$ into sixteen prover-chosen
+shares $v_0, \ldots, v_{15}$ subject to
+\[
+\sum_{i=0}^{15} v_i = n_b, \qquad v_i \in [0, 2^{30}),
+\]
+and encrypts each under the round's Election Authority key
+$\mathsf{ea_{pk}} \in \Ep(\F_{p_{\Pallas}})$:
+\[
+C_{1,i} := [r_i]\,G, \qquad
+C_{2,i} := [v_i]\,G + [r_i]\,\mathsf{ea_{pk}},
+\]
+with fresh nonzero randomness $r_i$
+(\texttt{src/gadgets/elgamal.rs}; sum and range are conditions 8 and 9,
+\texttt{src/vote\_proof/circuit.rs}, lines 416--457 and 1026--1036).
+\end{definition}
+
+The scheme is \emph{lifted}: the message enters the exponent, so
+componentwise addition of ciphertexts encrypts the sum of plaintexts and the
+accumulator needs no key. The price is paid at decryption, which yields
+$[v]\,G$ and recovers $v$ only as a bounded discrete logarithm --- the
+$2^{28}$ bound of \S\ref{sec:vote-decrypt}. Reusing $\mathsf{SpendAuthG}$
+avoids introducing a second fixed base; the in-circuit $22$-window
+short-scalar tables share the same generator
+(\texttt{src/gadgets/elgamal.rs}, lines 57--66). The range check closes
+wraparound: shares are field elements, and without it a decomposition could
+encode negative shares as large residues while still satisfying the sum
+constraint. Sixteen shares serve weight privacy under staggered reveal: the
+prover-chosen random decomposition leaves no weight fingerprint on any
+single revealed ciphertext (\texttt{src/vote\_proof/circuit.rs}, lines
+418--423). Client-side, the randomness $r_i$ and the blinds derive from a
+BLAKE2b-512 PRF with personalisation \texttt{ZcashVote\_Expand} under
+distinct domain bytes (\texttt{src/domain\_tags.rs}, lines 28--41).
+
+The cast binds everything into one public field element:
+\[
+\mathsf{vc} := \mathsf{Poseidon}\bigl(1,\ \mathsf{rid},\
+h_{\mathsf{sh}},\ \mathsf{pid},\ d\bigr), \qquad
+h_{\mathsf{sh}} := \mathsf{Poseidon}\bigl(\mathsf{sc}_0, \ldots,
+\mathsf{sc}_{15}\bigr),
+\]
+\[
+\mathsf{sc}_i := \mathsf{Poseidon}\bigl(\mathsf{blind}_i,\ x(C_{1,i}),\
+x(C_{2,i}),\ y(C_{1,i}),\ y(C_{2,i})\bigr),
+\]
+\begin{sloppypar}
+where $d$ is the vote decision (\texttt{src/gadgets/vote\_commitment.rs},
+lines 42--55; \texttt{src/shares\_hash.rs}, lines 39--61). The
+$y$-coordinates are included deliberately: an $x$-coordinate identifies a
+point only up to sign, and hashing both coordinates blocks ciphertext
+sign-malleability. The leading tag $1$ separates vote commitments from VANs
+(tag $0$) in the shared tree and is baked into the verification key, so an
+honest verifier cannot be driven to confuse the two leaf kinds
+(\texttt{src/gadgets/vote\_commitment.rs}, lines 11--13). A cast message
+reveals $\mathsf{vc}$, the VAN nullifier, the successor VAN, and
+$\mathsf{pid}$ --- neither the decision nor the weight. Note that the cast
+publicly links $\mathsf{vc}$ to $\nfsym^{\mathsf{van}}$, so per-vote weight
+privacy rests on the encryption, not on unlinkability.
+\end{sloppypar}
+
+\begin{remark}[Quantization gap, propagated]\label{rem:vote-quant}
+The sum condition ties $\sum_i v_i$ to the ballot count $n_b$ minted at
+delegation, so its soundness inherits the delegation circuit's
+quantization relation: the constraint
+$n_b \cdot 12{,}500{,}000 + \mathsf{rem} = v_{\mathrm{total}}$ with
+$\mathsf{rem} < 2^{24}$ is strictly weaker than floor division and admits a
+one-ballot \emph{under}-claim for roughly $34\%$ of note values; an
+over-claim is impossible (Proposition~\ref{thm:vote-underclaim} in
+\S\ref{sec:vote-weight}; \texttt{src/params.rs}, lines 9--13;
+\texttt{src/delegation/README.md}, \S 8). This is the protocol's one open
+problem --- the public design prose states exact floor division, the code
+does not enforce it.
+\end{remark}
+
+\subsection{The Election Authority: a per-round Joint--Feldman DKG}
+\label{sec:vote-dkg}
+
+The tally requires a key that opens aggregates; any party holding that key
+alone could equally open each accumulated share the moment it lands on
+chain. The protocol therefore splits the round key across the bonded
+validator set by a Joint--Feldman distributed key generation, and re-runs
+the ceremony every round, so compromise of one round's key reaches no other
+round and the validator set may change between rounds.
+
+Each ceremony validator --- registered through a whitelisted Pallas-key
+path --- samples a secret polynomial of degree $t - 1$ over the Pallas
+scalar field, posts its $t$ Feldman coefficient commitments (Pallas points)
+on chain, and delivers to every other validator its evaluation share,
+encrypted under ECIES: an ephemeral Pallas Diffie--Hellman, the symmetric
+key $\mathrm{SHA\text{-}256}(E \,\|\, S_x)$ over the compressed ephemeral
+point and the shared-secret $x$-coordinate, and ChaCha20-Poly1305 with a
+zero nonce --- safe because each envelope uses a fresh ephemeral key
+(\texttt{crypto/ecies/ecies.go}, lines 21--33). The chain validates point
+well-formedness and the commitment count
+(\texttt{x/vote/keeper/msg\_server\_ceremony.go}, lines 137--149). When the
+$n$-th contribution arrives, the chain sums the commitment vectors
+componentwise; the round key $\mathsf{ea_{pk}}$ is the combined constant
+term, and each validator's verification key $\mathsf{VK}_i$ is the combined
+commitment polynomial evaluated at $i$ in the exponent
+(\texttt{x/vote/keeper/msg\_server\_ceremony.go}, lines 224--269). No dealer
+ever holds the round secret: it exists only as the sum of shares.
+
+The parameters are fixed in code: reconstruction threshold
+$t = \max(2, \lfloor (2n+2)/3 \rfloor)$ for $n \geq 2$ validators (the
+degenerate $n = 1$, $t = 1$ case exists for local testing), ceremony
+finalization quorum $\lceil 4n/5 \rceil$ acknowledgements --- stricter than
+$t$ for most $n$ --- with non-ackers stripped from the ceremony and
+non-participants jailed (\texttt{x/vote/keeper/keeper\_ceremony.go}, lines
+46--79; \texttt{keeper\_ceremony\_jailing.go}).
+
+The known key-bias attack on plain Joint--Feldman applies: contributions
+arrive sequentially through the block-proposer path, so the last
+contributor sees every prior commitment and can steer the combined key to
+a chosen point. The repository's design document concedes the bias and
+argues it is harmless here --- the shifted key reveals nothing about the
+round secret under the discrete-log assumption, and the key serves only
+ElGamal encryption, whose IND-CPA security holds for any valid key ---
+citing Gennaro et al.\ (2007) for the security of Joint--Feldman threshold
+decryption despite a biased key (\texttt{vote-sdk/docs/tss-ceremony.md},
+``Why single-phase''). The argument is itself designed but unspecified: a
+repository document by the designers, not a normative artifact or
+independent analysis.
+
+\begin{remark}[Threshold collusion]\label{rem:vote-ea-collusion}
+Any $t$ colluding validators can reconstruct the round secret offline and
+decrypt every individual on-chain ciphertext; summing one vote's sixteen
+shares then yields that vote's exact per-decision weight, which the cast
+message already links in public to a VAN nullifier. The linkage stops at the
+VAN layer --- the governance nullifier's keyed PRF keeps Zcash notes and
+addresses out of reach. No published source claims per-vote weight privacy
+against a threshold coalition; a specification would have to state this
+limit explicitly (inference from \texttt{crypto/elgamal/bsgs.go} and
+\texttt{proto/svote/v1/tx.proto}, lines 88--99; recorded 2026-07-08).
+\end{remark}
+
+\subsection{Tally: chain-verified threshold decryption}
+\label{sec:vote-decrypt}
+
+\paragraph{Accumulation.} On each accepted reveal, the chain adds the
+$64$-byte ciphertext componentwise into the accumulator keyed by the triple
+(round, proposal, decision), validating well-formedness and rejecting
+identity components (\texttt{x/vote/keeper/keeper\_tally.go}, lines 33--74).
+By linearity, the accumulator encrypts the summed ballots of all revealed
+shares for that cell. Nothing decrypts until the round enters its tallying
+phase.
+
+\paragraph{Partial decryptions.} During tallying, each ceremony validator's
+node injects --- through the block-proposer path; the mempool route is
+rejected --- one submission covering every non-empty accumulator: the
+partial decryption $D_i := [s_i]\,C_1$ under its DKG share $s_i$, with a
+Chaum--Pedersen DLEQ proof that
+$\log_G \mathsf{VK}_i = \log_{C_1} D_i$. The proof is the pair $(e, z)$; the
+verifier recomputes $R_1 = [z]\,G - [e]\,\mathsf{VK}_i$ and
+$R_2 = [z]\,C_1 - [e]\,D_i$ and accepts iff
+\[
+e = H\bigl(\mathtt{svote\text{-}pd\text{-}dleq\text{-}v1} \,\|\, G \,\|\,
+\mathsf{VK}_i \,\|\, C_1 \,\|\, D_i \,\|\, R_1 \,\|\, R_2\bigr),
+\]
+with $H$ a BLAKE2b-256 hash-to-scalar; the tag separates this proof family
+from the tally-level DLEQ family (\texttt{svote-dleq-v1}), barring
+cross-family replay (\texttt{crypto/elgamal/dleq.go}, lines 30--145). The
+verification key $\mathsf{VK}_i$ is re-derived on the fly from the round's
+combined Feldman commitments rather than stored
+(\texttt{x/vote/keeper/msg\_server\_tally\_decrypt.go}, lines 257--269).
+The DLEQ is what makes the tally trustless against its own operators: one
+forged $D_i$ would silently shift every total. Duplicate submissions per
+validator are rejected, and each submission must cover every non-empty
+accumulator, so a proposer cannot inject a partial set that later wedges the
+tally (\texttt{msg\_server\_tally\_decrypt.go}, lines 199--294).
+
+\paragraph{Final verification.} The block proposer alone may submit the
+claimed plaintext totals. For each entry the chain Lagrange-combines at
+least $t$ stored partials at zero,
+\[
+\sum_i \lambda_i\, D_i = \Bigl[\sum_i \lambda_i\, s_i\Bigr] C_1 =
+[s]\,C_1,
+\]
+recovering the round secret only in the exponent
+(\texttt{crypto/shamir/partial\_decrypt.go}, lines 37--71), and checks
+$C_2 - [s]\,C_1 = [v]\,G$ against the claimed total $v$; an empty
+accumulator forces $v = 0$; any $v \geq 2^{28}$ is rejected outright (the
+constant \texttt{TallyBSGSBound}, an exclusive bound;
+\texttt{x/vote/types/keys.go}, lines 33--35). A completeness check requires
+the entries to cover every non-empty accumulator --- without it a malicious
+proposer could finalize with results omitted
+(\texttt{msg\_server\_tally\_decrypt.go}, lines 102--177). Only then does
+the round finalize.
+
+\paragraph{Recovering the logarithm.} The chain verifies by re-encoding
+$[v]\,G$, so only the proposer must solve discrete logarithms, by
+baby-step/giant-step under $N = 2^{28}$: a table of $m = \lceil \sqrt{N}
+\rceil = 2^{14} = 16{,}384$ baby steps $j \mapsto [j]\,G$, giant steps
+subtracting $[m]\,G$, a hit at $(i, j)$ giving $v = i m + j$ within at most
+$m + 1$ iterations (\texttt{crypto/elgamal/bsgs.go}, lines 11--110). The
+bound is ample: the full $21$-million-ZEC supply quantizes to
+$1.68 \times 10^{8}$ ballots at $12{,}500{,}000$ zatoshi per ballot
+(\texttt{src/params.rs}, line 14), below $2^{28} \approx 2.68 \times
+10^{8}$, so no honest aggregate is ever truncated.
+
+\paragraph{Two flags.}
+\begin{sloppypar}
+Totals are denominated in \emph{ballots}; the
+protobuf comment on the tally field says zatoshi and is wrong --- the wallet
+multiplies by $12{,}500{,}000$ for display
+(\texttt{proto/svote/v1/tx.proto}, lines 111--116, against
+\texttt{zashi-android} \texttt{TallyResults.kt}, lines 44--56, commit
+\texttt{b4edd6f6}). And the tallying phase carries a timeout of $21{,}600$
+seconds (six hours), after which the round finalizes \emph{without}
+results (\texttt{x/vote/types/keys.go}, lines 28--31) --- an availability
+caveat, not an integrity one, but a specification must decide whether a
+resultless finalization is acceptable.
+\end{sloppypar}
+
+\paragraph{What a specification must pin down.} Until zips PR~\#1200
+merges, the commit-pinned sources above are the only citable definition of:
+the Poseidon preimage layouts and the domain-tag registry (currently pinned
+by unit tests); the three nullifier formulas, their set scoping, and their
+key encodings; the decrement lookup table and the sentinel-bit convention;
+the share count, the per-share range bound, and their interaction with
+partial reveals; the DKG parameter formulas, ceremony state machine, and
+jailing policy; the DLEQ transcript formats and tags; and the BSGS bound and
+the unit denomination of totals as consensus parameters.
+
+\section{Trust model and verdict}\label{sec:vote-trust}
+
+The preceding sections constructed the protocol's mechanisms from
+commit-pinned source (Table~\ref{tab:vote-sources}); this section assembles
+what those mechanisms do \emph{not} guarantee. We first map every party the
+protocol trusts and state exactly what each is trusted with, then classify
+the volume's claims into the three bins of
+\S\ref{sec:vote-source-situation}, and close with the verdict: what a
+formal specification would have to pin down before the protocol's
+guarantees become checkable, and what the protocol delivers today against
+the instruments that ran the same June 2026 question. File citations below
+are at the commits of Table~\ref{tab:vote-sources}; wallet files are at
+\texttt{zashi-android} @ \texttt{b4edd6f6}.
+
+Every trust relation in this map is itself designed but unspecified: each
+is concrete, open-source behaviour at the pinned commits, and none is
+stated in a normative artifact. The inventory of
+\S\ref{sec:vote-inventory} records the full classification.
+
+\subsection{The trust map}\label{sec:vote-trust-map}
+
+\paragraph{Helper servers hold the vote decision and the linkage.} The
+payload a wallet sends to each chosen helper --- struct
+\texttt{SharePayload} in \texttt{zcash\_voting/src/types.rs} --- carries
+the plaintext \texttt{vote\_decision}, the vote commitment's
+\texttt{tree\_position} in the per-round tree, the \texttt{shares\_hash},
+all sixteen ciphertexts, the sixteen share commitments, and the revealed
+share's blinding factor (\texttt{primary\_blind}); the helper builds the
+Merkle path and the share-reveal proof server-side and submits
+\texttt{MsgRevealShare} itself (\texttt{vote-sdk/internal/helper/%
+processor.go}). A helper therefore learns, before any reveal, how the
+voter voted, and holds precisely the share-to-commitment linkage that the
+on-chain data blinds; composed with the public pairing of
+\texttt{vote\_commitment} and \texttt{van\_nullifier} in
+\texttt{MsgCastVote} (\texttt{proto/svote/v1/tx.proto}), that linkage ties
+the decision to the vote's delegated authority instance. This is a broader
+grant than a timing-relay framing suggests. What a helper never receives
+is weight: the plaintext share values and the ElGamal randomness are marked
+\texttt{SECRET} in the client library and stripped from the wire type
+(\texttt{types.rs}, \texttt{EncryptedShare} versus
+\texttt{WireEncryptedShare}). The timing decorrelation itself is client
+policy, not a protocol guarantee: the wallet posts each share to half of
+the configured helpers rounded up, each with an independently random
+future \texttt{submit\_at} scheduled no later than a last-moment buffer
+--- two fifths of the round duration, capped at six hours --- before the
+vote deadline (\texttt{zcash\_voting/src/share\_policy.rs}); a censoring
+helper causes
+partial weight loss, mitigated only by the multi-server fan-out and by a
+single-share fallback described below.
+
+\paragraph{Any $t$ colluding validators decrypt every posted ciphertext.}
+Function \texttt{ThresholdForN} sets the reconstruction threshold
+$t = \max(2, \lfloor (2n+2)/3 \rfloor)$ for $n$ ceremony validators
+(\texttt{vote-sdk/x/vote/keeper/keeper\_ceremony.go}). Any $t$ of them can
+reconstruct the round's ElGamal secret key offline from their dealt shares
+and decrypt every \texttt{enc\_share} on the chain --- not merely the
+aggregates the tally publishes. The decision attached to each ciphertext
+is public at reveal time in any case (\texttt{MsgRevealShare} carries
+\texttt{vote\_decision}); what threshold collusion adds is the share
+values. In the single-share last-moment mode the exposure is immediate:
+the client builds a payload for share~0 only, ``which carries all the
+voting weight'', and the remaining fifteen zero-value shares are never
+revealed (\texttt{zcash\_voting/src/vote\_commitment.rs}), so one
+decryption yields one vote's exact weight. In the sixteen-share mode,
+recovering a per-vote weight additionally requires grouping shares by
+vote --- a linkage the chain withholds (share nullifiers are blinded), the
+helpers of the previous paragraph possess outright, and the client-side
+timing policy merely obfuscates. The linkage stops at the Vote Authority
+Note layer in every case: the governance nullifier is keyed by the
+holder's nullifier-deriving key \nksym{}, so mainnet notes and addresses
+stay unlinkable even after a later spend
+(\texttt{voting-circuits/src/delegation/circuit.rs}, condition~14). We
+flag the analytical gap explicitly: neither the public documentation nor
+the source claims --- or denies --- per-vote weight privacy against a
+colluding Election Authority threshold. The limit stated here is our
+adversarial inference from \texttt{crypto/elgamal/bsgs.go}, the message
+surface, and the share-range condition of the vote-proof circuit; the
+property is absent from every published analysis.
+
+\paragraph{The chain is closed and its lifecycle is coordinator-gated.}
+The vote chain enforces a positive-security message whitelist at the ante
+handler: only enumerated message types pass, standard bank transfers are
+disabled --- explicitly ``because unrestricted transfers would let anyone
+accumulate enough stake to create a validator, bypassing the controlled
+validator set'' (\texttt{vote-sdk/proto/svote/v1/tx.proto}, comment on
+\texttt{MsgAuthorizedSend}) --- and post-genesis validator creation is
+disallowed outside the registered-Pallas-key path
+(\texttt{vote-sdk/app/ante\_whitelist.go}). Round lifecycle, privileged
+funding, and software upgrades are threshold-gated \emph{coordinator
+actions} proposed and approved by a vote-manager set
+(\texttt{MsgProposeCoordinatorAction}, \texttt{MsgApproveCoordinatorAction});
+the default genesis ships a single vote manager, and the coordinator
+threshold defaults to one (\texttt{vote-sdk/x/vote/module.go},
+\texttt{DefaultVoteManagerAddresses}; \texttt{tx.proto},
+\texttt{MsgUpdateVoteManagers}).
+%% TODO: production vote-manager set, coordinator threshold, and validator
+%% identities not establishable from the pinned sources; needs the deployed
+%% chain's genesis or a valargroup announcement.
+The same coordinators post the snapshot: the eligibility anchors
+\texttt{nc\_root} and \texttt{nullifier\_imt\_root} arrive in
+\texttt{MsgCreateVotingSession} as client-fetched values --- the
+note-commitment root recomputed from a lightwalletd frontier, the
+nullifier root taken from the operator's PIR service
+(\texttt{vote-sdk/api/snapshot.go}) --- and the chain stores them without
+verifying that they describe any real Zcash state; it runs no light
+client (\texttt{x/vote/keeper/msg\_server.go}). Honest wallets' proofs
+fail against fabricated roots, and anyone can audit the posted roots
+after the fact, but nothing in the protocol prevents a coordinator quorum
+from pinning a snapshot of its own invention.
+
+\paragraph{The wallet vendor's configuration is the authentication root.}
+A voter's assurance that they are voting in a genuine round reduces to a
+static configuration file bundled with the wallet: fetched from a
+commit-pinned URL (\texttt{valargroup/token-holder-voting-config} @
+\texttt{2785311d}) and verified against a hard-coded SHA-256 digest, it
+names the ed25519 keys that must sign the dynamic per-round
+configuration --- helper endpoints, PIR endpoints, and each round's
+Election Authority key (\texttt{StaticVotingConfig.kt},
+\texttt{BUNDLED\_PINNED\_SOURCE}). The round authenticator rejects a round
+whose on-chain \texttt{ea\_pk} disagrees with the signed entry
+(\texttt{RoundAuthenticator.kt}, status \texttt{EA\_PK\_MISMATCH}) --- the
+wallet's only defence against an attacker-substituted encryption key,
+under which every cast share would be attacker-decryptable. An on-chain
+endorsement registry (\texttt{MsgEndorseRound}) is secondary. The trust
+root of the whole client-side protocol is therefore the custodians of the
+config-signing keys together with the application distribution channel;
+neither is named in any published artifact.
+
+\paragraph{Tally liveness admits finalization without results.} The tally
+verification itself is real: validators' nodes auto-inject partial
+decryptions whose Chaum--Pedersen DLEQ proofs are checked on-chain against
+Feldman-derived verification keys, and the proposer-only
+\texttt{MsgSubmitTally} is accepted only if every claimed total matches
+the Lagrange combination of stored partials, covers every non-empty
+accumulator, and lies below the discrete-log recovery bound $2^{28}$
+(\texttt{vote-sdk/x/vote/keeper/msg\_server\_tally\_decrypt.go};
+\texttt{crypto/shamir/feldman.go}; the \texttt{TallyEntry} field
+\texttt{decryption\_proof} is dead --- ``reserved for future use'' --- the
+binding check is the recomputation). But the threshold $t$ is a liveness
+parameter as well as a secrecy parameter: if fewer than $t$ validators
+decrypt, the round sits in \texttt{TALLYING} until the timeout ---
+$21{,}600$ seconds by default (\texttt{x/vote/types/keys.go},
+\texttt{DefaultTallyTimeout}) --- and the end-blocker then finalizes it
+with \texttt{tally\_timed\_out = true} and \emph{empty results}
+(\texttt{x/vote/module.go}). A finalized round in which every cast vote
+remains permanently undisclosed is a protocol outcome, not an excluded
+failure mode; the design accepts it as the price of not blocking the
+chain on an unreachable threshold.
+
+\paragraph{The tally wire format mislabels its units.} The comment on
+\texttt{TallyEntry.total\_value} reads ``Decrypted aggregate (zatoshi)''
+(\texttt{vote-sdk/proto/svote/v1/tx.proto:114}). It is wrong: the
+accumulated plaintexts are \emph{ballot counts} --- the vote-proof circuit
+constrains each vote's shares to sum to the Vote Authority Note's ballot
+count, and the wallet converts totals to zatoshi by multiplying by the
+ballot divisor $12{,}500{,}000$ (\texttt{TallyResults.kt},
+\texttt{toTallyResults}; constant \texttt{BALLOT\_DIVISOR\_ZATOSHI} in
+\texttt{VotingCryptoClient.kt}). The recovery bound corroborates the
+correct reading: $2^{28}$ ballots is roughly $33.6$ million ZEC ---
+comfortably above the monetary supply --- whereas $2^{28}$ zatoshi is
+under $2.7$ ZEC. A consumer that trusts the comment under-reports every
+result by a factor of $12.5$ million. In a protocol whose only
+specification is its implementation, a wrong comment in the wire
+definition is not a cosmetic defect; it is an error in the closest thing
+the protocol has to a spec.
+
+\subsection{Claim inventory: the three bins}\label{sec:vote-inventory}
+
+\paragraph{Specified.} Only the inherited primitives: \NoteCommit{},
+nullifier derivation, \CommitIvk{}, the \Sinsemilla{} Merkle instance,
+RedPallas, the ZIP-244 sighash, and ZIP-32 derivation, each specified in
+the protocol specification and the ZIPs, constructed in the \emph{Orchard
+Guide} (\S``Representation of a note: notes and note commitments'',
+\S``Prevention of double-spending: nullifiers'', \S``Keys: capabilities
+for spending and for viewing'', \S``Proof of ownership of \emph{some}
+valid note: the commitment tree'', \S``Authorisation of the spend:
+RedPallas''), and reused unchanged through the
+\texttt{unstable-voting-circuits} feature (zcash/orchard @
+\texttt{c0b6b917}). No governance-specific object reaches this bin.
+
+\paragraph{Designed but unspecified.} Everything this volume constructed:
+the five-message ballot surface; the delegation relation with its
+note-bundle eligibility and indexed-Merkle-tree non-membership argument;
+the coordinator-posted, chain-unverified snapshot roots; the Vote
+Authority Note and its synthetic-action authorization --- including the
+asymmetry that the chain verifies the delegation signature over a
+\emph{client-provided} sighash, relying on the circuit's $\rho$-chain for
+binding, while the cast-vote sighash is recomputed on-chain
+(\texttt{x/vote/ante/validate.go}); all four double-vote layers; the
+sixteen-share lifted-ElGamal encoding, vote commitment, and bitmask
+decrement; the helper protocol and the trust it grants; the per-round
+Joint--Feldman DKG with threshold $t = \max(2, \lfloor (2n+2)/3 \rfloor)$
+and finalization quorum $\lceil 4n/5 \rceil$; the chain-verified tally,
+its $2^{28}$ recovery bound, and the timeout path; the PIR eligibility
+subsystem; and every trust relation of \S\ref{sec:vote-trust-map}. Each is
+concrete and open-source at the pinned commits; none is normative. The
+would-be specifications --- zcash/zips PRs \#1200 and \#1198, and the
+prior-art PR \#853 --- were all open and unmerged as of 2026-07-08.
+
+\paragraph{Open problem.} One: the ballot-quantization relation. The
+delegation circuit constrains
+$\mathit{num\_ballots} \cdot 12{,}500{,}000 + \mathit{remainder} =
+v_{\mathrm{total}}$ with $\mathit{remainder} < 2^{24}$, which is strictly
+weaker than the floor division the public documentation states: the pair
+$(q-1,\, r+12{,}500{,}000)$ also satisfies every constraint whenever the
+honest remainder obeys
+$r < 2^{24} - 12{,}500{,}000 = 4{,}277{,}216$ --- about $34.2\%$ of
+residues --- and the honest ballot count is at least two, while the
+opposite deviation fails the range check, so a
+prover can under-claim exactly one ballot and can never over-claim
+(\texttt{voting-circuits/src/delegation/circuit.rs};
+\texttt{src/delegation/README.md}~\S8, which states the window, proves
+over-claim impossible, and lists unimplemented tightening constraints).
+The deviation is self-harming, but it is the volume's one confirmed
+disagreement between the code and the code's own public description, and
+the exact relation a specification must choose --- floor division or the
+shipped weaker relation --- is unresolved.
+
+\subsection{Verdict}\label{sec:vote-verdict}
+
+\paragraph{What a specification must pin down.} For the protocol's
+guarantees to become checkable --- by an auditor, by a second
+implementation, or by this volume --- a normative artifact would need to
+fix, at minimum:
+\begin{enumerate}[itemsep=1pt]
+\item the three circuit relations in full: public-input layouts, every
+  condition, and the exact quantization rule --- either closing the
+  under-claim window or normatively accepting the shipped relation;
+\item every governance-object formula: the four nullifiers and the
+  nullifier-domain derivation, the Vote Authority Note commitment
+  (with the argument that its $x$-only encoding is bound elsewhere), the
+  vote commitment, and the shares hash;
+\item the snapshot: how \texttt{nc\_root} and the nullifier root are
+  derived, and \emph{who verifies them} --- at present, on-chain, nobody;
+\item the authorization model: which sighashes the chain recomputes,
+  which it accepts from the client, and why the delegation path is safe;
+\item the Election Authority: the threshold and quorum formulas, key
+  registration and rotation, and --- the largest analytical gap --- an
+  explicit confidentiality claim stating against whom per-vote weight
+  privacy holds;
+\item the helper interface: the exact payload, the trust granted by it,
+  and the status of the timing policy as guarantee or convention;
+\item tally semantics: the verification equation, the unit of
+  \texttt{total\_value} (ballots), and the meaning of a timed-out round;
+\item independent verification: a second implementation of at least the
+  verifiers, breaking the single-crate tautology of
+  \S\ref{sec:vote-source-situation}.
+\end{enumerate}
+
+\paragraph{What the protocol delivers today.} Measured against the
+instruments beside it (\S\ref{sec:vote-lineage}), the deliverable is
+real but conditional. Against ZCAP, the protocol opens participation to
+every Orchard coinholder in proportion to holdings, with no identified
+panel and no registrar, and it hides identity and weight from public
+observers --- where ZCAP offers the converse trade: an identified panel
+on mature, independently analysed voting software. Against the prior
+coin-weighted instrument, hhanh00's \texttt{zcash-vote}, it adds
+threshold decryption in place of a single tallying authority, blinded
+delegation through the Vote Authority Note, hardware signing,
+PIR-private eligibility queries, and wallet-native deployment --- at the
+price of the trust map of \S\ref{sec:vote-trust-map}: a permissioned
+chain, a coordinator quorum, helper servers, and a vendor-held
+configuration root. Integrity of the aggregate totals is the strongest
+property: the tally check is executed on-chain and every input to it is
+public, so any observer of the vote chain can replay it, and a
+fabricated snapshot is auditable after the fact. Individual privacy is
+the weakest: it holds against outside observers, degrades to helper
+honesty for the linkage of decisions to votes, and degrades to the
+honesty of all but $t-1$ validators for individual weights --- a limit no
+published analysis states. On that evidence the protocol is fit for
+what it was used for in June 2026: a non-binding sentiment poll with
+publicly recomputable totals. Binding governance would additionally
+require the specification above, an independent verifier, and a
+confidentiality analysis of the Election Authority --- none of which
+existed as of 2026-07-08.
+
+\end{document}
