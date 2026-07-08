@@ -1921,4 +1921,320 @@ elements of the IPA rounds). The benefit, beyond the removal of trusted setup, i
 foundation for recursion: future generations (Tachyon, eventual rollup
 designs) can build on Orchard's foundation without revisiting the
 cryptographic stack.
+\section{Post-quantum security of the deployed protocol}\label{sec:pq-orchard}
+
+Every group-structured assumption in Theorem~\ref{thm:orchard-e2e} --- DL on
+both Pasta curves and, for property (iv), DDH on Pallas --- falls to Shor's
+algorithm in polynomial time on a cryptographically relevant quantum computer
+(CRQC; the \emph{Crypto Guide}, \S``The quantum caveat: Shor's algorithm'');
+the theorem's remaining assumptions, the PRF security of Poseidon and the
+security of the KDF/AEAD, are symmetric and face only the generic speedups of
+\S\ref{sec:pq-grover}. The productive question is therefore not \emph{whether} the
+assumptions fail --- they all do, together --- but \emph{when the failure
+matters}. We organise this section by \emph{reversibility}. A break is
+\emph{retroactive} when data already recorded on chain becomes exploitable the
+day the adversary exists: no later consensus change can help, because the data
+is public and permanent. A break is \emph{prospective} when it requires a
+validator to \emph{accept} a forged object after the adversary exists:
+disabling the affected protocol before that day removes every future
+acceptance event and mitigates the break completely. Deployed Orchard has
+exactly one retroactive break (\S\ref{sec:pq-hndl}); everything else on its
+assumption surface is prospective (\S\ref{sec:pq-integrity}) or faces only
+generic quantum speedups (\S\ref{sec:pq-grover}).
+
+Much of this section concerns design-stage material, so we make the epistemic
+status of every forward-looking claim explicit, in one of three bins:
+\emph{specified} (a published artifact pins the construction down, which we
+cite), \emph{designed but unspecified} (an informal source describes the
+design; we say what a specification would still need to fix), and \emph{open
+problem} (no artifact exists). Claims about the deployed protocol instead cite
+the implementation and the specification as elsewhere in this volume. Ground
+truth for this section: \texttt{protocol.tex} and the ZIPs at \texttt{zips}
+commit \texttt{c6b70358} (2026-07-05), and crate \texttt{orchard} at commit
+\texttt{bef8a27e} (v0.14.0, 2026-06-16); we verified each cited artifact at
+these commits.
+
+\subsection{The retroactive break: harvest now, decrypt later against note
+encryption}\label{sec:pq-hndl}
+
+Each Action publishes the pair $(\mathsf{epk}, C_{\mathrm{enc}})$
+(\S\ref{sec:noteenc}; crate \texttt{orchard},
+\texttt{src/note\_encryption.rs}). Confidentiality of $C_{\mathrm{enc}}$ rests
+on exactly one discrete-log-dependent link: the one-shot Diffie--Hellman on
+Pallas between $\mathsf{esk}$ and $\pkd$ (protocol \S5.4.5.5; the
+$\mathsf{esk}$ derivation is \texttt{src/note.rs}, the key agreement
+\texttt{src/keys.rs}). The KDF and the AEAD above it are symmetric and are not
+the weak layer (\S\ref{sec:pq-grover}).
+
+A CRQC that knows a recipient's address $(d, \pkd)$ computes
+\[
+\ivk = \log_{\gd} \pkd
+\]
+by Shor --- one discrete logarithm for the lifetime of the address --- and then
+runs the recipient's own trial-decryption loop of \S\ref{sec:noteenc} over the
+recorded chain: for every Action, $[\ivk]\,\mathsf{epk}$ recovers
+$K_{\mathrm{enc}}$, and the AEAD tag identifies which ciphertexts belong to the
+address. The adversary obtains, for every note ever sent to that address, the
+plaintext $(d, v, \mathsf{rseed}, \mathsf{memo})$: every amount, every memo,
+the complete receiving history --- and equally every \emph{future} ciphertext
+to the same address. Two limits bound the damage. First, $\ivk$ is a viewing
+capability, not a spending one (\S\ref{sec:orchard-keys}): no spend authority
+is conferred, and $\ask$ is not exposed. Second, the attack is keyed by the
+address: without $(d, \pkd)$ the adversary has neither the base $\gd$ nor the
+target $\pkd$, and the recorded chain reveals nothing further even to an
+unbounded adversary (\S\ref{sec:pq-integrity}). ZIP-2005 records the same
+boundary: the harvest-now-decrypt-later exposure requires ``both the
+ciphertext \dots\ and the recipient address''.
+
+The break is retroactive by construction. The pair
+$(\mathsf{epk}, C_{\mathrm{enc}})$ is consensus data, replicated on every full
+node forever; its secrecy was fixed at recording time by one specific DH
+instance; any protocol upgrade alters only ciphertexts not yet created. An
+adversary needs no quantum computer today --- only storage --- and every
+Orchard output recorded since NU5 activation in 2022 is already in that
+corpus.
+
+\paragraph{Open problem: mitigation.} Nothing is deployed, and nothing is
+specified, that protects even future ciphertexts. ZIP-2005 (Proposed) excludes
+privacy by an explicit Non-requirement, states that the exposure persists for
+all pools including Ironwood, and says only that mitigations for future
+transfers are ``under consideration''. The tracking issues
+(\texttt{zcash/zips\#1133}, open since 2022; \texttt{\#1134}, open since 2016)
+carry discussion, not drafts; the \texttt{zips} repository at commit
+\texttt{c6b70358} contains no occurrence of ML-KEM, Kyber, ML-DSA, or a
+lattice scheme. A future hybrid key encapsulation would in any case protect
+future outputs only; the recorded ciphertexts are unrepairable.
+
+\subsection{Prospective breaks: the discrete-logarithm integrity
+stack}\label{sec:pq-integrity}
+
+The remainder of the assumption surface protects \emph{integrity}, and every
+piece of it fails against the same adversary. The reductions of
+\S\ref{sec:e2e-sec} each run equally well in reverse: the assumption a CRQC
+falsifies is exactly the one the security proof consumes.
+
+\begin{itemize}[leftmargin=*]
+\item \emph{Sinsemilla binding.} Collision resistance reduces to the
+discrete-log relation problem among the $\GroupHash$ generators
+(Proposition~\ref{prop:sins-cr}). A CRQC computes every pairwise logarithm,
+after which each Sinsemilla commitment opens to arbitrary messages: a second
+note under an on-chain $\cmx$ (breaking balance through
+\NoteCommit\ non-binding), a fabricated membership path under any anchor
+(\S\ref{sec:tree}), and alternative pairs $(\aksym', \nksym')$ opening the
+same \CommitIvk\ --- the Faerie-Gold-style Spendability attacks ZIP-2005
+catalogues. A balance violation committed this way is bounded only by the
+ZIP-209 turnstile and need not be detected at all.
+\item \emph{Value commitments and the binding signature.} Binding of
+$\cvsym^{\mathsf{net}}$ is the unknown discrete-log relation between
+$V^{\mathsf{Orchard}}$ and $R^{\mathsf{Orchard}}$
+(Definition~\ref{def:cv}, Proposition~\ref{prop:balance}); the binding
+signature is Schnorr under DL in the ROM. Knowledge of
+$\log_{V^{\mathsf{Orchard}}} R^{\mathsf{Orchard}}$ reopens any recorded or
+fresh $\cvsym$ to any value and yields $\mathsf{bsk}$ for any target
+$\mathsf{bvk}$: silent inflation, again turnstile-bounded (crate
+\texttt{orchard}, \texttt{src/value.rs}).
+\item \emph{RedPallas spend authorisation.} Unforgeability is DL in the ROM
+(Proposition~\ref{prop:redpallas}). One logarithm --- of $\aksym$, or of any
+published $\rk$ --- forges spend authorisation at will (crate
+\texttt{orchard}, \texttt{src/primitives/redpallas.rs}); combined with the
+next item it completes arbitrary theft.
+\item \emph{IPA knowledge soundness.} The Action SNARK is sound under DL on
+Vesta with Fiat--Shamir in the ROM (\S\ref{sec:e2e-snd}). A CRQC forges
+accepting proofs of false Action statements: minting from nothing, spending
+any commitment on chain, indistinguishable from honest proofs. This is the
+single most concentrated failure point --- every other item's exploitation
+route runs through it (crate \texttt{halo2\_proofs},
+\texttt{src/poly/commitment.rs}).
+\end{itemize}
+
+\paragraph{Why forking in time is a complete mitigation.} Each attack above
+must place a forged object --- a proof, a signature, a commitment opening ---
+before a validator and have it \emph{accepted}, and acceptance happens at
+current height under current consensus rules. Disabling the DL-dependent pools
+before a CRQC exists removes every future acceptance event; transactions
+already recorded were validated when the assumptions held and are never
+re-adjudicated. The breaks are therefore fully prospective, with two residues.
+Switch-off must precede the first forgery --- an attack landed in the exposure
+window is not repaired afterwards (\S\ref{sec:pq-zip2005}) --- and honest
+funds inside a disabled pool need some other way out, which is precisely the
+problem ZIP-2005 exists to solve.
+
+\paragraph{What the recorded chain does not leak.} The same recorded data that
+becomes forgeable leaks no secrets, quantumly or otherwise. The value
+commitment is perfectly hiding, so recorded $\cvsym$ values reveal nothing
+about amounts even to an unbounded adversary (\S\ref{sec:value}). The
+randomiser $\alpha$ is uniform, so recorded $\rk$ values and signatures carry
+information-theoretically no linkage to $\aksym$ or $\ask$
+(\S\ref{sec:redpallas-sec}). Proof transcripts are statistically simulatable
+without the witness (\S\ref{sec:halo-zk}). Nullifiers are keyed by $\nksym$,
+which never appears on chain (\S\ref{sec:nullifier}). Consequently a quantum
+adversary who does not know a recipient's address learns nothing from the
+recorded chain --- ZIP-2005 reaches the same conclusion --- and the sole
+retroactive channel is the address-keyed decryption of \S\ref{sec:pq-hndl}.
+
+\subsection{Primitives facing only generic speedups}\label{sec:pq-grover}
+
+Two primitive families in Orchard carry no discrete-log structure. BLAKE2b
+serves $\mathsf{PRFexpand}$ and with it every key and note-randomness
+derivation (\S\ref{sec:orchard-keys}, \S\ref{sec:noteenc}), the KDF and the
+outgoing cipher key, the RedPallas challenge hash, and the ZIP-244 sighash;
+the ZIP-32 Orchard key tree is hardened-only, built entirely from these
+derivations, with no elliptic-curve operation anywhere on the derivation path
+(ZIP-32, Final; crate \texttt{orchard}, \texttt{src/zip32.rs}). Poseidon
+serves the nullifier PRF, keyed by $\nksym$ (\S\ref{sec:nullifier};
+\texttt{src/note/nullifier.rs}).
+
+Against these, a quantum adversary gets generic speedups and nothing more ---
+with the usual square-root caveat stated exactly. Grover search halves
+effective preimage security (the \emph{Crypto Guide}, \S``The quantum caveat:
+Shor's algorithm''): $2^{256}$ classical evaluations become
+${\sim}2^{128}$ quantum ones, a margin the parameters absorb. For collisions
+the picture is better still: the Brassard--H{\o}yer--Tapp $2^{n/3}$ algorithm
+requires random access to a quantum memory of ${\sim}2^{92}$ bits at these
+output sizes, and the best \emph{known} implementable generic quantum
+collision attack remains the classical parallel one --- the assessment
+ZIP-2005 adopts, flagged there as best-known rather than provably best.
+Poseidon adds one honest caveat of its own: its PRF security is a
+cryptanalytic heuristic with no standard-problem reduction, classically and
+quantumly alike (\S\ref{sec:zcash}); a quantum adversary gains no identified
+structural advantage, and since $\nksym$ stays off chain, recorded nullifiers
+remain unlinkable either way.
+
+The consequence is the load-bearing fact of the next subsection: the symmetric
+backbone survives a discrete-log break intact. A seed holder can still prove,
+by re-executing derivations, that their keys descend from their seed ---
+ownership remains \emph{provable} after the assumption that made it
+\emph{enforceable} has fallen.
+
+\subsection{ZIP-2005: quantum recoverability for the Ironwood
+pool}\label{sec:pq-zip2005}
+
+ZIP-2005 (``Ironwood Quantum Recoverability'', Proposed; created 2025-03-31)
+is the deployed-track response to the prospective breaks of
+\S\ref{sec:pq-integrity}. It does not make Orchard quantum-secure and says so;
+it arranges that funds survive the eventual switch-off.
+
+\paragraph{Deployment.} Activation is bound to the NU6.3 network upgrade
+(ZIP-258, Draft: consensus branch $\mathtt{0x37A5165B}$; Testnet activation
+height $4134000$; Mainnet height not yet set at \texttt{zips} commit
+\texttt{c6b70358}).
+NU6.3 introduces the \emph{Ironwood pool}, carried by v6 transactions
+(ZIP-229, Draft) and running Orchard with an updated Action circuit; the
+scheduling follows the NU6.2 emergency circuit correction (ZIP-257, Final),
+which is why the originally planned earlier deployment slipped. From
+activation the legacy Orchard pool is sealed to spend-only: coinbase may carry
+no Orchard-pool Actions, no new value may enter the pool
+($v_{\mathrm{balance}}^{\mathsf{Orchard}} \ge 0$), and cross-address transfers
+within it are disabled --- this last rule enforced by the height-selected
+Action-circuit verifying key, the other two as ordinary consensus rules
+(ZIP-258).
+
+\paragraph{Mechanism.} Ironwood note plaintexts carry lead byte
+$\mathtt{0x03}$ in place of $\mathtt{0x02}$, and for them the trapdoor
+derivation changes from the deployed one --- domain-separated by
+$\mathtt{0x05}$ and
+taking only $\rho$ (\S\ref{sec:noteenc}) --- to
+\[
+\rcm := \mathrm{ToScalar}\bigl(\mathsf{PRFexpand}_{\mathsf{rseed}}(
+\mathtt{0x0B} \,\|\, \gd^\star \,\|\, \pkd^\star \,\|\, v \,\|\, \rho \,\|\,
+\psi)\bigr) \in \F_{p_{\Vesta}},
+\]
+each field in its canonical byte encoding (points star-encoded, $v$ as $8$ and
+$\rho, \psi$ as $32$ little-endian bytes). Every note field now traverses
+BLAKE2b: an adversary constrained to treat $\mathsf{PRFexpand}$ as a random
+oracle cannot vary any field without changing $\rcm$, so the composite of
+derivation and \NoteCommit\ is post-quantum binding \emph{provided a verifier
+checks the derivation} --- \NoteCommit\ itself, and the deployed Action
+circuit, are unchanged, and the binding claim is conditional on that future
+check. The same rederivation pattern covers \CommitIvk: the randomness
+$\rivk$ descends from $\mathsf{sk}$ through $\mathsf{PRFexpand}$, or --- for
+FROST-generated keys, where $\ask$ arises from distributed shares rather than
+from $\mathsf{sk}$, and for hardware-held keys, where proof authority must
+remain separate from the on-device spend key --- from a quantum key
+$\mathsf{qk}$ derived by one BLAKE3
+\texttt{derive\_key} compression from a secret $\mathsf{qsk}$, with signatures
+of knowledge over the transaction sighash tying the claimed keys to the spend
+(the ZIP types it only as a message hash and pins no sighash algorithm). The
+non-normative Recovery Statement then proves, in a post-quantum
+knowledge-sound system over a re-hashed commitment tree: the key derivations
+($\mathsf{BindKeys}$ and the $\rivk$ branch), $\ivk = \CommitIvk$,
+$\pkd = [\ivk]\,\gd$, the $\psi$ and $\rcm$ derivations, the commitment, a
+membership path, the nullifier, and the $\alpha$-re-randomisation tying the
+public $\rk$ to $\aksym$ --- costed at $7$ BLAKE2b-512 compressions,
+$1$ BLAKE3 compression, $2$ Sinsemilla commitments, $2$ Pallas scalar
+multiplications, and a Merkle path, the BLAKE2b compressions dominating.
+
+\paragraph{Security bounds as published.} The quantum analogue of the
+collision resistance these arguments need is Unruh's \emph{collapsing}
+property; Fehr's theorem for HAIFA-mode hashes reduces collapsing of the
+$\rcm$ derivation to modelling BLAKE2b's compression function as a random
+oracle --- the same modelling the classical proofs already use. Both classical
+reductions (key binding and Spendability) are straight-line and never
+reprogram the oracle, so they lift cleanly to the quantum random-oracle model;
+by Zhandry's compressed-oracle technique the classical $O(q^2/N)$ collision
+bound becomes $O(q^3/N)$, giving
+\[
+\varepsilon^{\mathsf{QROM}}_{\mathsf{kb}} \le O(q^3/N), \qquad
+\varepsilon^{\mathsf{QROM}}_{\mathsf{Spendability}} \le O(q^3/N) +
+\varepsilon^{\mathsf{QROM}}_{\mathsf{kb}},
+\]
+with $N \approx 2^{254}$ the oracle output-space size (the Pallas scalar
+order, $p_{\Vesta}$ in this volume's notation). At $q \ll 2^{60}$ the
+worst-case bound is ${\sim}2^{-74}$; the practically achievable bound stays
+near the classical $q^2/N \approx 2^{-134}$, since saturating the cubic bound
+needs the memory-infeasible algorithm of \S\ref{sec:pq-grover}.
+
+\paragraph{Scope: binding only, Orchard only.} The ZIP repairs binding, not
+privacy: the harvest-now-decrypt-later exposure of \S\ref{sec:pq-hndl}
+persists unchanged for every pool, Ironwood included. Sapling is deliberately
+excluded --- ``to reduce overall protocol complexity and analysis effort'' ---
+since the ZIP-32 Sapling derivations differ significantly from Orchard's
+hardened-only tree and would require their own analysis. The consequence is
+forced migration:
+Sapling, Sprout, and pre-Ironwood Orchard ($\mathtt{0x02}$) notes are
+unrecoverable, hence permanently unspendable once their protocols switch off;
+wallets are directed to move all funds into Ironwood notes and to treat the
+sweep as an ongoing process, since non-recoverable notes may arrive at any
+time.
+
+\paragraph{Specified.} The $\mathtt{0x03}$ note derivation, the
+$\mathsf{qsk}/\mathsf{qk}$ key path, and the consensus rules sealing the
+Orchard pool are pinned at ZIP rigor --- ZIP-2005 (Proposed), ZIP-229 and
+ZIP-258 (Draft), all at \texttt{zips} commit \texttt{c6b70358} --- and are
+enforced from NU6.3 activation: every Ironwood output is a recoverable note.
+
+\paragraph{Designed but unspecified.} The Recovery Protocol itself. ZIP-2005
+presents the Recovery Statement in outline and states that its details are
+``subject to change''; a specification would need to pin down the post-quantum
+proof system (a stated requirement is that none be assumed now), the
+collapsing hash for the re-hashed commitment tree, the linking commitments
+between circuits, and the concrete signature-of-knowledge instantiations.
+
+\paragraph{Open problem.} A post-quantum proof system and signature scheme for
+\emph{ongoing} spends --- as opposed to one-shot recovery --- exist nowhere as
+drafts (\texttt{zcash/zips\#1134} carries discussion only). So does the
+schedule: every recoverability guarantee is conditional on legacy switch-off
+preceding the first quantum forgery, and attacks landed in the exposure window
+--- Spendability roadblocks that permanently block recovery, spend-authority
+theft, turnstile-bounded inflation --- are not repaired retroactively.
+
+\subsection{Strategy: recoverability, not resistance}\label{sec:pq-strategy}
+
+The successor proving stack points the same way. Ragu, the recursive proof
+system under development for project Tachyon, is deliberately ECDLP-based over
+the same Pasta cycle, its authors citing ``reduced concern (in the medium
+term)'' for post-quantum soundness risks (\texttt{ragu-tachyon} book,
+\texttt{src/protocol/index.md}, commit \texttt{830bbcda}, 2026-07-05). Read
+together with ZIP-2005, this fixes Zcash's quantum strategy precisely:
+\emph{recoverability, not resistance} --- keep discrete-log cryptography while
+it stands, because its integrity failures are prospective and fork-mitigable
+(\S\ref{sec:pq-integrity}), and pre-position notes so that funds provably
+survive the eventual transition (\S\ref{sec:pq-zip2005}); the one cost this
+strategy cannot answer is the retroactive privacy channel of
+\S\ref{sec:pq-hndl}, which accrues damage now. Public claims that Zcash will
+be ``fully post-quantum'' on a twelve-to-eighteen-month horizon, with ML-KEM
+and ML-DSA under test (CoinDesk, 2026-05-08), correspond to no ZIP, draft, or
+repository artifact, and ZIP-2005 itself disclaims making the protocol secure
+against quantum adversaries.
+
 \end{document}
