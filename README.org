@@ -1,8 +1,8 @@
-#+TITLE: Non-Normative Zcash Protocol Documentation
+#+TITLE: The Zcash Arboretum
 #+AUTHOR: m@rek.onl
 #+OPTIONS: toc:nil num:nil
 
-Formal, full-depth, self-contained documentation of the [[https://z.cash/][Zcash]]
+The Zcash Arboretum: formal, full-depth, self-contained documentation of the [[https://z.cash/][Zcash]]
 protocol — restricted to the parts of Zcash that survive its own roadmap: the
 deployed Orchard core and the protocols growing on top of it. Each volume
 assumes the ones below it and is verified against the protocol specification
