@@ -353,8 +353,9 @@ commitment
 $\cmsym := \mathsf{Poseidon}_{\texttt{Tachyon-CmDerive}}(\rcm, \mathsf{pk},
 v, \psi)$ digests $\psi$ and $\mathsf{pk}$ (which pins $\nksym$), so a note's
 entire nullifier sequence is frozen when its commitment enters the pool.
-Section~\ref{sec:tachyon-dbu-nf} constructs the derivation in full --- the
-climb and leaf domains, and the nowhere-fixed depth $D$ and arity $A$.
+Construction~\ref{def:tachyon-design-climb} states the derivation in full
+--- the climb and leaf domains, and the working depth and arity the crate
+pins (\S\ref{sec:tachyon-design-ggm}) while the book leaves them symbolic.
 The proof behind the header certifies a single sentence: the note whose
 commitment is $\cmsym$ was minted --- its creation stamp is folded into the
 pool state --- and none of its nullifiers, from the creation epoch through
@@ -535,10 +536,9 @@ outside the chain, and the on-chain ciphertext disappears. The
 simplification cascades through the key hierarchy --- key diversification,
 viewing keys, and payment addresses are removed; the note drops the
 diversifier and $\rho$; the diversified transmission key $\pkd$ gives way to
-a payment key
-$\mathsf{pk} := \mathsf{Poseidon}(\texttt{PK\_DOMAIN}, \aksym_x, \nksym)$,
-deterministic per spending key (book, \texttt{src/keys.md} at
-\texttt{26fdc165}, which opens with the in-file warning ``this is
+a payment key deterministic per spending key
+(\S\ref{sec:tachyon-design-keys}, which owns the construction; the book's
+\texttt{src/keys.md} opens with the in-file warning ``this is
 significantly outdated''). Unlinkability becomes the wallet layer's problem,
 deferred to the URI substrate: ZIP~321 payment-request URIs and ZIP~324
 URI-encapsulated payments. That substrate is \emph{specified} only in part.
@@ -589,6 +589,774 @@ simply have no choice but to do it'' (forum t/50789 \#22, 2025-11-04); on ZK
 Podcast 388
 (2026-01-21) the recovery infrastructure was still ``a can of worms''. The
 single sentence of issue \#121 is the entire written resolution to date.
+
+\section{The design as published}\label{sec:tachyon-design}
+
+The preceding section reconstructed the architecture; this one fixes the
+design's object model as the project book publishes it: the mdBook of
+\texttt{tachyon-zcash/tachyon} @ \texttt{26fdc165} (2026-07-07,
+single-committer; \S\ref{sec:tachyon-sources}), the design's most complete
+public statement. Each subsection states what the book fixes --- exact
+formulas, fields, and domain strings --- names the Orchard analogue in one
+contrast, and closes with the object's bin under
+Definition~\ref{def:three-bins} and what a specification must still pin
+down; mechanisms the architecture section constructs and gaps the status
+sections classify are cross-referenced, not restated. Every claim here is
+\emph{designed but unspecified} by default. Where the
+\texttt{zcash\_tachyon} crate at the same commit realizes an object, the
+realization is \emph{specified} in the only sense available before a spec
+--- verifiable source at a pinned commit (\S\ref{sec:tachyon-crate}) ---
+with the README split as the boundary: keys, value commitments, signatures,
+and bundle construction ``implemented and tested''; note commitments,
+nullifier derivation, proofs, and stamp compression ``Stubbed''. One caveat
+cuts across every Poseidon-derived object: the crate routes all Poseidon
+calls through Ragu's mock sponge (\texttt{src/digest/poseidon.rs}), so
+derivation \emph{structure} and domain tags are code-anchored while the
+outputs are not real Poseidon. (The book's $\F_p$, $\F_q$ are the series'
+$\F_{p_{\Pallas}}$, $\F_{p_{\Vesta}}$.)
+
+Staleness is stated once, here. The book post-dates the May-2026 payment
+pivot (issue \#121; \S\ref{sec:tachyon-sources}), yet two chapters carry
+the in-file marker \texttt{<!--\ todo: this is significantly outdated -->}
+(\texttt{src/keys.md} line~3, whole chapter; \texttt{src/authorization.md}
+line~228, its Detailed Sequence), and the key chapter's out-of-band claims
+are pre-pivot statements, dated pre-2026-05-26
+(\S\ref{sec:tachyon-payments}, \S\ref{sec:tachyon-dbu-pir}); we document
+the book as published and do not relitigate per object. Eight
+\texttt{src/SUMMARY.md} entries carry no file: the four section parents
+(Data Model, Cryptographic Primitives, Protocol, Network Roles --- the
+last has a filed Overview child), the three network-role pages, and the
+testnet chapter. One terminological drift: the bundle chapter's
+\emph{tachystamp} is the \emph{stamp} of the proof-tree chapter and the
+crate; we write \emph{stamp}.
+
+\subsection{Bundles and tachygrams}\label{sec:tachyon-design-bundle}
+
+\begin{definition}[Tachyon bundle objects]\label{def:tachyon-design-bundle}
+A \emph{tachygram} is a 32-byte field element representing either a
+nullifier or a note commitment; consensus does not distinguish the two. A
+\emph{tachyaction} indistinguishably represents the creation or
+destruction of a note --- a commitment tachygram proves creation, a
+nullifier tachygram destruction --- and is cryptographically bound to
+one tachygram that it does \emph{not} contain. It contains
+$\cvsym$, a 32-byte homomorphic commitment to the created or destroyed
+value; $\rk$, a 32-byte public key bound to one tachygram; and
+$\mathsf{sig}$, a 64-byte RedPallas signature by $\rk$ over the
+transaction sighash. A \emph{stamp} contains an anchor, the recursive
+proof (which may be aggregated), and the covered actions' tachygrams; the
+proof establishes that each tachygram creates a new note or destroys an
+existing one, that tachygrams are correctly bound to action keys, and that
+the action balance effect matches the pool balance effect. A \emph{bundle}
+collects the tachyactions, the integer net pool effect
+$\mathsf{value\_balance}$, a binding signature over the same sighash as
+the action signatures, and the stamp (book, \texttt{src/bundle.md} @
+\texttt{26fdc165}).
+\end{definition}
+
+The covering proof witnesses a commitment to the \emph{unordered set} of
+the stamp's tachygrams as a root polynomial,
+$\mathsf{tachygram\_acc}(X) = \prod_i (X - \mathsf{tg}_i)$, and this set is
+the atomic unit that folds into pool state to contribute to the anchor
+(book, \texttt{src/tachygrams.md} @ \texttt{26fdc165}); the fold and the
+two-epoch duplicate scan the set feeds are constructed at
+\S\ref{sec:tachyon-validators}.
+
+\paragraph{Wire format.} The first byte, \texttt{tachyonBundleState},
+selects one of three states: $\mathtt{0x00}$ non-tachyon (no bundle),
+$\mathtt{0x01}$ stamped, $\mathtt{0x02}$ stripped; the body layout (value
+balance as i64, the $(\cvsym, \rk)$ action vector, per-action and binding
+signatures) is fixed only in the crate's doc tables
+(\texttt{crates/tachyon/src/bundle/mod.rs}). The stamp trailer (state
+$\mathtt{0x01}$) carries \texttt{cActionsTachyon} (32 bytes, a
+``compressed Pedersen commitment'' to the stamp's merged action-digest
+set; \S\ref{sec:tachyon-design-agg}), \texttt{anchorTachyon} (32 bytes),
+\texttt{nTachygrams} (compactsize), \texttt{vTachygrams} ($32n$ bytes),
+and \texttt{proofTachyon}, a \texttt{PROOF\_SIZE} blob --- ``serialized
+proof of fixed size''. The stripped trailer (state $\mathtt{0x02}$)
+carries only \texttt{tachyonAggregateId}, the 64-byte nonzero
+\texttt{wtxid} of the covering aggregate: the all-zero \texttt{wtxid},
+naming no aggregate, is rejected on read even for a stripped innocent, and
+the stripped trailer carries no \texttt{cActionsTachyon} --- that field
+rides on the stamp and strips away when a bundle becomes an adjunct.
+
+The Orchard contrast: an Orchard Action publishes typed, distinguishable
+fields ($\cvsym^{\mathrm{net}}$, $\nfsym^{\mathrm{old}}$, $\rk$, $\cmx$)
+plus note ciphertexts, with one per-transaction Halo~2 proof (the
+\emph{Orchard Guide}, \S``What a node verifies, without ever observing the
+note''); a tachyaction is single-effect, ciphertext-free, does not carry
+its tachygram, and its proof is strippable and aggregatable across
+transactions --- a lifecycle with no Orchard analogue.
+
+\paragraph{Classification.} \emph{Designed but unspecified}, with the wire
+format's structure specified-as-code: the crate's doc tables mirror the
+book's byte-for-byte and the nonzero-\texttt{wtxid} rule is enforced on
+read (\texttt{bundle/mod.rs}, \texttt{stamp/mod.rs}). A specification must
+still pin \texttt{PROOF\_SIZE}, which no number in the book fixes (the
+crate defers to Ragu's \texttt{PROOF\_SIZE\_COMPRESSED}), and the
+point-compression convention, fixed only informally per context (the
+trailer compresses; the anchor absorbs complete coordinates,
+\S\ref{sec:tachyon-design-tree}).
+
+\subsection{The key hierarchy}\label{sec:tachyon-design-keys}
+
+\begin{definition}[Tachyon key hierarchy]\label{def:tachyon-design-keys}
+The spending key $\mathsf{sk}$ is raw 32-byte entropy, matching Orchard's
+representation and preserving the full 256-bit key space. With
+$\mathsf{PRFexpand}_{\mathsf{sk}}(t) =
+\text{BLAKE2b-512}(\texttt{Zcash\_ExpandSeed},\ \mathsf{sk} \,\|\, t)$,
+the book derives
+\[
+\ask = \mathrm{ToScalar}\bigl(\mathsf{PRFexpand}_{\mathsf{sk}}
+  ([\mathtt{0x21}])\bigr), \qquad
+\nksym = \mathrm{ToBase}\bigl(\mathsf{PRFexpand}_{\mathsf{sk}}
+  ([\mathtt{0x22}])\bigr),
+\]
+a long-lived scalar in $\F_{p_{\Vesta}}$ and a base-field element in
+$\F_{p_{\Pallas}}$, with $\aksym = [\ask]\,\mathcal{G}$; the payment key is
+\[
+\mathsf{pk} = \mathsf{Poseidon}(\texttt{PK\_DOMAIN},\ \aksym_x,\ \nksym),
+\]
+with $\aksym_x$ the $x$-coordinate of $\aksym$ --- the chapter leaves
+\texttt{PK\_DOMAIN} symbolic; only the domain-separator table fixes it as
+\texttt{Tachyon-PkDerive} (\S\ref{sec:tachyon-design-txid}). The
+\emph{proof authorizing key} $\mathsf{pak} = (\aksym, \nksym)$ enables
+proof construction without spend authority; the per-note delegation bundle
+$(\aksym, \mathsf{mk})$ restricts a prover to one note, all epochs, where
+$\mathsf{mk}$ is the note's GGM master key
+(\S\ref{sec:tachyon-design-ggm}). (Book, \texttt{src/keys.md} @
+\texttt{26fdc165}.)
+\end{definition}
+
+\paragraph{Sign normalization and tiers.} RedPallas requires
+$\aksym = [\ask]\,\mathcal{G}$ to have $\tilde{y} = 0$ (bit 255 of the
+compressed encoding); if $\tilde{y}(\aksym) = 1$ the derivation negates
+$\ask$ ($[-\ask]\,\mathcal{G} = -[\ask]\,\mathcal{G}$), once, at derivation
+time (\texttt{src/keys.md}; \texttt{crates/tachyon/src/keys/private.rs}
+lines 83--98). The key $\ask$ cannot sign directly and $\aksym$ cannot
+verify directly: both are randomized per action into $\rsk$ and $\rk$
+(\S\ref{sec:tachyon-design-auth}), so each on-chain $\rk$ is unlinkable to
+$\aksym$; the book names the tiers private scalar $\to$ circuit witness
+$\to$ public on-chain (\texttt{SpendAuthorizingKey},
+\texttt{SpendValidatingKey}, \texttt{ActionVerificationKey}). The payment
+key is \emph{deterministic per spending key} --- every note from one
+$\mathsf{sk}$ shares one $\mathsf{pk}$, no per-note diversification --- and
+since $\mathsf{pk}$ is committed in $\cmsym$, accumulator membership
+transitively pins $\aksym$ and $\nksym$: a wrong $\nksym$ gives a wrong
+$\mathsf{pk}$, a wrong $\cmsym$, and inclusion fails.
+
+The Orchard contrast: the root $\mathsf{sk}$, the $\mathsf{PRFexpand}$
+construction, the $\ask \to \aksym$ derivation with the same sign
+normalization, and RedPallas re-randomization survive (the \emph{Orchard
+Guide}, \S``Keys: capabilities for spending and for viewing''; tag bytes
+differ, $\mathtt{0x06}$/$\mathtt{0x07}$/$\mathtt{0x08}$ against
+$\mathtt{0x21}$/$\mathtt{0x22}$), while $\rivk$, $\fvk = (\aksym, \nksym,
+\rivk)$, $\ivk$, $\dk$, $\ovk$, the FF1-AES256 diversifier $d$, $\gd$, and
+$\pkd$ are removed, and $\mathsf{pk}$, $\mathsf{pak}$, and the per-note
+$(\aksym, \mathsf{mk})$ bundle are new with no Orchard counterpart.
+
+\paragraph{Classification.} The derivations and normalization are
+\emph{specified} as tested code in the crate's key module, with
+$\mathsf{pk}$ computed through the mock sponge
+(\texttt{keys/private.rs}). The intent around $\mathsf{pk}$ ---
+unlinkability deferred out-of-band --- is the pre-pivot claim re-examined
+at \S\ref{sec:tachyon-dbu-pir}. A specification must pin
+\texttt{PK\_DOMAIN} normatively, the encoding of $\aksym_x$, and --- after
+the pivot --- which key-hierarchy removals survive.
+
+\subsection{Notes and commitments}\label{sec:tachyon-design-notes}
+
+\begin{definition}[Tachyon note]\label{def:tachyon-design-note}
+A note carries exactly four fields: $\mathsf{pk} \in \F_{p_{\Pallas}}$, the
+recipient's payment key; $v$, a u64 value in zatoshi with
+$1 \leq v \leq 2.1 \times 10^{15}$; $\psi \in \F_{p_{\Pallas}}$, the
+nullifier trapdoor; and $\rcm \in \F_{p_{\Pallas}}$, the commitment
+trapdoor. Zero-value notes are forbidden. The commitment binds all four,
+\[
+\cmsym = \mathsf{Poseidon}_{\texttt{Tachyon-CmDerive}}
+  (\rcm,\ \mathsf{pk},\ v,\ \psi),
+\]
+and is the published tachygram of an output action; a spend action
+publishes \emph{two} nullifiers, at the present epoch $e$ and the next
+epoch $e+1$, as its tachygrams (book, \texttt{src/notes.md} @
+\texttt{26fdc165}; the commitment already appears in
+\S\ref{sec:tachyon-fold}, the dual-nullifier rationale in
+\S\ref{sec:tachyon-validators}).
+\end{definition}
+
+The Orchard contrast: an Orchard note is a 5-tuple
+$(\mathsf{addr} = (d, \pkd), v, \rho, \psi, \rcm)$ under a perfectly
+hiding Sinsemilla $\NoteCommit$, with $v \in [0, 2^{64})$ (the
+\emph{Orchard Guide}, \S``Representation of a note: notes and note
+commitments'') and load-bearing zero-value dummies (\emph{Orchard Guide},
+\S``The Action statement, formally''); Tachyon drops the address and
+$\rho$ entirely --- ``no diversifier, no rho, no unique value for faerie
+gold defense'' since ``the nullifier construction doesn't require global
+uniqueness'' (\texttt{crates/tachyon/src/note.rs}) --- so where Orchard
+chains $\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}}$ (\emph{Orchard
+Guide}, \S``Prevention of double-spending: nullifiers''), $\psi$ reuse
+here harms only the owner (\S\ref{sec:tachyon-dbu-nf}).
+
+\paragraph{Classification.} \emph{Designed but unspecified}, and the
+commitment scheme is the book's clearest internal churn marker: the note
+and domain-separator chapters fix Poseidon under \texttt{Tachyon-CmDerive},
+while the crate's module doc calls the scheme ``TBD'' --- ``(e.g.\
+Sinsemilla, Poseidon)'' pending what ``is efficient inside Ragu circuits''
+(\texttt{note.rs}; cited at \S\ref{sec:tachyon-dbu-nf}). A specification
+must pin the scheme and the field encodings; the $\psi$-uniqueness
+responsibility gap is classified at \S\ref{sec:tachyon-dbu-nf}.
+
+\subsection{Epochs and the GGM nullifier tree}\label{sec:tachyon-design-ggm}
+
+The derivation's endpoints --- the master key
+$\mathsf{mk} = \mathsf{Poseidon}_{\texttt{Tachyon-NfPrefix}}(\psi, \nksym)$,
+the per-epoch leaf nullifier, the delegation window $\delta$ with its
+sentinel, and the spendable lineage --- are constructed at
+\S\ref{sec:tachyon-fold} and \S\ref{sec:tachyon-dbu-nf}; none of that
+machinery appears in the eprint note, whose evolving-nullifier sketch is a
+flat PRF still taking $\rho$ as input (quoted at
+\S\ref{sec:tachyon-dbu-nf}).
+What the book fixes beyond those statements is the climb itself.
+
+\begin{construction}[GGM climb]\label{def:tachyon-design-climb}
+The tree has depth $D$ and arity $A$, covering leaf epochs
+$e \in [0,\ A^D - 1]$; a node at depth $d$ covers a contiguous range of
+$A^{D-d}$ consecutive epochs, and a node may only climb toward the leaves,
+never back toward the root --- the property that makes absence-proof
+delegation trustless. To reach the leaf at epoch $e$, decompose $e$ into
+$d \in [0 \ldots D]$ base-$A$ direction chunks, most significant first, and
+climb one step per chunk:
+\[
+\mathsf{KDF}^{\mathsf{climb}}_\psi(e, 0) =
+  \mathsf{KDF}^{\mathsf{root}}_\psi(\nksym) = \mathsf{mk},
+\]
+\[
+\mathsf{KDF}^{\mathsf{climb}}_\psi(e, d) =
+  \mathsf{Poseidon}_{\texttt{Tachyon-NfPrefix}}\!\left(
+    \mathsf{KDF}^{\mathsf{climb}}_\psi(e, d-1),\
+    \left\lfloor e / A^{D-d} \right\rfloor \bmod A
+  \right).
+\]
+The value at $\mathsf{KDF}^{\mathsf{climb}}_\psi(e, D)$ is the leaf key for
+epoch $e$; the final \texttt{Tachyon-NfDerive} hash from leaf key to
+nullifier is constructed at \S\ref{sec:tachyon-dbu-nf} (book,
+\texttt{src/nullifiers.md} @ \texttt{26fdc165}).
+\end{construction}
+
+\paragraph{Parameters.} The book leaves $D$ and $A$ symbolic everywhere.
+The crate pins working values: $\texttt{GGM\_TREE\_ARITY} = 4$,
+$\texttt{GGM\_CHUNK\_SIZE} = 2$ bits, $\texttt{GGM\_TREE\_DEPTH} = 10$
+under the invariant $A^D = \texttt{GGM\_MAX\_INDEX} + 1$ with
+$\texttt{GGM\_MAX\_INDEX} = \texttt{EPOCH\_MAX} = 2^{20} - 1$ ($4^{10} =
+2^{20}$ epochs tile the index space exactly), and $\texttt{EPOCH\_SIZE} =
+2^{12} = 4096$ blocks, via a shift constant that drops to $4$ under
+\texttt{cfg(test)} --- placeholder values, not decisions
+(\texttt{crates/tachyon/src/keys/ggm.rs}, \texttt{src/constants.rs}).
+Nothing in the book maps the epoch index to block height; the epoch length
+exists only in code, and its tuning is the open issue of
+\S\ref{sec:tachyon-dbu-epoch}.
+
+The Orchard contrast: Orchard derives \emph{one} nullifier per note,
+$\nfsym = \Extract\bigl([F_{\nksym}(\rho) + \psi]\,\mathcal{G}^{\nfsym} +
+\cmsym\bigr)$ --- a Poseidon PRF plus a curve point --- checked against the
+global, ever-growing nullifier set (the \emph{Orchard Guide},
+\S``Prevention of double-spending: nullifiers''); Tachyon replaces it with
+a per-epoch sequence, pure Poseidon with no curve point and no
+$\Extract$, checked only over the two-epoch window of
+\S\ref{sec:tachyon-validators}.
+
+\paragraph{Classification.} \emph{Designed but unspecified}; the tree walk
+is code-anchored in structure (\texttt{keys/ggm.rs}) but its cryptography
+sits on the stubbed side of the README split. A specification must pin
+$D$, $A$, the epoch length and activation semantics
+(\S\ref{sec:tachyon-dbu-epoch}), and the chunk encoding; the tip-nullifier
+exposure of the delegation flow is the open problem of
+\S\ref{sec:tachyon-open-tip}.
+
+\subsection{Anchors, stamps, and the proof tree}\label{sec:tachyon-design-tree}
+
+The three anchor-chain formulas are constructed at
+\S\ref{sec:tachyon-validators}; the unresolved normative force of
+end-of-block anchoring is classified at \S\ref{sec:tachyon-dbu-rollover}.
+The book adds two statements worth fixing here: intra-block states exist
+between stamp absorptions, and a proof such as \texttt{SpendableInit}
+``will produce a header that is likely at an intra-block state, and should
+be lifted to the end of a block by proving state continuity''
+(\texttt{src/anchor.md}; that the epoch step is the only domain absorbing
+the epoch index is already fixed at \S\ref{sec:tachyon-validators} --- all
+cross-epoch binding rides on it); and absorbing
+the \emph{complete} $(x, y)$ coordinates of the stamp's tachygram-set
+commitment, rather than a compressed encoding, makes the binding
+unambiguous --- the crate sharpens this to a Vesta point whose
+$\F_{p_{\Vesta}}$ coordinates are each split into two 128-bit
+little-endian limbs, a six-element Poseidon absorption
+(\texttt{digest/poseidon.rs}; the sequence, tachygram-set, and action-set
+commitments all live on Vesta, \texttt{primitives/seq.rs},
+\texttt{primitives/sets.rs}).
+
+\paragraph{The step graph.} Each proof step accepts arbitrary witness
+inputs and up to two PCD inputs, and emits a new PCD. The book fixes
+exactly nineteen steps over eight header types
+(Table~\ref{tab:tachyon-design-steps}) and a role matrix: the wallet runs
+every
+step touching the note's commitment or master key; the sync service runs
+the anchor and \texttt{Unspent} steps over wallet-shared nullifier values,
+never note material (\S\ref{sec:tachyon-dbu-oss}); the aggregator touches
+only published \texttt{StampHeader}s and the public anchor chain --- the
+three anchor-chain steps to build lift segments, then \texttt{StampLift}
+and \texttt{MergeStamp} (book, \texttt{src/proof-tree.md} @
+\texttt{26fdc165}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lp{10.2cm}@{}}
+\toprule
+Header & Fields \\
+\midrule
+\texttt{AnchorChain} & \texttt{(start, end)} \\
+\texttt{Unspent} & \texttt{(anchor\_prev, (epoch\_start, nf\_start),
+  elapsed, (epoch\_end, nf\_end), anchor\_last)} \\
+\texttt{VerifiedUnspent} & \texttt{(cm, anchor\_prev, (epoch\_start,
+  nf\_start), (epoch\_end, nf\_end), anchor\_last)} \\
+\texttt{NfPrefixHeader} & \texttt{(cm, node, depth, index)} \\
+\texttt{NullifierHeader} & \texttt{(cm, (epoch\_start, nf\_start),
+  nf\_seq\_commit, (epoch\_end, nf\_end))} \\
+\texttt{SpendableHeader} & \texttt{(cm, present\_nf, anchor)} \\
+\texttt{SpendHeader} & \texttt{(cm, (cv, rk), present\_nf, anchor)} \\
+\texttt{StampHeader} & \texttt{(action\_commit, tachygram\_commit,
+  anchor)} \\
+\bottomrule
+\end{tabular}
+
+\medskip
+
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllp{3.9cm}l@{}}
+\toprule
+Step & Left & Right & Witness & Output \\
+\midrule
+\texttt{AnchorSeed} & --- & --- & \texttt{start, stamp\_commit}
+  & \texttt{AnchorChain} \\
+\texttt{EmptyBlockSeed} & --- & --- & \texttt{start}
+  & \texttt{AnchorChain} \\
+\texttt{AnchorFuse} & \texttt{AnchorChain} & \texttt{AnchorChain} & ---
+  & \texttt{AnchorChain} \\
+\texttt{UnspentSeed} & --- & --- & \texttt{anchor\_prev, (epoch, nf),
+  stamp\_tg\_set} & \texttt{Unspent} \\
+\texttt{EmptyBlockUnspentSeed} & --- & --- & \texttt{anchor\_prev,
+  (epoch, nf)} & \texttt{Unspent} \\
+\texttt{UnspentFuse} & \texttt{Unspent} & \texttt{Unspent}
+  & \texttt{left\_elapsed\_seq, combined\_elapsed\_seq,
+  right\_elapsed\_seq} & \texttt{Unspent} \\
+\texttt{UnspentEpochFuse} & \texttt{Unspent} & \texttt{Unspent}
+  & \texttt{left\_elapsed\_seq, combined\_elapsed\_seq,
+  right\_elapsed\_seq} & \texttt{Unspent} \\
+\texttt{VerifyUnspent} & \texttt{Unspent} & \texttt{NullifierHeader}
+  & \texttt{elapsed\_seq, nf\_seq} & \texttt{VerifiedUnspent} \\
+\texttt{NfMasterSeed} & --- & --- & \texttt{note, pak}
+  & \texttt{NfPrefixHeader} \\
+\texttt{NfPrefixStep} & \texttt{NfPrefixHeader} & --- & \texttt{chunk}
+  & \texttt{NfPrefixHeader} \\
+\texttt{NullifierStep} & \texttt{NfPrefixHeader} & --- & ---
+  & \texttt{NullifierHeader} \\
+\texttt{NullifierFuse} & \texttt{NullifierHeader} & \texttt{NullifierHeader}
+  & \texttt{left\_seq, merged\_seq, right\_seq}
+  & \texttt{NullifierHeader} \\
+\texttt{SpendableInit} & \texttt{AnchorChain} & \texttt{NullifierHeader}
+  & \texttt{(pre\_epoch\_anchor, pre\_cm\_anchor), creation\_set,
+  present\_nf} & \texttt{SpendableHeader} \\
+\texttt{SpendableLift} & \texttt{SpendableHeader} & \texttt{VerifiedUnspent}
+  & --- & \texttt{SpendableHeader} \\
+\texttt{SpendBind} & \texttt{SpendableHeader} & --- & \texttt{note, rcv,
+  alpha, pak} & \texttt{SpendHeader} \\
+\texttt{OutputStamp} & --- & --- & \texttt{rcv, alpha, note, anchor}
+  & \texttt{StampHeader} \\
+\texttt{SpendStamp} & \texttt{SpendHeader} & \texttt{NullifierHeader}
+  & \texttt{nf\_next} & \texttt{StampHeader} \\
+\texttt{MergeStamp} & \texttt{StampHeader} & \texttt{StampHeader}
+  & \texttt{(action\_set, tachygram\_set)} $\times$ \texttt{left, merged,
+  right} & \texttt{StampHeader} \\
+\texttt{StampLift} & \texttt{StampHeader} & \texttt{AnchorChain} & ---
+  & \texttt{StampHeader} \\
+\bottomrule
+\end{tabular}
+\caption{The eight proof-tree headers (top) and nineteen steps (bottom),
+fields verbatim (book, \texttt{src/proof-tree.md} @ \texttt{26fdc165}).
+All nineteen steps are registered in the crate against Ragu's mock
+(\texttt{crates/tachyon/src/stamp/proof/mod.rs}).}
+\label{tab:tachyon-design-steps}
+\end{table}
+
+\begin{construction}[Sentinel-terminated sequence composition]
+\label{def:tachyon-design-splice}
+An \texttt{Unspent}'s \texttt{elapsed} holds one nullifier coefficient per
+epoch-boundary crossing in its span, forward-chronological, terminated by a
+sentinel coefficient $1$ at the crossing count
+$s = \texttt{epoch\_end} - \texttt{epoch\_start}$; the sentinel keeps every
+committed sequence nonzero (an empty window is the constant $1$), so the
+commitment never falls on the identity point, and it pins the sequence's
+exact length. Step \texttt{NullifierStep} builds its single-leaf commitment
+homomorphically, $[\nfsym]\,\mathcal{G}_0 + \mathcal{G}_1$, with
+$\mathcal{G}_1$ carrying the sentinel. Composition is checked as polynomial
+identities at a Fiat--Shamir challenge:
+\[
+C(X) = L(X) + X^{s}\,\bigl(R(X) - 1\bigr)
+\qquad \text{(\texttt{UnspentFuse}),}
+\]
+\[
+C(X) = L(X) + X^{s}\,(p - 1) + X^{s+1}\,R(X)
+\qquad \text{(\texttt{UnspentEpochFuse}),}
+\]
+\[
+R(X) = E(X) + X^{s}\,\bigl(\texttt{nf\_end} - 1\bigr) + X^{s+1}
+\qquad \text{(\texttt{VerifyUnspent}),}
+\]
+where $p$ is the left half's completing tip \texttt{nf\_end} and $E$ the
+\texttt{elapsed} sequence: in each identity the appended term overwrites
+the left sentinel and the trailing term re-terminates. The inputs $L$,
+$R$, and $p$ are bound by the recursive verification of the input PCDs
+\emph{before} the challenge, and each identity is linear in them --- which
+is what makes the splice sound. Step \texttt{MergeStamp} fuses two stamps at
+equal anchors by requiring, for each of the action-digest and tachygram
+multisets, that the merged set polynomial equal the \emph{product} of the
+two inputs' (book, \texttt{src/proof-tree.md} @ \texttt{26fdc165}).
+\end{construction}
+
+\paragraph{Lineage and spend binding.} Step \texttt{SpendableInit} checks
+$\cmsym$ among the creation stamp's tachygrams and roots the chain at
+$\texttt{pre\_epoch\_anchor.next\_epoch(epoch)}$, pinning the starting GGM
+leaf index to the consensus epoch --- without it, a note spent in its
+creation epoch crosses no boundary and the index is a free witness. On
+\texttt{present\_nf} the book disagrees with itself: its walkthrough binds
+\texttt{present\_nf} to the proven leaf by equality at init --- matching
+the step's \texttt{NullifierHeader} input in
+Table~\ref{tab:tachyon-design-steps} --- while its reference section calls
+it ``unconstrained here'', pinned to a genuine leaf only by the first lift
+--- another unresolved internal inconsistency at \texttt{26fdc165}
+(\texttt{src/proof-tree.md}). Step \texttt{SpendBind} requires
+$\texttt{spendable.cm} = \texttt{note.commitment()}$ --- rejecting a
+phantom note reusing $\psi$ under a different value and $\cmsym$ --- and
+its \texttt{SpendHeader} is consumed only by \texttt{SpendStamp}, so the
+note never propagates. Step \texttt{SpendStamp} composes it with a length-2
+\texttt{NullifierHeader} range, witnesses $\texttt{nf\_next}$, binds the
+published pair to the boundary leaves by equality, and guards both
+nullifiers nonzero (the guard's rationale is quoted at
+\S\ref{sec:tachyon-dbu-nf}); deferring this binding and the action
+digest here keeps each step within its per-step gate budget. The book's
+privacy claim: the note's age never becomes public --- the lineage carries
+a single current nullifier, not a polynomial with a consumed offset.
+
+\paragraph{Stamps.} Step \texttt{OutputStamp} is the only stamp-producing
+step taking an anchor as direct witness (an output has no prior chain
+state); it rejects zero and over-range values, and the wallet typically
+anchors outputs at the spends' height so \texttt{MergeStamp} proceeds
+without an intervening lift. Step \texttt{StampLift} advances a composed
+stamp's anchor toward the tip before publication; validators reconstruct
+both set commitments from published bundles, check the proof against them,
+and confirm the anchor against the chain. An aggregated stamp has the same
+shape as any other and is eligible for further aggregation.
+
+The Orchard contrast: Orchard proves membership on every spend via a
+32-layer Sinsemilla Merkle path against a per-block tree anchor (the
+\emph{Orchard Guide}, \S``Proof of ownership of \emph{some} valid note: the
+commitment tree''); the no-tree, proven-once replacement is stated at
+\S\ref{sec:tachyon-removes}.
+
+\paragraph{Classification.} \emph{Designed but unspecified} throughout:
+the nineteen steps exist as circuit-shaped Rust against the mock
+(\texttt{stamp/proof/mod.rs}), not as mathematics, and the soundness
+section is prose (\S\ref{sec:tachyon-fold};
+\S\ref{sec:tachyon-dbu-rollover}). A specification must pin the header
+encodings, the per-step relations, the polynomial-commitment scheme and
+coefficient generators $\mathcal{G}_i$ (the book's $\Comm$ is abstract),
+and the Poseidon instance.
+
+\FloatBarrier
+
+\subsection{Aggregation}\label{sec:tachyon-design-agg}
+
+The lifecycle nomenclature is fixed in
+Table~\ref{tab:tachyon-design-agg}: wallets broadcast \emph{autonomes};
+aggregators strip and merge stamps into \emph{aggregates}; miners strip
+covered transactions into \emph{adjuncts}, and a block carrying an
+aggregate must include every covered transaction sans its now-redundant
+proof. Aggregates subdivide into \emph{innocent} (no Tachyon actions of
+its own, e.g.\ other-pool-only activity) and \emph{based} (proving its own
+actions, e.g.\ a coinbase aggregate paying miner rewards through a Tachyon
+action). The process is decompress--merge--recompress: select
+transactions; deserialize and validate stamps; match or update anchors
+(\texttt{StampLift}); merge stamps --- tachygrams as exclusive sets,
+proofs recursively; serialize, compress, publish (book,
+\texttt{src/aggregation.md} @ \texttt{26fdc165}).
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Term & State & Provenance & Validation \\
+\midrule
+autonome  & stamped  & wallet     & complete proof with all inputs \\
+aggregate & stamped  & aggregator & merged proof needs input from other
+  transactions \\
+adjunct   & stripped & miner      & input to merged proof from another
+  transaction \\
+\bottomrule
+\end{tabular}
+\caption{Bundle lifecycle nomenclature (book, \texttt{src/aggregation.md}
+@ \texttt{26fdc165}).}
+\label{tab:tachyon-design-agg}
+\end{table}
+
+\paragraph{The action-set indicator.} An aggregate's stamp proves its own
+plus every covered adjunct's actions but carries no proof header ---
+verifiers reconstruct it from covered actions, which before block
+inclusion are not at hand. The stamp trailer therefore carries
+\texttt{cActionsTachyon}, an author-provided \emph{assistive indicator}
+mirroring the action-set commitment the proof attests to, letting an
+observer cheaply tell an autonome from an aggregate and judge a collection
+of adjuncts complete without verifying the proof. It is authorization
+data, not effecting data --- it rides the strippable trailer, contributes
+to \texttt{auth\_digest}, and is absent from adjuncts --- and \emph{not} a
+soundness mechanism: the proof binds the action set regardless, and a
+wrong indicator only harms its author. Function \texttt{Stamp::verify}
+uses it as a fast-fail gate before expensive proof verification (book,
+\texttt{src/aggregation.md}; code, \texttt{stamp/mod.rs}).
+
+The Orchard contrast: no analogue exists --- an Orchard bundle's proof is
+per-transaction, never stripped, never merged across transactions (the
+\emph{Orchard Guide}, \S``What a node verifies, without ever observing the
+note'').
+
+\paragraph{Classification.} \emph{Designed but unspecified}, shading into
+\emph{open problem} inside the chapter's own file: the tachygram set-union
+validation algorithm and the aggregation limits are in-file TODOs, and the
+closing comment lists undecided economics --- aggregate size limited by
+commitment size before block size (``on the order of thousands of
+actions''), single-aggregate merging serial though multiple aggregates
+parallelize, ser/de expensive, and the optimal-aggregate,
+miner-integrate-vs-p2p, and selection-order questions open
+(\texttt{src/aggregation.md}, comments). The ``Block Layout'' section the
+transaction-identifiers chapter cites does not exist in
+\texttt{aggregation.md} at this commit --- a dangling link. A
+specification must pin the union-validation algorithm, the limits, and
+the gossip protocol.
+
+\subsection{Authorization}\label{sec:tachyon-design-auth}
+
+A bundle carries three authorization layers: per-action signatures binding
+each tachyaction to its tachygram, value commitments hiding individual
+values while preserving their algebraic sum, and a binding signature
+proving the declared balance (book, \texttt{src/authorization.md} @
+\texttt{26fdc165}).
+
+\begin{construction}[Deterministic action randomizer]
+\label{def:tachyon-design-alpha}
+The planner selects arbitrary per-action entropy $\theta$; the custody
+device receives each note and $\theta$ to independently confirm the
+planning work. The randomizer is deterministic from $(\theta, \cmsym)$
+under per-effect personalizations:
+\[
+\alpha_{\mathrm{spend}} =
+  \text{BLAKE2b-512}_{\texttt{Tachyon-Spend}}(\theta \,\|\, \cmsym),
+\qquad
+\alpha_{\mathrm{output}} =
+  \text{BLAKE2b-512}_{\texttt{Tachyon-Output}}(\theta \,\|\, \cmsym).
+\]
+Every action signs with a unique $\rsk$, published as
+$\rk = [\rsk]\,\mathcal{G}$. For a spend,
+\[
+\rsk = \ask + \alpha, \qquad
+\rk = [\ask + \alpha]\,\mathcal{G} = \aksym + [\alpha]\,\mathcal{G},
+\]
+so the planning device derives $\rk$ from the validating $\aksym$ without
+ever holding $\ask$, and custody confirms $\rk$ before signing. For an
+output, $\rsk = \alpha$ and $\rk = [\alpha]\,\mathcal{G}$: no authority is
+needed. Because $\alpha$ derives from $\theta \,\|\, \cmsym$, the key $\rk$
+is itself a commitment to $\cmsym$, and the signature transitively binds
+each action to its tachygram without the tachygram appearing in the action.
+\end{construction}
+
+\paragraph{Bundle commitment and sighash.} The bundle's effect digest
+accumulates per-action digests into a set polynomial:
+\[
+d_i = \mathsf{Poseidon}_{\texttt{Tachyon-ActionDg}}
+  (\cvsym_i \,\|\, \rk_i), \qquad
+\mathsf{action\_acc} = \Comm\Bigl(\prod_i \bigl(X - d_i\bigr)\Bigr),
+\]
+hashed as $\text{BLAKE2b-512}_{\texttt{ZTxIdTachyonHash}}
+(\mathsf{action\_acc} \,\|\, \mathsf{value\_balance})$. The same
+action-digest accumulation is bound to the stamp proof; the stamp itself
+is excluded from the bundle commitment because it strips during
+aggregation. All signatures --- action and binding --- sign one
+transaction-wide sighash, computed at the transaction layer from every
+pool's bundle commitment and passed to the Tachyon layer as opaque bytes.
+Consensus recomputes the action digests from the visible actions and
+checks them against both the sighash (via the bundle commitment) and the
+stamp (via the polynomial commitment in the PCD header); a modified action
+breaks both checks.
+
+\paragraph{Value balance.} The value commitment and binding algebra are
+Orchard's, deliberately: with $v$ signed (positive spends, negative
+outputs) and $\rcv$ random in $\F_{p_{\Vesta}}$,
+\[
+\cvsym = [v]\,\mathcal{V} + [\rcv]\,\mathcal{R}, \qquad
+\mathsf{bvk} = \sum_i \cvsym_i - [\mathsf{value\_balance}]\,\mathcal{V}
+ = \Bigl[\sum_i v_i - \mathsf{value\_balance}\Bigr]\,\mathcal{V}
+   + [\mathsf{bsk}]\,\mathcal{R},
+\]
+where $\mathsf{bsk} = \sum_i \rcv_i$: the planner signs the sighash with
+$\mathsf{bsk}$ directly, without custody assistance, and validators'
+reconstructed $\mathsf{bvk}$ equals $[\mathsf{bsk}]\,\mathcal{R}$ exactly
+when $\sum_i v_i = \mathsf{value\_balance}$. The generators are
+\emph{shared with Orchard}, from the domain \texttt{z.cash:Orchard-cv}.
+Two footnotes flag churn: the $\rcv$ derivation ``may be revised in the
+future to incorporate a hash of the note commitment'', and the binding
+signature uses \texttt{reddsa::orchard::Binding}, hardcoding $\mathcal{R}$
+--- ``We should consider defining a unique personalization.''
+
+The Orchard contrast: the value machinery is identical by construction ---
+same Pedersen $\cvsym$, same $\mathsf{bvk}$ equation, literally the same
+generators (the \emph{Orchard Guide}, \S``Conservation of value: value
+commitments and the binding signature'') --- while the randomizer differs
+in kind: Orchard draws $\alpha$ uniformly at random per Action with no
+planner/custody split (\emph{Orchard Guide}, \S``Authorisation of the
+spend: RedPallas''), and every Orchard Action is a paired
+spend-plus-output carrying one \textsf{SpendAuthSig} (\emph{Orchard
+Guide}, \S``A single shielded payment, end to end''; \S``What a node
+verifies, without ever observing the note'').
+
+\paragraph{Classification.} This is the \emph{specified}-as-code side of
+the README split: the randomizer, re-randomized keys, value commitments,
+and both signature layers are implemented and tested (\texttt{entropy.rs},
+\texttt{keys/private.rs}, \texttt{value.rs}, \texttt{reddsa.rs}). Unpinned
+by any artifact: the sighash construction (opaque bytes at this layer),
+the $\rcv$ derivation, the generator personalization, the $\Comm$ scheme
+behind $\mathsf{action\_acc}$, and --- flagged in-file --- whether
+$\alpha$ moves to a curve-native derivation
+(\texttt{src/domain-separators.md}, comment).
+
+\subsection{Transaction identifiers and domain separators}
+\label{sec:tachyon-design-txid}
+
+A bundle's authorization form changes through aggregation --- stamping,
+merging, and stripping produce bit-different authorizations of the same
+effecting data --- and \texttt{wtxid} $=$ \texttt{txid} $\|$
+\texttt{auth\_digest} (ZIP~239) must distinguish the forms. Tachyon routes
+every mutable part through \texttt{auth\_digest}: \texttt{txid} commits to
+effecting data only, $\mathsf{action\_acc} \,\|\, \mathsf{value\_balance}$,
+so stripping, merging, and re-stamping leave it unchanged, while the
+authorization side commits to the signatures plus the stamp trailer:
+\[
+\begin{split}
+\mathsf{auth\_digest\_contribution} &=
+\text{BLAKE2b-256}_{\texttt{ZTxAuthTachyHash}}\bigl(
+  \mathsf{vActionSigs} \| \mathsf{bindingSig} \| T\bigr), \\
+T &= \begin{cases}
+    \texttt{cActionsTachyon}_{32} \| \texttt{anchor}_{32} \|
+      \texttt{vTachygrams} \| \texttt{proof} & \text{if stamped} \\
+    \texttt{stampWtxid}_{64} & \text{if stripped}
+  \end{cases}
+\end{split}
+\]
+(book, \texttt{src/transaction-identifiers.md} @ \texttt{26fdc165}). Each
+physical form thus yields a distinct \texttt{wtxid}. The personalization
+\texttt{ZTxAuthTachyHash} is declared ``a placeholder until a Tachyon-ZIP
+amendment to ZIP-244 fixes it.'' An adjunct's covering-aggregate reference
+is a \texttt{wtxid}, assigned by the miner at block assembly; the covering
+aggregate must itself be top-level in the block --- never stripped, never
+further aggregated --- so the reference is stable.
+
+\paragraph{A book-internal (and book--code) discrepancy.} The
+transaction-identifiers formula writes BLAKE2b-\emph{256} for the
+\texttt{auth\_digest} contribution --- matching ZIP~244's digests ---
+while the book's own domain-separator table
+(Table~\ref{tab:tachyon-design-domains}) and the crate
+(\texttt{hash\_length(64)}; \texttt{digest/blake2b.rs}) both say
+BLAKE2b-\emph{512}: the hash width is an unresolved encoding at
+\texttt{26fdc165}. The code also fixes encodings the book leaves loose:
+the bundle commitment hashes the action commitment's complete coordinates
+$x \,\|\, y$ then \texttt{value\_balance} as a little-endian i64, and a
+transaction with no Tachyon bundle contributes the personalized hash of
+the \emph{empty} string --- documented as distinct both from a stripped
+bundle and from a bundle with no actions and zero balance
+(\texttt{blake2b.rs}, \texttt{bundle/mod.rs}).
+
+The Orchard contrast: the construction mirrors the ZIP-244
+personalized-BLAKE2b pattern of \texttt{ZTxIdOrchardHash} (the
+\emph{Orchard Guide}, \S``Conservation of value: value commitments and the
+binding signature'', paragraph ``The transaction digest (ZIP-244)''); the
+novelty is that the entire stamp rides \texttt{auth\_digest}, keeping
+\texttt{txid} invariant under aggregation.
+
+\paragraph{Domain separators.} Table~\ref{tab:tachyon-design-domains} is
+the book's complete table --- its most specification-like artifact,
+byte-exact strings each realized as a code constant. The crate fixes the
+in-circuit realization the book omits: every Poseidon domain tag is a
+16-byte ASCII string absorbed as the \emph{first} sponge input, embedded
+as $\F_{p_{\Pallas}}$ via
+\texttt{Fp::from\_u128(u128::from\_le\_bytes(tag))}, with arities: action
+digest 5 (domain, $\cvsym$ and $\rk$ as full coordinate pairs), payment
+key 3, note commitment 5, master key 3, prefix step 3, nullifier 2, anchor
+stamp step 6, anchor empty step 2, anchor epoch step 3
+(\texttt{digest/poseidon.rs}) --- all through the mock sponge.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\begin{tabular}{@{}lll@{}}
+\toprule
+Purpose & Hash & Value \\
+\midrule
+Spend $\alpha$          & BLAKE2b-512 & \texttt{Tachyon-Spend} \\
+Output $\alpha$         & BLAKE2b-512 & \texttt{Tachyon-Output} \\
+Bundle commitment       & BLAKE2b-512 & \texttt{ZTxIdTachyonHash} \\
+Bundle auth digest      & BLAKE2b-512 & \texttt{ZTxAuthTachyHash} \\
+PRF expand ($\mathtt{0x21}$ $\ask$, $\mathtt{0x22}$ $\nksym$)
+                        & BLAKE2b-512 & \texttt{Zcash\_ExpandSeed} \\
+\midrule
+Nullifier prefix key    & Poseidon & \texttt{Tachyon-NfPrefix} \\
+Nullifier derivation    & Poseidon & \texttt{Tachyon-NfDerive} \\
+Note commitment         & Poseidon & \texttt{Tachyon-CmDerive} \\
+Action digest           & Poseidon & \texttt{Tachyon-ActionDg} \\
+Payment key derivation  & Poseidon & \texttt{Tachyon-PkDerive} \\
+Anchor stamp step       & Poseidon & \texttt{Tachyon-StampFld} \\
+Anchor empty step       & Poseidon & \texttt{Tachyon-EmptyBlk} \\
+Anchor epoch step       & Poseidon & \texttt{Tachyon-EpochStp} \\
+\midrule
+Value commitment        & hash-to-curve & \texttt{z.cash:Orchard-cv} \\
+\bottomrule
+\end{tabular}
+\caption{Complete domain-separator table (book,
+\texttt{src/domain-separators.md} @ \texttt{26fdc165}). The auth-digest
+hash width is the discrepancy noted in the text: the book's
+transaction-identifiers formula says BLAKE2b-256; this table and the
+crate say BLAKE2b-512.}
+\label{tab:tachyon-design-domains}
+\end{table}
+
+\paragraph{Classification.} \emph{Designed but unspecified}, at the highest
+concreteness the corpus reaches: byte-exact strings with code constants,
+yet two entries are self-declared placeholders ---
+\texttt{ZTxAuthTachyHash}, and the value-commitment generator borrowed
+from Orchard's \texttt{z.cash:Orchard-cv} --- and one is internally
+inconsistent (the 256/512 width, above).
+A specification must fix the hash widths, the personalization
+bytes, and above all the Poseidon instance the eight domains parameterize
+--- parameters, rate, and capacity exist nowhere, and the crate computes
+every domain through a mock.
+
+\medskip
+\noindent
+Taken together, the book at \texttt{26fdc165} fixes an object model at a
+concreteness no other Tachyon artifact approaches, and still leaves every
+load-bearing parameter symbolic: the GGM shape and epoch length
+(\S\ref{sec:tachyon-dbu-epoch}), the proof size, the Poseidon instance,
+the commitment scheme and its generators, the sighash, and the
+note-commitment scheme itself. The sections that follow classify these
+gaps severally; the open problems are the design's own
+(\S\ref{sec:tachyon-open}).
 
 \section{What is specified today}\label{sec:tachyon-specified}
 
@@ -903,7 +1671,8 @@ churning: alternatives remain open in the tracker for the derivation itself
 \#98; all open, fetched 2026-07-08).
 
 \paragraph{What a specification must pin down.} The depth $D$ and arity $A$
-(nowhere fixed; \S\ref{sec:tachyon-dbu-epoch}); the Poseidon instances,
+(symbolic in the book; the crate pins working values,
+\S\ref{sec:tachyon-design-ggm}); the Poseidon instances,
 their parameters, and the byte-exact domain tags; the encoding of the epoch
 index into chunks; the uniqueness rule for $\psi$ --- the book states that
 two notes sharing $\psi$ share $\mathsf{mk}$ and hence the same nullifier
@@ -1012,7 +1781,8 @@ and the data-availability pressure all hinge on --- is untuned: issue \#79
 records, beyond a pull-request reference, only that it ``requires empirical
 analysis''. The GGM depth $D$ and
 arity $A$, which bound the number of epochs a note can ever traverse, are
-fixed nowhere in the book or crate. The ePrint note supplies only the
+symbolic throughout the book; the crate pins working values
+(\S\ref{sec:tachyon-design-ggm}) that no design document yet ratifies. The ePrint note supplies only the
 qualitative trade: with long epochs (``e.g., years'') the ecosystem ``can
 perhaps organically support'' storage of past nullifiers, but payment-scale
 throughput requires epochs ``perhaps even as short as a single block'',
@@ -1052,7 +1822,7 @@ nullifiers (to prevent duplicates in concurrent transactions) but can
 otherwise permanently prune'' (forum t/50789, post \#22, 2025-11-04). The
 ePrint note carries only the looser ``validators must still check for
 duplicates''. The book's Soundness section argues the composition in prose:
-splice identities of the form $C(X) = L(X) + X^{s}(p-1) + X^{s+1}R(X)$
+splice identities (Construction~\ref{def:tachyon-design-splice})
 checked at a Fiat--Shamir challenge, commit-equality binding of witnessed
 sequences, and $\cmsym$-threading through the spendable lineage
 (\texttt{book/src/proof-tree.md}). There are no formal definitions, no
