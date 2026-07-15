@@ -275,6 +275,12 @@ ol.plates li.plate:hover { border-color: var(--muted); }
 }
 .ltx_document { line-height: 1.62; }
 
+/* LaTeXML wraps list-item paragraphs in an inline-block .ltx_para, which
+   shrink-wraps to content and lets a wide child (a display equation) jut
+   past the list item and the sheet. Constrain it to its container so the
+   equation's own overflow-scroll can engage. */
+.ltx_para { display: block; max-width: 100%; }
+
 .ltx_title_document {
   font-family: var(--display); font-weight: 700;
   font-size: 2rem; line-height: 1.15;
