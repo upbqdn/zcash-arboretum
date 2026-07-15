@@ -106,6 +106,7 @@ def webprep():
                     f"{{figures/{vol}-fig{n[0]}.png}}")
 
         text = TIKZ_RE.sub(sub, text)
+        text = text.replace("\\author{m@rek.onl}", "\\author{}")
         lines = []
         for ln in text.splitlines():
             s = ln.lstrip()
@@ -176,10 +177,9 @@ def landing(outdir):
 <script src="pagefind/pagefind-ui.js"></script>
 </head><body>
 <main class="arb-landing">
-<p class="eyebrow">a field guide to the shielded protocols</p>
 <h1>The Zcash Arboretum</h1>
 <hr class="stem">
-<p class="tag">Formal, full-depth, self-contained documentation of the Zcash
+<p class="tag">Full-depth, self-contained documentation of the Zcash
 protocol &mdash; the deployed core and the protocols growing on top of it.
 Non-normative: where these volumes and the
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>

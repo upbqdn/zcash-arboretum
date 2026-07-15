@@ -85,7 +85,7 @@ code, kbd, pre { font-family: var(--mono); }
   text-transform: uppercase;
   color: var(--plaque-ink);
   border: 1px solid var(--leafline);
-  border-radius: 3px;
+  border-radius: 2px;
   padding: .18rem .5rem .14rem;
   white-space: nowrap;
   background: transparent;
@@ -130,7 +130,7 @@ code, kbd, pre { font-family: var(--mono); }
   width: min(34rem, 88vw);
   background: var(--plate);
   border: 1px solid var(--edge);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: .8rem;
   box-shadow: 0 10px 30px rgb(0 0 0 / .12);
 }
@@ -164,15 +164,6 @@ main.arb-landing {
   position: relative;
   overflow: visible;
 }
-.arb-landing .stem::after {
-  content: "\2766";           /* fleuron, the botanical printer's mark */
-  position: absolute;
-  left: 2.2rem; top: -.78em;
-  background: var(--paper);
-  padding: 0 .55em;
-  color: var(--muted);
-  font-size: 1rem;
-}
 .arb-landing .tag { color: var(--muted); margin: 0 0 1.6rem; max-width: 38rem; }
 .arb-landing h2 {
   font-family: var(--display); font-weight: 600;
@@ -196,12 +187,12 @@ ol.plates { list-style: none; margin: 0; padding: 0; }
 ol.plates li.plate {
   background: var(--plate);
   border: 1px solid var(--edge);
-  border-radius: 6px;
+  border-radius: 2px;
   padding: .85rem 1.05rem .8rem;
   margin: .55rem 0;
   transition: border-color .15s ease;
 }
-ol.plates li.plate:hover { border-color: var(--conifer); }
+ol.plates li.plate:hover { border-color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   ol.plates li.plate { transition: none; }
 }
@@ -283,7 +274,7 @@ h3.ltx_title_subsection, .ltx_title_subsection {
   background: var(--plate);
   border: 1px solid var(--edge);
   border-left: 3px solid var(--conifer);
-  border-radius: 4px;
+  border-radius: 2px;
   padding: .7rem 1rem;
   margin: 1.1rem 0;
 }
@@ -301,7 +292,7 @@ figure.ltx_figure figcaption { color: var(--muted); font-size: .9rem; }
 
 /* TOC + navigation */
 .ltx_TOC { background: var(--plate); border: 1px solid var(--edge);
-           border-radius: 6px; padding: .9rem 1.1rem; }
+           border-radius: 2px; padding: .9rem 1.1rem; }
 .ltx_TOC .ltx_toclist { margin: 0; padding-left: 1.1rem; }
 .ltx_TOC a { color: var(--ink); }
 .ltx_TOC a:hover { color: var(--conifer); }
