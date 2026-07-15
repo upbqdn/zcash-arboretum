@@ -179,9 +179,8 @@ def landing(outdir):
 <main class="arb-landing">
 <h1>The Zcash Arboretum</h1>
 <hr class="stem">
-<p class="tag">Full-depth, self-contained documentation of the Zcash
-protocol &mdash; the deployed core and the protocols growing on top of it.
-Non-normative: where these volumes and the
+<p class="tag">Documentation of the Zcash protocol &mdash; the deployed
+core and the protocols growing on top of it. Non-normative: where these volumes and the
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>
 disagree, the specification is correct.</p>
 <div id="search"></div>
