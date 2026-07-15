@@ -86,7 +86,11 @@ def render():
                 out = FIGDIR / f"{vol}-fig{i}.svg"
                 subprocess.run(["pdftocairo", "-svg", str(Path(td) / "fig.pdf"),
                                 str(out)], check=True)
-                print(f"rendered {out.relative_to(ROOT)}")
+                # PNG twin: LaTeXML's graphics handler rejects .svg includes
+                subprocess.run(["pdftoppm", "-png", "-r", "180", "-singlefile",
+                                str(Path(td) / "fig.pdf"),
+                                str(FIGDIR / f"{vol}-fig{i}")], check=True)
+                print(f"rendered {out.relative_to(ROOT)} (+ .png)")
 
 
 def webprep():
@@ -98,7 +102,7 @@ def webprep():
         def sub(_m, vol=vol, n=n):
             n[0] += 1
             return (r"\includegraphics[width=0.9\linewidth]"
-                    f"{{figures/{vol}-fig{n[0]}.svg}}")
+                    f"{{figures/{vol}-fig{n[0]}.png}}")
 
         text = TIKZ_RE.sub(sub, text)
         lines = [ln for ln in text.splitlines()
