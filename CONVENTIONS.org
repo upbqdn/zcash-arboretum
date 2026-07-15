@@ -33,6 +33,12 @@ Fixed across all volumes; do not re-derive local variants.
 
 Domain-separation byte constants appear as =\mathtt{0x..}=.
 
+* Abstracts
+
+- An abstract names the volume's role and the volumes it directly assumes
+  (``this volume of /The Zcash Arboretum/ \dots''); it never enumerates the
+  series roster. README.org and the site landing page own the roster.
+
 * Register
 
 - Academic monograph: terse, active voice, no contractions, scholarly ``we''.
