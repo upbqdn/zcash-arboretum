@@ -105,8 +105,17 @@ def webprep():
                     f"{{figures/{vol}-fig{n[0]}.png}}")
 
         text = TIKZ_RE.sub(sub, text)
-        lines = [ln for ln in text.splitlines()
-                 if not any(ln.lstrip().startswith(d) for d in DROP_IN_WEB)]
+        lines = []
+        for ln in text.splitlines():
+            s = ln.lstrip()
+            if s.startswith("\\usepackage{tikz}"):
+                # tikz transitively provides xcolor, which \definecolor and
+                # hyperref's colour options need; keep that half
+                lines.append("\\usepackage{xcolor}")
+            elif s.startswith("\\usetikzlibrary"):
+                continue
+            else:
+                lines.append(ln)
         text = "\n".join(lines)
         if "\\usepackage{graphicx}" not in text:
             text = text.replace("\\usepackage{booktabs,enumitem}",
