@@ -354,10 +354,20 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_subtitle, .ltx_page_main .ltx_title_document .ltx_text {
   color: var(--muted);
 }
-/* prev/next crumbs above the section title: quiet utility text */
+/* prev/next crumbs above the section title: quiet utility text.
+   The header's start/up links repeat the document title the site bar
+   already shows - drop them; keep only the directional crumbs. */
 .ltx_page_main .ltx_page_header {
   font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .8rem 0 0;
 }
+.ltx_page_main .ltx_page_header a[rel="start"],
+.ltx_page_main .ltx_page_header a[rel="up"],
+.ltx_page_main .ltx_page_header a[rel="bibliography"] { display: none; }
+.ltx_page_main .ltx_page_header a[rel="prev"]::before { content: "\2190  "; }
+.ltx_page_main .ltx_page_header a[rel="next"]::after { content: "  \2192"; }
+.ltx_page_main .ltx_page_header a[rel="next"] { margin-left: auto; }
 .ltx_page_main .ltx_page_header a { color: var(--muted); }
 .ltx_page_main .ltx_page_header a:hover { color: var(--conifer); }
 
