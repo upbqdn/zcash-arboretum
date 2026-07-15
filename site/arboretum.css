@@ -366,6 +366,8 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_page_main .ltx_page_header a[rel="up"],
 .ltx_page_main .ltx_page_header a[rel="bibliography"] { display: none; }
 .ltx_page_main .ltx_page_header a[rel="prev"]::before { content: "\2190  "; }
+/* the prev-crumb to a title page embeds the title's inline 248% span */
+.ltx_page_main .ltx_page_header a span { font-size: 1em !important; }
 .ltx_page_main .ltx_page_header a[rel="next"]::after { content: "  \2192"; }
 .ltx_page_main .ltx_page_header a[rel="next"] { margin-left: auto; }
 .ltx_page_main .ltx_page_header a { color: var(--muted); }

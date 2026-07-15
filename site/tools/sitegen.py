@@ -204,12 +204,14 @@ def concordance(outdir):
     """ZIP number -> (volume, section) index, scanned from the sources."""
     import collections
     zips = collections.defaultdict(set)
+    specs = collections.defaultdict(set)
     for vol, _g, _c in VOLUME_META:
         p = ROOT / f"{vol}.tex"
         if not p.exists():
             continue
         title, _ = vol_title(vol)
         sec = "front matter"
+        prev = ""
         for ln in p.read_text().splitlines():
             if ln.lstrip().startswith("%"):
                 continue
@@ -218,12 +220,27 @@ def concordance(outdir):
                 sec = m.group(1)
             for z in re.findall(r"ZIP[-~ ]?(\d{2,4})\b", ln):
                 zips[int(z)].add((vol, title, sec))
+            # protocol-spec sections; skip cross-volume cites ("... Guide"
+            # on the same line) and internal \S\ref uses
+            if not re.search(r"\\emph\{[^}]*Guide", prev + " " + ln):
+                for sp in re.findall(r"\\S[~ ]?(\d+(?:\.\d+)+)", ln):
+                    specs[tuple(int(x) for x in sp.split("."))].add(
+                        (vol, title, sec))
+            prev = ln
     rows = []
     for z in sorted(zips):
         refs = "; ".join(
             f'<a href="{v}/">{t}</a> &mdash; {s}'
             for v, t, s in sorted(zips[z], key=lambda x: (x[1], x[2])))
         rows.append(f'<tr><td class="zk">ZIP {z}</td><td>{refs}</td></tr>')
+    srows = []
+    for sp in sorted(specs):
+        dotted = ".".join(str(x) for x in sp)
+        refs = "; ".join(
+            f'<a href="{v}/">{t}</a> &mdash; {s}'
+            for v, t, s in sorted(specs[sp], key=lambda x: (x[1], x[2])))
+        srows.append(f'<tr><td class="zk">&sect; {dotted}</td>'
+                     f'<td>{refs}</td></tr>')
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Concordance &mdash; The Zcash Arboretum</title>
@@ -239,14 +256,16 @@ def concordance(outdir):
 <main class="arb-landing zc">
 <h1>Concordance</h1>
 <hr class="stem">
-<p class="tag">Every ZIP cited across the volumes, and the sections that
-treat it. Generated from the sources.</p>
+<p class="tag">Every ZIP and protocol-specification section cited across
+the volumes, and where each is treated. Generated from the sources.</p>
 <table>{"".join(rows)}</table>
+<h2>Protocol specification</h2>
+<table>{"".join(srows)}</table>
 <p class="foot"><a href="./">The Zcash Arboretum</a></p>
 </main></body></html>"""
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     (out / "concordance.html").write_text(html)
-    print(f"concordance: {len(zips)} ZIPs")
+    print(f"concordance: {len(zips)} ZIPs, {len(specs)} spec sections")
 
 
 def postprocess(outdir):
