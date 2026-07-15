@@ -11,6 +11,9 @@
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
 \usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\makeatletter
+\g@addto@macro{\UrlBreaks}{\do\-}
+\makeatother
 
 \emergencystretch=3em
 \hbadness=10000
@@ -144,12 +147,31 @@ identity is unchanged --- version 3.5.0 on Android and iOS, released
 2026-05-28, with signing support for the Keystone hardware wallet
 (\texttt{zashi-android} @ \texttt{b4edd6f6}, \texttt{CHANGELOG.md}, entry
 \texttt{[3.5.0 (1736)]}); a follow-up release, 3.5.2, followed on 2026-06-04
-(ibid., entry \texttt{[3.5.2 (1742)]}). The first production use was the NU7
-sentiment coinholder poll, open 2026-06-10 through 2026-06-24 with results
-published by 2026-06-29, run in parallel with a ZCAP poll of the same
-question (statuses checked 2026-07-08).
-%% TODO: pin the poll announcement and results URLs once archived; production
-%% coordinator/validator identities not yet established from public data.
+(ibid., entry \texttt{[3.5.2 (1742)]}). The intended first production use
+--- the NU7 sentiment coinholder poll, announced 2026-05-15 with a
+2026-06-10 open, its close extended on 2026-05-29 from June 24 to June 29
+to end with the parallel ZCAP poll of the same questions --- never ran. On
+2026-06-07 --- three days before the open, the day after the NU7 scope
+collapsed to the Ironwood supply-soundness upgrade --- the poll was paused
+``for both coin holders and the Zcash Foundation ZCAP'', and as of
+2026-06-14 the next round ``is delayed until after Ironwood activates''.
+No results exist. A production round was provisioned in the signed round
+registry on 2026-06-05 (\S\ref{sec:vote-trust-map}), but no public
+evidence shows a ballot cast (searched 2026-07-15).\footnote{Announcement:
+joshs, ``NU7 Sentiment Polling: Questions for Community Review \&
+Coinholder Voting via Zodl'', forum topic 55713, 2026-05-15; extension:
+ibid.\ post 71, 2026-05-29; pause: ibid.\ post 73, 2026-06-07. Wayback
+snapshot of the topic carrying the pause notice, 2026-07-15:
+\url{https://web.archive.org/web/20260715193300/https://forum.zcashcommunity.com/t/nu7-sentiment-polling-questions-for-community-review-coinholder-voting-via-zodl/55713};
+pre-pause schedule (RSS snapshot, 2026-06-05):
+\url{https://web.archive.org/web/20260605074855/https://forum.zcashcommunity.com/t/nu7-sentiment-polling-questions-for-community-review-coinholder-voting-via-zodl/55713.rss}.
+Scope change: ``Ironwood: Verifying the Soundness of Zcash's Circulating
+Supply'', topic 56044, 2026-06-06, Wayback 2026-07-15:
+\url{https://web.archive.org/web/20260715193458/https://forum.zcashcommunity.com/t/ironwood-verifying-the-soundness-of-zcash-s-circulating-supply/56044}.
+Deferrals: ZODL updates, topic 56072, 2026-06-07, Wayback 2026-07-15:
+\url{https://web.archive.org/web/20260715193328/https://forum.zcashcommunity.com/t/subduing-the-world-update-from-zodl/56072};
+and topic 56211, 2026-06-14, Wayback 2026-07-15:
+\url{https://web.archive.org/web/20260715193352/https://forum.zcashcommunity.com/t/irrational-thinking-zodl-update/56211}.}
 
 \paragraph{Authorship.} Valar Group designed and implemented the protocol,
 led by Dev Ojha (GitHub \texttt{ValarDragon}); the draft ZIP is authored by
@@ -186,8 +208,10 @@ signing, and it lives inside the production wallet rather than beside it.
 
 Two adjacent mechanisms are not ancestors. ZCAP, the Zcash Community
 Advisory Panel, polls an identified panel through Helios with no coin
-weighting; the June 2026 NU7 question ran through both instruments in
-parallel, which makes the distinction operational, not academic. Hopwood's
+weighting; the June 2026 NU7 question was scheduled through both
+instruments in parallel and paused for both together
+(\S\ref{sec:vote-shipped}), which makes the distinction operational, not
+academic. Hopwood's
 draft \texttt{draft-ecc-onchain-accountable-voting.md} (created 2025-02-21,
 in the merged zips tree at \texttt{c6b70358}) targets the complement ---
 accountable on-chain voting by identified key-holders --- and shares no
@@ -1209,9 +1233,9 @@ the volume's claims into the three bins of
 \S\ref{sec:vote-source-situation}, and close with the verdict: what a
 formal specification would have to pin down before the protocol's
 guarantees become checkable, and what the protocol delivers today against
-the instruments that ran the same June 2026 question. File citations below
-are at the commits of Table~\ref{tab:vote-sources}; wallet files are at
-\texttt{zashi-android} @ \texttt{b4edd6f6}.
+the instruments scheduled for the same June 2026 question. File citations
+below are at the commits of Table~\ref{tab:vote-sources}; wallet files
+are at \texttt{zashi-android} @ \texttt{b4edd6f6}.
 
 Every trust relation in this map is itself designed but unspecified: each
 is concrete, open-source behaviour at the pinned commits, and none is
@@ -1294,9 +1318,44 @@ the default genesis ships a single vote manager, and the coordinator
 threshold defaults to one (\texttt{vote-sdk/x/vote/module.go},
 \texttt{DefaultVoteManagerAddresses}; \texttt{tx.proto},
 \texttt{MsgUpdateVoteManagers}).
-%% TODO: production vote-manager set, coordinator threshold, and validator
-%% identities not establishable from the pinned sources; needs the deployed
-%% chain's genesis or a valargroup announcement.
+In production the vote-manager custodians are named --- by the
+configuration repository, not by the chain. At the volume's pinned commit
+of \texttt{valargroup/token-holder-voting-config} (\texttt{2785311d},
+2026-05-27; the authentication root discussed below), the
+\texttt{trusted\_keys} notes of \texttt{prod/static-voting-config.json}
+label three Keplr-derived keys as vote-manager keys for stated
+\texttt{sv1} addresses --- key ids \texttt{valargroup}, \texttt{tachyon},
+and \texttt{zodl}; a fourth, \texttt{shielded-labs}, arrived on 2026-05-29
+(commit \texttt{82711181}), and all four are present at head
+\texttt{e7d11990} (2026-06-25). These annotations are the custodians'
+claims about themselves; the deployed chain's on-chain
+\texttt{VoteManagerAddresses} set is published nowhere we could find. The
+production coordinator threshold is not publicly established: the
+repository carries no genesis file, no announcement states the value, and
+the registry's only production round entry ---
+\texttt{3fda6c83b054\ldots}, added 2026-06-05 by pull request \#330 ---
+carries a single signature (key id \texttt{valargroup}), consistent with
+a threshold of one at the configuration layer but an inference, not a
+source. No validator identity is published either: the closest public
+artifact is the ten-operator \texttt{vote\_servers} list of
+\texttt{prod/dynamic-voting-config.json} (at \texttt{e7d11990}), and a
+vote server is an RPC endpoint, not evidence that its operator runs a
+validator. We searched public artifacts on 2026-07-15; the deployed
+chain's public REST endpoint would settle threshold and validator set
+directly and remains unqueried.\footnote{Static configuration at the
+pinned commit, Wayback snapshot 2026-07-15:
+\url{https://web.archive.org/web/20260715193658/https://raw.githubusercontent.com/valargroup/token-holder-voting-config/2785311d/prod/static-voting-config.json};
+at head, via the served URL:
+\url{https://web.archive.org/web/20260715193616/https://voting.valargroup.org/prod/static-voting-config.json};
+dynamic configuration at \texttt{e7d11990}:
+\url{https://web.archive.org/web/20260715193707/https://raw.githubusercontent.com/valargroup/token-holder-voting-config/e7d11990/prod/dynamic-voting-config.json}.
+Operators named in \texttt{vote\_servers}: valargroup, ruzcash, zend,
+ShieldedLabs-JM, Legends, stardust-staking, zodl, ZecHub, katz, Keplr ---
+a list not maintained as a roster: the 2026-06-14 ZODL update reports the
+``decommissioned Stardust servers'' removed from the app while
+\texttt{stardust-staking} remains in the configuration of 2026-06-25.
+Both files follow the schema of draft ZIP 1244, ``Shielded Voting Wallet
+API'' (zcash/zips PR \#1244).}
 The same coordinators post the snapshot: the eligibility anchors
 \texttt{nc\_root} and \texttt{nullifier\_imt\_root} arrive in
 \texttt{MsgCreateVotingSession} as client-fetched values --- the
@@ -1325,7 +1384,9 @@ under which every cast share would be attacker-decryptable. An on-chain
 endorsement registry (\texttt{MsgEndorseRound}) is secondary. The trust
 root of the whole client-side protocol is therefore the custodians of the
 config-signing keys together with the application distribution channel;
-neither is named in any published artifact.
+the custodians are named only by the configuration's own
+\texttt{trusted\_keys} annotations (above), the distribution channel in
+no published artifact.
 
 \paragraph{Tally liveness admits finalization without results.} The tally
 verification itself is real: validators' nodes auto-inject partial
@@ -1468,9 +1529,10 @@ fabricated snapshot is auditable after the fact. Individual privacy is
 the weakest: it holds against outside observers, degrades to helper
 honesty for the linkage of decisions to votes, and degrades to the
 honesty of all but $t-1$ validators for individual weights --- a limit no
-published analysis states. On that evidence the protocol is fit for
-what it was used for in June 2026: a non-binding sentiment poll with
-publicly recomputable totals. Binding governance would additionally
+published analysis states. On that evidence the protocol is fit for the
+use provisioned for June 2026 --- a non-binding sentiment poll with
+publicly recomputable totals --- though that use has yet to occur
+(\S\ref{sec:vote-shipped}). Binding governance would additionally
 require the specification above, an independent verifier, and a
 confidentiality analysis of the Election Authority --- none of which
 existed as of 2026-07-08.
