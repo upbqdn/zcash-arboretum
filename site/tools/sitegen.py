@@ -190,7 +190,7 @@ window.addEventListener('DOMContentLoaded', () => {{
 }});
 </script>
 {chr(10).join(cards)}
-<p class="foot">Sources and compiled PDFs:
+<p class="foot"><a href="concordance.html">Concordance</a> &middot; Sources and compiled PDFs:
 <a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a></p>
 </main></body></html>
 """
@@ -198,6 +198,55 @@ window.addEventListener('DOMContentLoaded', () => {{
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(html)
     print(f"wrote {out / 'index.html'}")
+
+
+def concordance(outdir):
+    """ZIP number -> (volume, section) index, scanned from the sources."""
+    import collections
+    zips = collections.defaultdict(set)
+    for vol, _g, _c in VOLUME_META:
+        p = ROOT / f"{vol}.tex"
+        if not p.exists():
+            continue
+        title, _ = vol_title(vol)
+        sec = "front matter"
+        for ln in p.read_text().splitlines():
+            if ln.lstrip().startswith("%"):
+                continue
+            m = re.match(r"\\section\{([^}]*)\}", ln.strip())
+            if m:
+                sec = m.group(1)
+            for z in re.findall(r"ZIP[-~ ]?(\d{2,4})\b", ln):
+                zips[int(z)].add((vol, title, sec))
+    rows = []
+    for z in sorted(zips):
+        refs = "; ".join(
+            f'<a href="{v}/">{t}</a> &mdash; {s}'
+            for v, t, s in sorted(zips[z], key=lambda x: (x[1], x[2])))
+        rows.append(f'<tr><td class="zk">ZIP {z}</td><td>{refs}</td></tr>')
+    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concordance &mdash; The Zcash Arboretum</title>
+<link rel="stylesheet" href="arboretum.css?v={ver()}">
+<style>
+.zc table {{ border-collapse: collapse; width: 100%; font-size: .93rem; }}
+.zc td {{ border-top: 1px solid var(--edge); padding: .45rem .6rem;
+          vertical-align: top; }}
+.zc td.zk {{ font-family: var(--mono); font-size: .74rem;
+             letter-spacing: .08em; white-space: nowrap; width: 6rem;
+             color: var(--plaque-ink); }}
+</style></head><body>
+<main class="arb-landing zc">
+<h1>Concordance</h1>
+<hr class="stem">
+<p class="tag">Every ZIP cited across the volumes, and the sections that
+treat it. Generated from the sources.</p>
+<table>{"".join(rows)}</table>
+<p class="foot"><a href="./">The Zcash Arboretum</a></p>
+</main></body></html>"""
+    out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
+    (out / "concordance.html").write_text(html)
+    print(f"concordance: {len(zips)} ZIPs")
 
 
 def postprocess(outdir):
@@ -250,6 +299,8 @@ if __name__ == "__main__":
         webprep()
     elif mode == "landing":
         landing(sys.argv[sys.argv.index("--out") + 1])
+    elif mode == "concordance":
+        concordance(sys.argv[sys.argv.index("--out") + 1])
     elif mode == "postprocess":
         postprocess(sys.argv[sys.argv.index("--out") + 1])
     else:

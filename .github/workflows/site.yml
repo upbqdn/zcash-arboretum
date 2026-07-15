@@ -44,6 +44,7 @@ jobs:
         run: |
           python3 site/tools/sitegen.py landing --out _site
           python3 site/tools/sitegen.py postprocess --out _site
+          python3 site/tools/sitegen.py concordance --out _site
           cp site/arboretum.css _site/
           cp -r site/fonts _site/fonts
       - name: Build search index
