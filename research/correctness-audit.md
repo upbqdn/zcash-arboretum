@@ -385,3 +385,41 @@ lightwalletd's unset field)", and delete the clause "`Zaino` still sets a field 
 canonical proto reserves" (`:731-733`) — false at the pin, since serving `0` is
 wire-indistinguishable from not setting it. The vendored-changelog-skew observation in
 the same bullet (`:729-732`) is independent and stands.
+
+## Wave 4
+
+Wave-4, 2026-07-16. The **bounded zaino-backend final probe** — the agreed last
+probe of the audit, tightly scoped to the `zaino-state` gRPC service backends
+(`StateService` vs `FetchService`, at zaino `0e057e22`) and their shared helpers,
+model-diffed against lightwalletd `61fee32`. Same method as Wave-0/1/2/3.
+
+**Guide-fix bin: empty (0).** No Sync/Ironwood/ZSA/Crosslink/FROST guide passage is
+implicated by this probe — the whole yield is upstream code behaviour, not guide
+text. All findings are recorded in `upstream-defects.md` §Wave-4 (entries 45-57).
+
+Upstream yield (see the other file): **15 raw findings → 13 distinct** after dropping
+two exact duplicates (`get_transaction` mempool-height twice → #48; `get_block`
+unknown-hash status twice → #49). Of the 13, **12 are genuine zaino behavioural
+roots** and **one (#57) is a latent lightwalletd-only bug with no zaino defect**.
+Severity spread of the 12 zaino roots: **4 medium, 8 low — no high**. Folding the two
+shared-cause pairs (unspecified-`BlockId`→`Height(0)` across `get_block` #50 /
+`get_tree_state` #51; the two `get_taddress_txids_helper` range bugs #46 / #53) leaves
+~10 independent root causes. The four mediums are `get_block_range` silent-empty
+during sync (#45), the taddr-range clamp/swap rewrite (#46), FetchService
+`get_mempool_tx` dropping the `pool_types` filter (#47), and the `get_transaction`
+mempool-height State-vs-Fetch split (#48).
+
+### STOP verdict — AUDIT CONVERGED
+
+The probe's hard gate was: ≤1 non-cosmetic root → declare converged; ≥2 → a Wave-5
+confined to the remaining zaino methods is *defensible* (the density shows the zaino
+gRPC backend layer is systematically under-tested), but default to STOP unless the
+roots are HIGH severity.
+
+This probe returned **~10-12 non-cosmetic roots, ceiling MEDIUM, zero HIGH**. So the
+gate resolves to **STOP**. The finding density does confirm the zaino backend surface
+is under-tested and a bounded Wave-5 on the untouched zaino methods would be
+defensible — but no root is high-severity, and per the June lesson we do not continue
+on momentum. **The entire audit is declared CONVERGED and CLOSED at Wave 4.** No
+Wave-5 is proposed. Remaining action is owner review of the DRAFT entries (11-57)
+before any upstream filing.

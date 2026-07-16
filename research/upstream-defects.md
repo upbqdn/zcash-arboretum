@@ -1920,3 +1920,622 @@ to error when it is accepted. Fix: change both doc-comments to "more than 4 elem
 
 Observed at zaino `0e057e22` (`zaino-proto/src/proto/utils.rs:187-188,197-198,202,
 436-450,452-466`; `zaino-proto/src/proto/service.rs:323-329`).
+
+---
+
+# Wave-4 model-diff findings (DRAFT — needs owner confirmation before filing)
+
+**DRAFT.** These 13 entries come from the Wave-4 **bounded zaino-backend final
+probe** (2026-07-16) — the agreed last probe of the audit, tightly scoped to the
+`zaino-state` gRPC service backends (`StateService` vs `FetchService`) and their
+shared helpers, model-diffed against lightwalletd. Firsthand-cited, not yet
+owner-reviewed; do not file upstream until confirmed. Numbering continues the dossier
+(45-57). Ground-truth pins: zaino `0e057e22`, lightwalletd `61fee32`, zebra-rpc
+`11.0.0` (zebra local `9f3166b96`).
+
+Raw yield was 15 findings, folded to 13 by dropping two exact duplicates — the
+`get_transaction` mempool-height divergence was reported twice (→ **48**) and the
+`get_block` unknown-hash status-code divergence twice (→ **49**). Of the 13, **12 are
+genuine zaino behavioural roots** (4 medium, 8 low) and **one (57) is a latent
+lightwalletd-only bug with NO zaino defect** — recorded here because the dossier
+tracks upstream defects regardless of target. Folding the two shared-cause pairs (the
+unspecified-`BlockId`→`Height(0)` manifestation across `get_block` (50) and
+`get_tree_state` (51); the two `get_taddress_txids_helper` range-rewrite bugs (46, 53))
+leaves ~10 independent root causes.
+
+**Dedup vs #1-44 + G1-G9.** Distinct from **#40** (that is `get_block_nullifiers`
+ignoring a *set* hash and reading only height; here 45 is a different method,
+`get_block_range`, and 49/50 concern the *unspecified/absent* identifier and the
+unknown-hash *error mapping* — 49 explicitly notes `get_block` DOES resolve a set hash
+on both backends, so it is not the #40 omission). Distinct from **#44** (that is a
+doc-comment drift on `PoolTypeFilter`'s length bound; 47 is a *behavioural* omission —
+FetchService `get_mempool_tx` never reads `pool_types` at all). Distinct from **#3**
+(Zaino's `lightwalletProtocolVersion` constant) and **G9** (the `protoVersion`
+dead-code literal). All 13 are new roots.
+
+**Severity ceiling: MEDIUM (no HIGH).** The STOP verdict and the audit-converged
+declaration live in `correctness-audit.md` §Wave 4.
+
+---
+
+## 45. zaino — StateService `get_block_range` silently returns an empty OK stream before the non-finalized cache loads, where FetchService errors and its own `get_block`/`get_latest_block` return `UnavailableNotSyncedEnough`
+
+**DRAFT. Severity: medium.**
+
+**Title:** During initial sync, StateService `get_block_range` (shared
+`get_block_range_inner`, also `get_block_range_nullifiers`) returns a gRPC-OK stream
+with zero `CompactBlock`s instead of an error, while FetchService's `get_block_range`
+returns `FailedPrecondition` and StateService's own `get_block`/`get_latest_block`
+return `UnavailableNotSyncedEnough` on the identical not-synced condition — the
+silent-empty is the outlier and reads to a wallet as "range legitimately has no blocks"
+
+**Body:**
+
+Function `get_block_range_inner` on StateService
+(`packages/zaino-state/src/backends/state.rs:581-582`) carries `// This method does not
+support passthrough. Just return.` then `let Some(non_finalized_snapshot) =
+snapshot.get_nfs_snapshot() else { return };` — a bare `return`, **no**
+`channel_tx.send(Err(..))`. The outer method returns
+`Ok(CompactBlockStream::new(channel_rx))` (`state.rs:682`); dropping `channel_tx`
+closes `channel_rx` cleanly, so the client sees a gRPC-OK stream with zero blocks. Both
+`get_block_range` (`state.rs:2061-2066`) and `get_block_range_nullifiers`
+(`state.rs:2068-2073`) route through this helper. The reachable window: `get_nfs_snapshot()`
+returns `None` for `ChainIndexSnapshot::StillSyncingFinalizedState`
+(`non_finalised_state.rs:89-96`), which `snapshot_nonfinalized_state()` returns while
+`non_finalized_state.load()` is `None` (`chain_index.rs:1475-1495`). The serve layer is
+a passthrough — `zaino-serve/src/rpc/grpc/service.rs` `client_method_helper` just
+`Box::pin`s the subscriber's stream into `tonic::Response`, no guard.
+
+Contrast, same condition: FetchService's identical branch does
+`channel_tx.send(Err(tonic::Status::failed_precondition("zaino not yet synced")))`
+(`fetch.rs:1137-1150` range, `1270-1283` nullifiers), with a comment noting it "is an
+improvement over previous behaviour of acting as if we are only synced to the genesis
+block." StateService's own siblings error too: `get_block` (`state.rs:1985-1989`) and
+`get_latest_block` (`state.rs:1944-1948`) both return `UnavailableNotSyncedEnough`.
+lightwalletd (`common/common.go:580-624`) streams blocks or pushes an error onto
+`errOut` on any missing block, surfaced at `frontend/service.go:241-256` — never a
+silent empty OK for an in-range request. StateService is production-selectable
+(`config.rs:50-54`; `indexer.rs:64-78`).
+
+**Failure mode.** A light wallet issues `GetBlockRange` over a valid `[start,end]`
+against a StateService-backed zaino during the pre-cache-load window and receives gRPC
+OK with zero blocks. A wallet that treats "range returned, no blocks" as "range
+scanned, nothing relevant" advances its scanned-height watermark and silently skips
+those blocks — missed transactions. A FetchService-backed zaino would error and the
+wallet would retry: behaviour is deployment-backend-dependent for the identical request.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:581-582,682,
+1944-1948,1985-1989,2061-2073`; `packages/zaino-state/src/backends/fetch.rs:1137-1150,
+1270-1283`; `chain_index.rs:1475-1495`; `non_finalised_state.rs:89-96`); lightwalletd
+`61fee32` (`common/common.go:580-624`; `frontend/service.go:241-256`).
+
+---
+
+## 46. zaino — shared `get_taddress_txids_helper` clamps both range bounds down to the chain tip and swaps a backwards range, so an out-of-range or reversed taddr query returns a wrong over-inclusive set instead of the empty/error the reference produces
+
+**DRAFT. Severity: medium.**
+
+**Title:** Helper `get_taddress_txids_helper` (used by BOTH backends) rewrites the
+caller's block range before querying — clamping start and end down to the tip and
+swapping them when `start > end` — so `getaddresstxids` runs on a different range than
+lightwalletd would issue for the same input, returning transactions the client never
+asked for
+
+**Body:**
+
+Helper `get_taddress_txids_helper` (`packages/zaino-state/src/indexer.rs:593-649`, a
+single definition, no per-backend override) reads `let chain_height =
+self.chain_height().await?` (`:598`), then clamps `start` (`:603`) and `end` (`:615`)
+with `Ok(height) => Some(height.min(chain_height.0))`, and swaps a backwards range
+(`:627-628` `if start > end { (Some(end), Some(start)) }`), before
+`get_address_tx_ids(GetAddressTxIdsRequest::new(vec![request.address], start, end))`
+(`:642-647`). StateService reaches it via `state.rs:2118 → 1885 →
+validator_connector.rs:983-1052`, whose own guards (`:999` `start > end`, `:1004`
+bounds vs tip) then PASS because the values are already normalized, and the query runs
+on the rewritten `Height(start)..=Height(end)` (`:1014-1025`). FetchService reaches it
+via `fetch.rs:1445 → 858 → validator_connector.rs:1054 → connector.rs:875-887`, sending
+the rewritten `{addresses,start,end}` verbatim to the node's `getaddresstxids`.
+
+lightwalletd forwards the caller range unchanged: `frontend/service.go:109-115` sets
+`Start` verbatim and `End` only `if addressBlockFilter.Range.End != nil` — no clamp, no
+swap — then hands it to `getaddresstxids` (`:124`). Serve dispatch does no range
+validation (`service.rs:179-181`; macro `:43-53`). Both backends are
+production-selectable (`zainod/src/config.rs:26`).
+
+**Failure mode.** Tip=150, client requests taddr txids for `[start=180,end=200]`: zaino
+clamps to `[150,150]` and returns block-150 transactions the client never asked for;
+zcashd returns empty, zebrad errors. Tip=1000, backwards range `[500,300]`: zaino swaps
+to `[300,500]` and returns that whole range; zcashd returns empty, zebrad errors. Same
+class as #40 (wrong block set for a taddr/height query); affects both backends.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/indexer.rs:593-649`;
+`backends/state.rs:1885,2118`; `backends/fetch.rs:858,1445`;
+`validator_connector.rs:983-1052,1054`; `zaino-fetch/src/jsonrpsee/connector.rs:875-887`;
+`zaino-serve/src/rpc/grpc/service.rs:43-53,179-181`); lightwalletd `61fee32`
+(`frontend/service.go:109-124`).
+
+---
+
+## 47. zaino — FetchService `get_mempool_tx` ignores `request.pool_types` entirely (hardwired `to_compact(0)` = default filter), so the requested-pool filter is silently dropped on the DEFAULT backend where StateService and lightwalletd honour it
+
+**DRAFT. Severity: medium.**
+
+**Title:** FetchService `get_mempool_tx` never reads `request.pool_types`; its only
+conversion is `to_compact(0)`, hardwired to `PoolTypeFilter::default()`
+(Sapling+Orchard+Ironwood, transparent excluded), so a caller asking for a specific
+pool gets the default set and an invalid pool code is served instead of rejected —
+whereas StateService validates and applies the filter, and lightwalletd rejects
+`PoolType_INVALID` and applies `FilterTxPool`
+
+**Body:**
+
+Method `get_mempool_tx` on FetchService
+(`packages/zaino-state/src/backends/fetch.rs:1630-1748`) never references
+`request.pool_types`; the only request field read is `request.exclude_txid_suffixes`
+(`:1636`). Its single conversion is `transaction.1.to_compact(0)` (`:1691`), and
+`to_compact(self, index)` is defined `self.to_compact_tx(Some(index),
+&PoolTypeFilter::default())` (`zaino-fetch/src/chain/transaction.rs:270`).
+`PoolTypeFilter::default()` = `{transparent:false, sapling:true, orchard:true,
+ironwood:true}` (`zaino-proto/src/proto/utils.rs:162-171`); `to_compact_tx` gates each
+pool on `includes_*()` (`transaction.rs:282-364`), so it emits sapling+orchard+ironwood
+and drops transparent regardless of the request.
+
+StateService instead validates via `PoolTypeFilter::new_from_slice(&request.pool_types)`
+(`state.rs:2324`, `InvalidArgument` on invalid/unknown pools, empty→default —
+`utils.rs:189-227`) and applies `to_compact_tx(None, &pool_types)` (`state.rs:2381`).
+lightwalletd `GetMempoolTx` (`frontend/service.go:600-708`) rejects
+`PoolType_POOL_TYPE_INVALID` (`:607-609`), maps empty→`[SAPLING,ORCHARD]` (`:610-616`),
+and applies `common.FilterTxPool` per tx (`:700`; `common/common.go:526-551`). Serve
+dispatch is a passthrough (`service.rs:197`, `:93-133`); FetchService's
+`get_mempool_transactions(exclude_txids)` (`fetch.rs:1662`) reintroduces no filter.
+FetchService is the **DEFAULT** backend (`#[default] Fetch`, `config.rs:58-59`; zainod
+`.set_default("backend","fetch")`, `zainod/src/config.rs:315`; dispatch
+`zainod/src/indexer.rs:72-77`), so the divergence is live. Distinct from #44, which is a
+doc-comment drift on `PoolTypeFilter`'s length bound — this is a behavioural omission.
+
+**Failure mode.** A wallet asks FetchService-backed zaino for transparent-only mempool
+data (`pool_types=[Transparent]`) and receives the default filter (Sapling+Orchard+
+Ironwood, transparent excluded): zero transparent data requested, shielded data not
+requested. `pool_types=[Orchard]` over-discloses Sapling/Ironwood. `pool_types=[Invalid(0)]`
+returns OK with default data instead of the `InvalidArgument` StateService and
+lightwalletd both raise. StateService serves the identical request correctly.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/fetch.rs:1630-1748,1691,
+1662`; `state.rs:2302-2429,2324,2381`; `zaino-fetch/src/chain/transaction.rs:270,282-364`;
+`zaino-proto/src/proto/utils.rs:162-171,189-227`;
+`zaino-serve/src/rpc/grpc/service.rs:93-133,197`; `config.rs:58-59`;
+`zainod/src/config.rs:315`; `zainod/src/indexer.rs:72-77`); lightwalletd `61fee32`
+(`frontend/service.go:600-708`; `common/common.go:526-551`).
+
+---
+
+## 48. zaino — for a mempool transaction, StateService `get_transaction` returns `RawTransaction.height = 0` while FetchService returns the chain-tip height, for identical wire input (StateService matches lightwalletd; FetchService diverges)
+
+**DRAFT. Severity: medium.**
+
+**Title:** `get_transaction` maps Zebra's `height = None` (mempool) differently per
+backend — StateService `unwrap_or(0)` → 0, FetchService substitutes the best-tip height
+— so the same unconfirmed tx reports height 0 (unconfirmed) via StateService and
+lightwalletd, but ~tip (looks mined, confirmations = 1) via FetchService
+
+**Body:**
+
+FetchService `get_transaction` (`packages/zaino-state/src/backends/fetch.rs:1402-1414`):
+`None => { let snapshot = self.indexer.snapshot_nonfinalized_state().await?; … 
+non_finalized_snapshot.best_tip.height.0 as u64 }` (comment "Zebra returns None for
+mempool transactions, convert to `Mempool Height`") — returns the chain-tip height.
+StateService `get_transaction` (`state.rs:2094-2097`): `height:
+transaction_object.height().unwrap_or(0) as u64` — returns 0. Both backends bake
+`height = None` for mempool identically (`state.rs:1841`, `fetch.rs:789`:
+`Some(BestChainLocation::Mempool(_)) => (None, Some(0), None, Some(false))`). Zebra
+origin: `zebra-rpc/src/methods/types/transaction.rs:283-287` `pub(crate) height:
+Option<i32>` "`None` if the tx is in the mempool".
+
+lightwalletd matches StateService (0), NOT FetchService: `common/common.go`
+`ParseRawTransaction` sets `Height: uint64(txinfo.Height)`, and its doc DEFINES "height
+0: the transaction is in the mempool"; `common/mempool.go:143-147` `if rawtx.Height != 0
+{ continue }` proves mempool txs carry `Height == 0`. Zaino's own proto contract agrees:
+`packages/zaino-proto/proto/service.proto:74` "height 0: the transaction is in the
+mempool". Both backends production-selectable (`service.rs:175`; `zainod/src/config.rs`
+`backend` field, default "fetch", State selectable). One raw sub-finding wrongly cited
+zaino's internal streaming convention (`indexer.rs:959-962` `None => chain_height`, used
+by `get_taddress_transactions`) as the "lightwalletd reference"; corrected here —
+lightwalletd returns 0, that internal convention is itself a zaino deviation.
+
+**Failure mode.** A wallet queries `GetTransaction` for a just-broadcast, still-in-mempool
+tx. Via FetchService it gets `height = tip`, so `confirmations = tip - height + 1 = 1`
+and the tx appears mined/confirmed while unconfirmed; via StateService (and lightwalletd)
+it gets `height = 0`. Same tx, contradictory confirmation status by backend. The
+inter-backend inconsistency is CONFIRMED; the wallet impact is PLAUSIBLE (depends on how
+the client reads height).
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/fetch.rs:1402-1414,789`;
+`backends/state.rs:2094-2097,1841`; `packages/zaino-proto/proto/service.proto:74`); zebra
+`zebra-rpc/src/methods/types/transaction.rs:283-287`; lightwalletd `61fee32`
+(`common/common.go` `ParseRawTransaction`; `common/mempool.go:143-147`).
+
+---
+
+## 49. zaino — for a well-formed but non-existent block hash, StateService `get_block` returns gRPC `NOT_FOUND` while FetchService returns `INVALID_ARGUMENT` (FetchService's message also carries a `founf` typo); pure error-mapping divergence, not the #40 omission
+
+**DRAFT. Severity: low.**
+
+**Title:** `get_block` resolves a set 32-byte hash on BOTH backends (so this is not
+#40), but the hash-not-found arm maps to different gRPC status codes — StateService
+`NOT_FOUND` (5), FetchService `INVALID_ARGUMENT` (3) — plus a `Hash not founf in chain`
+typo in the FetchService message; a client that branches on status code behaves
+per-backend for the identical unknown-hash request
+
+**Body:**
+
+Helper `blockid_to_hashorheight` (`zaino-proto/src/proto/utils.rs:312-323`) tries
+`<[u8;32]>::try_from(block_id.hash)` FIRST, so a well-formed 32-byte hash yields
+`HashOrHeight::Hash` on both backends — `get_block` does resolve it, this is NOT the #40
+hash-ignored omission. The divergence is purely the not-found mapping. StateService
+(`state.rs:1966-1975`): `… .ok_or_else(|| StateServiceError::TonicStatusError(
+tonic::Status::not_found("Error: Block not found for given hash.")))?` → NOT_FOUND (5).
+FetchService (`fetch.rs:939-952`): `Ok(None) => return
+Err(FetchServiceError::TonicStatusError(tonic::Status::invalid_argument("Error: Invalid
+hash and/or height out of range. Hash not founf in chain")))` → INVALID_ARGUMENT (3),
+with the `founf` typo. Both statuses pass to the wire unchanged (`error.rs:144,235`;
+`service.rs:62,161`).
+
+lightwalletd rejects any by-hash `GetBlock` with `codes.InvalidArgument` "GetBlock:
+Block hash specifier is not yet implemented" (`frontend/service.go:176-181`) — so
+FetchService's code matches lightwalletd and StateService is the outlier. Both backends
+production-reachable (`zainod/src/indexer.rs:65-77`; default "fetch", State selectable).
+
+**Failure mode.** A client requesting a block by a well-formed but unknown/non-canonical
+32-byte hash, branching on status (e.g. retry on NOT_FOUND, hard-fail on
+INVALID_ARGUMENT), behaves differently solely by deployed backend. Secondary: the
+user-facing `founf` typo (cosmetic).
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:1966-1975`;
+`backends/fetch.rs:939-952`; `zaino-proto/src/proto/utils.rs:312-323`;
+`packages/zaino-state/src/error.rs:144,235`; `zaino-serve/src/rpc/grpc/service.rs:62,161`;
+`zainod/src/indexer.rs:65-77`); lightwalletd `61fee32` (`frontend/service.go:176-181`).
+
+---
+
+## 50. zaino — `get_block` on a default/empty `BlockId` (height 0, no hash) returns the genesis CompactBlock on both backends, where lightwalletd rejects it with `InvalidArgument "request for unspecified identifier"`
+
+**DRAFT. Severity: low.**
+
+**Title:** Neither backend has an unspecified-identifier guard;
+`blockid_to_hashorheight(BlockId{height:0, hash:[]})` yields `HashOrHeight::Height(0)`
+(never `None`), so an accidental default/uninitialised `BlockId` is served the genesis
+block with gRPC OK instead of the `InvalidArgument` lightwalletd returns
+
+**Body:**
+
+Helper `blockid_to_hashorheight` (`zaino-proto/src/proto/utils.rs:312-323`) with fields
+`height: u64` / `hash: Vec<u8>` (`service.rs:33,35`): for a default `BlockId{height:0,
+hash:vec![]}`, `<[u8;32]>::try_from(empty Vec)` fails (len 0 ≠ 32), `.or_else` runs
+`0u64.try_into::<u32> = Ok(0)` → returns `Some(HashOrHeight::Height(Height(0)))`, never
+`None`. So the `.ok_or(InvalidArgument)?` guard in both backends fires only for
+`height > u32::MAX`, never for the unspecified case. StateService `get_block`
+(`state.rs:1954-1980`) → `Height(0)` → `get_compact_block(.., Height(0),
+includes_all())` → `Ok(Some(block)) => Ok(block)` = genesis with gRPC OK. FetchService
+`get_block` (`fetch.rs:929-972`) → same fall-through → genesis with gRPC OK. Serve
+dispatch forwards the raw `BlockId` unvalidated (`service.rs:166-167`, macro `:29-39`).
+
+lightwalletd rejects it: `frontend/service.go:170-173` `if id.Height == 0 && id.Hash ==
+nil { return nil, status.Error(codes.InvalidArgument, "GetBlock: request for unspecified
+identifier") }`. Shares its root cause (helper collapses unspecified→`Height(0)`; no
+serve-layer guard) with #51 (`get_tree_state`), different method.
+
+**Failure mode.** A client that accidentally sends an uninitialised/default `BlockId`
+receives the genesis block with gRPC OK from zaino (both backends) instead of the
+`InvalidArgument` error lightwalletd returns; a client relying on the server to reject
+unspecified requests silently proceeds with genesis data.
+
+Observed at zaino `0e057e22` (`zaino-proto/src/proto/utils.rs:312-323`;
+`zaino-proto/src/proto/service.rs:33,35`;
+`packages/zaino-state/src/backends/state.rs:1954-1980`; `backends/fetch.rs:929-972`;
+`zaino-serve/src/rpc/grpc/service.rs:29-39,166-167`); lightwalletd `61fee32`
+(`frontend/service.go:170-173`).
+
+---
+
+## 51. zaino — `get_tree_state` on a default/unspecified `BlockId` returns the genesis (empty) treestate with gRPC OK on both backends, where lightwalletd returns `InvalidArgument`
+
+**DRAFT. Severity: low.**
+
+**Title:** Same unspecified-`BlockId`→`Height(0)` collapse as #50, in `get_tree_state`:
+a default `BlockId{}` (or `{height:0}`) never hits the `invalid_argument("Invalid hash
+or height")` guard, so the RPC returns `TreeState{height:0, hash:<genesis>,
+sapling_tree:"", orchard_tree:""}` with status OK instead of rejecting the malformed
+request; `get_tree_state` does correctly honour a *provided* hash
+
+**Body:**
+
+Helper `blockid_to_hashorheight` (`zaino-proto/src/proto/utils.rs:312-323`) maps
+`BlockId{height:0, hash:vec![]}` to `Some(Height(0))` (never `None`; see #50).
+StateService `get_tree_state` (`state.rs:2516-2521`) and FetchService `get_tree_state`
+(`fetch.rs:1836-1841`) therefore never reach their `.ok_or(tonic::Status::
+invalid_argument("Invalid hash or height"))` guard for a default `BlockId`. Both call
+`z_get_treestate("0")` (`state.rs:1487-1495` / `fetch.rs:595-605`):
+`get_indexed_block_by_height(Height(0))` returns genesis, `get_treestate(genesis_hash)`
+returns `(None,None,None)` for pre-Sapling genesis, and the sapling/orchard trees pass
+through `.unwrap_or_default()` (`state.rs:2535,2543`; `fetch.rs:1855,1863`) to `""`. The
+result is `TreeState{height:0, hash:<genesis>, sapling_tree:"", orchard_tree:""}` with
+gRPC OK. Serve dispatch does no `BlockId` pre-validation (`service.rs:29-40,93-120`).
+
+lightwalletd rejects it: `frontend/service.go:311-315` `if id.Height == 0 && id.Hash ==
+nil { return nil, status.Error(codes.InvalidArgument, "GetTreeState: must specify a
+block height or ID (hash)") }`. Same root as #50, sibling of #40's genesis behaviour but
+distinct method and distinct trigger (default height, not an ignored hash).
+
+**Failure mode.** A client sending a default/unset `BlockId` silently receives the empty
+genesis note-commitment frontier with status OK and may treat the tree as legitimately
+empty rather than surfacing the malformed request.
+
+Observed at zaino `0e057e22` (`zaino-proto/src/proto/utils.rs:312-323`;
+`packages/zaino-state/src/backends/state.rs:1487-1495,2516-2521,2535,2543`;
+`backends/fetch.rs:595-605,1836-1841,1855,1863`;
+`zaino-serve/src/rpc/grpc/service.rs:29-40,93-120`); lightwalletd `61fee32`
+(`frontend/service.go:311-315`).
+
+---
+
+## 52. zaino — `get_tree_state` for a block at or before Sapling activation returns a `TreeState` with an empty sapling tree and status OK, where lightwalletd walks the `z_gettreestate` SkipHash chain and returns `InvalidArgument`
+
+**DRAFT. Severity: low.**
+
+**Title:** For a pre-Sapling-activation height both backends return
+`TreeState{sapling_tree:""}` (StateService) / hex-of-empty-tree (FetchService) with
+status OK, while lightwalletd, finding no non-empty `FinalState` up the SkipHash chain,
+returns `InvalidArgument`; benign in practice (wallets query at post-Sapling birthdays)
+but a real OK-vs-error contract split, identical on both backends
+
+**Body:**
+
+StateService: `validator_connector.rs:398-419` sets `sapling = None` for `height <
+Sapling activation` (not substituted with an empty tree, unlike ironwood at `:481-489`);
+`z_get_treestate` builds `Commitments::new(None, sapling)` with `final_state = None`
+(`state.rs:1510-1517`); `get_tree_state` then `sapling_tree =
+hex::encode(..final_state().clone().unwrap_or_default()) = ""` (`state.rs:2529-2536`),
+returning `Ok(TreeState{sapling_tree:"", ..})`. FetchService: identical
+`unwrap_or_default` handling (`fetch.rs:1849-1856`); its `validator_connector.rs:493-512`
+Fetch variant maps absent sapling to `Some(serialized empty tree)` — returns `Ok` either
+way. Serve macro passes `Ok(TreeState)` straight through (`service.rs:93-133,202`), no
+emptiness/activation-height post-check.
+
+lightwalletd: `service.go:359-364` loop breaks when `Sapling.Commitments.FinalState !=
+""` OR `Sapling.SkipHash == ""`; terminal `service.go:372-374` `if
+…FinalState == "" { return status.Error(codes.InvalidArgument, "GetTreeState:
+z_gettreestate did not return treestate") }`. Its comment (`:341-345`) notes zcashd
+hard-stops the SkipHash walk at Sapling activation, so a pre-Sapling request yields empty
+FinalState + empty SkipHash → the terminal error fires.
+
+**Failure mode.** `GetTreeState(height=100)` on mainnet (100 ≪ Sapling activation
+419200): StateService returns `Ok(TreeState{sapling_tree:""})`, FetchService returns
+`Ok(TreeState{sapling_tree:<hex empty tree>})`, lightwalletd returns `InvalidArgument`.
+A client treating OK+empty as "valid empty frontier" diverges from the lightwalletd
+error contract. (StateService's primary path succeeds via finalized_state for a finalized
+block 100, `chain_index.rs:1373-1408,1613-1625`; the fallback rpc path is never reached.)
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/validator_connector.rs:398-419,
+481-489,493-512`; `backends/state.rs:1510-1517,2529-2536`; `backends/fetch.rs:1849-1856`;
+`chain_index.rs:1373-1408,1613-1625`; `zaino-serve/src/rpc/grpc/service.rs:93-133,202`);
+lightwalletd `61fee32` (`frontend/service.go:341-374`).
+
+---
+
+## 53. zaino — a start-only taddr-txids request (`Range.Start` set, `Range.End` omitted) errors on StateService with `InvalidArgument "start N must be less than or equal to end 0"`, where lightwalletd forwards it and returns the address's transactions
+
+**DRAFT. Severity: low.**
+
+**Title:** When the caller supplies a start but omits end, `get_taddress_txids_helper`
+leaves `end = None` (should mean "up to tip", the way `start` is clamped via
+`.min(chain_height)`), and `GetAddressTxIdsRequest::into_parts` collapses `None` to `0`;
+StateService then rejects `start > 0 = end` as `InvalidArgument`, while lightwalletd
+drops the empty `End` via `omitempty` and (on zcashd) returns all of the address's
+transactions
+
+**Body:**
+
+Helper `get_taddress_txids_helper` (`packages/zaino-state/src/indexer.rs:613-624`): when
+`range.end` is `None`, `end = None`; the `match (start, end)` at `:625-634` hits `_ =>
+(start, end)`, so `(Some(100), None)` stays `(Some(100), None)`. `into_parts`
+(`zebra-rpc 11.0.0 methods.rs:4381-4386`) returns `(addresses, self.start.unwrap_or(0),
+self.end.unwrap_or(0))` → `end = None` collapses to `0`. StateService
+`validator_connector.rs:999-1003` `if start > end { error_string = Some(format!("start
+{start:?} must be less than or equal to end {end:?}")) }` fires (100 > 0), returning
+`Err(...Unrecoverable)` → gRPC `InvalidArgument`. Full path: `service.rs:181 → state.rs:2161
+→ 2165 → 2118 → 1881 → get_address_txids → validator_connector.rs:978`, no end-required
+guard anywhere.
+
+lightwalletd (`frontend/service.go:105-115`) errors only if `Range.Start` is nil, sets
+`End` only when non-nil, and `common/common.go:110-115` marshals `End uint64
+json:"end,omitempty"` — so a start-only request marshals to
+`{"addresses":[...],"start":100}` and zcashd returns data (no upper bound). Node-dependent
+(zebrad also errors on `start > end`). FetchService instead forwards `{start:100,end:0}`
+explicitly (`connector.rs:875-887`). Root: the helper leaves `end = None` where it should
+mean up-to-tip; `into_parts` turns `None` into "block 0", inverting the range for any
+`start > 0`. Shares the `get_taddress_txids_helper` root with #46. Guide-scope:
+`sync-guide.tex:1321-1334` lists these RPCs as out-of-scope — not guide-wrong.
+
+**Failure mode.** A protocol-legal `GetTaddressTxids` with `Range.Start = 100`,
+`Range.End = nil` returns a guaranteed gRPC `InvalidArgument` on StateService before
+reading any chain data, whereas lightwalletd (on zcashd) returns the address's
+transactions.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/indexer.rs:613-634,642`;
+`backends/state.rs:1881,2118,2161,2165`; `validator_connector.rs:978,986,999-1012`;
+`zaino-fetch/src/jsonrpsee/connector.rs:875-887`); zebra-rpc `11.0.0`
+(`methods.rs:4354-4386`); lightwalletd `61fee32` (`frontend/service.go:105-115`;
+`common/common.go:110-115`).
+
+---
+
+## 54. zaino — `get_taddress_balance_stream` sums a per-address balance query per streamed address with no dedup, so a duplicate address in the stream is counted once per occurrence — double-counting where the non-stream path and lightwalletd dedup
+
+**DRAFT. Severity: low.**
+
+**Title:** The streaming balance endpoint issues one single-address `getaddressbalance`
+per streamed address and accumulates `total_balance += balance.balance()`, so streaming
+the same taddr twice returns 2× its balance; the non-stream `get_taddress_balance`
+passes the whole vec to one call which dedups via a `HashSet`, and lightwalletd collects
+all addresses into a single call — so zaino breaks its own stream-vs-non-stream invariant
+
+**Body:**
+
+StateService `get_taddress_balance_stream` (`state.rs:2203-2210`): `let mut
+total_balance: u64 = 0; loop { … Some(taddr) => { let taddrs =
+GetAddressBalanceRequest::new(vec![taddr]); let balance =
+…z_get_address_balance(taddrs).await?; total_balance += balance.balance(); } … }` — one
+single-address query per streamed address, summed, no cross-stream dedup. FetchService
+`fetch.rs:1527-1534` is byte-identical. Serve forwards the raw `Streaming<Address>`
+verbatim (`service.rs:277-291`). The non-stream `get_taddress_balance`
+(`state.rs:2169-2174` / `fetch.rs:1497-1499`) passes the WHOLE vec to one call, which
+dedups: `valid_addresses()` collects into a `HashSet<Address>` (zebra
+`methods.rs:3597-3611`; zaino `validator_connector.rs:940`
+`ReadRequest::AddressBalance(strings_set)`). So `[A,A]` in one call → `{A}` → counted
+once, but `[A]` then `[A]` as two calls → `A + A = 2A`.
+
+lightwalletd `GetTaddressBalanceStream` (`service.go:561-576`) appends every
+`addr.Address` (dups included) into one `addressList`, then a single
+`getTaddressBalanceZcashdRpc(addressList)` — the same call its non-stream
+`GetTaddressBalance` makes (`:549-556`), so stream == non-stream regardless of node.
+
+**Failure mode.** Streaming taddr A twice → zaino returns 2A (both backends);
+lightwalletd-on-zebrad returns A (zebrad HashSet-dedups the single call). Zaino also
+breaks its own stream-vs-non-stream invariant that lightwalletd preserves. Reference is
+node-dependent (zcashd `getaddressbalance` also double-counts) and duplicate-address
+streams are unusual — low severity/confidence.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:2169-2174,
+2203-2210`; `backends/fetch.rs:1497-1499,1527-1534`; `validator_connector.rs:940`;
+`zaino-serve/src/rpc/grpc/service.rs:277-291`); zebra `9f3166b96` (`methods.rs:3597-3611`);
+lightwalletd `61fee32` (`frontend/service.go:549-576`).
+
+---
+
+## 55. zaino — `get_lightd_info` reports the last-listed (already-activated) network upgrade as `upgrade_name`/`upgrade_height` instead of the next *pending* one, contradicting its own proto contract and lightwalletd
+
+**DRAFT. Severity: low.**
+
+**Title:** Both backends set `upgrade_name`/`upgrade_height` from
+`latest_network_upgrade(...) = upgrades.last()` (highest-height upgrade, status never
+inspected), whereas the proto documents these as "next pending upgrade, empty/zero if
+none scheduled" and lightwalletd computes exactly the lowest-height `pending` upgrade —
+so in steady state (all NUs active, none pending) zaino shows a live upgrade as "next
+scheduled"
+
+**Body:**
+
+Shared helper `latest_network_upgrade` (`packages/zaino-state/src/backends.rs:13`):
+`upgrades.last().map(|(_, upgrade)| upgrade)` — last-inserted (highest-height) upgrade,
+returned unconditionally, status never checked. Zebra's `into_parts`
+(`methods.rs:3766`) returns `(NetworkUpgrade, Height, NetworkUpgradeStatus)`; zaino keeps
+`.0`/`.1` and discards the status (`.2`). Both backends are field-identical
+(`state.rs:2745-2750,2774-2775`; `fetch.rs:2066-2071,2095-2096`). The proto documents
+`upgrade_name` = "name of next pending network upgrade, empty if none scheduled" and
+`upgrade_height` = "height of next pending upgrade, zero if none is scheduled"
+(`zaino-proto/src/proto/service.rs:162-167`).
+
+lightwalletd computes the contract: `common/common.go:287-294` keeps only `u.Status ==
+"pending"` with the lowest `ActivationHeight`, and `:316-317` sets `UpgradeName`/`UpgradeHeight`
+→ `""`/`0` when nothing is pending. In Zebra, `upgrades` is built in height order with
+`Active` if `tip_height >= activation_height` else `Pending` (`methods.rs:1069-1090`), so
+`.last()` is the highest-height upgrade regardless of status.
+
+**Failure mode.** In steady state (all NUs active, none pending — the normal mainnet
+condition between upgrades) lightwalletd returns `upgrade_name=""`, `upgrade_height=0`,
+while zaino returns the most-recent already-activated upgrade's name and its past
+activation height. A client displaying "next scheduled upgrade" shows an already-live
+upgrade as if pending. Informational field only.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends.rs:13`;
+`backends/state.rs:2745-2750,2774-2775`; `backends/fetch.rs:2066-2071,2095-2096`;
+`zaino-proto/src/proto/service.rs:162-167`;
+`zaino-serve/src/rpc/grpc/service.rs:219`); zebra `9f3166b96` (`methods.rs:1069-1090,3766`);
+lightwalletd `61fee32` (`common/common.go:287-317`).
+
+---
+
+## 56. zaino — `send_transaction` can never populate a nonzero `SendResponse.error_code`; a mempool rejection becomes a gRPC Status error instead of the `Ok(SendResponse{error_code, error_message})` the protocol defines and lightwalletd returns
+
+**DRAFT. Severity: low.**
+
+**Title:** Both backends only ever build `SendResponse{error_code: 0, error_message:
+<txid>}` and `?`-propagate any submission failure, which the serve layer turns into a
+gRPC Status error with no `SendResponse` payload — so the structured, nonzero
+`error_code` the walletrpc proto defines (and lightwalletd emits inside a successful
+response) is unreachable; both backends behave the same (no inter-backend split)
+
+**Body:**
+
+StateService `send_transaction` (`state.rs:2102-2110`) and FetchService
+(`fetch.rs:1429-1437`) are byte-identical: `let tx_output =
+self.send_raw_transaction(hex_tx).await?; Ok(SendResponse{ error_code: 0, error_message:
+tx_output.hash().to_string() })` — `error_code` is a hardcoded `0` literal reachable only
+on success; `error_message` is bare hex (no quotes). The connector's
+`send_raw_transaction` returns `Result<_, RpcRequestError<SendTransactionError>>`
+(`zaino-fetch/src/jsonrpsee/connector.rs:569-576`); a `sendrawtransaction` rejection is
+the `Err` arm, which `?`-propagates and is turned into a gRPC Status by the serve macro
+`client_method_helper!` `.map_err(Into::into)?` under `Indexer::Error: Into<tonic::Status>`
+(`service.rs:38,161`) — no `SendResponse` payload.
+
+The proto defines the opposite: a nonzero `errorCode` rides inside a SUCCESSFUL gRPC
+response (walletrpc `service.proto:84-90`). lightwalletd honours it
+(`frontend/service.go:455-509`): on rejection it splits zcashd's `CODE:MESSAGE` and
+returns `Ok(SendResponse{ErrorCode: <nonzero>, ErrorMessage})`; on success `errMsg =
+string(result)` = raw JSON (the txid WITH quotes). A client that branches on the code —
+e.g. zcash-android-wallet-sdk `backend-lib/.../tor.rs:152-166` (`if response.error_code
+== 0 { Ok(()) } else { Err(...) }`) — never receives it from zaino.
+
+**Failure mode.** A wallet submits a tx the mempool rejects (already-in-chain,
+insufficient fee, double-spend). Against lightwalletd it gets `Ok(SendResponse{error_code:
+-25/-26, error_message})` and can branch on the code; against zaino it gets a gRPC Status
+error, losing the structured `error_code`. Both zaino backends behave identically (no
+inter-backend split); wallet impact PLAUSIBLE (clients typically handle both). Secondary:
+success `error_message` is unquoted hex vs lightwalletd's quoted JSON.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:2102-2110`;
+`backends/fetch.rs:1429-1437`; `zaino-fetch/src/jsonrpsee/connector.rs:569-576`;
+`zaino-serve/src/rpc/grpc/service.rs:38,161`); walletrpc `service.proto:84-90`;
+lightwalletd `61fee32` (`frontend/service.go:455-509`); zcash-android-wallet-sdk
+(`backend-lib/src/main/rust/tor.rs:152-166`).
+
+---
+
+## 57. lightwalletd (NOT zaino) — `GetTreeState` hex-encodes `id.Hash` without reversing, contradicting its own little-endian wire convention; zaino handles the byte order correctly
+
+**DRAFT. Severity: low. Target: lightwalletd — NO zaino defect.**
+
+**Title:** Recorded for completeness: zaino correctly treats `BlockID.hash` as
+little-endian internal (serialized) order and reverses it to the big-endian hash string
+for lookup; lightwalletd's `GetTreeState` hex-encodes `id.Hash` WITHOUT reversing,
+contradicting its own convention (`GetLatestBlock`/`GetTransaction` treat wire hashes as
+little-endian) — a latent lightwalletd bug, not a zaino divergence
+
+**Body:**
+
+Zaino (both backends) treats `BlockID.hash` as little-endian and reverses it:
+`blockid_to_hashorheight → zebra block::Hash` where `.0` is serialized/LE, `Display`
+reverses to big-endian, and `HashOrHeight::from_str` re-parses (`state.rs:2516-2525,
+1475-1481`; `fetch.rs:1836-1845`; zebra `block/hash.rs:28-42,82-85`). lightwalletd
+hex-encodes `id.Hash` WITHOUT reversing: `frontend/service.go:328-329` `// id.Hash is
+big-endian, keep in big-endian for the rpc` `hash := hex.EncodeToString(id.Hash)`. This
+contradicts its own LE convention — `GetLatestBlock` (`service.go:83-84`, `// Binary
+block hash should always be in little-endian format`, `Reverse`) and `GetTransaction`
+(`service.go:412-413`, `// Convert from little endian to big endian`, `Reverse`).
+`GetTreeState` is lightwalletd's lone byte-order outlier.
+
+Cross-check (no zaino divergence in siblings): zaino `get_transaction`
+(`state.rs:2076-2084`, `transaction::Hash` reverses LE→BE) matches lightwalletd
+`GetTransaction`; zaino `get_block` uses `block::Hash(h.0)` as LE and lightwalletd
+rejects by-hash `GetBlock`.
+
+**Failure mode.** A client that takes a `BlockID` from `GetLatestBlock` (little-endian
+hash) and passes it to lightwalletd `GetTreeState` calls `z_gettreestate` with a reversed
+hash string and gets `InvalidArgument`/not-found; zaino resolves the same bytes to the
+correct block. The defect is in lightwalletd, not zaino — logged so the audit's zaino
+byte-order review is on record.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:1475-1481,
+2076-2084,2516-2525`; `backends/fetch.rs:1836-1845`); zebra local
+(`zebra-chain/src/block/hash.rs:28-42,82-85`); lightwalletd `61fee32`
+(`frontend/service.go:83-84,328-329,412-413`).
