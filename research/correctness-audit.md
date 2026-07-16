@@ -321,3 +321,67 @@ the Ironwood code from and separately note librustzcash pins the released 0.15.0
 drop the "the version librustzcash pins" clause. Apply at `2043-2045` and `2481-2483`,
 and reconcile with G2's fix so the guide's orchard-version story is internally
 consistent.
+
+---
+
+## Wave 3
+
+Wave-3, 2026-07-16. Same model-diff method as Wave-0/1/2, run as the **new-axis
+pass**: deliberately aimed at surfaces no prior wave touched — Zaino's gRPC service
+backends, the FROST crates (reddsa / frost-core), and the QED-it ZSA fork's flags
+parser — instead of re-diffing Ironwood/Crosslink.
+
+Volumes touched (guide-fix bin): Sync. Bin totals: **1 guide-fix** (low), plus 5
+upstream defects (2 medium, 3 low — see the other file). The lone guide-fix is a
+Zaino `DEPLOYED-at-0e057e22` over-attribution in the same class as Wave-1/2's orchard
+`bef8a27` errors: the Sync Guide's wire/divergence reasoning is sound, but it credits
+deployed Zaino with a `protoVersion` value that lives only in dead code. One- to
+three-line edit; the surrounding text already states the correct wire facts.
+
+### Priority worklist
+
+| # | Sev | Volume : section | Area |
+|---|-----|------------------|------|
+| G9 | low | Sync : `sec:sync-compact-wire` / `sec:sync-compact-divergences` | "Zaino sets `protoVersion` to 1 (`block.rs:218`)" — deployed Zaino serves `proto_version: 0` on every path; the `=1` literal is unreachable dead code |
+
+---
+
+### G9 — "Zaino sets protoVersion to 1" credits a dead-code literal as deployed behaviour (low)
+
+**Volume : section.** Sync Guide, `sec:sync-compact-wire` — the "three deployed
+behaviours" list, `sync-guide.tex:270-273` — echoed in `sec:sync-compact-divergences`
+at `:713-714` and `:731-733`. The guide pins Zaino `0e057e22` at `:206` and `:842`.
+
+**What's wrong.** The guide lists as one of "three deployed behaviours" for
+`protoVersion` that "`Zaino` sets it to~1 (`zaino-fetch`, `src/chain/block.rs`,
+line~218)" (`:272-273`), and the divergences section repeats "`Zaino` sets~1"
+(`:713-714`) and concludes "`Zaino` still sets a field the canonical proto reserves"
+(`:731-733`) — all framed as deployed-server behaviour. At the pinned commit
+`0e057e22`, every compact-block *serving* path emits `proto_version: 0`. The
+`proto_version: 1` at `block.rs:218` sits inside `FullBlock::into_compact_block` (def
+`:186`), whose only caller (`git grep -nw into_compact_block` → def + one hit) is
+`block.rs:177`, a `format!(…)` debug string in the `ParseError::InvalidData` branch of
+`parse_from_hex` — the CompactBlock it builds is `Debug`-formatted into an error
+message and dropped, never serialized. No serving path and no test call it. Every
+serving builder emits `0`: `IndexedBlock::to_compact_block` (`legacy.rs:1113`),
+finalized-V1 `get_compact_block` (`compact_block.rs:285`), and `get_compact_block_stream`
+(`compact_block.rs:1201`); both gRPC-facing backends route through `chain_index`
+(`fetch.rs:965`; `NodeBackedChainIndexSubscriber::get_compact_block`,
+`chain_index.rs:1711-1752`) to exactly those three. `git grep -n proto_version` over
+all of zaino returns only these CompactBlock literals, and `block.rs:218` is the sole
+non-zero one — the dead one. Because the vendored proto declares a plain proto3 scalar
+`uint32 protoVersion = 1;` (`compact_formats.proto:28`; generated `pub proto_version:
+u32`), the served `0` is omitted on the wire — byte-indistinguishable from
+lightwalletd's unset field.
+
+**The fix.** Two edits. (1) In `sec:sync-compact-wire`, drop Zaino from the "sets it
+to~1" branch: deployed Zaino serves `proto_version: 0` on every path
+(`compact_block.rs:285`, `legacy.rs:1113`); mention `block.rs:218`'s `=1` only as
+unreachable dead code (a `Debug` string in a parse-error branch) if at all. The list
+then has two on-wire behaviours — lightwalletd's absent field and Zaino's `0` — which
+for a proto3 scalar serialize identically. (2) In `sec:sync-compact-divergences`,
+correct "`Zaino` sets~1" (`:713-714`) to "Zaino serves 0 (byte-identical to
+lightwalletd's unset field)", and delete the clause "`Zaino` still sets a field the
+canonical proto reserves" (`:731-733`) — false at the pin, since serving `0` is
+wire-indistinguishable from not setting it. The vendored-changelog-skew observation in
+the same bullet (`:729-732`) is independent and stands.

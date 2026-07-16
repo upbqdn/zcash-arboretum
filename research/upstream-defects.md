@@ -1654,3 +1654,269 @@ hard-codes `version: 1`, and `zcash_deserialize` bypasses the constructor entire
 firsthand cross-checks (doc contract `chain.rs:33-38`; deserialize/decide paths
 `lib.rs:1226,1242` never calling `try_from`; no PoW/version/ordering check on
 `headers[1..σ]`) strengthen entry 31's evidence but add no new defect.
+
+---
+
+# Wave-3 model-diff findings (DRAFT — needs owner confirmation before filing)
+
+**DRAFT.** These 5 entries come from the Wave-3 **new-axis** model-diff pass
+(2026-07-16), firsthand-cited but not yet owner-reviewed. Do not file upstream until
+each is confirmed. Numbering continues the dossier (40-44). Ground-truth pins: zaino
+`0e057e22`, lightwalletd `61fee32`; reddsa `3792daa`
+(`3792daa95e588c1af6bd4805105bfb6ea7e9ad49`, v0.5.2); frost / frost-core `2016e44`;
+orchard-zsa (QED-it) `cf801a5`, librustzcash-zsa (QED-it) `3f9b53f`; deployed orchard
+`0.10.0`; upstream Ironwood orchard `bef8a27`.
+
+This wave deliberately left the Ironwood / Crosslink veins and hit three fresh
+surfaces: Zaino's gRPC service backends (`zaino-state`, `zaino-proto`), the FROST
+crates (`reddsa`, `frost-core`), and the QED-it ZSA fork's flags parser. Severity
+spread: **2 medium, 3 low**. The two mediums are genuine code-correctness roots on
+*different* fresh repos — a Zaino backend hash-vs-height bug (#40) and a QED-it fork
+consensus-split on v5 reserved bits (#43). The three lows are documentation/comment
+defects (two of them the same reddsa comment, reported twice by the raw pass).
+
+**Dedup notes (this wave).** Raw yield was 6 findings, folded to 5: the reddsa `EvenY`
+inverted doc-comment was reported twice (raw items 2 and 5 — identical defect at
+`redpallas.rs:328-334`) → single entry **41**. Checked against the whole dossier:
+**#40/#44** (Zaino backends) are distinct from **#3** (Zaino's
+`lightwalletProtocolVersion` string constant); **#43** (v5 vanilla flags bit 2) is
+explicitly *not* covered by **#4-8** (ZIP citations, burn bound, split-note ψ, lead
+byte, ZIP-246 digest tree) — it is the flags `from_byte` reserved-bit gate, a separate
+root in the same fork. Genuinely new roots this wave: **all five (40-44)**; none
+duplicates a prior entry.
+
+---
+
+## 40. zaino — StateService backend's `get_block_nullifiers` ignores `BlockId.hash` and reads only `height`, silently returning genesis nullifier data for a hash-identified block
+
+**DRAFT. Severity: medium.**
+
+**Title:** `LightWalletIndexer::get_block_nullifiers` on the StateService backend never
+reads `request.hash`, so a `GetBlockNullifiers` request identifying a block by hash (the
+standard `height = 0` hash-lookup convention) resolves to `Height(0)` and returns
+genesis's nullifier set — diverging from zaino's own FetchService backend and from
+lightwalletd, both of which resolve the hash first
+
+**Body:**
+
+`BlockId` is `{height: u64 (tag 1), hash: Vec<u8> (tag 2)}`
+(`zaino-proto/src/proto/service.rs:31-36`). The StateService backend's
+`get_block_nullifiers` (`packages/zaino-state/src/backends/state.rs:2033-2058`) does
+`let height: u32 = request.height.try_into()…?; let block_height =
+chain_types::Height(height); … get_compact_block(&snapshot, block_height,
+PoolTypeFilter::includes_all()) …; Ok(Some(block)) =>
+Ok(compact_block_to_nullifiers(block))` — `request.hash` is **never read**. A client
+following the conventional hash lookup (hash set, height left `0`) lands on `Height(0)`
+= genesis, so the method returns genesis's compact/nullifier data for any
+hash-identified block.
+
+Internal inconsistency: the *same* backend's `get_block` (`state.rs:1954-1976`) **does**
+resolve hash via `blockid_to_hashorheight` + `get_block_height`; only
+`get_block_nullifiers` skips it. The FetchService backend's `get_block_nullifiers`
+(`fetch.rs:1011-1035`) resolves correctly — `blockid_to_hashorheight(request)` →
+`HashOrHeight::Hash(hash)` → `indexer.get_block_height(&snapshot, hash.into())`, erroring
+"Hash not founf in chain" (sic) if absent. `blockid_to_hashorheight`
+(`zaino-proto/src/proto/utils.rs:312-323`) does
+`<[u8;32]>::try_from(block_id.hash).map(Hash)…or_else(height)` — a 32-byte hash wins over
+height, matching lightwalletd's precedence: `frontend/service.go:193-206` ("// Precedence:
+a hash is more specific than a height. If we have it, use it first.") returns
+`InvalidArgument "GetBlockNullifiers: GetBlock by Hash is not yet implemented"` rather than
+silently falling through to height. The gRPC dispatch passes `BlockId` through raw with no
+resolution (`zaino-serve/src/rpc/grpc/service.rs:169`). StateService is a
+production-selectable backend: `zainod/src/config.rs:75 pub backend: BackendType`;
+`zainod/src/indexer.rs:66 BackendType::State =>` instantiates it.
+
+**Failure mode.** A client calls `GetBlockNullifiers` identifying the block by its
+32-byte hash (height field left `0`). Against the StateService backend it returns a
+CompactBlock / nullifier set for height 0 — genesis's hash and empty/wrong nullifier set
+— rather than the block whose hash was supplied: silent wrong-block data feeding shielded
+spend detection. Separately, after a reorg a client sending a *correct* hash plus a stale
+height gets the stale-height block on StateService while FetchService and lightwalletd
+return the hash's block — a silent backend divergence on identical requests.
+
+Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:2033-2058,
+1954-1976`; `packages/zaino-state/src/backends/fetch.rs:1011-1035`;
+`zaino-proto/src/proto/service.rs:31-36`, `zaino-proto/src/proto/utils.rs:312-323`;
+`zaino-serve/src/rpc/grpc/service.rs:169`; `zainod/src/config.rs:75`,
+`zainod/src/indexer.rs:66`); lightwalletd `61fee32` (`frontend/service.go:193-206`).
+
+---
+
+## 41. reddsa — RedPallas `EvenY` trait doc-comment says the keys are negated "if Y is even", but the code negates when Y is ODD (inverted main clause)
+
+**DRAFT. Severity: low.**
+
+**Title:** The `EvenY` even-Y-normalization doc-comment states negation happens "if Y is
+even"; the code negates when `!is_even`, i.e. when Y is ODD — the main clause is inverted
+and self-contradictory with its own parenthetical, in the deployed ZIP-312 reference
+implementation the FROST Guide pins
+
+**Body:**
+
+reddsa `3792daa` (v0.5.2), `src/frost/redpallas.rs`. Doc-comment (`:328-334`): "This is
+done by simply negating both keys if Y is even (in a field, negating is equivalent to
+computing p - x where p is the prime modulus. Since p is odd, if x is odd then the result
+will be even)." Code: `has_even_y()` (`:349-355`) returns `verifying_key_serialized[31] &
+0x80 == 0` — true when the sign bit is clear, i.e. Y **EVEN**; `into_even_y()`
+(`:358-360`) `let is_even = is_even.unwrap_or_else(|| self.has_even_y()); if !is_even {
+… -self.verifying_key().to_element() … } else { self }` — negates when `!is_even`, i.e. Y
+**ODD**. Same negate-when-odd pattern for `SecretShare` (`:389-391`) and `KeyPackage`
+(`:425-427`). The main clause "negating … if Y is even" is the opposite of the code; the
+parenthetical ("if x is odd then the result will be even") correctly reasons about
+negating an ODD coordinate to obtain an even one — contradicting its own main clause.
+Blame `29162a78` (Conrado Gouvea, 2023-11-28), unchanged at the pinned HEAD.
+
+**Failure mode.** An auditor/re-implementer deriving even-Y normalization from the
+comment negates precisely when Y is already even and leaves odd-Y keys unchanged —
+producing an ODD-Y `ak`. Orchard consensus requires `ak` to have even Y (protocol.pdf
+orchardkeycomponents / ZIP 2005), so RedPallas spend-authorization signatures produced
+under such a key fail full-node verification. No runtime impact today: the shipped code
+is correct and round-trip-tested; the hazard is a security-critical comment that inverts
+the normalization direction, and a well-meaning "fix" to match the comment would invert
+the currently-correct code. The FROST Guide is *not* at fault: `frost-guide.tex:1480-1486`
+(§`sec:fr-rerand-impl`) and `:1666-1672` describe negation "whenever the serialised key
+has ỹ = 1" (ỹ = 1 denotes ODD y) — matching the code and ZIP 2005 / protocol-spec §4.2.3.
+
+Observed at reddsa `3792daa` (`src/frost/redpallas.rs:328-334,349-355,358-360,389-391,
+425-427`); guide correct at `frost-guide.tex:1480-1486,1666-1672`.
+
+---
+
+## 42. frost-core — batch-verifier doc-comment says the blinding scalar `z_i` is "a random 128-bit Scalar", but the code samples a full-width field element (stale wording copied from reddsa)
+
+**DRAFT. Severity: low.**
+
+**Title:** `frost-core/src/batch.rs` documents `z_i` as "a random 128-bit Scalar" while
+the code samples a full-width scalar via `Field::random`; the 128-bit wording was copied
+verbatim from reddsa's batch verifier (where it is accurate) and never updated for the
+generic frost-core code
+
+**Body:**
+
+frost `2016e44`, `frost-core/src/batch.rs:102` doc line `/// - z_i is a random 128-bit
+Scalar;`. The actual sampling at `batch.rs:129` is `let blind = <<C::Group as
+Group>::Field>::random(&mut rng);`. The `Field::random` contract
+(`frost-core/src/traits.rs:54-57`) is "/// Generate a random scalar from the entire space
+[0, l-1]" — full-width; the concrete impl `frost-ristretto255/src/lib.rs:63-65` is
+`Scalar::random(rng)` (uniform over the whole scalar field). The same docblock cites the
+RedDSA batch spec (`batch.rs:111` → `zips.z.cash/protocol/protocol.pdf#reddsabatchverify`).
+In reddsa `3792daa` the wording IS accurate: `gen_128_bits` (`src/batch.rs:33-42`) sets
+only `bytes[0]`/`bytes[1]` ("The final 128 bits are zero") and `src/batch.rs:241` does
+`let z = S::Scalar::from_raw(gen_128_bits(&mut rng));`, matching the identical comment at
+`src/batch.rs:171`. So the "128-bit" line was copied from reddsa into generic frost-core
+and never updated; frost-core samples a full-width field element.
+
+**Failure mode.** An auditor verifying frost-core batch soundness against the cited
+RedDSA batch spec (128-bit blinds) is told the blinds are 128-bit while they are
+full-width; the code silently deviates from the referenced spec. The deviation is in the
+safe direction (larger blinds are not weaker), so no exploit — but the mis-description
+could mask a genuine width regression under future edits. Documentation defect only.
+
+Observed at frost `2016e44` (`frost-core/src/batch.rs:102,111,129`;
+`frost-core/src/traits.rs:54-57`; `frost-ristretto255/src/lib.rs:63-65`); reddsa
+`3792daa` (`src/batch.rs:33-42,171,241`).
+
+---
+
+## 43. orchard-zsa / librustzcash-zsa (QED-it forks) — shared `Flags::from_byte` accepts `flagsOrchard` bit 2 with no bundle-format gate, so a legacy v5 OrchardVanilla tx with a set reserved bit is accepted instead of rejected (chain split)
+
+**DRAFT. Severity: medium.**
+
+**Title:** The ZSA fork's non-generic `Flags::from_byte` treats `flagsOrchard` bit 2
+(its `enableZSAs` flag, `0b0000_0100`) as always-allowed, with no format/flavor
+parameter, and is used to parse BOTH v6 OrchardZSA and legacy v5 OrchardVanilla bundles;
+so a pre-NU7 v5 Orchard transaction whose `flagsOrchard` byte has bit 2 set deserializes
+successfully (and validates, the vanilla circuit leaving ENABLE_ZSA unconstrained) rather
+than being rejected under `bad-txns-v5-reserved-bits-nonzero` — an accept-vs-reject split
+against deployed zcashd/zebra consensus
+
+**Body:**
+
+SIDE A (fork). orchard-zsa `cf801a5` `src/bundle.rs:88-89`: `const FLAG_ZSA_ENABLED: u8 =
+0b0000_0100;` and `const FLAGS_EXPECTED_UNSET: u8 = !(FLAG_SPENDS_ENABLED |
+FLAG_OUTPUTS_ENABLED | FLAG_ZSA_ENABLED);` — bit 2 is NOT in the reserved mask.
+`from_byte(value: u8) -> Option<Self>` (`:190-201`) takes **no** format parameter and
+returns `Some` whenever `value & FLAGS_EXPECTED_UNSET == 0`, so bit 2 (`0x04`) is always
+accepted; `Flags` (`:61`) is a plain non-generic struct with no flavor gate; `to_byte`
+(`:178`) round-trips `zsa_enabled` back to `0x04`. librustzcash-zsa `3f9b53f`
+`zcash_primitives/src/transaction/components/orchard.rs:262-266`: `read_flags` calls
+`Flags::from_byte(byte[0])`; `read_v5_bundle` (`orchard.rs:65-99`) is **not** behind any
+`#[cfg(zcash_unstable="nu7")]` gate and returns `orchard::Bundle<Authorized, ZatBalance,
+OrchardVanilla>`; `transaction/mod.rs:1037` wires `read_v5` → `OrchardBundle::OrchardVanilla`.
+So a v5 tx with `flagsOrchard = 0x04` flows through the un-gated path.
+
+SIDE B (deployed + upstream). Deployed orchard `0.10.0` (what zcashd/zebra run)
+`src/bundle.rs:63,131-133`: `FLAGS_EXPECTED_UNSET = !(FLAG_SPENDS_ENABLED |
+FLAG_OUTPUTS_ENABLED)` and `from_byte` returns `None` unless `value & FLAGS_EXPECTED_UNSET
+== 0`, anchored `// https://p.z.cash/TCR:bad-txns-v5-reserved-bits-nonzero` — bit 2
+rejected. Upstream Ironwood orchard `bef8a27` fixed exactly this by adding `enum
+BundleFormat` (`src/bundle.rs:89`): `PRE_NU6_3_FLAGS_EXPECTED_UNSET = !(FLAG_SPENDS_ENABLED
+| FLAG_OUTPUTS_ENABLED)` (bit 2 reserved) and `from_byte(value, format)`
+(`:122-123,265-289`) selecting `PreNu6_3 =>` (rejects bit 2) vs `Nu6_3 =>
+NU6_3_FLAGS_EXPECTED_UNSET` (bit 2 = `enableCrossAddress`). The fork reuses bit 2 for
+`enableZSAs` — colliding, incidentally, with upstream Ironwood's reuse of the same bit for
+`enableCrossAddress` — but applies the new semantics to the *legacy v5 format too*; the
+missing `BundleFormat`/flavor gate is the root cause.
+
+No neutralizing guard downstream. `src/circuit/circuit_vanilla.rs` has zero references to
+`ENABLE_ZSA` (grep count 0): it binds only ANCHOR/ENABLE_SPEND/ENABLE_OUTPUT via
+`assign_advice_from_instance` (`:579-601`) and CV_NET/NF_OLD/RK/CMX via `constrain_instance`.
+Instance index 9 (ENABLE_ZSA, set from `flags.zsa_enabled()` at `circuit.rs:492,560`) is
+left completely unconstrained — the code's own comment (`circuit.rs:438-441,537-540`) says
+enable_zsa is padded/ignored in vanilla. So an attacker can produce a valid vanilla proof
+with `enable_zsa=1`. No consensus check rejecting `zsa_enabled` on v5/OrchardVanilla
+exists anywhere in librustzcash-zsa (grep found none). Not covered by dossier #4-8 or by
+the ZSA Guide (which describes bit 2 = enableZSAs only for the v6 format, "remaining bits
+zero").
+
+**Failure mode.** A v5 Orchard transaction with `flagsOrchard = 0x04` (or `0x05`/`0x06`/
+`0x07` — bit 2 set) is deserialized successfully by librustzcash-zsa as an OrchardVanilla
+bundle carrying `zsa_enabled=true` (the reserved bit silently consumed, round-tripping
+through `to_byte`) and — because the vanilla circuit leaves ENABLE_ZSA unconstrained —
+fully validated, whereas deployed Zcash consensus (zcashd/zebra, orchard 0.10.0) and
+upstream Ironwood's PreNu6_3 format reject the identical wire bytes at parse under
+`bad-txns-v5-reserved-bits-nonzero`. A QED-it-fork node accepts a block the rest of the
+network rejects: a chain split on identical bytes.
+
+Observed at orchard-zsa (QED-it) `cf801a5` (`src/bundle.rs:61,88-89,178,190-201`;
+`src/circuit.rs:438-441,492,537-540,560`; `src/circuit/circuit_vanilla.rs:579-601`);
+librustzcash-zsa (QED-it) `3f9b53f`
+(`zcash_primitives/src/transaction/components/orchard.rs:65-99,262-266`;
+`transaction/mod.rs:1037`); deployed orchard `0.10.0` (`src/bundle.rs:63,131-133`);
+upstream Ironwood orchard `bef8a27` (`src/bundle.rs:89,122-123,265-289`).
+
+---
+
+## 44. zaino — `PoolTypeFilter::new_from_slice` / `new_from_pool_types` doc-comment says the vector is rejected past 3 elements, but the code bounds it at 4 (stale, pre-Ironwood)
+
+**DRAFT. Severity: low.**
+
+**Title:** Both `PoolTypeFilter` constructor doc-comments state the vector errors when it
+"contains more than 3 elements", but the code rejects only `len > PoolType::Ironwood as
+usize == 4`; the wording is stale from before the Ironwood pool was added to `PoolType`
+(Invalid=0 … Ironwood=4), and the crate's own tests assert the 4-element vector is
+accepted
+
+**Body:**
+
+zaino `0e057e22`. Doc (`zaino-proto/src/proto/utils.rs:187-188` and again `:197-198`, on
+both `new_from_slice` and `new_from_pool_types`): "If the vector contains
+`PoolType::Invalid` or the vector contains more than 3 elements returns
+`PoolTypeError::InvalidPoolType`". Code (`utils.rs:202`): `if pool_types.len() >
+PoolType::Ironwood as usize { return Err(PoolTypeError::InvalidPoolType); }`; the enum
+(`service.rs:323-329`) is `Invalid=0, Transparent=1, Sapling=2, Orchard=3, Ironwood=4`, so
+`PoolType::Ironwood as usize == 4` and the guard rejects only `len > 4`. Upstream's own
+tests prove the drift: `test_pool_type_filter_t_z_o` (`utils.rs:452-466`) asserts
+`new_from_pool_types(&[Transparent, Sapling, Orchard, Ironwood])` — the 4-element vector
+— returns `Ok(from_checked_parts(true,true,true,true))` (ACCEPTED), while
+`test_pool_type_filter_fails_when_too_many_items` (`utils.rs:436-450`) needs a 5-element
+vector to produce the error. Tested contract is "up to 4 OK, 5+ rejected", contradicting
+the documented "more than 3 → error".
+
+**Failure mode.** No runtime bug — the length ceiling correctly tracks the Ironwood
+discriminant. Documentation drift only: a caller relying on the ">3 rejected" contract
+would wrongly expect a 4-pool request (e.g. `[Transparent, Sapling, Orchard, Ironwood]`)
+to error when it is accepted. Fix: change both doc-comments to "more than 4 elements".
+
+Observed at zaino `0e057e22` (`zaino-proto/src/proto/utils.rs:187-188,197-198,202,
+436-450,452-466`; `zaino-proto/src/proto/service.rs:323-329`).

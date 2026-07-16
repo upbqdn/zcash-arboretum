@@ -267,14 +267,18 @@ lines~14--86):
   (\S\ref{sec:sync-compact-scan}).
 %% TODO: confirm no deployed client ever requests headers before stating the
 %% header path dead categorically (open question).
-\item Field \texttt{protoVersion} has three deployed behaviours:
+\item Field \texttt{protoVersion} never varies on the wire.
   \textsf{lightwalletd} never sets it, the assignment commented out as a
-  \texttt{TODO} (\texttt{parser/block.go}, line~112); \textsf{Zaino} sets
-  it to~1 (\texttt{zaino-fetch}, \texttt{src/chain/block.rs}, line~218);
-  v0.5.0 removed it, reserving field number~1 and the name
-  (\textsf{librustzcash} copy, lines~33--36). The \textsf{librustzcash}
-  scanner never reads it. Flagged in
-  \S\ref{sec:sync-compact-divergences}.
+  \texttt{TODO} (\texttt{parser/block.go}, line~112); deployed
+  \textsf{Zaino} serves~\texttt{0} on every path (\texttt{zaino-state},
+  \texttt{compact\_block.rs} line~285, \texttt{legacy.rs} line~1113),
+  which for a proto3 scalar is byte-identical to lightwalletd's absent
+  field---its lone non-zero literal (\texttt{zaino-fetch},
+  \texttt{src/chain/block.rs}, line~218) sits in a parse-error
+  \texttt{Debug} string and never reaches serialization; v0.5.0 removed
+  the field, reserving number~1 and the name (\textsf{librustzcash} copy,
+  lines~33--36). The \textsf{librustzcash} scanner never reads it. Flagged
+  in \S\ref{sec:sync-compact-divergences}.
 \item Message \texttt{ChainMetadata} states each pool's note commitment tree
   size \emph{as of the end of this block}, as \texttt{uint32}
   (\texttt{compact\_formats.proto}, lines~14--17): the tree holds at most
@@ -710,8 +714,9 @@ Per our conventions, we flag rather than resolve the following.
   transparent data is available on request
   (\texttt{BlockRange.poolTypes}), and \texttt{GetBlock} returns all
   pools unconditionally (\S\ref{sec:sync-compact-servers}).
-\item \emph{Three behaviours for \texttt{protoVersion}.}
-  Server \textsf{lightwalletd} never sets it, \textsf{Zaino} sets~1, and
+\item \emph{A \texttt{protoVersion} that never varies on the wire.}
+  Server \textsf{lightwalletd} never sets it; deployed \textsf{Zaino}
+  serves~\texttt{0}, byte-identical to an unset proto3 scalar; and
   v0.5.0 removed it with field number and name reserved
   (issue \texttt{zcash/lightwallet-protocol\#25}); \textsf{librustzcash}
   never reads it (\S\ref{sec:sync-compact-wire}).
@@ -729,8 +734,9 @@ Per our conventions, we flag rather than resolve the following.
   snapshot with both the Ironwood fields and \texttt{protoVersion};
   \textsf{Zaino}'s vendored changelog dates v0.5.0 as 2026-07-03 without
   the \texttt{protoVersion} removal, while the canonical changelog dates it
-  2026-06-30 with the removal --- and \textsf{Zaino} still sets a field the
-  canonical proto reserves (diff of the three
+  2026-06-30 with the removal --- so \textsf{Zaino}'s vendored proto still
+  \emph{declares} the field the canonical proto now reserves, though it
+  serves only~\texttt{0} on the wire (diff of the three
   \texttt{compact\_formats.proto} copies;
   \texttt{zaino-proto/lightwallet-protocol/CHANGELOG.md}, lines~40--51).
 \end{itemize}
