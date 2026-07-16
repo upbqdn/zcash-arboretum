@@ -1508,10 +1508,12 @@ $\pkd_{\mathrm{old}} = [\ivk] \gd_{\mathrm{old}}$.
 \textbf{[A8] / [A9] Spend / output gating}:
 $v_{\mathrm{old}} \cdot (1 - \mathsf{enableSpends}) = 0$ and
 $v_{\mathrm{new}} \cdot (1 - \mathsf{enableOutputs}) = 0$. The transaction
-builder sets these bundle-level flags; consensus rules constrain them
-(coinbase transactions, for instance, must set $\mathsf{enableSpends} = 0$,
-and from NU6.3 the $\mathsf{enableSpends}$ bit of $\mathsf{flagsIronwood}$
-MUST be $0$ --- ZIP-229).
+builder sets these bundle-level flags; consensus rules constrain them ---
+coinbase transactions, for instance, must set $\mathsf{enableSpends} = 0$
+(ZIP-229). Spending Ironwood notes is otherwise permitted; the
+$\mathsf{enableSpends} = 0$ requirement is coinbase-scoped, not a
+pool-wide prohibition (protocol specification \S~7.1, transaction consensus
+rules).
 
 \noindent
 \textbf{[A10] Cross-address gating} --- when
@@ -1532,7 +1534,7 @@ implementation distinguishes the insecure NU5 original, the NU6.2
 correction (ZIP-257, Final), and the NU6.3 Ironwood circuit, and only the
 last constrains the flag
 (\texttt{OrchardCircuitVersion::supports\_cross\_address\_restriction},
-crate \texttt{orchard} 0.15.0 \texttt{src/circuit.rs}). The legacy NU5/NU6
+crate \texttt{orchard} at \texttt{bef8a27} \texttt{src/circuit.rs}). The legacy NU5/NU6
 statement is the relation A1--A9 alone, over the nine-element public-input
 tuple ending at $\mathsf{enableOutputs}$. Consensus selects the verifying
 key by branch (ZIP-258), so from NU6.3 every Action --- in either
@@ -1983,7 +1985,7 @@ its cryptography. The Action circuit exists in three versions --- NU5's
 original, the NU6.2 emergency correction (ZIP-257, Final), and the NU6.3
 Ironwood circuit with the cross-address input (\S\ref{sec:iw-cross}) ---
 named \texttt{InsecurePreNu6\_2}, \texttt{FixedPostNu6\_2}, and
-\texttt{PostNu6\_3} in crate \texttt{orchard} 0.15.0
+\texttt{PostNu6\_3} in crate \texttt{orchard} at \texttt{bef8a27}
 (\texttt{src/circuit.rs}). And from NU6.3 the one protocol carries two value
 pools, the sealed Orchard pool and the current Ironwood pool (ZIP-229,
 Terminology; \S\ref{sec:iw-pools}). The Halo~2 / Pasta stack is unchanged
@@ -2038,7 +2040,7 @@ discarded; what changes is which pool new value may enter, and how an
 Ironwood note derives its trapdoor.
 
 As in \S\ref{sec:pq-orchard}, claims about deployed behaviour cite the
-implementation and the specification --- here crate \texttt{orchard} 0.15.0
+implementation and the specification --- here crate \texttt{orchard} at \texttt{bef8a27}
 (crates.io; the version \texttt{librustzcash} pins), \texttt{librustzcash} at
 commit \texttt{e30517e4}, and \texttt{protocol.tex} and the ZIPs at
 \texttt{zips} commit \texttt{69610984} --- and forward-looking claims carry
@@ -2149,7 +2151,7 @@ personalisations for the Sapling and Orchard branches
 \texttt{ZTxIdOrchardH\_v6}, and \texttt{ZTxAuthOrchaH\_v6}); an absent
 component
 hashes the empty string under its personalisation (ZIP-229; deployed in
-crate \texttt{orchard} 0.15.0, \texttt{bundle/commitments.rs}, and in
+crate \texttt{orchard} at \texttt{bef8a27}, \texttt{bundle/commitments.rs}, and in
 \texttt{zcash\_primitives}, \texttt{transaction/txid.rs}). One structural change
 rides along: v6 moves the Sapling, Orchard, and Ironwood \emph{anchors} from
 effecting data (under the txid) to authorizing data (under the auth digest,
@@ -2158,7 +2160,7 @@ re-anchored --- its membership proofs rebased onto a later root --- without
 changing its txid, a design ZIP-229 credits to Penumbra.
 
 \paragraph{One circuit, one verifying key.} Both pools share the post-NU6.3
-Action circuit and its keys: in crate \texttt{orchard} 0.15.0, the bundle
+Action circuit and its keys: in crate \texttt{orchard} at \texttt{bef8a27}, the bundle
 version is the pair of a \texttt{ValuePool} $\{\mathrm{Orchard},
 \mathrm{Ironwood}\}$ and a \texttt{ProtocolVersion}
 $\{\mathrm{InsecureV1}, \mathrm{V2}, \mathrm{V3}\}$;
@@ -2177,7 +2179,7 @@ An Ironwood note is the same tuple $\mathbf{n} = (\mathsf{addr}, v, \rho,
 \NoteCommit\ of \S\ref{sec:notes}; the deployed implementation records the
 distinction as a version tag on the note (\texttt{NoteVersion} $\{\mathrm{V2},
 \mathrm{V3}\}$, with \texttt{Note::from\_parts} now taking one; crate
-\texttt{orchard} 0.15.0 \texttt{src/note.rs}). What changes is the note
+\texttt{orchard} at \texttt{bef8a27} \texttt{src/note.rs}). What changes is the note
 \emph{plaintext} lead byte and, through it, the derivation of $\rcm$
 (ZIP-2005, Proposed; activation bound to NU6.3).
 
@@ -2255,7 +2257,7 @@ call personalised \texttt{Zcash\_ExpandSeed} over
 \,\|\, \mathrm{LE}_{64}(v) \,\|\, \mathrm{LE}_{256}(\rho) \,\|\,
 \mathrm{LE}_{256}(\psi)
 \]
-(crate \texttt{orchard} 0.15.0 \texttt{src/note.rs}, \texttt{rcm\_v3},
+(crate \texttt{orchard} at \texttt{bef8a27} \texttt{src/note.rs}, \texttt{rcm\_v3},
 domain separator constant \texttt{0x0B}).
 \end{remark}
 
@@ -2268,7 +2270,7 @@ procedures to recover $\gd$ and $\pkd$ first, then $\psi$, then $\rcm$
 \emph{domain}: sealed marker types give \texttt{OrchardDomain} (expects lead
 byte $\mathtt{0x02}$) and \texttt{IronwoodDomain} (expects $\mathtt{0x03}$),
 each rejecting a plaintext whose lead byte differs (crate \texttt{orchard}
-0.15.0 \texttt{src/note\_encryption.rs}). Because keys are protocol-scoped
+at \texttt{bef8a27} \texttt{src/note\_encryption.rs}). Because keys are protocol-scoped
 (\S\ref{sec:iw-pools}), the \emph{same} $\ivk$ trial-decrypts both pools ---
 one key, two domains (ZIP-326; \texttt{zcash\_client\_backend
 src/scanning.rs}). The light-client surface follows suit: compact blocks
@@ -2316,7 +2318,7 @@ and $\pkd_{\mathrm{old}} = \pkd_{\mathrm{new}}$ as full curve points ---
 equality of receivers, not merely of $x$-coordinates. The constraint shape
 is the product gate A3 already uses ($v_{\mathrm{old}} \cdot (\mathsf{root}
 - \mathsf{anchor}) = 0$), reused on four extra rows of the same
-\texttt{q\_orchard} gate (crate \texttt{orchard} 0.15.0
+\texttt{q\_orchard} gate (crate \texttt{orchard} at \texttt{bef8a27}
 \texttt{src/circuit.rs}: instance offsets \texttt{ANCHOR} through
 \texttt{DISABLE\_CROSS\_ADDRESS}, rows assigned in
 \texttt{synthesize\_cross\_address\_checks}; the historical nine-element
@@ -2368,7 +2370,7 @@ the restriction as equality of ``expanded receivers'' and carries a
 \texttt{[TODO define]} in its own text; the
 $\mathsf{enableCrossAddress} \to \mathsf{disableCrossAddress}$ instance
 mapping and the dummy-spend treatment are likewise reconstructable only from
-ZIP-229/258/326 and crate \texttt{orchard} 0.15.0, as Definition
+ZIP-229/258/326 and crate \texttt{orchard} at \texttt{bef8a27}, as Definition
 \ref{def:iw-action} does.
 %% TODO: when ZIP 2006 is published, replace the reconstruction above with
 %% its normative text (expanded-receiver definition, instance mapping,
@@ -2469,7 +2471,7 @@ the implementation and the specification as elsewhere in this volume. Ground
 truth for this section: \texttt{protocol.tex} and the ZIPs at \texttt{zips}
 commit \texttt{69610984} (2026-07-09); crate \texttt{orchard} at git commit
 \texttt{bef8a27e} (v0.14.0, 2026-06-16) for circuit claims; and crate
-\texttt{orchard} 0.15.0 (crates.io) for the $\mathtt{0x03}$ note path; we
+\texttt{orchard} at \texttt{bef8a27} for the $\mathtt{0x03}$ note path; we
 verified each cited artifact at these pins.
 
 \subsection{The retroactive break: harvest now, decrypt later against note

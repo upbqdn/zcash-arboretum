@@ -2953,8 +2953,9 @@ Format). Each \texttt{ActionGroupDescription} contains, in order
 Field \texttt{nAGExpiryHeight} exists for forward compatibility with ZSA
 atomic swaps (ZIP-228, currently a Reserved stub); for OrchardZSA it is zero
 by consensus (ZIP-230, Rationale for \texttt{nAGExpiryHeight};
-\S\ref{sec:zsa-tx-rules}). The same rationale section states ``In NU7,
-\texttt{nExpiryHeight} MUST be set to 0'' --- read literally, a constraint on
+\S\ref{sec:zsa-tx-rules}). A normative rule of ZIP-230 (its consensus-rule
+list, not the rationale) states ``In NU7, \texttt{nExpiryHeight} MUST be set
+to 0'' --- read literally, a constraint on
 the transaction-level ZIP-203 field that would contradict ordinary expiry
 semantics; context, the ZIP-227 consensus rule, and the implementation (which
 constrains only \texttt{nAGExpiryHeight}) all indicate
