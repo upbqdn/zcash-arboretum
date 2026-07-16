@@ -279,7 +279,7 @@ ol.plates li.plate:hover { border-color: var(--muted); }
    shrink-wraps to content and lets a wide child (a display equation) jut
    past the list item and the sheet. Constrain it to its container so the
    equation's own overflow-scroll can engage. */
-.ltx_para { display: block; max-width: 100%; }
+.ltx_page_main .ltx_para { display: block; max-width: 100%; }
 
 .ltx_title_document {
   font-family: var(--display); font-weight: 700;
@@ -321,6 +321,11 @@ h3.ltx_title_subsection, .ltx_title_subsection {
 .ltx_eqn_cell.ltx_eqn_center_padleft,
 .ltx_eqn_cell.ltx_eqn_center_padright { display: none; }
 .ltx_p math[display="block"] { display: block; max-width: 100%; overflow-x: auto; }
+.ltx_page_main math[display="inline"] {
+  display: inline-block; max-width: 100%;
+  overflow-x: auto; overflow-y: hidden;
+  vertical-align: middle;
+}
 
 .ltx_tabular { font-size: .95rem; }
 .ltx_tabular .ltx_td, .ltx_tabular .ltx_th { padding: .25rem .6rem; }
