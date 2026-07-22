@@ -267,6 +267,9 @@ ol.plates li.plate:hover { border-color: var(--muted); }
   border: 1px solid var(--edge);
   box-shadow: 0 1px 2px rgb(0 0 0 / .06), 0 16px 48px rgb(0 0 0 / .10);
   color: var(--ink);
+  /* long words (URLs, DOIs) break at the column edge on narrow screens
+     rather than pushing the page wider than the viewport */
+  overflow-wrap: break-word;
 }
 .ltx_page_content { background: transparent; color: var(--ink); }
 @media (max-width: 1099px) {
@@ -277,9 +280,11 @@ ol.plates li.plate:hover { border-color: var(--muted); }
 
 /* LaTeXML wraps list-item paragraphs in an inline-block .ltx_para, which
    shrink-wraps to content and lets a wide child (a display equation) jut
-   past the list item and the sheet. Constrain it to its container so the
-   equation's own overflow-scroll can engage. */
-.ltx_page_main .ltx_para { display: block; max-width: 100%; }
+   past the list item and the sheet, or drift a few px past the column on
+   mobile. Force it back to block so it fills its container and its child's
+   own overflow-scroll can engage. LaTeXML's list-item rule outranks this on
+   specificity, so !important is required to win. */
+.ltx_page_main .ltx_para { display: block !important; max-width: 100%; }
 
 .ltx_title_document {
   font-family: var(--display); font-weight: 700;
@@ -329,6 +334,13 @@ h3.ltx_title_subsection, .ltx_title_subsection {
 
 .ltx_tabular { font-size: .95rem; }
 .ltx_tabular .ltx_td, .ltx_tabular .ltx_th { padding: .25rem .6rem; }
+/* a table wider than the column scrolls inside its own box instead of
+   pushing the page. Floated tables sit in a figure.ltx_table wrapper (scroll
+   that); a bare tabular has none, so make the table itself the scroll box. */
+figure.ltx_table { overflow-x: auto; max-width: 100%; }
+:not(.ltx_table) > table.ltx_tabular {
+  display: block; overflow-x: auto; max-width: 100%; width: max-content;
+}
 .ltx_graphics { max-width: 100%; height: auto; }
 figure.ltx_figure { margin: 1.6rem 0; }
 figure.ltx_figure figcaption { color: var(--muted); font-size: .9rem; }
@@ -452,4 +464,8 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 
 /* keyword/emph harmony */
 .ltx_text.ltx_font_typewriter { font-family: var(--mono); font-size: .92em; }
+/* long code identifiers and paths (e.g. v3_combine_hash_commits_to_ironwood_fields,
+   src/rust/src/history.rs) break mid-token rather than overflow a phone column */
+.ltx_page_main .ltx_font_typewriter,
+.ltx_page_main .ltx_ref.ltx_url { overflow-wrap: anywhere; }
 .ltx_note { color: var(--muted); }
