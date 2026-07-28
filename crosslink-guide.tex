@@ -3224,7 +3224,10 @@ that assures transactions cannot be reverted \emph{by that protocol}. It
 eschews ``absolute finality'' because ``it is not feasible for any protocol
 to prevent reversing final transactions `out of band'\,''; ``final'' in the
 book always means assured finality, in contrast to proof-of-work's
-probabilistic finality (tfl-book \texttt{src/terminology.md}:11--13, 19).
+probabilistic finality (tfl-book \texttt{src/terminology.md}:11--13, 19),
+whose exact arithmetic --- and its divergence as the adversary nears half
+the work --- is the \emph{Consensus Guide}'s subject (\S``What the numbers
+say'').
 
 \begin{definition}[Assured Finality]\label{def:xl-assured-finality-wallet}
 An execution of Crosslink~2 has \emph{Assured Finality} iff for all times
@@ -3384,13 +3387,12 @@ consensus splits'' (\texttt{zebra} @ \texttt{9f3166b9},
 The lesson for prose about pre-Crosslink ``de facto finality'': the
 rollback depth is node policy, not consensus, and it currently differs by
 a factor of ten between upstream and the very fork implementing
-Crosslink. The \emph{Ironwood Guide} (\S``Proof of ownership of \emph{some}
-valid note: the commitment tree'', paragraph ``Anchor choice as the tree
-grows'') states that anchoring ``at least 100 blocks deep (Zcash's reorg
-limit) avoids this entirely''; against upstream's 1000-block window that
-sentence overstates a policy as a limit.
-%% TODO: file a cross-volume erratum against the Ironwood Guide sentence
-%% (ironwood-guide.tex:1005-1034) once the volume owner confirms wording.
+Crosslink. The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Proof of
+ownership of \emph{some} valid note: the commitment tree'') states the
+same policy-not-limit framing, and the \emph{Consensus Guide} owns the
+full three-way divergence register --- specification, retired
+\textsf{zcashd}, deployed \textsf{zebra} --- in \S``Reorg rails,
+maturity, and the finality floor''.
 
 \paragraph{Classification.} \emph{Specified as code} at prototype rigor
 only --- every RPC is a self-described placeholder, and nothing in this

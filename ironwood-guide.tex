@@ -1028,8 +1028,11 @@ sliding window, so proving is fully decoupled from broadcasting --- Alice
 need not race the chain tip. The one recency caveat runs in the opposite
 direction: a reorganisation can strike the anchoring block from the main
 chain, invalidating the anchor and forcing her to rebuild the transaction;
-anchoring at least $100$ blocks deep (Zcash's reorg limit) avoids this
-entirely. Deployed wallets nonetheless anchor close to the tip, by
+deeper anchors make the event rarer, but no depth rules it out --- the
+often-cited $100$-block figure was the retired \textsf{zcashd}'s rollback
+policy, and the deployed \textsf{zebra} rolls back automatically to
+$1000$ blocks, node policy in both cases rather than consensus.
+Deployed wallets nonetheless anchor close to the tip, by
 deliberate choice rather than necessity. The anchor's tree is the anonymity
 set in which check~A3 conceals the spent note --- the proof reveals only that
 the note is \emph{some} leaf committed by that anchor --- so the most recent

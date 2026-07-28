@@ -265,7 +265,10 @@ An SPV client's trust model is already weaker than a full node's. It cannot
 check transaction validity or consensus rules; it assumes the most-work
 chain follows the rules --- the paper's Assumption~1: ``The chain with the
 most PoW solutions follows the rules of the network and will eventually be
-accepted by the majority of miners'' (\S1, p.~2). FlyClient keeps exactly
+accepted by the majority of miners'' (\S1, p.~2). The most-work rule
+itself, and the probabilistic guarantee it purchases, are the
+\emph{Consensus Guide}'s subject (\S``The block tree and the most-work
+rule''). FlyClient keeps exactly
 this assumption class (strengthened quantitatively, \S\ref{sec:fc-model})
 and attacks only the cost: can a client accept the head of the chain after
 sublinear communication? The obstacle is that a client that no longer checks

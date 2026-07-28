@@ -59,8 +59,8 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
 - Theorem environments are numbered within sections:
   =theorem/lemma/proposition/corollary= (plain), =definition/construction/=
   =assumption/remark/example= (definition style).
-- Labels: =sec:=, =def:=, =thm:=, =lem:=, =eq:=, =fig:=, =tab:=, =rem:=
-  prefixes.
+- Labels: =sec:=, =def:=, =thm:=, =lem:=, =prop:=, =cor:=, =ass:=, =ex:=,
+  =eq:=, =fig:=, =tab:=, =rem:= prefixes.
 
 * Figures
 

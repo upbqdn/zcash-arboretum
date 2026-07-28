@@ -43,23 +43,27 @@ Layered; read each atop the ones it names.
 6. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
    compact blocks, the lightwalletd/Zaino service surface, the scanning
    pipeline, and — stated plainly — what the server learns.
-7. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
+7. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
+   double-spend race and its exact success probability (after Rosenfeld),
+   the arithmetic of confirmations, and the deployed most-work rule with
+   its safety rails.
+8. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
    the FlyClient sampling protocol and its security analysis, the deployed
    ZIP-221 chain-history commitment, and the unbuilt bridge between them.
 
 ** Frontier
-8. *Voting Guide* (=voting-guide.tex=) — the shielded coin-voting protocol
+9. *Voting Guide* (=voting-guide.tex=) — the shielded coin-voting protocol
    deployed in Zashi.
-9. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
-   transfer, and the counterfeiting boundary.
-10. *Tachyon Guide* (=tachyon-guide.tex=) — the Tachyon scaling architecture:
+10. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
+    transfer, and the counterfeiting boundary.
+11. *Tachyon Guide* (=tachyon-guide.tex=) — the Tachyon scaling architecture:
     proof-carrying wallet state, out-of-band payments, oblivious
     synchronisation. Every claim is classified as /specified/,
     /designed-but-unspecified/, or /open problem/.
-11. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
+12. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
     ebb-and-flow model, the Crosslink construction, stake and delegation,
     and the wallet-visible contract two ledgers create.
-12. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
+13. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
     paper constructs it and RFC 9591 standardises it, the rerandomized form,
     and the surfaces that use it.
 
