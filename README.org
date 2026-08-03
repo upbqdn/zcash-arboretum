@@ -32,21 +32,21 @@ Layered; read each atop the ones it names.
      statement carried end to end, every number real.
 
 ** Deployed protocol
-4. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
+4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
+   double-spend race and its exact success probability (after Rosenfeld),
+   the arithmetic of confirmations, and the deployed most-work rule with
+   its safety rails.
+5. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
    the commitment tree and authentication paths, the key hierarchy, note
    encryption, value balance, the Action statement and circuit, the two-pool
    split (legacy Orchard, current Ironwood), and post-quantum security of the
    deployed stack.
-5. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
+6. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
    key derivation, unified addresses (ZIP-316), fees (ZIP-317), and the
    transaction-construction pipeline as deployed in librustzcash.
-6. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
+7. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
    compact blocks, the lightwalletd/Zaino service surface, the scanning
    pipeline, and — stated plainly — what the server learns.
-7. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
-   double-spend race and its exact success probability (after Rosenfeld),
-   the arithmetic of confirmations, and the deployed most-work rule with
-   its safety rails.
 8. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
    the FlyClient sampling protocol and its security analysis, the deployed
    ZIP-221 chain-history commitment, and the unbuilt bridge between them.

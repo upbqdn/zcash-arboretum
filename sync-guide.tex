@@ -2263,7 +2263,9 @@ node policy, not consensus
 ``no full Zcash node'' claim no longer holds for Zebra-backed
 deployments; $\mathsf{PRUNING\_DEPTH} = 100$ matches the zcashd bound,
 as its doc comment says (\textsf{zcash\_client\_sqlite},
-\texttt{src/lib.rs:166--169}).
+\texttt{src/lib.rs:166--169}). The full spec-versus-deployment
+divergence register for these windows is the \emph{Consensus Guide}'s
+(\S``Reorg rails, maturity, and the finality floor'').
 
 \subsection{The reference sync loop}\label{sec:sync-loop}
 
