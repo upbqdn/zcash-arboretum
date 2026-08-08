@@ -134,7 +134,7 @@ information needed to calculate $\mathsf{LOG}_{\mathrm{fin}}$''
 Nothing about Crosslink is deployed on any Zcash network and nothing is
 consensus-specified: the ZIP repository at \texttt{6961098} (2026-07-09)
 contains no Crosslink, TFL, or NU8 ZIP or draft, and the implementers'
-own ZIP draft is a Google document intended ``to enter the formal ZIP
+own ZIP draft is a Google document that ``will enter the formal ZIP
 process as the prototype approaches maturity'' (grep of zcash/zips @
 \texttt{6961098}; zebra-crosslink @ \texttt{6d02a1b},
 \texttt{book/src/design.md} line~7). This volume is therefore a
@@ -313,9 +313,10 @@ $\mathsf{LOG}_{\mathrm{ba}}$ development trailing off mid-sentence
 %% construction.md:592) or only report the defect.
 
 \paragraph{The machine-checked model.} The repository
-\texttt{crosslink-spec} (Informal Systems) is a single squashed commit
+\texttt{crosslink-spec} (Informal Systems) is pinned at
 %% full hash: 8edc3e941fb45b32b7b68e3204e8df8330bcd43a
-\texttt{8edc3e9} (2025-07-23, PR \#4).
+\texttt{8edc3e9} (2025-07-23, the merge of PR \#4; shallow local clone,
+depth~1).
 It formalizes exactly one slice of Crosslink: the \texttt{isValid} check
 of a BFT proposal against local PoW and BFT block stores, written in
 Quint as a literate source (\texttt{validity.md}, tangled to
@@ -397,8 +398,10 @@ or performance of these parameters'' (\texttt{src/chain.rs} lines
 219--221). The staking design (the ``nutshell'' chapter) self-describes
 as a ``provisional sketch'' and matches Shielded Labs' published staking
 design post of 2025-10-27 on Orchard-only staking with revealed amounts,
-five-day epochs, one-epoch unbonding, and power-of-ten stake
-quantization (\texttt{book/src/design/nutshell.md} lines 13--133;
+one-epoch unbonding, and power-of-ten stake quantization; on epoch length
+the sources diverge --- the post proposes five-day epochs, the chapter a
+one-day staking day plus an approximately six-day locked phase
+(\texttt{book/src/design/nutshell.md} lines 13--133;
 \url{https://shieldedlabs.net/crosslink-updated-staking-design/},
 accessed 2026-07-15).
 
@@ -867,7 +870,7 @@ only change (line 19 of Algorithm~1; ``Sleepy is applied unaltered and the
 modification required for Streamlet is minor''). ``In addition,
 $\mathsf{ch}_i^t$ is used as side information in $\Pi_{\mathrm{bft}}$ to
 boycott the finalization of invalid snapshots proposed by the adversary''
-(Fig.~5 caption).
+(\S\,III-B).
 
 \paragraph{Instantiation.} The analyzed instance takes
 $\Pi_{\mathrm{lc}}$ to be Sleepy consensus (Pass--Shi; permissioned
@@ -960,7 +963,7 @@ $\mathsf{LOG}_{\mathrm{lc}}$.''
 with $n = 100$ nodes, $f = 25$ adversarial, $\Delta = 1\,$s, Sleepy rate
 $\lambda = 0.1\,\mathrm{s}^{-1}$ (per-node $\lambda_0 =
 10^{-3}\,\mathrm{s}^{-1}$), confirmation depth $k = 20$, and Streamlet
-epoch $5\,$s ([NTT2020] \S\,IV). Under dynamic participation,
+$\Delta_{\mathrm{bft}} = 5\,$s ([NTT2020] \S\,IV). Under dynamic participation,
 $\mathsf{LOG}_{\mathrm{da}}$ grows steadily while
 $\mathsf{LOG}_{\mathrm{fin}}$ stalls whenever fewer than a two-thirds
 quorum (67 nodes) is awake, catching up afterwards; under intermittent
@@ -1040,7 +1043,7 @@ only applies when the number of malicious nodes $f$ is such that
 $n/3 < f < n/2$. What we are trying to do with Crosslink is to ensure that
 a similar conclusion holds even if $\Pi_{\mathrm{bft}}$ is completely
 subverted, i.e.\ the adversary has 100\% of validators (but only
-${<}\,50\%$ of $\Pi_{\mathrm{bc}}$ hash rate)''
+${<}\,50\%$ of $\Pi_{\mathrm{lc}}$ hash rate)''
 (\texttt{notes-on-snap-and-chat.md}, ``Comment on security
 assumptions''). Crosslink's safety target is therefore strictly stronger
 than what Theorem~\ref{thm:xl-sac-security} case (c) delivers.
@@ -1293,7 +1296,9 @@ finalization point, ``we have also not proven that so far''
 availability analogue is an \emph{open problem} in the book's own
 accounting; its safety counterparts
 (Theorem~\ref{thm:xl-assured-either}) are \emph{designed but
-unspecified}, proved in book prose but fixed by no normative artifact.
+unspecified}, proved in book prose only for the Prefix Agreement half (the
+Final Agreement proof is defective, \S\ref{sec:xl-sources}) and fixed by no
+normative artifact.
 The Assured Finality definition already circulates beyond the book: the
 ZIPs repository's \texttt{draft-ecc-onchain-accountable-voting} cites it
 (\texttt{zips} @ \texttt{69610984}, line 169; the draft's placement in
@@ -1379,7 +1384,8 @@ $\mathsf{isValid}(\mathit{bft\_store}, \mathit{pow\_store}, p)$ requiring:
 the store contains $p.\mathit{block}$; the proposal context equals
 \texttt{bft\_store.last()}; \textsf{sigmaConfirmed} --- a fork-free tail
 of at least $\sigma$ PoW blocks, some element of which has the proposed
-block as its parent, and whose parents all lie within the tail; and
+block as its parent, and whose parents all lie within the tail or are the
+proposed block itself; and
 \textsf{linear}. The
 invariant \texttt{prefix\_inv}, requiring for all consecutive indices $i$
 \begin{center}
@@ -1696,7 +1702,7 @@ $\operatorname{origbft\text{-}last\text{-}final}(C)$ is the last
 origbft-valid-block $B \preceq_{\mathrm{origbft}} C$ such that either $B =
 \mathsf{Origin}_{\mathrm{origbft}}$ or $B$ is the second block of a group
 of three adjacent blocks with consecutive epoch numbers
-(\texttt{construction.md}:210--243, 224, 234--241).
+(\texttt{construction.md}:210--243, 224, 234--241, 618).
 
 \paragraph{Classification.} \emph{Designed but unspecified} throughout;
 the requirements are the book's model choices, argued but not proven
@@ -2729,10 +2735,12 @@ the slices of the pending amount $S_{\mathsf{total}}$ are
 \begin{equation}\label{eq:xl-reward-slices}
 S_{\mathsf{finalizer}}
   = c \cdot \frac{W_{\mathsf{finalizer}}}{W_{\mathsf{total}}}
+    \cdot S_{\mathsf{total}}
 \qquad\text{(active-set finalizers only)},
 \qquad
 S_{\mathsf{staker}}
-  = (1 - c) \cdot \frac{W_{\mathsf{staker}}}{W_{\mathsf{total}}},
+  = (1 - c) \cdot \frac{W_{\mathsf{staker}}}{W_{\mathsf{total}}}
+    \cdot S_{\mathsf{total}},
 \end{equation}
 %
 where $W_{\mathsf{participant}}$ is that participant's total stake weight
@@ -3077,7 +3085,8 @@ stall behaviour (\S\ref{sec:xl-stalls}), and the service-facing protocol
 
 Two texts carry the design (pinned, with the rest of the corpus, in
 Table~\ref{tab:xl-sources}). The ECC Trailing Finality Layer book
-(\texttt{zcash/tfl-book} @ \texttt{fe6e1d6f}, 2024-12-13; hereafter the
+(\texttt{Electric-Coin-Company/tfl-book} @ \texttt{fe6e1d6f},
+2024-12-13; hereafter the
 \emph{tfl-book}) defines the Crosslink~2 construction and has not changed
 since; its own status page calls the design ``an early and incomplete
 protocol design proposal'' (\texttt{src/introduction/status-and-next-steps.md}).
@@ -3255,8 +3264,8 @@ hypothesis definitions at \texttt{construction.md}:337--340, 203--206.)
 Assured Finality therefore survives the failure of either subprotocol's
 safety assumption alone; it fails only under the weaker of the two, which
 is the keystone guarantee a wallet's ``final'' badge would rest on. We
-defer the proofs, which run through the Local fin-depth lemma and the
-Linear prefix lemma, to the security analysis
+defer the proof of branch (i), which runs through the Local fin-depth
+lemma and the Linear prefix lemma, to the security analysis
 (\S\ref{sec:xl-safety-theorems}); Prefix Agreement and Final Agreement
 are stated in full as Definitions~\ref{def:xl-prefix-agreement}
 and~\ref{def:xl-final-agreement}.
@@ -3269,7 +3278,9 @@ $\mathrm{LOG}_{\mathrm{ba}}$ agreement proof trails off unfinished (``What
 we want to show is that, under some conditions on executions, \ldots'')
 (\texttt{security-analysis.md}:54, 137--160, 253--257); the SL~book copies
 this state verbatim. The bin split for this section:
-Theorem~\ref{thm:xl-af-two-sided} is complete as stated;
+Theorem~\ref{thm:xl-af-two-sided} is completely stated, but only branch (i)
+carries a correct written proof; branch (ii)'s pasted proof is defective
+(Remark~\ref{rem:xl-final-agreement-proof});
 transaction-log-level safety for the bounded-available view is
 \emph{designed but unspecified} with an incomplete proof.
 
@@ -3324,8 +3335,8 @@ with request variants
 \texttt{FatPointerToBFTChainTip}, \texttt{StakingCmd}
 \end{center}
 (\texttt{zebra-state/src/crosslink.rs}:11--49; variant
-\texttt{FinalBlockRx} is a broadcast receiver). The RPC methods, every
-one doc-commented as ``Placeholder''
+\texttt{FinalBlockRx} is a broadcast receiver). The RPC methods, six of
+the ten doc-commented as ``Placeholder''
 (\texttt{zebra-rpc/src/methods.rs}:246--420), are:
 \begin{itemize}[itemsep=1pt]
 \item \texttt{is\_tfl\_activated};
@@ -3379,7 +3390,8 @@ at 99, one less than the transparent coinbase maturity of 100; an
 internal \texttt{latest\_final\_block}, once set by BFT, takes
 precedence (\texttt{zebra-crosslink/src/lib.rs}:235--332;
 \texttt{zebra-state/src/constants.rs}:14--31). Upstream Zebra meanwhile
-moved the same constant to 1000 (commit \texttt{8767a91ba}, 2026-06-17),
+moved the same constant to 1000 (commit \texttt{02f9648a5}, 2026-06-15;
+relocated to \texttt{zebra-chain} by \texttt{8767a91ba}),
 documenting it as ``a local-only node policy; it is not part of
 consensus'' sized ``as a defence-in-depth measure against sustained
 consensus splits'' (\texttt{zebra} @ \texttt{9f3166b9},
@@ -3664,8 +3676,10 @@ problem}.
 \section{Security posture and open problems}\label{sec:xl-security}
 
 The security posture of Crosslink~2 is best stated as an inventory of four
-artifacts of unequal maturity. The design book proves its central safety
-theorem twice over, from two independent assumptions, and then breaks off:
+artifacts of unequal maturity. The design book states its central safety
+theorem twice over, from two independent assumptions --- though the second
+statement's pasted proof is defective
+(Remark~\ref{rem:xl-final-agreement-proof}) --- and then breaks off:
 everything below a stated line of its analysis is marked ``Not updated for
 Crosslink~2'', and its last proof sketch ends mid-sentence (tfl-book @
 \texttt{fe6e1d6}, 2024-12-13, \texttt{src/design/crosslink/}%
@@ -3693,7 +3707,7 @@ The book's central safety goal is \emph{Assured Finality}
 (Definition~\ref{def:xl-assured-finality}): in a given
 execution, for all times $t, u$ and all nodes $i, j$ such that $i$ is
 honest at time $t$ and $j$ is honest at time $u$, the finalized views
-agree, $\mathsf{fin}_i^t \asymp_{\mathrm{bc}} \mathsf{fin}_j^u$ --- either
+agree, $\mathsf{fin}_i^t \sim_{\mathrm{bc}} \mathsf{fin}_j^u$ --- either
 is a prefix of the other (tfl-book @ \texttt{fe6e1d6},
 \texttt{construction.md}, lines 504--506). The name is chosen against
 ``absolute finality'': the property binds \emph{the protocol}, and the
@@ -3741,7 +3755,7 @@ them.
 In an execution of Crosslink~2 in which subprotocol $\Pi_{\mathrm{bft}}$
 has Final Agreement (Definition~\ref{def:xl-final-agreement}) --- for
 all bft-valid blocks $C, C'$ in honest view at
-any times, $\textsf{bft-last-final}(C) \asymp_{\mathrm{bft}}
+any times, $\textsf{bft-last-final}(C) \sim_{\mathrm{bft}}
 \textsf{bft-last-final}(C')$ --- that execution has Assured Finality
 (tfl-book @ \texttt{fe6e1d6}, \texttt{security-analysis.md}, lines 86--91;
 Final Agreement at \texttt{construction.md}, lines 203--206).
@@ -3876,8 +3890,9 @@ an honest bc-block-producer ``must not use information from the BFT
 protocol, other than the specified consensus rules, to decide which
 bc-valid-chain to follow'' (\texttt{security-analysis.md}, lines 15--23;
 \texttt{construction.md}, lines 715--717). The same modularity is why
-$\mathsf{snapshot}(\mathsf{LF}(H)) \preceq_{\mathrm{bc}} H$ was rejected
-as a fork-choice constraint: under a potentially subverted
+requiring a node's bc-best-chain to extend $\mathsf{snapshot}(B)$, for $B$
+the last final bft-block in that node's view, was rejected as a fork-choice
+constraint: under a potentially subverted
 $\Pi_{\mathrm{bft}}$, ``we cannot say anything useful about
 $\mathsf{snapshot}(B)$'', so the constraint would break the modular
 safety and liveness arguments. Honest validators may instead simply refuse
@@ -4064,7 +4079,9 @@ construction and security-analysis chapters, made ``for the purposes of
 precisely committing to a (potentially incomplete, confusing, or
 inconsistent) precise set of book contents for a security design
 review''; diffing them against tfl-book @ \texttt{fe6e1d6} shows the only
-changes are three warning admonitions, and the copies state that
+changes are the warning admonitions (three prepended to the construction
+copy, one --- the paste notice --- to the security-analysis copy), and the
+copies state that
 Daira-Emma Hopwood and Jack Grigg ``have not reviewed and do not
 necessarily endorse'' them (zebra-crosslink @ \texttt{6d02a1b},
 \texttt{book/src/design/cl2-construction.md} and
@@ -4140,7 +4157,8 @@ as its pre-BFT fallback finality depth (zebra-crosslink @
 since raised the same constant to $1000$ (zebra @ \texttt{9f3166b},
 \texttt{zebra-chain/src/parameters/constants.rs}, line 30), and the
 \emph{Ironwood Guide}'s 100-block ``reorg horizon'' for anchor selection
-is flagged as a cross-volume erratum in \S\ref{sec:xl-node-interface}.
+is reconciled with the policy-not-limit framing in
+\S\ref{sec:xl-node-interface}.
 We cite the bound as interface, per this series' scope rule; its
 derivation belongs to the PoW layer.
 

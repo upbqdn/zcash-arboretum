@@ -1167,7 +1167,7 @@ Unwinding the definition: in a field one may add, subtract, and multiply as in a
 \begin{example}\label{ringsfields:exa-fields}
 \begin{enumerate}
 \item \(\Q\), \(\R\), and \(\C\) are fields; \(\Z\) is not, since \(2\) has no inverse in \(\Z\).
-\item For \(p\) prime, \(\Fp := \Z/p\Z\) is a field, the \emph{prime field} of characteristic \(p\) (Corollary~\ref{intmod:cor:fpfield}; Theorem~\ref{ringsfields:thm-finite-domain} below recovers this abstractly). These fields, and their finite extensions \(\Fq\) with \(q=p^k\), are fundamental to the cryptography developed later.
+\item For \(p\) prime, \(\Fp := \Z/p\Z\) is a field, the \emph{prime field} of characteristic \(p\) (Corollary~\ref{intmod:cor:fpfield}; Theorem~\ref{ringsfields:thm-finite-domain} below recovers this abstractly). These fields are fundamental to the cryptography developed later; their finite extensions \(\Fq\) with \(q=p^k\) exist for every prime power but lie off our path (Example~\ref{ringsfields:exa-quotient-Zn}).
 \item The field \(\Q(i) = \{a+bi : a,b\in\Q\}\subseteq\C\) and, more generally, number fields, are fields obtained by adjoining algebraic elements to \(\Q\).
 \item The field of rational functions \(F(x) = \{\,f/g : f,g\in F[x],\ g\neq 0\,\}\) over a field \(F\) is a field; it is the field of fractions of \(F[x]\).
 \end{enumerate}
@@ -2133,11 +2133,15 @@ have some finite degree \(d\) and thus at most \(d\) roots by
 Theorem~\ref{polynomials:thm:root-bound}; but \(\F\) is infinite, so \(h\) has
 infinitely many roots — a contradiction. Hence \(h = 0\) and \(f = g\).
 
-(2) The polynomial \(X^p - X \in \Fp[X]\) is nonzero (its coefficients are
-\(-1\) at \(X^1\) and \(1\) at \(X^p\)), yet by Fermat's little theorem
-\(\alpha^p = \alpha\), so \((X^p - X)(\alpha) = 0\) for all \(\alpha \in \Fp\).
-Thus \(X^p - X\) and the zero polynomial induce the same (zero) function while
-being distinct formal objects, so the map is not injective.
+(2) Let \(\F = \Fq\) be finite. The monic polynomial
+\(w(X) := \prod_{\alpha \in \Fq}(X - \alpha)\), of degree \(q = |\Fq|\), is
+nonzero yet vanishes at every \(\alpha \in \Fq\) by construction. Thus \(w\)
+and the zero polynomial induce the same (zero) function while being distinct
+formal objects, so the map is not injective. Over the prime field \(\Fp\) this
+witness is \(X^p - X\): Fermat's little theorem
+(Corollary~\ref{groups:cor-euler-fermat}) makes \(\Fp\) the root set of the
+monic degree-\(p\) polynomial \(X^p - X\), recovering the instance in the
+statement.
 \end{proof}
 
 \begin{remark}[Why the formal viewpoint is the correct one]
@@ -2187,7 +2191,7 @@ agreement at \(d + 1\) points forces equality. Schwartz--Zippel is its
 probabilistic refinement: even a \emph{single} random evaluation point detects
 unequal degree-\(\le d\) polynomials except with probability at most
 \(d / |S|\). If \(|S|\) is exponentially large (as for \(S = \Fq\) with
-\(q \approx 2^{255}\), the field sizes in Orchard) and \(d\) is polynomially
+\(q \approx 2^{254}\), the 255-bit fields of Orchard) and \(d\) is polynomially
 bounded, this failure probability is negligible. This constitutes the foundational
 soundness argument for polynomial identity testing, and through it for the
 polynomial commitment schemes and arithmetization checks at the heart of
@@ -3180,7 +3184,7 @@ The polynomial \(g(X) = \sum_i L_i(X) - 1\) lies in \(\F[X]_{<n}\) (degree \(< n
 \end{proof}
 
 \begin{example}[The all-ones value vector]\label{rootsofunity:exp-constants}
-The constant polynomial \(1\) interpolates the data \(v_i = 1\) for all \(i\); \cref{rootsofunity:prp-partition} is the statement \(\sum_i 1\cdot L_i = 1\). Likewise the values of \(X\) on \(H\) are \(v_i = \omega^i\), and \cref{rootsofunity:prp-lagrangeprop} gives \(\sum_i \omega^i L_i(X) = X\) (both sides agree on \(H\) and have degree \(< n\)). We invoke these identities constantly when rewriting monomials in the Lagrange basis.
+The constant polynomial \(1\) interpolates the data \(v_i = 1\) for all \(i\); \cref{rootsofunity:prp-partition} is the statement \(\sum_i 1\cdot L_i = 1\). Likewise the values of \(X\) on \(H\) are \(v_i = \omega^i\), and, for \(n \ge 2\), \cref{rootsofunity:prp-lagrangeprop} gives \(\sum_i \omega^i L_i(X) = X\) (both sides agree on \(H\) and have degree \(< n\)). We invoke these identities constantly when rewriting monomials in the Lagrange basis.
 \end{example}
 
 \subsection{Evaluation and interpolation as mutually inverse linear maps}

@@ -423,3 +423,55 @@ defensible — but no root is high-severity, and per the June lesson we do not c
 on momentum. **The entire audit is declared CONVERGED and CLOSED at Wave 4.** No
 Wave-5 is proposed. Remaining action is owner review of the DRAFT entries (11-57)
 before any upstream filing.
+
+## Overhaul wave (deep per-volume grid), 2026-07-29
+
+Method: per-volume finder grid (two lenses: recompute / conform, half-file
+splits) -> paired default-refute juries (2 per candidate batch, both must
+confirm) -> per-volume third-layer re-verification emitting byte-exact edits.
+Ground truth: zips `69610984`, orchard `bef8a27`, librustzcash `e30517e433`
+(pczt 0.7.0 / orchard 0.15.0 / zip321 0.8.0 per Cargo.lock), tfl-book
+`fe6e1d6`, zebra-crosslink `6d02a1b`, arXiv:2009.04987v3 (fetched), NIST SP
+800-38G (published version).
+
+Coverage this wave: math-guide (full), crypto-guide (full), wallet-guide
+(part b: PCZT / lifecycle / ZIP-321), crosslink-guide (full). NOT covered
+(finders starved; residual work): ironwood, sync, zsa, tachyon, frost,
+flyclient, voting, halo2, halo2-intuition, wallet part a, cross-volume
+sweeps. consensus-guide excluded (had its own 7-reviewer verify at ship).
+
+Result: 76 deduped candidates -> 71 confirmed by both jurors, 4 refuted,
+1 split (Pedersen H = identity, measure-zero; dropped). Applied as 67 edits
+(dedup of repeated-root findings). Root causes, largest first:
+
+- **Wallet PCZT staleness (15 findings).** The section documented pczt
+  0.5.1 as deployed; the workspace ships pczt 0.7.0, which implements v1
+  AND v2 (Ironwood bundle, empty-bundle omission, non-negative-zero
+  value_sum), orchard 0.15.0, sapling-crypto 0.7.0, zip321 0.8.0. The
+  "specified-not-deployed" / "version skew" / "negative-zero divergence"
+  claims were true at drafting and are now false: upstream shipped and
+  fixed them. Section re-grounded at the new baseline.
+- **Pasta magnitude (5 sites, crypto + math).** Fields stated as
+  "~2^255"; the moduli are 2^254 + eps (255-bit primes, sqrt q ~ 2^127).
+- **Accumulation misattribution (4 sites, crypto).** Deployed Orchard
+  verification amortises by plain batch verification (one merged MSM),
+  not by Halo accumulation/recursion.
+- **Diversified base (3 sites, crypto).** Note-encryption key agreement
+  runs over the per-address base g_d, not a fixed generator; DerivePublic
+  takes a base argument.
+- **Commit^ivk (2 sites, crypto).** It is SinsemillaShortCommit
+  (ExtractP composed with SinsemillaCommit), base-field-valued.
+- **Crosslink proof-status overstatements (4 findings).** The Final
+  Agreement branch has no correct written proof (the book pastes the
+  Prefix Agreement proof verbatim); intro and finality-status sections
+  now match the volume's own remark. Plus citation and verbatim-quote
+  repairs (Pi_lc, Fig. 5 caption vs body, five-epoch citation, reward
+  slices dimensional fix, RPC placeholder count).
+- 12 further localized fixes (ChaCha counter convention, FF1 minimum
+  domain per published SP 800-38G, prefix-freeness scoped to idiom (a),
+  Lagrange identity n >= 2 hypothesis, expiry-0 polling semantics,
+  tx_modifiable bit provenance, zip321 release history, ZIP-315 title).
+
+Upstream candidates (11, UNVERIFIED, in
+`.wip/overhaul-findings-banked.json`): not filed; user reviews firsthand
+per standing rule.
