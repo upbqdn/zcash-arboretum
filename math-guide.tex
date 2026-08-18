@@ -3781,7 +3781,16 @@ We have constructed the elliptic curve group from the ground up: a nonsingular s
 
 Cryptography is the discipline of rendering certain computations easy for legitimate parties and infeasible for adversaries. Stating and proving such guarantees requires three intertwined languages: the language of \emph{probability}, which permits reasoning about random keys, random challenges, and the probability that an attack succeeds; the language of \emph{asymptotics}, which permits precise description of how resources and success probabilities scale; and the language of \emph{computation}, which fixes the notion of an efficient algorithm and of what it means for a problem to be hard. This section develops all three from elementary foundations. The only prerequisites are familiarity with finite sets, sums, and the elementary calculus of limits; we construct everything else here.
 
-Throughout, all probability spaces are finite. This is not a serious restriction for the present purposes: keys, messages, group elements, and the random coins of any terminating algorithm all reside in finite sets. Working with finite spaces avoids measure theory entirely while sacrificing nothing we require.
+Until the closing probability subsection, all probability spaces are
+finite. This is no serious restriction for the cryptographic material:
+keys, messages, group elements, and the random coins of any terminating
+algorithm all reside in finite sets, and finite spaces need no measure
+theory. The closing subsection
+(\S\ref{probability:sub-beyond}) then extends the theory by exactly the
+three rungs later volumes need---countable additivity, continuity
+along monotone events, and laws defined by densities---declaring its
+one measure-theoretic debt in place
+(Remark~\ref{probability:rem-extension}).
 
 \subsection{Finite probability spaces and events}
 
@@ -4076,6 +4085,142 @@ Therefore
 \begin{remark}\label{probability:rem-modbias}
 The consequence is as follows: to sample a scalar mod a \(\sim 256\)-bit prime \(q\) with statistical distance below \(2^{-128}\) from uniform, draw \(256 + 128 = 384\) uniform bits and reduce. The bias \(2^{-128}\) is negligible (Definition~\ref{probability:def-negl}), so the reduce-modulo sample is statistically indistinguishable from a perfectly uniform scalar, and by the data-processing inequality (Theorem~\ref{probability:thm-sd}(4)) substituting one for the other anywhere costs at most \(2^{-128}\) per use. An alternative, \emph{rejection sampling}---draw \(\lceil \log_2 q\rceil\) bits, accept if the result is \(< q\), else retry---gives \emph{exactly} uniform output at the cost of a variable but, with overwhelming probability, small number of retries; for the present purposes the negligible bias of reduce-modulo is acceptable and simpler to analyse. This is precisely the kind of distribution that the Orchard specification employs when deriving scalars from hash outputs.
 \end{remark}
+
+\subsection{Beyond finite spaces: countable additivity, limits, and
+densities}\label{probability:sub-beyond}
+
+Everything so far lives on a finite sample space, and for the
+cryptographic material of the upper volumes that is enough: keys,
+challenges, and transcripts are finite strings. Two uses need more. A
+process watched for as long as it takes---a random walk pursued until
+it first hits a barrier---has no finite horizon, and a waiting time
+measured in continuous units has no finite sample space at all. This
+subsection extends the finite theory by exactly the three rungs those
+uses require: countable additivity, continuity along monotone events,
+and laws defined by densities.
+
+\begin{definition}[Countable probability space]\label{probability:def-countable}
+A \emph{countable probability space} is a pair \((\Omega, \Pr)\) in
+which \(\Omega\) is a countable set and
+\(\Pr\colon \Omega \to [0,1]\) satisfies
+\(\sum_{\omega \in \Omega} \Pr[\omega] = 1\); the sum is independent of
+the enumeration order because its terms are nonnegative. Events are
+arbitrary subsets \(A \subseteq \Omega\), with
+\(\Pr[A] = \sum_{\omega \in A} \Pr[\omega]\), and
+Definitions \ref{probability:def-event}--\ref{probability:def-exp}
+carry over with ``finite'' read as ``countable'' (a random variable's
+image may now be countably infinite); expectation additionally requires
+its defining sum to converge absolutely.
+\end{definition}
+
+\begin{proposition}[Countable additivity]\label{probability:prop-countadd}
+Let \((\Omega, \Pr)\) be a countable probability space and
+\(A_1, A_2, \ldots\) pairwise disjoint events. Then
+\[
+\Pr\Bigl[\,\bigcup_{n \geq 1} A_n\Bigr] \;=\; \sum_{n \geq 1} \Pr[A_n],
+\]
+and in particular the basic axioms of
+Proposition~\ref{probability:prop-axioms} hold unchanged.
+\end{proposition}
+
+\begin{proof}
+Every outcome of the union lies in exactly one \(A_n\), so both sides
+sum the same nonnegative terms \(\Pr[\omega]\), grouped differently; a
+series of nonnegative terms may be summed in any order, or in groups,
+without changing its value.
+\end{proof}
+
+\begin{theorem}[Continuity along monotone events]\label{probability:thm-continuity}
+Let \(\Pr\) be a probability assignment, on any sample space, defined
+for a family of events closed under complement and countable union, and
+countably additive on it. If \(A_1 \subseteq A_2 \subseteq \cdots\) is
+an increasing chain of events, then
+\[
+\Pr\Bigl[\,\bigcup_{n \geq 1} A_n\Bigr] \;=\; \lim_{n \to \infty} \Pr[A_n],
+\]
+and dually \(\Pr[\bigcap_n B_n] = \lim_n \Pr[B_n]\) for a decreasing
+chain \(B_1 \supseteq B_2 \supseteq \cdots\). On a countable space the
+hypothesis holds automatically, by
+Proposition~\ref{probability:prop-countadd}.
+\end{theorem}
+
+\begin{proof}
+Set \(D_1 = A_1\) and \(D_n = A_n \setminus A_{n-1}\) for \(n \geq 2\).
+The \(D_n\) are pairwise disjoint, \(\bigcup_{k \leq n} D_k = A_n\), and
+\(\bigcup_n D_n = \bigcup_n A_n\). Countable additivity gives
+\[
+\Pr\Bigl[\,\bigcup_n A_n\Bigr]
+= \sum_{n \geq 1} \Pr[D_n]
+= \lim_{n \to \infty} \sum_{k=1}^{n} \Pr[D_k]
+= \lim_{n \to \infty} \Pr[A_n],
+\]
+the final step by finite additivity. The decreasing case follows by
+complementation.
+\end{proof}
+
+\begin{definition}[Infinite sequence of independent trials]\label{probability:def-trials}
+Fix a finite outcome set \(T\) and a distribution \(p\) on \(T\). An
+\emph{infinite sequence of independent trials} with law \(p\) is a
+sequence of random variables \(X_1, X_2, \ldots\) such that every
+prefix \((X_1, \ldots, X_n)\) consists of \(n\) mutually independent
+\(p\)-distributed trials in the sense of
+Definition~\ref{probability:def-indep-rv}---equivalently, the
+prefix's law is that of the finite probability space \(T^{n}\) carrying
+the product weights
+\(\Pr[(t_1, \ldots, t_n)] = p(t_1) \cdots p(t_n)\). An event is \emph{finitely
+determined} if membership in it is decided by some fixed finite prefix;
+its probability is the finite-space value. An event of the form ``some
+prefix satisfies \(P\)'' is the union of an increasing chain of
+finitely determined events, and
+Theorem~\ref{probability:thm-continuity} assigns it the limit of the
+prefix probabilities.
+\end{definition}
+
+\begin{remark}[What is taken as given]\label{probability:rem-extension}
+Definition~\ref{probability:def-trials} presumes that a single,
+countably additive probability assignment on infinite sequences exists
+that restricts correctly to every finite prefix at once. That existence
+statement is the Kolmogorov extension theorem, and its proof belongs to
+measure theory, which lies off this series' critical path: the space of
+infinite sequences is uncountable, so it escapes
+Definition~\ref{probability:def-countable}, and not every subset of it
+can consistently be an event. We therefore take the extension---with
+its countable additivity, hence
+Theorem~\ref{probability:thm-continuity}---as a foundation stone
+rather than a theorem. On infinite-sequence spaces, only finitely
+determined events and their monotone limits appear in this series, and
+for those the values are forced by the finite theory together with
+continuity; the density-defined laws of
+Definition~\ref{probability:def-density} carry the analogous debt,
+their interval and joint-event probabilities being taken to cohere as
+the stated integrals.
+\end{remark}
+
+\begin{definition}[Law defined by a density]\label{probability:def-density}
+A real-valued random quantity \(X\) has \emph{density}
+\(f\colon \R \to \R_{\geq 0}\) if
+\(\int_{-\infty}^{\infty} f(t)\,dt = 1\) and
+\[
+\Pr[a \leq X \leq b] = \int_a^b f(t)\,dt
+\qquad \text{for all } a \leq b;
+\]
+improper Riemann integrals suffice throughout this series. The
+\emph{distribution function} is
+\(F(t) = \Pr[X \leq t] = \int_{-\infty}^{t} f\), so
+\(\Pr[X > t] = 1 - F(t)\), and single points carry probability zero.
+The expectation is \(\E[X] = \int_{-\infty}^{\infty} t\,f(t)\,dt\) when
+this integral converges absolutely. Two such quantities \(X, Y\) are
+\emph{independent} if
+\(\Pr[X \in I,\ Y \in J] = \Pr[X \in I]\,\Pr[Y \in J]\) for all
+intervals \(I, J\); probabilities of joint events then factor through
+iterated integrals of the product \(f_X(s)\,f_Y(t)\).
+\end{definition}
+
+The \emph{Consensus Guide} builds its block-discovery model directly on
+this base: its exponential clocks are density-defined laws, its
+block-attribution sequence is an infinite sequence of independent
+trials, and the limit step in its catch-up theorem is
+Theorem~\ref{probability:thm-continuity}.
 
 \subsection{Asymptotic notation}
 

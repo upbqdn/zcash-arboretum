@@ -91,13 +91,14 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming no other volume of the series, this volume of \emph{The Zcash
-Arboretum} constructs Nakamoto consensus from first principles and
-quantifies the security it buys. It states the block tree and the
-most-work rule as the protocol specification defines them and as the
-deployed \textsf{zebra} implements them; builds, in place, the
-probability toolkit the analysis needs (memoryless clocks, the biased
-random walk, the negative binomial law); develops the exact
+Assuming only the \emph{Math Guide}'s probability foundations, this
+volume of \emph{The Zcash Arboretum} constructs Nakamoto consensus from
+first principles and quantifies the security it buys. It states the
+block tree and the most-work rule as the protocol specification defines
+them and as the deployed \textsf{zebra} implements them; builds, on the
+\emph{Math Guide}'s foundations, the race-specific probability the
+analysis needs (memoryless clocks, the biased random walk, the negative
+binomial law); develops the exact
 double-spending analysis of Rosenfeld's \emph{Analysis of hashrate-based
 double-spending} --- the catch-up theorem, the confirmation formula, and
 the economics of the attack --- with every number recomputed by script
@@ -138,11 +139,17 @@ wholesale with another in which the payment never happened. No
 zero-knowledge proof rules this out; only the economics of proof of work
 bounds its probability, and this volume computes that bound.
 
-The volume assumes no other volume of the series. The probability it
-needs --- memoryless clocks, random walks, the negative binomial
-distribution --- is constructed in place in
-Section~\ref{sec:cons-toolkit}, because no lower volume owns it; the
-algebra used is elementary. Readers wanting only the results can read
+The volume assumes exactly one thing from the series below it: the
+\emph{Math Guide}'s probability section (\S``Probability, asymptotics,
+and computation''), which constructs probability from its definition ---
+finite spaces, conditioning, independence, random variables, expectation
+--- and extends it to the three rungs used here: countable additivity,
+continuity along monotone events, and density-defined laws
+(\S``Beyond finite spaces: countable additivity, limits, and
+densities''). On that base, Section~\ref{sec:cons-toolkit} constructs
+the race-specific instruments no lower volume owns --- memoryless
+clocks, random walks, the negative binomial law; the algebra used is
+elementary. Readers wanting only the results can read
 Sections \ref{sec:cons-chain}, \ref{sec:cons-analysis},
 and~\ref{sec:cons-deployed} and take the theorems on faith.
 
@@ -364,8 +371,16 @@ comes first.
 The analysis ahead needs four tools: memoryless clocks (to model block
 discovery), a reduction from continuous time to a coin sequence, the
 negative binomial distribution (to count the attacker's progress), and
-one normalisation lemma about races. None of them lives in a lower
-volume, so each is constructed here, only as far as the critical path
+one normalisation lemma about races. Their foundations are the
+\emph{Math Guide}'s: probability spaces, conditioning, independence,
+random variables, and expectation are constructed there from the
+definition of probability onward (\S``Probability, asymptotics, and
+computation''), and the extension beyond finite spaces --- countable
+additivity, continuity along monotone events, density-defined laws, and
+infinite sequences of independent trials --- is its
+\S``Beyond finite spaces: countable additivity, limits, and densities''.
+What no lower volume owns are the four instruments themselves; each is
+constructed here on that base, only as far as the critical path
 requires.
 
 \subsection{Memoryless clocks and the attribution
@@ -373,8 +388,9 @@ sequence}\label{sec:cons-clocks}
 
 \begin{definition}[Exponential clock]\label{def:cons-exp}
 A random variable $X$ is \emph{exponential with rate} $\lambda > 0$ if
-$\Pr[X > t] = e^{-\lambda t}$ for all $t \geq 0$. Its density is
-$\lambda e^{-\lambda t}$ and its mean is $1/\lambda$.
+$\Pr[X > t] = e^{-\lambda t}$ for all $t \geq 0$ --- a law defined by
+the density $\lambda e^{-\lambda t}$ on $t \geq 0$ in the sense of the
+\emph{Math Guide}'s density definition, with mean $1/\lambda$.
 \end{definition}
 
 \begin{lemma}[Memorylessness]\label{lem:cons-memoryless}
@@ -415,7 +431,9 @@ Model the honest network and the attacker as independent exponential
 clocks with rates $p/T_0$ and $q/T_0$, each restarting when either
 fires (the model of Section~\ref{sec:cons-race}). Then the sequence
 that records, for each successive block found by anyone, \emph{who}
-found it, is an independent, identically distributed sequence of
+found it, is an infinite sequence of independent trials in the
+\emph{Math Guide}'s sense --- an independent, identically distributed
+sequence of
 Bernoulli trials: each block is the attacker's with probability $q$ and
 the honest network's with probability $p$, independently of all earlier
 attributions and of all elapsed times.
@@ -583,8 +601,10 @@ Now let $N \to \infty$. The events $E_N = \{\text{reach } -1 \text{
 before } N\}$ are nondecreasing in $N$, and their union is the event
 that the walk ever reaches $-1$: a walk that does so does it at a
 finite time, having visited finitely many states, so $E_N$ holds for
-every $N$ above the largest state visited. By continuity of
-probability, $a_z = \lim_{N\to\infty} h_N(z)$. For $q < p$ the term
+every $N$ above the largest state visited. By continuity along
+monotone events (\emph{Math Guide}, \S``Beyond finite spaces: countable
+additivity, limits, and densities''),
+$a_z = \lim_{N\to\infty} h_N(z)$. For $q < p$ the term
 $(q/p)^N$ vanishes and the quotient tends to $(q/p)^{z+1}$; for
 $q = p$, $(N-z)/(N+1) \to 1$; for $q > p$, dividing numerator and
 denominator by $(q/p)^N$ sends both to $-1$, so the quotient tends to
@@ -1447,12 +1467,14 @@ supplies the curve that design is buying its way off of; the
 $1000$-block window of Remark~\ref{rem:cons-railsregister} is the
 node-policy stopgap standing where assured finality would go.
 
-\emph{What this volume owes upward.} Nothing: no theorem above uses
-material from any other volume, and the citations to Ironwood, Wallet,
-Sync, FlyClient, and Crosslink are delimitations and pointers, not
-dependencies. The ledger the rest of the series builds on is, from
-here up, a probabilistic object with known constants --- and the
-constants are Tables \ref{tab:cons-r}, \ref{tab:cons-nreq},
-and~\ref{tab:cons-vmax}.
+\emph{What this volume owes downward.} Exactly one debt: every theorem
+above stands on the \emph{Math Guide}'s probability section --- the
+definition of probability, its extension past finite spaces, and the
+continuity theorem the catch-up proof invokes. Upward it owes nothing:
+the citations to Ironwood, Wallet, Sync, FlyClient, and Crosslink are
+delimitations and pointers, not dependencies. The ledger the rest of
+the series builds on is, from here up, a probabilistic object with
+known constants --- and the constants are Tables \ref{tab:cons-r},
+\ref{tab:cons-nreq}, and~\ref{tab:cons-vmax}.
 
 \end{document}
