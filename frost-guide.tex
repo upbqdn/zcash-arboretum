@@ -364,9 +364,9 @@ neither; this volume's work begins where the single signer ends, at
 splitting $\ask$ into shares no signing coalition ever
 reassembles (\S\ref{sec:fr-rerand}). The wallet-side integration path is
 likewise on the record: the \emph{Wallet Guide}, \S``Partially created
-transactions (PCZT)'', records ZIP 374's motivation (iii), ``FROST
-threshold signing (RFC 9591)'' --- the multiparty transaction format
-FROST signing rides in \S\ref{sec:fr-deploy-pczt}.
+transactions (PCZT)'', records ZIP 374's motivation (iii), threshold
+signing (for example FROST, RFC 9591) --- the multiparty transaction
+format FROST signing rides in \S\ref{sec:fr-deploy-pczt}.
 
 \paragraph{Custody of the quantum spending key (designed but
 unspecified).} ZIP 2005, ``Ironwood Quantum Recoverability'' (owners
@@ -1380,7 +1380,7 @@ a distribution argument, not a theorem.
 
 ZIP 312 defines the ciphersuite in RFC 9591's template. The group is
 Pallas with base point $G^{\mathsf{SpendAuth}}$ as in protocol \S5.4.7.1,
-of order $r_{\Pallas}$; \texttt{RandomScalar} is uniform in
+of order $p_{\Vesta}$; \texttt{RandomScalar} is uniform in
 $[0, \mathtt{Order} - 1]$; \texttt{SerializeElement} is the point
 compression $\mathrm{repr}_{\Pallas}$ ($P^\star$ in series notation) and
 \texttt{DeserializeElement} is $\mathrm{abst}_{\Pallas}$, erroring on
@@ -1471,7 +1471,9 @@ Table~\ref{tab:fr-pallas-suite}; $H_2$ goes through the crate's
 \texttt{HStar} default, \texttt{Zcash\_RedPallasH}; the
 \texttt{RandomizedCiphersuite::hash\_randomizer} impl uses
 \texttt{FROST\_RedPallasA} (the ZIP's $H_R$); scalar reduction is the
-$64$-byte-wide \texttt{from\_uniform\_bytes} (\texttt{src/hash.rs}).
+$64$-byte-wide \texttt{from\_bytes\_wide} (\texttt{src/hash.rs}), whose
+Pallas implementation delegates to pasta's
+\texttt{from\_uniform\_bytes} (\texttt{src/orchard.rs}).
 Beyond ZIP 312, the crate defines two further personalisations ---
 \texttt{HDKG} $=$ \texttt{FROST\_RedPallasD} and \texttt{HID} $=$
 \texttt{FROST\_RedPallasI}, the DKG and identifier hashes --- for key
@@ -1553,9 +1555,9 @@ prototype state and this observation are developed once, in
 \paragraph{(d) PCZT signing.} The multiparty transaction flow that
 would host the Coordinator role is the PCZT of the \emph{Wallet Guide},
 \S``Partially created transactions (PCZT)'': ZIP 374 (Partially Created
-Zcash Transaction Format, Draft, owner Jack Grigg) names ``FROST
-threshold signing (RFC 9591)'' in its Motivation among the multiparty
-use cases its Signer role must accommodate.
+Zcash Transaction Format, Draft, owner Jack Grigg) names threshold
+signing (``for example FROST'', per RFC 9591) in its Motivation among
+the multiparty use cases its Signer role must accommodate.
 
 \paragraph{Classification.} In the series' three bins: base FROST and
 its five ciphersuites are \emph{specified} at standards rigor (RFC 9591,
@@ -1735,8 +1737,9 @@ The gap between draft and crate is being closed in zips PR \#895
 (``[ZIP 312] Specify key generation, change randomizer handling''; opened
 August 2024, 21 commits, still open as of 2026-07-15, awaiting review by
 daira and nuttycom). It adds a key-generation specification, revises the
-randomizer handling (``the previous approach couldn't work using messages
-as input''), integrates the ZIP-2005 $\mathsf{qsk}$ material, renames the
+randomizer handling (the randomizer ``couldn't possibly be generated
+using the message as an input''), integrates the ZIP-2005
+$\mathsf{qsk}$ material, renames the
 scheme consistently to ``Re-Randomized FROST'', and adds Daira-Emma
 Hopwood as a ZIP owner. Its commit history also retires the draft's
 serialisation reference --- the ZF FROST book's moving-target

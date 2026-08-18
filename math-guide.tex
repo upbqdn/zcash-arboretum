@@ -3648,7 +3648,7 @@ Baby-step giant-step writes \(n = i\lceil\sqrt r\rceil + j\) with \(0 \le i, j <
 \end{proof}
 
 \begin{remark}[Absence of better attacks]\label{ellipticcurves:rem-ecdlp-hardness}
-That nothing beats the square-root bound on a well-chosen curve is an empirical claim, not a theorem: after four decades of study, no algorithm faster than \(O(\sqrt r)\) is known for general elliptic curves. For \(r\) of cryptographic size (\(r \approx 2^{255}\) for the Pasta curves) this is \(\approx 2^{128}\) operations, infeasible. Curves with special structure can be weaker: if \(\#E(\Fp) = p\) (anomalous curves) there is a polynomial-time attack via the formal group, and the MOV/Frey--Rück attack transfers the ECDLP to a finite-field DLP when the \emph{embedding degree} is small. Cryptographically secure curves, including the Pasta curves, are chosen to have a large prime subgroup order, large embedding degree, and \(\#E(\Fp) \neq p\), defeating all known subexponential attacks.
+That nothing beats the square-root bound on a well-chosen curve is an empirical claim, not a theorem: after four decades of study, no algorithm faster than \(O(\sqrt r)\) is known for general elliptic curves. For \(r\) of cryptographic size (\(r \approx 2^{254}\), the 255-bit Pasta orders) this is \(\approx 2^{127}\) operations, infeasible. Curves with special structure can be weaker: if \(\#E(\Fp) = p\) (anomalous curves) there is a polynomial-time attack via the formal group, and the MOV/Frey--Rück attack transfers the ECDLP to a finite-field DLP when the \emph{embedding degree} is small. Cryptographically secure curves, including the Pasta curves, are chosen to have a large prime subgroup order, large embedding degree, and \(\#E(\Fp) \neq p\), defeating all known subexponential attacks.
 \end{remark}
 
 \begin{remark}\label{ellipticcurves:rem-index-calculus}
@@ -3769,7 +3769,7 @@ For the running example \(y^2 = x^3 + 5\):
   \item Both have \(j = 0\) (since \(a = 0\)), admit the order-\(3\) endomorphism \(\phi(x,y) = (\omega x, y)\) with \(\omega\) a primitive cube root of unity (which exists since \(p, q \equiv 1 \pmod 3\)), and so support the GLV speedup.
   \item The ``cycle'' property \(\#E_p(\Fp) = q\) and \(\#E_q(\Fq) = p\) means the scalar field of one curve is the base field of the other and vice versa; this is exactly what lets recursive proof systems chain proofs across the two curves without expensive non-native field arithmetic. The base field of Pallas is \(\Fp\) and its scalar field (the order of the group) is \(\Fq\), matching the base field of Vesta, and symmetrically.
 \end{itemize}
-The discrete logarithm problem in \(E_p(\Fp)\) and \(E_q(\Fq)\) is believed to require about \(2^{128}\) operations (half the bit length of \(r \approx 2^{255}\)), the security level targeted by Halo~2 and Zcash Orchard.
+The discrete logarithm problem in \(E_p(\Fp)\) and \(E_q(\Fq)\) is believed to require about \(2^{127}\) operations (\(\sqrt{r}\) for the 255-bit \(r \approx 2^{254}\)), just below the \(128\)-bit level targeted by Halo~2 and Zcash Orchard.
 \end{example}
 \subsection{Summary}
 

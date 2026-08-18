@@ -414,20 +414,20 @@ identity must ultimately be a Pallas point, because it serves as the
 asset-specific base of the value commitment
 (\S\ref{sec:zsa-native-asset}). ZIP~227 meets both demands with one
 derivation chain,
-\[
-(\mathsf{issuer}, \texttt{asset\_desc})
-\;\longrightarrow\; \mathsf{assetDescHash}
+\begin{gather*}
+\texttt{asset\_desc} \;\longrightarrow\; \mathsf{assetDescHash};\\
+(\mathsf{issuer}, \mathsf{assetDescHash})
 \;\longrightarrow\; \mathsf{AssetId}
 \;\longrightarrow\; \mathsf{AssetDigest}
 \;\longrightarrow\; \mathsf{AssetBase},
-\]
+\end{gather*}
 which the ZIP itself presents as a relation diagram
-(\texttt{zip-0227.rst}:210--224): an issuer key and an issuer-chosen
-description string are hashed into an identifier, the identifier into a
-digest, and the digest onto the Pallas curve. Every Asset issued under
-ZIP~227 is scoped to the issuer that issued it, and its Asset Identifier is
-globally unique, ``used across all Zcash protocols that support ZSAs''
-(\texttt{zip-0227.rst}:227--240).
+(\texttt{zip-0227.rst}:210--224): the issuer-chosen description string is
+hashed, the hash paired with the issuer key into an identifier, the
+identifier hashed into a digest, and the digest mapped onto the Pallas
+curve. Every Asset issued under ZIP~227 is scoped to the issuer that
+issued it, and its Asset Identifier is globally unique, ``used across all
+Zcash protocols that support ZSAs'' (\texttt{zip-0227.rst}:227--240).
 
 This section constructs the chain end to end: the issuance key pair at its
 root (\S\ref{sec:zsa-issuance-keys}); the hash steps from description to
@@ -834,9 +834,11 @@ the issuer and the description hash. The v6 transaction's issuance bundle
 carries \texttt{issuerLength} (compactSize), \texttt{issuer} (the issuer
 identifier per ZIP~227), \texttt{nIssueActions} (compactSize),
 \texttt{vIssueActions}, and \texttt{issueAuthSig} --- the signature bytes
-preceded by a $\mathtt{0x00}$ byte indicating BIP~340. These fields are
-always present; if $\texttt{nIssueActions} = 0$ then \texttt{issuerLength}
-MUST be $0$ (\texttt{zip-0230.rst}:166--179, 215--217, 430--443). Each
+preceded by a $\mathtt{0x00}$ byte indicating BIP~340. The first four
+fields are always present; \texttt{issueAuthSig} is present iff
+$\texttt{nIssueActions} > 0$, and if $\texttt{nIssueActions} = 0$ then
+\texttt{issuerLength} MUST be $0$ (\texttt{zip-0230.rst}:166--179,
+215--217, 430--443). Each
 Issue Action carries \texttt{assetDescHash} as \texttt{byte[32]},
 \texttt{nNotes} (compactSize, possibly zero, to finalize without
 issuing), \texttt{vNotes} ($115$ bytes per note description: $43$-byte
@@ -981,11 +983,11 @@ enforcement of global state, which no local repository exhibits
 
 Issuance authority is a new capability, deliberately disjoint from spend
 authority. The rationale in the ZIP: the issuance key tree is
-``independent of but analogous to'' the spending key tree, so an
-organization can delegate issuance without exposing funds, and a future
-scheme can replace the issuance leaf with a multisignature without
-touching spending keys (ZIP-227, \emph{Rationale}, and \emph{Issuance Key
-Derivation}).
+independent of the spending key tree but derived analogously (via
+ZIP~32), so an organization can delegate issuance without exposing
+funds, and a future scheme can replace the issuance leaf with a
+multisignature without touching spending keys (ZIP-227,
+\emph{Rationale}, and \emph{Issuance Key Derivation}).
 
 The key material itself is constructed once, in
 \S\ref{sec:zsa-issuance-keys}: the BIP-340 signature scheme
@@ -1066,8 +1068,9 @@ shielded from the first spend onward.
 
 \paragraph{Computation of $\rho$.} An Orchard note takes
 $\rho := \nfsym_{\mathrm{old}}$ from the Action that creates it (the
-\emph{Ironwood Guide}, \S``Transmission and detection of a note'');
-an issue note has no such Action, so ZIP-227 derives $\rho$ from the
+\emph{Ironwood Guide}, \S``Transmission and detection of a note:
+encryption, trial decryption, and synchronisation''); an issue note has
+no such Action, so ZIP-227 derives $\rho$ from the
 transaction's OrchardZSA transfer bundle instead:
 \[
 \mathsf{DeriveIssuedRho}(\nfsym, i_{\mathsf{A}}, i_{\mathsf{N}}) :=
@@ -1303,7 +1306,7 @@ and calls \texttt{sign\_schnorr\_with\_aux\_rand(msg, keypair,
 $\mathsf{ik}$ is the x-only public key, and \texttt{encode()} of key and
 signature each prepend \texttt{ALGORITHM\_BYTE} $= \mathtt{0x00}$, with
 \texttt{decode()} rejecting any other lead byte (\texttt{orchard-zsa},
-\texttt{src/issuance/auth.rs} lines~163--245 @ \texttt{cf801a5d}).
+\texttt{src/issuance/auth.rs} lines~163--303 @ \texttt{cf801a5d}).
 Bundle construction is a typestate chain --- \texttt{AwaitingNullifier}
 $\rightarrow$ (\texttt{update\_rho}) $\rightarrow$
 \texttt{AwaitingSighash} $\rightarrow$ (\texttt{prepare(sighash)})
@@ -1341,7 +1344,7 @@ fork's five-branch digest today.
 
 \subsection{Transaction digests}\label{sec:zsa-issuance-digests}
 
-The v6 digest tree extends the ZIP-244 structure the \emph{Orchard
+The v6 digest tree extends the ZIP-244 structure the \emph{Ironwood
 Guide} presents in \S``Conservation of value: value commitments and the
 binding signature'': the txid digest is BLAKE2b-256 with personalization
 $\texttt{ZcashTxHash\_} \,\|\, \mathrm{CONSENSUS\_BRANCH\_ID}$ over six
@@ -1680,7 +1683,8 @@ fee contributions (ZIP 227)'' (ZIP-317, change history @ zips
 section still claims the conventional fee accounts for both. The
 formulas above survive only in the QEDit fork and its libraries:
 \emph{fork-specified}, implemented in \texttt{librustzcash-zsa} behind
-\texttt{cfg(zcash\_unstable = "nu7")} (\texttt{fees/zip317.rs},
+\texttt{cfg(zcash\_unstable = "nu7")}
+(\texttt{transaction/fees/zip317.rs},
 \texttt{CREATION\_COST} $= 100$ @ \texttt{3f9b53fc}), and awaiting an
 upstream resolution that the NU7 process (\S\ref{sec:zsa-scope}) has yet
 to provide.
@@ -1904,7 +1908,7 @@ base $R^{\mathsf{Orchard}}$ is unchanged (ZIP-226).
 
 Exactly one thing changes against the baseline
 $\cvsym^{\mathsf{net}} = [v_{\mathrm{old}} - v_{\mathrm{new}}]\,
-V^{\mathsf{Orchard}} + [\rcv]\,R^{\mathsf{Orchard}}$ of the \emph{Orchard
+V^{\mathsf{Orchard}} + [\rcv]\,R^{\mathsf{Orchard}}$ of the \emph{Ironwood
 Guide}, ``Conservation of value'': the fixed-base multiplication by
 $V^{\mathsf{Orchard}}$ becomes a variable-base multiplication by the
 Action's $\mathsf{AssetBase}$, while the randomness term keeps its fixed
@@ -1915,7 +1919,7 @@ The prover still signs the SIGHASH with
 $\mathsf{bsk} = \sum_{i=1}^{n} \rcv_i$ over the $n$ Actions of a transfer
 (ZIP-226); the verifier's key acquires burn terms --- one zero-trapdoor
 commitment subtracted per $\mathsf{assetBurn}$ entry, each a bare multiple
-of its base --- displayed once in this volume as \eqref{eq:zsa-bvk}
+of its base --- displayed in this volume as \eqref{eq:zsa-bvk}
 (\S\ref{sec:zsa-split-attack}). Why this checks balance \emph{per asset}:
 ``the committed values must sum to zero per Asset Base, as the Pedersen
 commitments add up homomorphically only with respect to the same value
@@ -2035,7 +2039,7 @@ three-way divergence over the derivation of $\psi^{\nfsym}$
 asset, dummy notes for ZEC and split spends for Custom Assets
 (\S\ref{sec:zsa-split-builder}). The three wallet strategies ZIP-226
 offers for sourcing the copied note are enumerated in
-\S\ref{sec:zsa-split-input} (\texttt{zip-0226.rst}:283--287). Burn entry
+\S\ref{sec:zsa-split-input} (\texttt{zip-0226.rst}:287--291). Burn entry
 points reject duplicate Assets and amounts that do not fit in $63$ bits
 (\texttt{add\_burn}, \textsf{orchard-zsa}, \texttt{src/builder.rs}).
 
@@ -2197,7 +2201,8 @@ $\mathsf{assetBurn}$ tuple,
 the empty burn set hashing to
 $\mathrm{BLAKE2b\text{-}256}(\texttt{ZTxIdOrcBurnHash}, [\,])$ (ZIP-246).
 One disambiguation: the header-digest field T.1g $\mathsf{burn\_amount}$ is
-ZIP-233's network-sustainability burn, unrelated to asset burn (ZIP-246).
+ZIP-233's network-sustainability burn, unrelated to asset burn (ZIP-246,
+T.1; ZIP-230, Transaction Format).
 
 \paragraph{Parsing and bundle types.} Function \texttt{read\_v6\_bundle}
 (gated by \texttt{zcash\_unstable = "nu7"}) reads
@@ -2227,10 +2232,12 @@ commitment is appended to the note commitment tree per Action; afterwards,
 Issue Note commitments are appended per Issue Action (ZIP-227, ``Addition
 to the Note Commitment Tree''; \S\ref{sec:zsa-issuance}).
 
-\paragraph{Fees.} The QEDit fork of ZIP-317 adds a
-$\mathsf{contribution\_ZSAIssuance}$ term --- issue notes and asset
-creations --- to the conventional-fee formula; it adds no burn term, so a
-burn contributes to fees only through the Actions that fund it. Upstream
+\paragraph{Fees.} The QEDit fork of ZIP-317 adds
+$\mathsf{contribution\_ZSAIssuance}$ and
+$\mathsf{contribution\_ZSACreation}$ terms --- issue notes and asset
+creations respectively --- to the conventional-fee formula; it adds no
+burn term, so a burn contributes to fees only through the Actions that
+fund it. Upstream
 ZIP-317 contains no ZSA changes. The conventional-fee baseline is the
 \emph{Wallet Guide}, ``Fees (ZIP-317)''.
 
@@ -3093,8 +3100,8 @@ personalization strings; the implementation defines the same constants
 Node & Personalization & Content \\
 \midrule
 T.1 & \texttt{ZTxIdHeadersHash} & header, incl.\ fee and burn amount \\
-T.3b & \texttt{ZTxId6SOutC\_Hash}, \texttt{ZTxId6SOutN\_Hash}
-  & Sapling v6 outputs, compact/non-compact \\
+T.3b.i & \texttt{ZTxId6SOutC\_Hash} & Sapling v6 outputs, compact \\
+T.3b.ii & \texttt{ZTxId6SOutN\_Hash} & Sapling v6 outputs, non-compact \\
 T.4 & \texttt{ZTxIdOrchardHash} & Action-Group digests, balance \\
 T.4a & \texttt{ZTxIdOrcActGHash} & one Action Group \\
 T.4a.i & \texttt{ZTxId6OActC\_Hash}
@@ -3126,19 +3133,20 @@ subsection.}
 \label{tab:zsa-personalizations}
 \end{table}
 
-\paragraph{Signature digest.} The sighash reuses the tree with transparent
-and Sapling branches replaced by input-specific variants:
+\paragraph{Signature digest.} The sighash reuses the tree with the
+transparent branch replaced by an input-specific variant:
 \[
 \mathsf{sighash} := \mathrm{BLAKE2b\text{-}256}\bigl(
 \texttt{ZcashTxHash\_} \,\|\, \mathsf{branchid},\;
 d_{\mathrm{hdr}} \,\|\, d^{S}_{\mathrm{transp}} \,\|\,
-d^{S}_{\mathrm{Sap}} \,\|\, d_{\mathrm{Orch}} \,\|\, d_{\mathrm{issue}}
+d_{\mathrm{Sap}} \,\|\, d_{\mathrm{Orch}} \,\|\, d_{\mathrm{issue}}
 \,\|\, d_{\mathrm{memo}}\bigr),
 \]
 produced per transparent input, per Sapling input, per OrchardZSA Action,
-and --- new in v6 --- per Issue Action; the Orchard, issuance, and memo
-branches are identical to their txid-side counterparts, so the issuance
-bundle and the memo bundle enter every sighash (ZIP-246, Signature Digest).
+and --- new in v6 --- per Issue Action; the Sapling, Orchard, issuance,
+and memo branches are identical to their txid-side counterparts, so the
+issuance bundle and the memo bundle enter every sighash (ZIP-246,
+Signature Digest).
 On this digest ZIP-227 hangs its authorization rule: the SigHash is the
 \S4.10 SIGHASH transaction hash with the ZIP-226 modifications, computed
 with \texttt{SIGHASH\_ALL}, and the issuance authorization signature MUST
@@ -3192,8 +3200,7 @@ gives every issued note a globally unique $\rho$ because nullifiers are
 unique.
 Second, without a spend in the transaction the issuance-only SIGHASH would
 be replayable; the mandatory Action Group ties the issuance signature to a
-nullifier that consensus consumes (ZIP-227, Specification: Consensus Rule
-Changes).
+nullifier that consensus consumes (ZIP-227, Rationale).
 
 \paragraph{Global issuance state.} Nodes maintain a map
 $\mathsf{issued\_assets}$ from asset bases to triples
@@ -3218,7 +3225,7 @@ $\mathsf{AssetBase}$; the bound $\mathsf{MAX\_BURN\_VALUE} := 2^{63} - 1$ is
 chosen for compatibility with signed 64-bit value-balance fields (ZIP-226,
 Burn Mechanism). Burns enter value balance through the binding key. Where
 vanilla Orchard computes $\mathsf{bvk}$ by subtracting the committed
-declared balance from the sum of net value commitments (the \emph{Orchard
+declared balance from the sum of net value commitments (the \emph{Ironwood
 Guide}, \S``Conservation of value: value commitments and the binding
 signature''), ZIP-226 subtracts one zero-randomness commitment per burn
 entry as well:
@@ -3279,7 +3286,7 @@ issuance state (fork ZIP-317, Fee calculation). The rationale is state rent
 paid once: each new asset adds an $\mathsf{issued\_assets}$ row tracked in
 perpetuity, while subsequent issuance, finalization, and burn only mutate
 the row. The implementation matches the fork text:
-\texttt{zcash\_primitives}' \texttt{fees/zip317.rs} defines
+\texttt{zcash\_primitives}' \texttt{transaction/fees/zip317.rs} defines
 \texttt{CREATION\_COST} $= 100$ behind
 \texttt{cfg(zcash\_unstable = "nu7")} and adds
 $\mathsf{nZSAIssueNotes} + 100 \cdot \mathsf{nAssetCreations}$ to the
@@ -3424,7 +3431,7 @@ implemented'' when handed an OrchardZSA bundle, the orchard fork's PCZT
 module is written against the vanilla flavor only, and the draft PCZT v2
 targets ZIP-229's Ironwood v6, not ZSA (the \emph{Wallet Guide},
 \S``Partially created transactions (PCZT)'' and \S``PCZT v2: deferred
-anchors and the Ironwood bundle (specified, not deployed)'').
+anchors and the Ironwood bundle'').
 Classification: \emph{open} --- hardware-wallet and multi-party signing for
 ZSAs is unspecified in any draft.
 

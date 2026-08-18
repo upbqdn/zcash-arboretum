@@ -492,19 +492,22 @@ than membership in a tree.
 
 The double-spend check becomes a windowed duplicate check: consensus checks
 every tachygram of a published stamp for duplicates over every block of the
-current and the immediately preceding epoch, rejects on a hit, and may
-permanently prune tachygrams older than that window (book,
-\texttt{src/tachygrams.md} at \texttt{26fdc165}). Two epochs suffice in the
+current and the immediately preceding epoch, rejects on a hit (book,
+\texttt{src/tachygrams.md} at \texttt{26fdc165}), and may permanently
+prune tachygrams older than that window (forum t/50789 \#22, 2025-11-04;
+the book states no pruning rule). Two epochs suffice in the
 design because a stamp's anchor may have been lifted within its epoch (so
 the whole anchor epoch is scanned, not merely blocks after the anchor), and
 because a spend publishes the note's nullifiers for both the anchor epoch
 $e$ and epoch $e + 1$ --- the next-epoch nullifier published in $e$ is
 exactly what a second spend of the same note would publish in $e + 1$
-(book, \texttt{src/nullifiers.md} at \texttt{26fdc165}).
+(book, \texttt{src/tachygrams.md} at \texttt{26fdc165}; the dual
+publication itself is in \texttt{src/nullifiers.md}).
 
 \paragraph{Classification.} The window rule and prunability are
-\emph{designed but unspecified}: they appear in the book only; the eprint
-states just that ``validators must still check for duplicates''; no
+\emph{designed but unspecified}: the window rule appears in the book only,
+prunability only in a forum statement (t/50789 \#22, 2025-11-04); the
+eprint states just that ``validators must still check for duplicates''; no
 consensus ZIP drafts the rule. A specification would need the epoch length
 --- the parameter the entire pruning model hinges on, which the project
 itself marks as requiring empirical analysis (tachyon-zcash/tachyon issue
@@ -610,8 +613,11 @@ nullifier derivation, proofs, and stamp compression ``Stubbed''. One caveat
 cuts across every Poseidon-derived object: the crate routes all Poseidon
 calls through Ragu's mock sponge (\texttt{src/digest/poseidon.rs}), so
 derivation \emph{structure} and domain tags are code-anchored while the
-outputs are not real Poseidon. (The book's $\F_p$, $\F_q$ are the series'
-$\F_{p_{\Pallas}}$, $\F_{p_{\Vesta}}$.)
+outputs come from Ragu's provisional \texttt{PoseidonFp} instantiation
+(width $T = 5$, rate $4$; the mock sponge evaluates the real permutation
+out-of-circuit), not from any Tachyon-pinned Poseidon instance. (The
+book's $\F_p$, $\F_q$ are the series' $\F_{p_{\Pallas}}$,
+$\F_{p_{\Vesta}}$.)
 
 Staleness is stated once, here. The book post-dates the May-2026 payment
 pivot (issue \#121; \S\ref{sec:tachyon-sources}), yet two chapters carry
@@ -744,7 +750,7 @@ $\mathsf{pk}$, a wrong $\cmsym$, and inclusion fails.
 
 The Orchard contrast: the root $\mathsf{sk}$, the $\mathsf{PRFexpand}$
 construction, the $\ask \to \aksym$ derivation with the same sign
-normalization, and RedPallas re-randomization survive (the \emph{Orchard
+normalization, and RedPallas re-randomization survive (the \emph{Ironwood
 Guide}, \S``Keys: capabilities for spending and for viewing''; tag bytes
 differ, $\mathtt{0x06}$/$\mathtt{0x07}$/$\mathtt{0x08}$ against
 $\mathtt{0x21}$/$\mathtt{0x22}$), while $\rivk$, $\fvk = (\aksym, \nksym,
@@ -790,7 +796,7 @@ commitments'') and load-bearing zero-value dummies (\emph{Ironwood Guide},
 $\rho$ entirely --- ``no diversifier, no rho, no unique value for faerie
 gold defense'' since ``the nullifier construction doesn't require global
 uniqueness'' (\texttt{crates/tachyon/src/note.rs}) --- so where Orchard
-chains $\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}}$ (\emph{Orchard
+chains $\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}}$ (\emph{Ironwood
 Guide}, \S``Prevention of double-spending: nullifiers''), $\psi$ reuse
 here harms only the owner (\S\ref{sec:tachyon-dbu-nf}).
 
@@ -1221,7 +1227,7 @@ commitments and the binding signature'') --- while the randomizer differs
 in kind: Orchard draws $\alpha$ uniformly at random per Action with no
 planner/custody split (\emph{Ironwood Guide}, \S``Authorisation of the
 spend: RedPallas''), and every Orchard Action is a paired
-spend-plus-output carrying one \textsf{SpendAuthSig} (\emph{Orchard
+spend-plus-output carrying one \textsf{SpendAuthSig} (\emph{Ironwood
 Guide}, \S``A single shielded payment, end to end''; \S``What a node
 verifies, without ever observing the note'').
 
@@ -1342,8 +1348,9 @@ from Orchard's \texttt{z.cash:Orchard-cv} --- and one is internally
 inconsistent (the 256/512 width, above).
 A specification must fix the hash widths, the personalization
 bytes, and above all the Poseidon instance the eight domains parameterize
---- parameters, rate, and capacity exist nowhere, and the crate computes
-every domain through a mock.
+--- parameters, rate, and capacity exist in no Tachyon artifact (the
+crate computes every domain through Ragu's mock sponge, inheriting its
+provisional \texttt{PoseidonFp}, width $T = 5$, rate $4$).
 
 \medskip
 \noindent
@@ -1434,7 +1441,7 @@ reveal to a recipient only the size of their own memo and the total count of
 chunks they cannot decrypt (lines 282--297); a two-pass decryption
 algorithm, one pass under counter nonces and one under the final-chunk nonce
 (lines 323--351); independent prunability via $\mathtt{fAllPruned}$, with
-relay of pruned transactions forbidden (lines 391--430); and a fee treatment
+relay of pruned transactions forbidden (lines 391--434); and a fee treatment
 under ZIP 317 Revision 2, two free chunks whenever the transaction has
 shielded outputs (line 422\,ff.). The gaps are equally explicit: the sighash
 commitment is ``TODO: finish this as a modification to ZIP 248'' (line 417);
@@ -1587,7 +1594,9 @@ to a contributor fork (\texttt{github.com/turbocrime/ragu}, rev
 ``API-level mock of \texttt{ragu\_pcd}'' that ``mirrors the shape of the
 real \texttt{ragu\_pcd} API so downstream consumers (e.g.\ Zebra) can
 integrate against it ahead of the real implementation'' (ragu
-\texttt{src/mock/mod.rs} @ \texttt{830bbcda}); it performs no cryptography.
+\texttt{src/mock/mod.rs} @ \texttt{830bbcda}); it performs no proof
+cryptography, though its \texttt{Sponge} does evaluate the real ragu
+Poseidon permutation out-of-circuit.
 Against this interface the crate registers its nineteen proof steps
 (\texttt{crates/tachyon/src/stamp/proof/mod.rs}). The README's own stub
 list is exact: note commitments, nullifier derivation (the GGM tree PRF),
@@ -2245,9 +2254,11 @@ Shielded Labs states that ``Crosslink and Tachyon are separate efforts that
 don't necessarily interact with each other with regards to roadmapping +
 timelines'' (forum t/50789 \#11, 2025-10-28); and no interaction analysis
 exists in either direction --- a repository-wide search of the ZIP corpus
-finds Crosslink only as a citation footnote in ZIP 218 (25-second block
-target spacing, Status: Draft, created 2026-03-13; zips @
-\texttt{c6b70358}, searched 2026-07-08). The independence is therefore
+finds Crosslink only in ZIP 218 (25-second block target spacing, Status:
+Draft, created 2026-03-13; zips @ \texttt{c6b70358}, searched 2026-07-08):
+one body sentence declaring the proposal ``complementary to, and does not
+compete with,'' finality mechanisms such as Crosslink, plus the citation
+footnote. The independence is therefore
 asserted, not examined; both proposals alter the environment the other
 assumes (consensus finality and block cadence on one side, validator state
 and epoch-windowed double-spend checking on the other), and Tachyon's epoch

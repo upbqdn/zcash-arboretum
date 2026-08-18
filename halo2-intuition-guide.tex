@@ -92,7 +92,7 @@ Why this toy? Because it is the Orchard spend statement in miniature. When Alice
 spends a note she proves ``I know a note, a key, and a Merkle path such that
 the nullifier is computed correctly, the value commitment opens, and the note
 sits in the tree'' --- a conjunction of a few thousand small arithmetic facts
-over $\F_{p_{\mathsf{Pallas}}}$ (the \emph{Ironwood Guide}, check~A1--A9). Our claim is
+over $\F_{p_{\mathsf{Pallas}}}$ (the \emph{Ironwood Guide}, checks~A1--A10). Our claim is
 a conjunction of \emph{four} small arithmetic facts. The proof system does not
 care which; it is the same machine at two scales. Master $x^3 + x + 5 = 35$ and
 the Action circuit is only larger, not different.
@@ -394,7 +394,7 @@ At the verifier's actual draw $z = 20 \notin \{22,96,75\}$, we get
 $G^{\!*}(20) = 20$ but $t^{\!*}(20)\,\ZH(20) = 64$, and $20 \neq 64$: caught.
 The fraction $3/97$ is large only because our field is a toy. Over Orchard's
 $255$-bit Pallas field the gap polynomial still has at most $\degr D$ roots ---
-now a vanishingly small fraction of the $\approx 2^{255}$ candidate points, a
+now a vanishingly small fraction of the $\approx 2^{254}$ candidate points, a
 soundness error on the order of $2^{-240}$ from a \emph{single} draw of $z$ ---
 so one random challenge already suffices, and the deployed proof even replaces
 that coin toss with a hash of the transcript (Fiat--Shamir, the \emph{Halo~2
@@ -589,7 +589,7 @@ faintest idea what it is.
 statement was small. Replace the four gates by the few thousand constraints of
 the Orchard Action --- nullifier integrity, the value-commitment opening, the
 Merkle path recomputation, key re-randomisation (the \emph{Ironwood Guide},
-checks~A1--A9) --- and the columns grow from four rows to $2^{k}$, the gate
+checks~A1--A10) --- and the columns grow from four rows to $2^{k}$, the gate
 polynomial gains custom high-degree terms, and a Sinsemilla lookup table joins
 the permutation. But the spine is identical: arithmetise into a grid, interpolate
 to polynomials, compress ``all rows correct'' into one identity $G = t\,\ZH$,

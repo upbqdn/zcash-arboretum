@@ -274,18 +274,10 @@ advantage exceeding \(\Delta(X,Y)\).
 \end{proposition}
 
 \begin{proof}
-Let \(T^\star := \{ s \in S : \Pr[X = s] > \Pr[Y = s]\}\). For any \(T\),
-\[
-  \Pr[X \in T] - \Pr[Y \in T] = \sum_{s \in T}\bigl(\Pr[X=s]-\Pr[Y=s]\bigr),
-\]
-and \(T = T^\star\), which includes exactly those \(s\) where the summand is
-positive, maximises it; hence
-\(\max_T(\Pr[X\in T]-\Pr[Y\in T]) = \sum_{s\in T^\star}(\Pr[X=s]-\Pr[Y=s])\).
-Because the total mass of \(X\) and of \(Y\) is each \(1\), the positive part and
-the negative part of the signed measure \(\Pr[X=\cdot]-\Pr[Y=\cdot]\) have equal
-absolute total, each equal to half the \(\ell_1\) norm; thus
-\(\sum_{s\in T^\star}(\Pr[X=s]-\Pr[Y=s]) = \tfrac12\sum_s|\Pr[X=s]-\Pr[Y=s]| =
-\Delta(X,Y)\). Finally a deterministic \(D\) is the indicator of the set
+The set form is the variational characterisation in the statistical-distance
+theorem of the \emph{Math Guide} (\S``Statistical distance''), whose argument
+is unchanged over a countable \(S\). Only the reformulation over decision
+functions is new: a deterministic \(D\) is the indicator of the set
 \(T = D^{-1}(1)\), so the maximum over \(D\) equals the maximum over \(T\); a
 randomised \(D\) is a convex combination of deterministic ones and cannot do
 better.
@@ -304,13 +296,9 @@ algorithm---\(f\),
 \end{proposition}
 
 \begin{proof}
-The metric axioms follow directly from the \(\ell_1\) formula and the triangle
-inequality for absolute values. For the data-processing inequality, by
-Proposition~\ref{model:prop:statdist} pick the optimal distinguisher \(D^\star\)
-for \(f(X)\) versus \(f(Y)\); then \(D^\star \circ f\) is a (randomised)
-distinguisher for \(X\) versus \(Y\) achieving the same advantage, so
-\(\Delta(f(X),f(Y)) = \Pr[D^\star(f(X))=1]-\Pr[D^\star(f(Y))=1] \leq
-\Delta(X,Y)\).
+These are the metric and data-processing parts of the statistical-distance
+theorem of the \emph{Math Guide} (\S``Statistical distance''), again with the
+argument unchanged over a countable \(S\).
 \end{proof}
 
 \subsubsection{The three grades of indistinguishability}
@@ -1482,27 +1470,7 @@ and for the lower direction \(\Pr[C] \geq 1 - e^{-q(q-1)/(2N)} \geq \tfrac{1}{2}
 \end{lemma}
 
 \begin{proof}
-Order the \(q\) inputs and reveal their digests one at a time. By the chain rule, the first \(q\) digests are all \emph{distinct} with probability
-\[
-  \Pr[\overline{C}]
-  \;=\;
-  \prod_{i=0}^{q-1}\frac{N-i}{N}
-  \;=\;
-  \prod_{i=0}^{q-1}\Bigl(1 - \frac{i}{N}\Bigr),
-\]
-since the \(i\)-th digest avoids a collision exactly when it misses the \(i\) values already seen, each equally likely among \(N\) outcomes. Taking complements gives the stated exact expression. For the upper bound on \(\Pr[C]\), apply the union bound over the \(\binom{q}{2}\) unordered pairs: each fixed pair collides with probability \(1/N\), so \(\Pr[C] \leq \binom{q}{2}/N = q(q-1)/(2N)\). For the lower bound, apply \(1 - t \leq e^{-t}\) with \(t = i/N\) to each factor:
-\[
-  \Pr[\overline{C}]
-  \;=\;
-  \prod_{i=0}^{q-1}\Bigl(1 - \frac{i}{N}\Bigr)
-  \;\leq\;
-  \prod_{i=0}^{q-1} e^{-i/N}
-  \;=\;
-  \exp\!\Bigl(-\frac{1}{N}\sum_{i=0}^{q-1} i\Bigr)
-  \;=\;
-  e^{-q(q-1)/(2N)}.
-\]
-Hence \(\Pr[C] = 1 - \Pr[\overline{C}] \geq 1 - e^{-q(q-1)/(2N)}\). Setting the exponent to \(-\ln 2\) gives \(q(q-1) = 2N\ln 2\), i.e. \(q \approx \sqrt{2\ln 2}\,\sqrt{N} \approx 1.18\sqrt{N}\), at which point \(\Pr[C] \geq \tfrac12\).
+This is the birthday-bound proposition of the \emph{Math Guide} (\S``The union bound and a birthday calculation''), with \(N = 2^{n}\) and \(k = q\); its proof establishes the exact product expression. Only the \(1.18\sqrt{N}\) threshold is new: setting the exponent of the lower bound to \(-\ln 2\) gives \(q(q-1) = 2N\ln 2\), i.e. \(q \approx \sqrt{2\ln 2}\,\sqrt{N} \approx 1.18\sqrt{N}\), at which point \(\Pr[C] \geq \tfrac12\).
 \end{proof}
 
 \begin{remark}[Reading the bound and its memory cost]\label{hash:rem:birthdayread}
@@ -3786,11 +3754,11 @@ Suppose, naively, that leaves are arbitrary-length data hashed by the \emph{same
 \begin{definition}[Domain separation]\label{merkle:def-domain}
 A Merkle construction has \emph{domain (and layer) separation} if it forces the function applied at distinct structural positions to differ, by prepending a position-dependent tag to its input. Concretely, fix distinct tags and define
 \[
-\mathsf{LeafHash}(v) = H(\texttt{0x00} \,\|\, v),
+\mathsf{LeafHash}(v) = H(\mathtt{0x00} \,\|\, v),
 \qquad
-\mathsf{NodeHash}_t(A, B) = H(\texttt{0x01} \,\|\, \langle t\rangle \,\|\, A \,\|\, B),
+\mathsf{NodeHash}_t(A, B) = H(\mathtt{0x01} \,\|\, \langle t\rangle \,\|\, A \,\|\, B),
 \]
-where \(\texttt{0x00}, \texttt{0x01}\) distinguish the \emph{layer} (leaf vs.\ internal) and \(\langle t\rangle\) is the encoded \emph{level index}, distinguishing internal nodes by depth. Level-\(0\) labels are \(N_{0,j} = \mathsf{LeafHash}(L_j)\) and the recurrence becomes \(N_{t+1,j} = \mathsf{NodeHash}_{t+1}(N_{t,2j}, N_{t,2j+1})\).
+where \(\mathtt{0x00}, \mathtt{0x01}\) distinguish the \emph{layer} (leaf vs.\ internal) and \(\langle t\rangle\) is the encoded \emph{level index}, distinguishing internal nodes by depth. Level-\(0\) labels are \(N_{0,j} = \mathsf{LeafHash}(L_j)\) and the recurrence becomes \(N_{t+1,j} = \mathsf{NodeHash}_{t+1}(N_{t,2j}, N_{t,2j+1})\).
 \end{definition}
 
 \begin{proposition}[Domain separation forces honest collisions]\label{merkle:prop-domain}
@@ -3798,7 +3766,7 @@ With the tagging of Definition~\ref{merkle:def-domain}, any collision extracted 
 \end{proposition}
 
 \begin{proof}
-Sketch. The extractor of Theorem~\ref{merkle:thm-soundness} finds the smallest level \(t\) at which the genuine and forged chains agree while disagreeing just below. The \emph{same} structural rule at that position forms both colliding inputs --- both via \(\mathsf{NodeHash}_t\) if \(t \ge 1\), or both via \(\mathsf{LeafHash}\) if the disagreement is at the leaves --- because the verifier's recomputation applies the position's prescribed tagged function, as does the honest tree. Hence the two preimages share the leading tag \(\texttt{0x01}\|\langle t\rangle\) (or \(\texttt{0x00}\)). The cross-domain confusions are therefore impossible unless \(H\) collides \emph{within} a fixed domain, which collision resistance of \(H\) forbids.
+Sketch. The extractor of Theorem~\ref{merkle:thm-soundness} finds the smallest level \(t\) at which the genuine and forged chains agree while disagreeing just below. The \emph{same} structural rule at that position forms both colliding inputs --- both via \(\mathsf{NodeHash}_t\) if \(t \ge 1\), or both via \(\mathsf{LeafHash}\) if the disagreement is at the leaves --- because the verifier's recomputation applies the position's prescribed tagged function, as does the honest tree. Hence the two preimages share the leading tag \(\mathtt{0x01}\|\langle t\rangle\) (or \(\mathtt{0x00}\)). The cross-domain confusions are therefore impossible unless \(H\) collides \emph{within} a fixed domain, which collision resistance of \(H\) forbids.
 \end{proof}
 
 \begin{remark}[Unbalanced trees and padding]\label{merkle:rem-unbalanced}

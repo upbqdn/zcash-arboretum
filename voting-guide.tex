@@ -467,11 +467,14 @@ rate $2$ (\texttt{src/protocol\_hash.rs}).
 $9$--$14$ in the source\footnote{The headline counts disagree ---
 \texttt{circuit.rs} line~3 says ``all 14 conditions'' but line~108 ``all 15
 conditions''; \texttt{README.md} lines~3 and~52 say ``15'' and ``conditions
-9--15'' --- yet both files enumerate exactly conditions 1--14 and neither
-defines a condition~15: the README's numbered sections run 1 through 14 and
-the per-slot list is 9--14 throughout. We state the total as fourteen ---
-eight keystone-global conditions plus six per-slot conditions instantiated
-five times --- and record the ``15'' as a stale count in the sources.}
+9--15'' --- yet the condition-by-condition definitions in both files stop
+at 14: the README's numbered sections run 1 through 14, and the sole
+``condition~15'' in the sources is a synthesis-stage comment
+(\texttt{circuit.rs:1089-1098}) labelling the padded slots' zero value ---
+a builder convention with no corresponding constraint. We state the total
+as fourteen --- eight keystone-global conditions plus six per-slot
+conditions instantiated five times --- and record the ``15'' headline
+counts and the cond-15 comment as stale.}
 (\texttt{src/delegation/circuit.rs:1497-1805}):
 \begin{itemize}
 \item \emph{Note commitment integrity} (condition~9). The prover witnesses
@@ -1431,7 +1434,7 @@ the protocol has to a spec.
 \paragraph{Specified.} Only the inherited primitives: \NoteCommit{},
 nullifier derivation, \CommitIvk{}, the \Sinsemilla{} Merkle instance,
 RedPallas, the ZIP-244 sighash, and ZIP-32 derivation, each specified in
-the protocol specification and the ZIPs, constructed in the \emph{Orchard
+the protocol specification and the ZIPs, constructed in the \emph{Ironwood
 Guide} (\S``Representation of a note: notes and note commitments'',
 \S``Prevention of double-spending: nullifiers'', \S``Keys: capabilities
 for spending and for viewing'', \S``Proof of ownership of \emph{some}

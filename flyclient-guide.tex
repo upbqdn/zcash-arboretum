@@ -180,8 +180,8 @@ ZIP 221, ZIP 244 & \textsf{zips} @ \texttt{69610984} (2026-07-09) & merged,
 deployed consensus \\
 \textsf{zcash\_history} & 0.5.0 (crates.io) & deployed (Zebra dependency) \\
 \textsf{zebra} & @ \texttt{de14bef05} (2026-07-17) & deployed validator \\
-\textsf{zcashd} & @ \texttt{16ac74376} (2025-10-03) & deployed validator
-(deprecated) \\
+\textsf{zcashd} & @ \texttt{16ac74376} (2025-10-03) & historical
+validator (retired) \\
 \textsf{lightwalletd}, \textsf{Zaino}, \textsf{librustzcash} &
 repo greps, 2026-07-19 & negative results (\S\ref{sec:fc-gap}) \\
 \bottomrule
@@ -222,7 +222,8 @@ itself draws sharply.
 tree: maintained by every validator, its root committed in every block
 header since Heartwood (mainnet height 903{,}000) and folded into
 \texttt{hashBlockCommitments} since NU5 (mainnet height 1{,}687{,}104),
-validated on every block connect by \textsf{zebra} and \textsf{zcashd}
+validated on every block connect by \textsf{zebra} and, until its
+retirement, \textsf{zcashd}
 (\S\ref{sec:fc-zip221}--\S\ref{sec:fc-code}).
 \item \emph{Specified but consumed by no one.} The same tree as a
 light-client instrument: ZIP-221's stated motivation is FlyClient, and the
@@ -343,7 +344,9 @@ Improvement & $31\times$ & $179\times$ & $1{,}275\times$ & $6{,}627\times$ \\
 \caption{Proof sizes for Ethereum parameters (508-byte headers), assuming
 adversarial hash power at most $c = 1/2$ of the honest hash power and
 failure probability below $2^{-50}$. Reproduced from ePrint 2019/226,
-Table~1 (p.~4).}
+Table~1 (p.~4). The $1{,}275\times$ entry is the paper's own slip: its
+SPV and FlyClient sizes give $496{,}094/416 \approx 1{,}193\times$
+(Remark~\ref{rem:fc-errata}).}
 \label{tab:fc-sizes}
 \end{table}
 
@@ -406,8 +409,13 @@ right-to-left --- but the difference in
 framing matters when reading ZIP-221, which specifies the same object in
 yet another way (\S\ref{sec:fc-zip221}), and when reading
 \textsf{zcash\_history}, which stores the peaks explicitly
-(\S\ref{sec:fc-code}). Costs and proofs are identical across all three
-presentations.
+(\S\ref{sec:fc-code}). Costs and proofs are identical between the
+folklore forest and the paper's single-rooted form. ZIP-221 instead
+bags left-fold-leftmost (\S\ref{sec:fc-bagging}), the opposite of the
+paper's implicit right fold, so with three or more peaks its bagged
+root and the hashes at the top of a root-anchored path differ from the
+paper's; the stored mountain array and the asymptotic costs are the
+same.
 \end{remark}
 
 \begin{figure}[htbp]
@@ -567,10 +575,10 @@ spanning a transition computed $D_{\mathrm{next}}$ by the adjustment rule;
 and that a node's aggregate $(w, t)$ is \emph{feasible} --- some legal
 sequence of clamped transitions between its boundary targets could have
 produced them. The paper bounds feasibility explicitly: maximal weight
-comes from raising the target by the dampening factor $\tau$ as fast as
-allowed and then descending, minimal weight from the reverse; a maximal
-decrease needs an epoch span of at least $\tau m/f$ rounds and a maximal
-increase at most $m/(f\tau)$. For the simplified scenario
+comes from raising the difficulty by the dampening factor $\tau$ as
+fast as allowed and then descending, minimal weight from the reverse; a
+maximal difficulty decrease needs an epoch span of at least $\tau m/f$
+rounds and a maximal difficulty increase at most $m/(f\tau)$. For the simplified scenario
 $\tau^k D_{\mathrm{start}} = D_{\mathrm{next}}$ over $n$ epochs (the
 paper's own worked case, pp.~18--19) the printed upper bound is
 \[
@@ -633,7 +641,11 @@ between $D_{\mathrm{next}}$ and $D_{\mathrm{end}}$; (vii) Definition~1's
 target-recalculation formula uses a symbol $T$ --- in both the clamp bounds
 and $n(T,\Delta)$ --- that its own constants list never declares; (viii)
 heavily overloaded symbols ($\delta$, $k$, $n$,
-$\lambda$ each carry two or more meanings across sections). The
+$\lambda$ each carry two or more meanings across sections); (ix)
+Table~1's $1{,}275\times$ improvement entry, which its own SPV and
+FlyClient sizes contradict ($496{,}094/416 \approx 1{,}193\times$; the
+printed ratio matches a FlyClient size of ${\sim}389$~KB) while the
+other three entries recompute correctly. The
 acknowledgements record that CCS reviewers found ``Bahack style attacks
 and problems with the security proof in a previous version'' --- the
 variable-difficulty machinery of \S\ref{sec:fc-diffmmr} is post-review
@@ -961,8 +973,9 @@ difficulty growth helps the sampler. Two caveats frame all the numbers.
 \begin{remark}[Ethereum is outside the theorem]\label{rem:fc-ethereum}
 Ethereum's moving-average difficulty rule does not fit the
 variable-difficulty backbone model, so Theorem~1 does not cover it; the
-paper is explicit that FlyClient on Ethereum carries ``only heuristic
-security guarantees'' (\S3.1, pp.~7--8; \S7, p.~20). The point recurs for
+paper is explicit that running FlyClient on Ethereum is possible ``only
+with heuristic security guarantees'' (\S3.1, pp.~7--8; \S7, p.~20). The
+point recurs for
 Zcash in \S\ref{sec:fc-gap}: whether Zcash's own averaging-window
 retarget (distinct from both Bitcoin's and Ethereum's) satisfies the
 model is exactly the kind of question a Zcash FlyClient ZIP would have to
@@ -1221,8 +1234,10 @@ serialisations, where the paper hashes bare child values with an
 unspecified generic $H$. The root reaches the header through an existing
 repurposed field rather than a new one --- and, from NU5, only as the
 first input of an outer commitment (\S\ref{sec:fc-nu5}). The bagging
-order is fixed left-fold-leftmost (\S\ref{sec:fc-bagging}), a choice the
-paper's recursive definition makes implicitly. The ZIP's own summary is
+order is fixed left-fold-leftmost (\S\ref{sec:fc-bagging}) --- the
+opposite of the right fold the paper's recursion implies
+(Remark~\ref{rem:fc-peaks}), so the two constructions' bagged roots
+differ whenever the tree has three or more peaks. The ZIP's own summary is
 accurate: ``Other than the metadata commitments, the MMR tree's
 construction is standard'', and its append algorithm is ``adapted from''
 the paper's.
@@ -1527,10 +1542,10 @@ records that NU5-aware clients read and zero-pad into 244-byte buffers.
 
 \subsection{Divergence register}\label{sec:fc-divergences}
 
-The two validators agree on every consensus-relevant byte today; the
-register below records where they differ in structure, and one place
-they would differ in consensus if both crossed the next boundary
-unchanged.
+The two validators agreed on every consensus-relevant byte for as long
+as both ran; the register below records where they differ in structure,
+and one place they would have differed in consensus had both crossed
+the NU6.3 boundary unchanged.
 
 \begin{itemize}[leftmargin=1.4em]
 \item \emph{Version skew at NU6.3.} zcashd's 0.4.0 dispatch sends every
@@ -1543,8 +1558,8 @@ sole full validator (\S\ref{sec:fc-nu5}); the skew is a documented
 retirement, not a live consensus bug --- but the code alone does not
 say so.
 \item \emph{Epoch retention.} Zebra destroys a superseded epoch's tree
-(tip-only, single-record persistence); zcashd retains every epoch's
-full array forever, because its rollback path may reopen them. Two
+(tip-only, single-record persistence); zcashd retained every epoch's
+full array, because its rollback path could reopen them. Two
 correct answers to the same question, shaped by each node's reorg
 model.
 \item \emph{Truncation asymmetry.} The crate's \texttt{truncate\_leaf}
@@ -1581,8 +1596,9 @@ equivalent arm.
 
 Every Zcash block since Heartwood carries a correct chain-history
 commitment, because two classes of software maintain the tree. Consensus
-validators compute and check it: zcashd in \texttt{ConnectBlock}, Zebra
-in the state service (\S\ref{sec:fc-code}). Miners publish it without
+validators compute and check it: Zebra in the state service and, until
+its retirement, zcashd in \texttt{ConnectBlock} (\S\ref{sec:fc-code}).
+Miners publish it without
 computing it: both nodes' \texttt{getblocktemplate} hand the miner a
 \texttt{defaultroots} object containing \texttt{chainhistoryroot} (and,
 from NU5, \texttt{authdataroot} and \texttt{blockcommitmentshash}), so
@@ -1595,8 +1611,8 @@ zcashd comment memorialises that v4.6.0's legacy template fields ``were
 accidentally set to always be the NU5 value''
 (\texttt{src/miner.cpp:462--466}).
 
-Verification, meanwhile, is purely \emph{reconstructive}: both
-validators maintain the same tree and compare 32-byte roots. Nobody, in
+Verification, meanwhile, is purely \emph{reconstructive}: a validator
+maintains the tree itself and compares 32-byte roots. Nobody, in
 any deployed software, verifies an MMR \emph{proof} --- the operation
 the structure exists to serve. The RPC surface tells the same story
 from the read side: zcashd's \texttt{getblock} exposes

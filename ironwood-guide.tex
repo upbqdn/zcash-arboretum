@@ -91,7 +91,7 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the \emph{Math Guide}, the \emph{Crypto Guide}, and the \emph{Halo~2 Guide}, this volume of \emph{The Zcash Arboretum} develops Zcash's Orchard shielded-payment protocol: the key hierarchy, notes and note commitments, the commitment tree and the procedure by which a wallet obtains a membership path, nullifiers, note encryption and trial decryption, value commitments and the RedPallas signature, the formal Action statement the SNARK proves, and the end-to-end security analysis that derives balance and nullifier uniqueness from knowledge soundness, and privacy from zero knowledge. NU6.3 splits the protocol's value across two pools --- the legacy Orchard pool, sealed to spend-only, and the current Ironwood pool (specified; activated on Testnet at height 4134000; Mainnet activation pending) --- and the volume develops the split, the quantum-recoverable Ironwood note format, and the cross-address restriction, closing with the Zcash proof-system lineage.
+Assuming the \emph{Math Guide}, the \emph{Crypto Guide}, and the \emph{Halo~2 Guide}, this volume of \emph{The Zcash Arboretum} develops Zcash's Orchard shielded-payment protocol: the key hierarchy, notes and note commitments, the commitment tree and the procedure by which a wallet obtains a membership path, nullifiers, note encryption and trial decryption, value commitments and the RedPallas signature, the formal Action statement the SNARK proves, and the end-to-end security analysis that derives balance and nullifier uniqueness from knowledge soundness, and privacy from zero knowledge. NU6.3 splits the protocol's value across two pools --- the legacy Orchard pool, sealed to spend-only, and the current Ironwood pool (activated on Testnet at height 4134000; Mainnet activation height 3428143, shipped in \texttt{zebra}~6.2.x) --- and the volume develops the split, the quantum-recoverable Ironwood note format, and the cross-address restriction, closing with the Zcash proof-system lineage.
 \end{abstract}
 \clearpage
 \tableofcontents
@@ -108,9 +108,11 @@ vocabulary up front: the \emph{Orchard protocol} is the shared cryptographic
 construction --- curves, Sinsemilla, the Action circuit, notes, commitments,
 nullifiers, keys, and note encryption --- and it survives; the \emph{Orchard
 pool} is the legacy value pool it ran from NU5, sealed to spend-only at
-NU6.3; the \emph{Ironwood pool} is the current pool (specified; activated on
-Testnet at height $4134000$; Mainnet activation pending --- NU6.3, ZIP-258,
-Draft, height TBD at \texttt{zips} commit \texttt{69610984}).
+NU6.3; the \emph{Ironwood pool} is the current pool (activated on Testnet
+at height $4134000$; Mainnet activation at height $3428143$, the parameter
+shipped in \texttt{zebra}~6.2.x and falling due late July 2026 on the
+75-second block schedule, while ZIP-258, Draft, still lists Mainnet TBD at
+\texttt{zips} commit \texttt{69610984}).
 
 We develop the protocol from the problems it solves. After
 we fix the curve-level preliminaries and the Sinsemilla hash, we develop each of the following
@@ -1022,16 +1024,18 @@ Orchard activation onward (NU5, mainnet block $1{,}687{,}104$) --- for the
 legacy Orchard-pool tree: the two pools keep separate, independent
 commitment trees and nullifier sets (ZIP-229), and an Ironwood Action
 instead proves against $\mathsf{anchorIronwood}$ over the Ironwood tree,
-empty at NU6.3 activation (Testnet height $4134000$, Mainnet TBD; ZIP-258),
-whose anchors are valid from activation onward. In neither pool is there a
+empty at NU6.3 activation (Testnet height $4134000$, Mainnet height
+$3428143$ per \texttt{zebra}~6.2.x; the ZIP-258 draft still lists Mainnet
+TBD), whose anchors are valid from activation onward. In neither pool is there a
 sliding window, so proving is fully decoupled from broadcasting --- Alice
 need not race the chain tip. The one recency caveat runs in the opposite
 direction: a reorganisation can strike the anchoring block from the main
 chain, invalidating the anchor and forcing her to rebuild the transaction;
 deeper anchors make the event rarer, but no depth rules it out --- the
-often-cited $100$-block figure was the retired \textsf{zcashd}'s rollback
-policy, and the deployed \textsf{zebra} rolls back automatically to
-$1000$ blocks, node policy in both cases rather than consensus
+often-cited $100$-block figure is the specification's description (protocol
+\S\,3.3; the retired \textsf{zcashd} actually enforced $99$), and the
+deployed \textsf{zebra} rolls back automatically to $1000$ blocks, node
+policy in both validators rather than consensus
 (\emph{Consensus Guide}, \S``Reorg rails, maturity, and the finality
 floor'').
 Deployed wallets nonetheless anchor close to the tip, by
@@ -1539,7 +1543,7 @@ implementation distinguishes the insecure NU5 original, the NU6.2
 correction (ZIP-257, Final), and the NU6.3 Ironwood circuit, and only the
 last constrains the flag
 (\texttt{OrchardCircuitVersion::supports\_cross\_address\_restriction},
-crate \texttt{orchard} at \texttt{bef8a27} \texttt{src/circuit.rs}). The legacy NU5/NU6
+released crate \texttt{orchard}~0.15.0 \texttt{src/circuit.rs}). The legacy NU5/NU6
 statement is the relation A1--A9 alone, over the nine-element public-input
 tuple ending at $\mathsf{enableOutputs}$. Consensus selects the verifying
 key by branch (ZIP-258), so from NU6.3 every Action --- in either
@@ -1591,7 +1595,8 @@ rather than a bit-oriented hash. How any such gadget is \emph{built} --- how
 its gates, lookups, and cell assignments are declared, and how synthesis
 turns the filled columns into the polynomials the proof commits to --- is
 the subject of the \emph{Halo~2 Guide}'s section ``From statement to
-circuit''; here we describe what each gadget enforces.
+circuit: arithmetisation in practice''; here we describe what each gadget
+enforces.
 
 \paragraph{The ECC gadget.} Implements the Pallas group law with the
 \emph{complete} addition formulas (no edge-case failures; the
@@ -1655,9 +1660,9 @@ beside the fixed columns and the Sinsemilla lookup table (the
 whatever it spends or creates, is one instance of this same circuit; a
 bundle's Actions are proved together in one aggregate proof that a node
 checks (\S\ref{sec:netverify}) from the public
-inputs alone, and the accumulation machinery of the \emph{Halo~2 Guide} lets
-a node verify many such proofs at amortised cost approaching that of a single
-verification.
+inputs alone, and batch verification --- the deferred linear MSMs merged
+across proofs (the \emph{Halo~2 Guide}) --- lets a node verify many such
+proofs at amortised cost approaching that of a single verification.
 
 \section{End-to-end security: derivation of Orchard's properties from the SNARK}\label{sec:e2e-sec}
 
@@ -1939,7 +1944,7 @@ posture, and on-chain efficiency.
 
 The original shielded protocol used a \emph{BCTV14} SNARK (Ben-Sasson,
 Chiesa, Tromer, Virza) over the pairing-friendly curve BN254, with
-constant-size proofs ($\sim 290$ bytes) and constant verification time. Its
+constant-size proofs ($296$ bytes) and constant verification time. Its
 parameters came from a per-circuit trusted setup: the 2016 ceremony, a
 six-party multi-party computation that generated the BCTV14 proving and
 verification keys for the fixed Sprout circuit, sound provided at least one
@@ -1990,8 +1995,9 @@ its cryptography. The Action circuit exists in three versions --- NU5's
 original, the NU6.2 emergency correction (ZIP-257, Final), and the NU6.3
 Ironwood circuit with the cross-address input (\S\ref{sec:iw-cross}) ---
 named \texttt{InsecurePreNu6\_2}, \texttt{FixedPostNu6\_2}, and
-\texttt{Ironwood} in crate \texttt{orchard} at \texttt{bef8a27}
-(\texttt{src/circuit.rs}). And from NU6.3 the one protocol carries two value
+\texttt{PostNu6\_3} in the released crate \texttt{orchard}~0.15.0
+(\texttt{src/circuit.rs}; the \texttt{bef8a27} dev tree names the third
+variant \texttt{Ironwood}). And from NU6.3 the one protocol carries two value
 pools, the sealed Orchard pool and the current Ironwood pool (ZIP-229,
 Terminology; \S\ref{sec:iw-pools}). The Halo~2 / Pasta stack is unchanged
 throughout.
@@ -2007,7 +2013,7 @@ SNARK & BCTV14 & Groth16 & Halo 2 \\
 Curve & BN254 & BLS12-381 + Jubjub & Pallas + Vesta \\
 Trusted setup & Per-circuit (six-party MPC) & Per-circuit (large MPC) & None \\
 Recursion-ready & No & No & Yes (via Pasta cycle) \\
-Proof size & \textasciitilde 290 B & 192 B & \textasciitilde 5 kB (one Action) \\
+Proof size & 296 B & 192 B & \textasciitilde 5 kB (one Action) \\
 Verification time & Constant (pairing) & Constant (3 pairings) & $O(\log n)$ amortised \\
 \bottomrule
 \end{tabular}
@@ -2045,9 +2051,11 @@ discarded; what changes is which pool new value may enter, and how an
 Ironwood note derives its trapdoor.
 
 As in \S\ref{sec:pq-orchard}, claims about deployed behaviour cite the
-implementation and the specification --- here crate \texttt{orchard} at
-\texttt{bef8a27} (the unreleased 0.14.0 dev tree carrying the Ironwood work;
-\texttt{librustzcash} itself pins the published \texttt{orchard}~0.15.0 crate),
+implementation and the specification --- here the released crate
+\texttt{orchard}~0.15.0 (the version \texttt{librustzcash} pins; the
+Ironwood note-format, note-encryption, and v6-digest work ships in it), the
+\texttt{orchard} git tree at \texttt{bef8a27} (a 0.14.0 dev tree predating
+the release, cited for the circuit and cross-address work it carries),
 \texttt{librustzcash} at
 commit \texttt{e30517e4}, and \texttt{protocol.tex} and the ZIPs at
 \texttt{zips} commit \texttt{69610984} --- and forward-looking claims carry
@@ -2057,15 +2065,16 @@ unspecified}, or \emph{open problem}.
 \subsection{Two pools, one protocol: activation and framing}\label{sec:iw-pools}
 
 \paragraph{Activation.} NU6.3 carries consensus branch identifier
-$\mathtt{0x37A5165B}$ and activates on Testnet at height $4134000$; the ZIP
-leaves the Mainnet height TBD, while \texttt{librustzcash} already hardcodes
-$3428143$ (\texttt{zcash\_protocol/src/consensus.rs}) --- an
-implementation ahead of its specification, which we flag rather than resolve
-(ZIP-258).
-%% TODO: reconcile the Mainnet ACTIVATION_HEIGHT (ZIP-258 says TBD;
-%% librustzcash consensus.rs:496 says 3,428,143) before the volume ships.
-%% MIN_NETWORK_PROTOCOL_VERSION is likewise TBD on both networks
-%% (zip-0258.md:72-74).
+$\mathtt{0x37A5165B}$ and activates on Testnet at height $4134000$. On
+Mainnet the deployed validator fixes the height: \texttt{zebra}~6.2.x ships
+$3428143$ (\texttt{zebra-chain/src/parameters/\allowbreak constants.rs},
+released 2026-07-24), falling due late July 2026 on the 75-second block
+schedule, and \texttt{librustzcash} hardcodes the same value
+(\texttt{zcash\_protocol/src/consensus.rs}); the ZIP-258 draft still lists
+Mainnet TBD --- implementations ahead of their specification, which we flag
+rather than resolve.
+%% TODO: MIN_NETWORK_PROTOCOL_VERSION is still TBD on both networks
+%% (zip-0258.md:72-74); revisit when ZIP-258 leaves Draft.
 From activation, three consensus rules seal the Orchard pool to
 \emph{spend-only}, and they bind every transaction regardless of version:
 \begin{itemize}[leftmargin=*]
@@ -2122,6 +2131,8 @@ Field & Size (bytes) & Content \\
 \texttt{valueBalanceIronwood} & $8$ &
 net flow $v_{\mathrm{balance}}^{\mathsf{Ironwood}}$ \\
 \texttt{anchorIronwood} & $32$ & a root of the \emph{Ironwood} tree \\
+\texttt{sizeProofsIronwood} & \texttt{compactSize} & length of
+\texttt{proofsIronwood} \\
 \texttt{proofsIronwood} & $2720 + 2272 \cdot n$ & aggregate Halo~2 proof \\
 \texttt{vSpendAuthSigsIronwood} & $64 \cdot n$ & one SpendAuthSig per Action \\
 \texttt{bindingSigIronwood} & $64$ & the pool's binding signature \\
@@ -2157,22 +2168,25 @@ personalisations for the Sapling and Orchard branches
 (\texttt{ZTxIdSSpendNH\_v6}, \texttt{ZTxAuthSapliH\_v6},
 \texttt{ZTxIdOrchardH\_v6}, and \texttt{ZTxAuthOrchaH\_v6}); an absent
 component
-hashes the empty string under its personalisation (ZIP-229). This digest tree
-is \emph{specified}, not deployed at \texttt{bef8a27}: there crate
-\texttt{orchard}'s \texttt{bundle/commitments.rs} (\texttt{:7--11}) defines only
-five non-versioned personalisations ---
-\texttt{ZTxIdOrchardHash}, \texttt{ZTxIdOrcActCHash},
+hashes the empty string under its personalisation (ZIP-229). This digest
+tree is deployed: the released crate \texttt{orchard}~0.15.0 (the
+\texttt{librustzcash} pin) defines the seven Orchard and Ironwood
+\texttt{\_v6} personalisations and selects them per pool and transaction
+version (\texttt{bundle/commitments.rs}, enum
+\texttt{BundleCommitmentFormat}), and \texttt{librustzcash} at
+\texttt{e30517e4} assembles the v6 digests in production:
+\texttt{digest\_orchard} and \texttt{digest\_ironwood} in
+\texttt{zcash\_primitives} \texttt{transaction/txid.rs} call
+\texttt{Bundle::commitment}, the file itself defines only the two Sapling
+personalisations \texttt{ZTxIdSSpendNH\_v6} and \texttt{ZTxAuthSapliH\_v6}
+(lines $44$ and $54$), and \texttt{transaction/tests.rs} re-derives the
+empty-component digests as test vectors. The \texttt{bef8a27} dev tree
+predates this work: there \texttt{bundle/commitments.rs} (\texttt{:7--11})
+defines only the five non-versioned personalisations
+(\texttt{ZTxIdOrchardHash}, \texttt{ZTxIdOrcActCHash},
 \texttt{ZTxIdOrcActMHash}, \texttt{ZTxIdOrcActNHash},
-\texttt{ZTxAuthOrchaHash} --- and
-\texttt{hash\_bundle\_txid\_data} applies no per-pool or per-version
-personalisation dispatch --- its \texttt{format} argument feeds only the flags
-byte (\texttt{:62}) --- so none of the \texttt{\_v6} strings exist in
-\texttt{src/}. In \texttt{librustzcash} at \texttt{e30517e4} only the two
-Sapling personalisations \texttt{ZTxIdSSpendNH\_v6} and
-\texttt{ZTxAuthSapliH\_v6} are production in
-\texttt{zcash\_primitives}, \texttt{transaction/txid.rs} (lines $44$
-and $54$); the Orchard and Ironwood \texttt{\_v6} strings appear there only as
-expected empty-hash literals in \texttt{transaction/tests.rs}. One structural
+\texttt{ZTxAuthOrchaHash}), with no per-pool or per-version dispatch. One
+structural
 change
 rides along: v6 moves the Sapling, Orchard, and Ironwood \emph{anchors} from
 effecting data (under the txid) to authorizing data (under the auth digest,
@@ -2181,19 +2195,21 @@ re-anchored --- its membership proofs rebased onto a later root --- without
 changing its txid, a design ZIP-229 credits to Penumbra.
 
 \paragraph{One circuit, one verifying key.} Both pools share the post-NU6.3
-Action circuit and its keys. In crate \texttt{orchard} at \texttt{bef8a27} the
-bundle's flag layout is chosen by the \texttt{BundleFormat} enum ---
-\texttt{PreNu6\_3} or \texttt{Nu6\_3} (\texttt{src/bundle.rs:89--93}) --- and
-the circuit by \texttt{OrchardCircuitVersion} --- \texttt{InsecurePreNu6\_2},
-\texttt{FixedPostNu6\_2}, or \texttt{Ironwood}
-(\texttt{src/circuit.rs:125--135}). For NU6.3 Actions the built circuit
-version is \texttt{Ironwood} (\texttt{circuit\_version()},
-\texttt{src/builder.rs:1251}) in both pools. The cross-address restriction is
-gated by \texttt{supports\_cross\_address\_restriction()} on
-\texttt{OrchardCircuitVersion} --- true only for \texttt{Ironwood}
-(\texttt{src/circuit.rs:147}) --- and by \texttt{Flags::cross\_address\_enabled()}
-(\texttt{src/bundle.rs:216}), which honours the flag bit only under
-\texttt{BundleFormat::Nu6\_3} (\texttt{src/bundle.rs:283--284}). The pools are
+Action circuit and its keys. In the released \texttt{orchard}~0.15.0 a
+\texttt{BundleVersion} pairs a \texttt{ValuePool} (\texttt{Orchard} or
+\texttt{Ironwood}) with a \texttt{ProtocolVersion} (\texttt{InsecureV1},
+\texttt{V2}, or \texttt{V3}): \texttt{circuit\_version()} maps \texttt{V3}
+to \texttt{OrchardCircuitVersion::PostNu6\_3} for both pools,
+\texttt{note\_version()} maps \texttt{Orchard} to \texttt{V2} and
+\texttt{Ironwood} to \texttt{V3}, and
+\texttt{permits\_cross\_address\_transfers()} is false exactly for
+(\texttt{V3}, \texttt{Orchard}) (\texttt{src/lib.rs},
+\texttt{src/bundle.rs}). The in-circuit gate is
+\texttt{supports\_cross\_address\_restriction()} on
+\texttt{OrchardCircuitVersion}, true only for \texttt{PostNu6\_3}
+(\texttt{src/circuit.rs}); the \texttt{bef8a27} dev tree's
+\texttt{BundleFormat} enum and \texttt{Ironwood} circuit-version name were
+reworked into these before release. The pools are
 distinguished by their trees, nullifier sets, balances, and component
 position --- not by separate circuits.
 
@@ -2205,13 +2221,18 @@ An Ironwood note is the same tuple $\mathbf{n} = (\mathsf{addr}, v, \rho,
 \NoteCommit\ of \S\ref{sec:notes}; ZIP-2005 carries the pool distinction on
 the note \emph{plaintext}, through its lead byte. What changes is that lead
 byte and, through it, the derivation of $\rcm$ (ZIP-2005, Proposed;
-activation bound to NU6.3). The format is \emph{specified} --- ZIP-2005
+activation bound to NU6.3). The format is specified --- ZIP-2005
 \S\,4.7.3, landed in \texttt{protocol.tex} at \texttt{zips} commit
-\texttt{69610984} --- but undeployed in crate \texttt{orchard} at
-\texttt{bef8a27}, whose \texttt{Note::from\_parts} (\texttt{src/note.rs:182})
-still takes the four components $(\mathsf{recipient}, v, \rho,
-\mathsf{rseed})$ with no version tag and whose \texttt{Note::rcm()} is the
-legacy single-tag trapdoor of Remark~\ref{rem:iw-legacy-rcm}.
+\texttt{69610984} --- and deployed in the released \texttt{orchard}~0.15.0
+(the \texttt{librustzcash} pin): enum \texttt{NoteVersion}
+(\texttt{V2}/\texttt{V3}) carries the lead byte,
+\texttt{Note::from\_parts} takes it as a fifth argument, and
+\texttt{Note::rcm()} dispatches on it (\texttt{src/note.rs}). The
+\texttt{bef8a27} dev tree predates the release: its
+\texttt{Note::from\_parts} (\texttt{src/note.rs:182}) still takes the four
+components $(\mathsf{recipient}, v, \rho, \mathsf{rseed})$ with no version
+tag, and its \texttt{Note::rcm()} is the legacy single-tag trapdoor of
+Remark~\ref{rem:iw-legacy-rcm}.
 
 \begin{definition}[Allowed lead bytes, pool-parameterised]%
 \label{def:iw-leadbytes}
@@ -2279,13 +2300,17 @@ under one dispatcher,
 $\mathsf{Derive\_rcm}^{\mathsf{Orchard}}_{\mathsf{rseed}}(\mathsf{leadByte},
 \ldots)$, selecting $\mathtt{0x05} \,\|\, \rho$ for $\mathtt{0x02}$ and the
 hashed $\mathsf{pre\_rcm}$ for $\mathtt{0x03}$ (ZIP-2005 \S\,4.7.3 change).
-The deployed \texttt{Note::rcm()} at \texttt{bef8a27} implements only this
+The dev-tree \texttt{Note::rcm()} at \texttt{bef8a27} implements only this
 legacy branch: $\rcm := \mathrm{ToScalar}(\mathsf{PRFexpand}_{\mathsf{rseed}}
 (\mathtt{0x05} \,\|\, \rho))$ (\texttt{src/note.rs:132--136}), with
 \texttt{PrfExpand::ORCHARD\_RCM} $= \mathtt{0x05}$ (\texttt{zcash\_spec}~0.2.1,
-\texttt{src/prf\_expand.rs:88}). It carries no version dispatch and no
-$\mathtt{0x03}$/hashed-$\mathsf{pre\_rcm}$ branch; the ZIP-2005 derivation of
-Definition~\ref{def:iw-derive} is specified but not yet implemented there.
+\texttt{src/prf\_expand.rs:88}), no version dispatch, and no
+$\mathtt{0x03}$/hashed-$\mathsf{pre\_rcm}$ branch. The released
+\texttt{orchard}~0.15.0 that \texttt{librustzcash} pins adds the
+\texttt{NoteVersion} dispatch --- \texttt{V2} to \texttt{rcm\_v2},
+\texttt{V3} to \texttt{rcm\_v3} over the $\mathtt{0x0B}$-separated
+$\mathsf{pre\_rcm}$ (\texttt{src/note.rs}) --- deploying the derivation of
+Definition~\ref{def:iw-derive}.
 \end{remark}
 
 \paragraph{Decryption is reordered.} Trial decryption
@@ -2293,14 +2318,14 @@ Definition~\ref{def:iw-derive} is specified but not yet implemented there.
 commitment, and the lead-byte-$\mathtt{0x03}$ $\rcm$ depends on $\gd, \pkd$,
 and $\psi$; the specification therefore reorders both the $\ivk$ and $\fvk$
 decryption procedures to recover $\gd$ and $\pkd$ first, then $\psi$, then
-$\rcm$ (ZIP-2005 \S\S\,4.20.2--4.20.3 changes). No such routing is deployed
-at \texttt{bef8a27}: crate \texttt{orchard} has a single \texttt{OrchardDomain}
-(\texttt{src/note\_encryption.rs:84}) that hardcodes the lead byte, rejecting
-any plaintext with $\mathsf{plaintext}[0] \ne \mathtt{0x02}$ (\texttt{:63})
-and emitting $\mathtt{0x02}$ on encryption (\texttt{:172}), with no
-$\mathtt{0x03}$ branch and no \texttt{IronwoodDomain}. Routing the two lead
-bytes to two domains is the implementation ZIP-2005's reordered procedures
-call for, still to be written. Because keys are protocol-scoped
+$\rcm$ (ZIP-2005 \S\S\,4.20.2--4.20.3 changes). The routing is deployed:
+the released \texttt{orchard}~0.15.0 routes the two lead bytes to two
+domains, \texttt{OrchardDomain} ($\mathtt{0x02}$) and
+\texttt{IronwoodDomain} ($\mathtt{0x03}$)
+(\texttt{src/note\_encryption.rs}), which \texttt{zcash\_client\_backend}
+scanning consumes (\texttt{src/scanning.rs}); the \texttt{bef8a27} dev tree
+still has a single $\mathtt{0x02}$-only \texttt{OrchardDomain}. Because
+keys are protocol-scoped
 (\S\ref{sec:iw-pools}), the \emph{same} $\ivk$ trial-decrypts both pools ---
 one key, two domains (ZIP-326; \texttt{zcash\_client\_backend
 src/scanning.rs}). The light-client surface follows suit: compact blocks
@@ -2440,7 +2465,7 @@ transaction count) aggregated exactly like the Orchard trio (ZIP-258).
 
 \paragraph{Wallet posture.} Wallets SHOULD proactively move \emph{all}
 funds --- transparent, Sprout, and Sapling included --- into the Ironwood
-pool, the only pool whose output notes are recoverable, and must treat the
+pool, the only pool whose output notes are recoverable, and SHOULD treat the
 sweep as ongoing (ZIP-2005; \S\ref{sec:pq-zip2005}). The deployed change-routing
 logic implements the turnstile's grain: change from Ironwood value stays in
 Ironwood, and after activation change may return to the Orchard pool only
@@ -2457,7 +2482,7 @@ never become nonzero --- while Ironwood scans from the later of birthday
 and activation to the tip (ZIP-326).
 
 \paragraph{Status of ZIP-318.} The migration ZIP itself --- ``Orchard to
-Ironwood Migration'' --- is a twelve-line Reserved stub (owners Schell Carl
+Ironwood Migration'' --- is an eleven-line Reserved stub (owners Schell Carl
 Scivally and Pacu Gindre; created 2026-06-16; discussion
 \texttt{zcash/zips\#1315}). Everything consensus-level above is specified
 in ZIP-229/258; what ZIP-318 is expected to own --- batching, scheduling,
@@ -2501,8 +2526,9 @@ problem} (no artifact exists). Claims about the deployed protocol instead cite
 the implementation and the specification as elsewhere in this volume. Ground
 truth for this section: \texttt{protocol.tex} and the ZIPs at \texttt{zips}
 commit \texttt{69610984} (2026-07-09); crate \texttt{orchard} at git commit
-\texttt{bef8a27e} (v0.14.0, 2026-06-16) for circuit claims; and crate
-\texttt{orchard} at \texttt{bef8a27} for the $\mathtt{0x03}$ note path; we
+\texttt{bef8a27e} (v0.14.0, 2026-06-16) for circuit claims; and the
+released crate \texttt{orchard}~0.15.0 (the \texttt{librustzcash} pin) for
+the $\mathtt{0x03}$ note path; we
 verified each cited artifact at these pins.
 
 \subsection{The retroactive break: harvest now, decrypt later against note
@@ -2535,7 +2561,7 @@ address: without $(d, \pkd)$ the adversary has neither the base $\gd$ nor the
 target $\pkd$, and the recorded chain reveals nothing further even to an
 unbounded adversary (\S\ref{sec:pq-integrity}). ZIP-2005 records the same
 boundary: the harvest-now-decrypt-later exposure requires ``both the
-ciphertext \dots\ and the recipient address''.
+ciphertext \dots\ and the receiver address''.
 
 The break is retroactive by construction. The pair
 $(\mathsf{epk}, C_{\mathrm{enc}})$ is consensus data, replicated on every full

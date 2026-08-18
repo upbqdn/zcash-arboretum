@@ -185,12 +185,14 @@ v0.4.0 & 2025-12-03 & \texttt{CompactTxIn}/\texttt{TxOut} and
   (serialization-compatible) \\
 v0.4.1 & 2026-02-20 & nullifier RPCs designated deprecated in the
   proto \\
-v0.5.0 & 2026-06-30 & Ironwood fields added; \texttt{protoVersion} removed,
-  field number~1 and name reserved \\
+v0.5.0 (untagged) & 2026-06-30 & Ironwood fields added;
+  \texttt{protoVersion} removed, field number~1 and name reserved \\
 \bottomrule
 \end{tabular}
 \caption{Wire-format history of \textsf{lightwallet-protocol}
-(\texttt{CHANGELOG.md}, librustzcash-vendored copy).}%
+(\texttt{CHANGELOG.md}, librustzcash-vendored copy); v0.5.0 is a
+changelog entry with no corresponding tag --- the latest tag is
+v0.4.1.}%
 \label{tab:sync-lwp-history}
 \end{table}
 
@@ -499,7 +501,7 @@ arithmetically, never by replaying the chain:
 where $\mathrm{offset}(tx)$ counts the outputs of earlier transactions in
 the block (\texttt{PositionTracker::}\allowbreak%
 \texttt{\{sapling,orchard\}\_note\_position}). The
-shardtree that consumes these marks is constructed in the \emph{Orchard
+shardtree that consumes these marks is constructed in the \emph{Ironwood
 Guide}, \S``Proof of ownership of \emph{some} valid note: the commitment
 tree''; the observation that a light wallet reads positions directly off the
 block appears in \S``Transmission and detection of a note''.
@@ -547,38 +549,44 @@ Guide}, \S``Reorganisations: truncate and rescan'');
 \texttt{EncodingInvalid}, \texttt{TreeSizeUnknown},
 \texttt{TreeSizeInvalid}, and \texttt{TreeSizeOverflow} do not
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs},
-lines~602--685). The final tree size also drives checkpointing: the helper
-\texttt{compact\_tx\_contains\_last\_}\allowbreak%
-\texttt{\{sapling,orchard\}\_}\allowbreak\texttt{outputs\_in\_block}
-compares the running position plus the current transaction's
-output count against the final size, to decide when to write the
+lines~602--685). The final tree size also drives checkpointing: the
+helpers \texttt{compact\_tx\_contains\_last\_}\allowbreak%
+\texttt{sapling\_outputs\_in\_block},
+\texttt{\ldots\_orchard\_actions\_in\_block}, and
+\texttt{\ldots\_ironwood\_actions\_in\_block}
+compare the running position plus the current transaction's output or
+action count against the final size, to decide when to write the
 block-boundary checkpoint into the commitment tree
 (\texttt{src/scanning/compact.rs}, lines~712--731; call sites 404, 444,
 482).
 
 \paragraph{The server side of \texttt{ChainMetadata}.}
-Server \textsf{lightwalletd} fills the tree sizes from \textsf{zcashd}'s
+Server \textsf{lightwalletd} fills the tree sizes from the node's
 \texttt{getblock} verbosity-1 response fields \texttt{trees.sapling.size}
 and \texttt{trees.orchard.size} (\textsf{lightwalletd},
-\texttt{common/common.go}, lines~163--175, 399--400). Upstream,
-\textsf{zcashd} computes them by anchor lookup
+\texttt{common/common.go}, lines~163--175, 399--400). The deployed
+backend is zebrad (\S\ref{sec:sync-lwd}), whose \texttt{getblock} omits
+each subfield while the pool's tree is empty (\textsf{zebra-rpc},
+\texttt{src/methods.rs}, \texttt{GetBlockTrees},
+\texttt{skip\_serializing\_if}) --- in which case Go's JSON unmarshal
+leaves $\texttt{Size} = 0$, the default-zero case
+\texttt{TreeSizeInvalid} exists to catch. Historically, \textsf{zcashd}
+(retired; last release v6.10.0, 2025-10-03) computed the sizes by anchor
+lookup
 (\texttt{GetSaplingAnchorAt}/\allowbreak\texttt{GetOrchardAnchorAt} on
 \texttt{hashFinalSaplingRoot}/\allowbreak\texttt{hashFinalOrchardRoot})
-and omits the
-subfield when the anchor is unavailable --- in which case Go's JSON
-unmarshal leaves $\texttt{Size} = 0$, the default-zero case
-\texttt{TreeSizeInvalid} exists to catch (\textsf{zcashd},
-\texttt{src/rpc/blockchain.cpp}, lines~279--297; the \texttt{trees} field
-dates to \textsf{zcashd} commit \texttt{cf2b6c796}, ``rpc: Add trees field
-to getblock RPC output'').
+and omitted the subfield when the anchor was unavailable
+(\textsf{zcashd}, \texttt{src/rpc/blockchain.cpp}, lines~279--297; the
+\texttt{trees} field dates to \textsf{zcashd} commit \texttt{cf2b6c796},
+``rpc: Add trees field to getblock RPC output'').
 
 \subsection{The scan pipeline: chain state, batching, caching}%
 \label{sec:sync-compact-pipeline}
 
 Function \texttt{scan\_cached\_blocks} requires a \texttt{ChainState} ---
-the final Sapling and Orchard tree frontiers as of
+the final Sapling, Orchard, and Ironwood tree frontiers as of
 $\mathrm{from\_height} - 1$ --- and asserts $\mathrm{from\_height} =
-\texttt{chain\_state.height} + 1$; both trees have depth~32
+\texttt{chain\_state.height} + 1$; all three trees have depth~32
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs},
 lines~504--698). The \texttt{ChainState} comes from the server's
 \texttt{GetTreeState} RPC via \texttt{TreeState::to\_chain\_state()}, which
@@ -643,7 +651,10 @@ Zaino's does. The successor \textsf{Zaino}
 filters out \texttt{CompactTx}s whose
 compact fields are all empty, and supports per-request pool filtering via
 \texttt{PoolTypeFilter} and \texttt{BlockRange.poolTypes}
-(\texttt{zaino-fetch/src/chain/block.rs}, lines~193--215) --- a filter added
+(\textsf{zaino-proto}, \texttt{src/proto/utils.rs},
+\texttt{compact\_block\_with\_pool\_types}, lines~328--380, applied on
+the serving paths in \textsf{zaino-state}, \texttt{chain\_index.rs}) ---
+a filter added
 in v0.4.0, where an empty \texttt{poolTypes} means Sapling and Orchard for
 backward compatibility (\texttt{service.proto}, lines~38--41). Both
 servers therefore default to shielded-relevant transactions on the sync
@@ -682,8 +693,10 @@ changelog (v0.5.0, 2026-06-30) but in no tagged release --- the latest
 tag is v0.4.1 (\texttt{research/upstream-defects.md}, item~3); the pool
 and its activation are \emph{specified} (ZIP~2005, Proposed; ZIP~258,
 Draft: Testnet activation $4{,}134{,}000$, Mainnet scheduled in deployed
-node software at $3{,}428{,}143$); nothing deployed serves the
-compact-format fields.
+node software at $3{,}428{,}143$); deployed \textsf{Zaino} wires both
+fields through its serving builders (\textsf{zaino-state},
+\texttt{chain\_index/types/db/legacy.rs}), where they remain empty until
+NU6.3 data exists on chain.
 
 \subsection{Divergences between ZIP-307 and the deployed protocol}%
 \label{sec:sync-compact-divergences}
@@ -788,7 +801,9 @@ proxy to provide a correct view of the best chain; network-level privacy
 (Tor, Nym) is assumed to be provided separately; spending privacy is out of
 scope (ZIP~307, \S~``Security Model''). The chain has carried commitments
 designed to let a client check that view succinctly since Heartwood
-(ZIP~221, via \texttt{hashBlockCommitments}); no deployed client consumes
+(ZIP~221, via \texttt{hashLightClientRoot}, renamed
+\texttt{hashBlockCommitments} and composed with the auth-data root at
+NU5); no deployed client consumes
 them (\emph{FlyClient Guide}, \S``The deployment gap'').
 
 \paragraph{Where the contract lives.} The wire contract is \emph{not} in
@@ -833,9 +848,12 @@ pool. The canonical v0.4.1 has \texttt{PoolType} $=$ \{\texttt{INVALID},
 \texttt{TRANSPARENT}, \texttt{SAPLING}, \texttt{ORCHARD}\} and
 \texttt{ShieldedProtocol} $=$ \{\texttt{sapling}, \texttt{orchard}\}.
 The fork in \textsf{librustzcash}
-(\texttt{zcash\_client\_backend/proto/service.proto}) adds
-\texttt{IRONWOOD = 4}, \texttt{TreeState.ironwoodTree = 7}, and
-\texttt{ShieldedProtocol.ironwood = 2}. Zaino's fork
+(\texttt{zcash\_client\_backend/proto/service.proto} and
+\texttt{compact\_formats.proto}) adds \texttt{IRONWOOD = 4},
+\texttt{TreeState.ironwoodTree = 7},
+\texttt{ShieldedProtocol.ironwood = 2},
+\texttt{ChainMetadata.\allowbreak ironwoodCommitmentTreeSize = 3}, and
+\texttt{CompactTx.ironwoodActions = 9}. Zaino's fork
 (\texttt{zaino-proto}) adds \texttt{IRONWOOD = 4},
 \texttt{ironwoodTree = 7}, \texttt{ChainMetadata.\allowbreak
 ironwoodCommitmentTreeSize = 3}, and \texttt{CompactTx.ironwoodActions =
@@ -1122,8 +1140,15 @@ and zeroes both commitment-tree sizes; \texttt{GetBlockRangeNullifiers}
 MUST ignore any \texttt{TRANSPARENT} member of \texttt{poolTypes}, and
 lightwalletd filters it out (\texttt{service.proto:239--268};
 \textsf{lightwalletd}, \texttt{frontend/service.go:191--225,259--305}).
-Zaino additionally accepts these by hash, as for \texttt{GetBlock}
-(\textsf{zaino}, \texttt{zaino-state/src/backends/fetch.rs:929--1041}).
+Zaino's \texttt{FetchService} backend additionally resolves
+\texttt{GetBlockNullifiers} by hash, as for \texttt{GetBlock}
+(\textsf{zaino},
+\texttt{zaino-state/src/}\allowbreak\texttt{backends/fetch.rs:929--1041});
+its \texttt{StateService} backend ignores a supplied hash and reads only
+the height, silently serving height~0 --- genesis --- for a
+hash-identified request
+(\texttt{backends/}\allowbreak\texttt{state.rs:2033--2058};
+\texttt{research/}\allowbreak\texttt{upstream-defects.md}, item~40).
 
 \paragraph{Tree state.} The RPC
 $\mathtt{GetTreeState}(\mathtt{BlockID})$ returns the note commitment tree
@@ -1172,7 +1197,7 @@ convention from \texttt{CompactBlock.hash}
 (Remark~\ref{rem:sync-tree-byteorder}; \textsf{lightwalletd},
 \texttt{frontend/service.go:832--907}). These roots are exactly the
 retained internal nodes from which the wallet's shard tree assembles
-authentication paths without replaying every commitment (\emph{Orchard
+authentication paths without replaying every commitment (\emph{Ironwood
 Guide}, \S``Proof of ownership of \emph{some} valid note: the commitment
 tree''). Zaino converts \texttt{startIndex} and \texttt{maxEntries} to
 \texttt{u16} and returns \texttt{InvalidArgument} when either exceeds
@@ -1518,7 +1543,8 @@ Contract point & lightwalletd & Zaino \\
 \midrule
 \texttt{GetBlock}(\texttt{Nullifiers}) by hash (optional in proto) &
 \texttt{InvalidArgument}, ``not yet implemented'' (PR~\#309) &
-supported; hash takes precedence \\
+supported (hash takes precedence), but \texttt{StateService} ignores
+the hash in \texttt{GetBlockNullifiers} \\
 \addlinespace
 Stream deadlines (proto: \texttt{GetMempoolStream} closes on new block) &
 none; open until next block &
@@ -1693,18 +1719,23 @@ commitment trees; and
 returning complete-subtree roots with their completing block hash and
 height, selected by \texttt{enum ShieldedProtocol \{ sapling=0; orchard=1;
 ironwood=2 \}}
-(\texttt{lightwallet-protocol/walletrpc/service.proto:30--231}).
+(\texttt{lightwallet-protocol/walletrpc/service.proto:24--321}).
 
 \begin{remark}[Deployment divergence at NU6.3]\label{rem:sync-divergence}
 The deployed \textsf{lightwalletd} tree (commit \texttt{61fee32e},
 2026-06-25) contains no Ironwood support: its \texttt{walletrpc} protos and
 Go code lack \texttt{ironwoodActions}, \texttt{ironwoodCommitmentTreeSize},
 \texttt{ironwoodTree}, and \texttt{ShieldedProtocol.ironwood}. The protos
-vendored by \textsf{librustzcash} (commit \texttt{e30517e4}) and
-\textsf{Zaino} (commit \texttt{0e057e22}) define all four, and the reference
-synchroniser unconditionally requests Ironwood subtree roots
-(\textsf{zcash\_client\_backend}, \texttt{src/sync.rs:279--296}). An NU6.3-aware
-wallet therefore requires Zaino or an updated lightwalletd.
+vendored by \textsf{librustzcash} (commit \texttt{e30517e4}) define all
+four; \textsf{Zaino} (commit \texttt{0e057e22}) defines the first three
+but not \texttt{ShieldedProtocol.ironwood} (\S\ref{sec:sync-authority}),
+so its \texttt{GetSubtreeRoots} rejects an Ironwood request with
+\texttt{InvalidArgument}
+(\texttt{zaino-state/src/}\allowbreak\texttt{indexer.rs:761--768}).
+The reference synchroniser unconditionally requests Ironwood subtree
+roots (\textsf{zcash\_client\_backend}, \texttt{src/sync.rs:279--296});
+an NU6.3-aware wallet therefore requires an updated server --- at these
+pins neither lightwalletd nor Zaino serves the full surface.
 %% TODO: determine and document the reference client's observed behaviour
 %% against a stock lightwalletd: GetSubtreeRoots with
 %% shieldedProtocol=ironwood, and proto-default zero
@@ -1955,7 +1986,7 @@ fetch failure or continuity error
 Function \texttt{scan\_cached\_blocks} scans one contiguous range; it
 takes the network parameters, the block source, the wallet database, a
 starting height \texttt{from\_height} with its prior chain state
-\texttt{from\_state}, and an optional block limit. It panics unless
+\texttt{from\_state}, and a block-count limit. It panics unless
 $\mathsf{fromHeight} = \mathsf{fromState.height} + 1$ --- the caller must
 supply the chain state immediately prior to the range
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:598--699}).
@@ -2388,7 +2419,7 @@ Zcash protocol specification''
 revision, \S3.4 is ``Transactions and Treestates'', \S3.8 ``Note
 Commitment Trees'', and \S3.7 ``Action Transfers and their
 Descriptions''
-(\texttt{protocol/protocol.tex:4048,\allowbreak 4248,\allowbreak 4306}),
+(\texttt{protocol/protocol.tex:4048,\allowbreak 4306,\allowbreak 4248}),
 likely a
 pointer into an older revision's numbering. We cite the current
 numbering.}
@@ -2437,10 +2468,11 @@ parse time. The parser \texttt{read\_commitment\_tree} bounds the
 $\mathsf{parents}$ vector at $\mathrm{DEPTH} - 1$ entries, and the parsed
 tree converts losslessly to a frontier via \texttt{to\_frontier()}
 (\textsf{zcash\_primitives}, \texttt{src/merkle\_tree.rs:26--61,183--209}).
-The producer is \textsf{zcashd}: the Sapling final state streams the
-legacy \texttt{SaplingMerkleTree} directly and the Orchard final state
-streams through the \texttt{OrchardMerkleFrontierLegacySer} wrapper, so
-both pools use the same wire format, hex-encoded
+The format's originator is \textsf{zcashd} (retired): its Sapling final
+state streamed the legacy \texttt{SaplingMerkleTree} directly and its
+Orchard final state streamed through the
+\texttt{OrchardMerkleFrontierLegacySer} wrapper, so both pools use the
+same wire format, hex-encoded
 (\textsf{zcashd},
 \texttt{src/rpc/blockchain.cpp:1402--1406,\allowbreak 1432--1436}).
 \end{definition}
@@ -2489,7 +2521,7 @@ including v5.2.0, later rectified
 
 \subsection{Server-side derivation}\label{sec:sync-tree-server}
 
-\paragraph{Tree states.} The upstream RPC is \textsf{zcashd}'s
+\paragraph{Tree states.} The RPC originates in \textsf{zcashd}'s
 \texttt{z\_gettreestate}: it accepts a block hash or height (negative
 heights allowed, $-1$ denoting the last known valid block), requires the
 block to be on the main chain, and returns the block's hash, height, and
@@ -2534,7 +2566,7 @@ of the requested block
 %% vestigial.
 \end{remark}
 
-\paragraph{Subtree roots.} The upstream RPC is
+\paragraph{Subtree roots.} The originating RPC is
 \texttt{z\_getsubtreesbyindex "pool" start\_index (limit)}, added in
 \textsf{zcashd} v5.6.0 and gated behind
 \texttt{-experimentalfeatures} $+$ \texttt{-lightwalletd}: it returns
@@ -2589,10 +2621,10 @@ at height $419{,}200$ (\textsf{zcash\_protocol},
 span roughly the chain's first $250{,}000$ post-activation blocks.
 \end{example}
 
-\paragraph{Alternative back ends.} Zebra implements both
+\paragraph{Deployed validator.} Zebra implements both
 \texttt{z\_gettreestate} and \texttt{z\_getsubtreesbyindex} in its RPC
-surface, so either validator can back an indexer for tree
-synchronisation (\textsf{zebra-rpc},
+surface, so a Zebra-backed indexer retains tree synchronisation after
+zcashd's retirement (\textsf{zebra-rpc},
 \texttt{src/methods.rs:361,2018}; \texttt{src/methods/trees.rs}). The
 successor indexer serves the same gRPC API: Zaino's
 \texttt{get\_tree\_state} proxies \texttt{z\_get\_treestate} to the
@@ -2690,21 +2722,24 @@ The reference sync driver begins \emph{every} run by refreshing the
 shard roots: function \texttt{update\_subtree\_roots} downloads all
 subtree roots --- the default \texttt{GetSubtreeRootsArg}, i.e.\
 $\mathsf{startIndex} = 0$, $\mathsf{maxEntries} = 0$ --- for Sapling and,
-with the \texttt{orchard} feature, Orchard, converting each streamed
-message by
+with the \texttt{orchard} feature, Orchard and Ironwood, converting each
+streamed message by
 \[
 \texttt{CommitmentTreeRoot::from\_parts}\bigl(
 \mathsf{completingBlockHeight},\ H\texttt{::read}(\mathsf{rootHash})
 \bigr)
 \]
-and passing the batches to \texttt{put\_sapling\_subtree\_roots} and
-\texttt{put\_orchard\_subtree\_roots}, each with start index $0$
+and passing the batches, each with start index $0$, to
+\texttt{put\_sapling\_}\allowbreak\texttt{subtree\_roots},
+\texttt{put\_orchard\_}\allowbreak\texttt{subtree\_roots}, and
+\texttt{put\_ironwood\_}\allowbreak\texttt{subtree\_roots}
 (\textsf{zcash\_client\_backend},
 \texttt{src/sync.rs:80--86,\allowbreak 228--299}).
 Type \texttt{CommitmentTreeRoot} pairs the subtree end height with the
 root hash (\texttt{src/data\_api/}\allowbreak\texttt{chain.rs:180--212}),
-and the trait
-documentation (\texttt{src/data\_api.rs:3743--3826}) fixes the meaning:
+and the trait documentation
+(\texttt{src/}\allowbreak\texttt{data\_api.rs:3743--3826}) fixes the
+meaning:
 each value ``should be the Merkle root of a subtree \ldots\ containing
 $2^{\mathrm{SHARD\_HEIGHT}}$ note commitments''.
 
@@ -2789,13 +2824,14 @@ result is
 \begin{aligned}
 \texttt{ChainState}\{\,&\mathsf{blockHeight};\ \mathsf{blockHash}; \\
 &\mathsf{finalSaplingTree} : \texttt{Frontier}\langle 32 \rangle;\
-\mathsf{finalOrchardTree} : \texttt{Frontier}\langle 32 \rangle\,\},
+\mathsf{finalOrchardTree} : \texttt{Frontier}\langle 32 \rangle; \\
+&\mathsf{finalIronwoodTree} : \texttt{Frontier}\langle 32 \rangle\,\},
 \end{aligned}
 \]
 ``the final note commitment tree state for each shielded pool, as of a
-particular block height''
-(\texttt{src/data\_api/chain.rs:504--596}; a third frontier exists at
-HEAD, Remark~\ref{rem:sync-divergence}).
+particular block height'' --- the Orchard and Ironwood frontiers sit
+behind the \texttt{orchard} feature
+(\texttt{src/data\_api/}\allowbreak\texttt{chain.rs:504--596}).
 
 Every scanned batch is seeded with the chain state of the block
 immediately preceding it, and the seed is verified against the server's
@@ -3033,11 +3069,15 @@ ZIP~307 has Status Draft --- it was never finalised --- even though the
 protocol it sketches is the deployed synchronisation layer. The deployed
 wire format has moved past the sketch: the ZIP's \texttt{CompactBlock}
 carries \texttt{vtx} at field~3 and a \texttt{BlockID}, while the deployed
-message carries \texttt{vtx} at field~7 plus \texttt{protoVersion},
-\texttt{prevHash}, \texttt{time}, an (always unset) \texttt{header}, and
-\texttt{ChainMetadata}; the deployed \texttt{CompactTx} adds \texttt{txid},
-\texttt{fee}, Orchard actions, and transparent \texttt{vin}/\texttt{vout}
-counts (ZIP~307 \S``Compact Stream Format'' vs.\ \textsf{lightwalletd},
+message carries \texttt{vtx} at field~7 plus (in the v0.4.1 proto
+\textsf{lightwalletd} vendors) \texttt{protoVersion} --- removed in
+v0.5.0 (\S\ref{sec:sync-compact-wire}) --- \texttt{prevHash},
+\texttt{time}, an (always unset) \texttt{header}, and
+\texttt{ChainMetadata}; the deployed \texttt{CompactTx} adds
+\texttt{txid}, \texttt{fee}, Orchard actions, and transparent
+\texttt{vin}/\texttt{vout} entries (\texttt{CompactTxIn} outpoints and
+full \texttt{TxOut}s) (ZIP~307 \S``Compact Stream Format'' vs.\
+\textsf{lightwalletd},
 \texttt{lightwallet-protocol/walletrpc/compact\_formats.proto}). The
 \textsf{lightwallet-protocol} proto repository, not the ZIP, is the de
 facto wire specification. The planned in-protocol successor is emptier
@@ -3138,7 +3178,8 @@ ZIP~307 asserts that compact-block synchronisation itself ``leaks no
 information about which transactions the light client is interested in''
 because the compact stream is a broadcast medium
 (ZIP~307 \S``Transaction privacy''). The same document contradicts the
-claim eight sections earlier, for the request pattern actually deployed:
+claim in the immediately preceding section, for the request pattern
+actually deployed:
 ``The above interaction reveals to the server at the start of each
 synchronisation phase (B and D) the block height which the light client had
 previously synchronised to. This is an information leak under our security

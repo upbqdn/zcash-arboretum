@@ -445,12 +445,14 @@ Result: 76 deduped candidates -> 71 confirmed by both jurors, 4 refuted,
 (dedup of repeated-root findings). Root causes, largest first:
 
 - **Wallet PCZT staleness (15 findings).** The section documented pczt
-  0.5.1 as deployed; the workspace ships pczt 0.7.0, which implements v1
-  AND v2 (Ironwood bundle, empty-bundle omission, non-negative-zero
-  value_sum), orchard 0.15.0, sapling-crypto 0.7.0, zip321 0.8.0. The
+  0.5.1 as deployed; the workspace ships pczt 0.7.0 (v1 only) and
+  carries v2 (Ironwood bundle, empty-bundle omission, non-negative-zero
+  value_sum) as unreleased 0.8.0-PLANNED changes at the workspace head,
+  plus orchard 0.15.0, sapling-crypto 0.7.0, zip321 0.8.0. The
   "specified-not-deployed" / "version skew" / "negative-zero divergence"
-  claims were true at drafting and are now false: upstream shipped and
-  fixed them. Section re-grounded at the new baseline.
+  claims were true at drafting and are now stale: upstream landed the
+  fixes at head, with v2 unreleased. Section re-grounded at the new
+  baseline.
 - **Pasta magnitude (5 sites, crypto + math).** Fields stated as
   "~2^255"; the moduli are 2^254 + eps (255-bit primes, sqrt q ~ 2^127).
 - **Accumulation misattribution (4 sites, crypto).** Deployed Orchard
@@ -475,3 +477,58 @@ Result: 76 deduped candidates -> 71 confirmed by both jurors, 4 refuted,
 Upstream candidates (11, UNVERIFIED, in
 `.wip/overhaul-findings-banked.json`): not filed; user reviews firsthand
 per standing rule.
+
+## Residual wave (grid completion), 2026-08-18
+
+Completes the overhaul: 31 finders over the nine previously unaudited
+volumes, wallet part a, both cross-volume sweeps, and a landing check on the
+first wave's 67 edits. Pipeline as before: bounded finders -> paired
+default-refute juries (26 jurors, all pairs complete) -> per-volume
+third-layer re-verification emitting byte-exact edits. Ground truth: zips
+`69610984`; librustzcash `e30517e433` (pczt 0.7.0 released = v1 only, v2 in
+0.8.0-PLANNED; orchard 0.15.0 released; zip321 0.8.0); zebra `fa7657f1c`
+(NU6.3 Mainnet 3,428,143 shipped in 6.2.2); zips-zsa `fd71419`; orchard-zsa
+`cf801a5`; tachyon book `26fdcl65`/ragu `830bbcda`; voting pins per volume.
+
+Result: 153 deduped candidates -> 148 confirmed by both jurors, 5 split
+(all dropped on review: two truncated-title style calls matching corpus
+practice; one refuted firsthand -- ZIP-316 does state the 0x2000000 MUST
+bound, zip-0316.rst:435; two wallet part-a "drift" findings whose citations
+are exact at the pin part a declares, 62ee526), 0 rejected. Applied as 205
+edit sites across 12 volumes + this file. Root clusters:
+
+- **Ironwood NU6.3 staleness (activation + v6 + note-version, ~12
+  findings).** Mainnet activation height 3,428,143 shipped in Zebra 6.2.x
+  (due late July 2026 by schedule); the released orchard 0.15.0 carries the
+  full v6 digest machinery, versioned notes (NoteVersion), and the ZIP-2005
+  rcm dispatch that the volume described as specified-but-undeployed at the
+  bef8a27 dev tree. Re-grounded; bef8a27 kept as history.
+- **Sync zcashd recast (~10 findings).** Present-tense
+  zcashd-as-running claims recast historically; post-NU6.3 the retired
+  zcashd would compute divergent chain-history roots.
+- **Wallet part a (~30 findings).** Version-pin and API staleness
+  (sapling-crypto 0.6.0 -> 0.7.0 cites, Orchard Guide -> Ironwood Guide
+  renames, zip321 API forms), aligned with part b's baseline.
+- **FlyClient bagging order (medium).** ZIP-221 bags peaks
+  left-fold-leftmost, the opposite of the paper's implicit right fold;
+  "costs and proofs identical across all three presentations" was false
+  for three or more peaks. Also the difficulty-direction inversion
+  ("raising the target" vs the paper's raising the difficulty) and a
+  registered inconsistency in the paper's own Table 1 (the 1,275x cell).
+- **Layering repairs (crypto).** The birthday bound and the
+  statistical-distance theorem were re-proved in crypto-guide; proofs
+  replaced by citations to the Math Guide per the proved-once rule.
+- **First-wave register correction (from the edit check).** The wave-1
+  entry overstated "pczt 0.7.0 implements v1 AND v2"; v2 sits in
+  0.8.0-PLANNED at the workspace head. Corrected above in place.
+- Remainder: per-volume citation, quantitative, and internal-consistency
+  repairs across zsa (20), tachyon (10), halo2 (9), frost (5), voting (2),
+  halo2-intuition (3), math (2), crypto (7).
+
+Residual register: wallet part a remains pinned at 62ee526 while part b is
+at e30517e433 (citations exact at each declared pin; a future re-pin pass
+would unify). Upstream candidates now 47 total (11 + 36), UNVERIFIED, in
+`.wip/overhaul-findings-banked.json` and `.wip/residual-upstream.json`;
+user reviews firsthand per standing rule. With this wave the overhaul
+covers every volume, both cross-volume sweeps, and an edit-landing check;
+the campaign's guide-fix track is CLOSED.

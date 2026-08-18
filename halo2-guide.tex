@@ -529,10 +529,14 @@ passage through the deployed code: a real custom gate (the ECC chip's
 incomplete point addition), two real lookup declarations (the ten-bit range
 check and the Sinsemilla generator table), and the synthesis machinery that
 turns witness data into the column vectors on which every argument of this
-section operates. Our sources are the crates the Orchard circuit is built
-from --- \texttt{halo2\_proofs}~0.3.2 and \texttt{halo2\_gadgets}~0.4.0, as
-resolved by \texttt{orchard}~0.13.1, the version we cite --- with file
-paths relative to each crate's \texttt{src/}.
+section operates. Our sources are \texttt{halo2\_proofs}~0.3.2 and
+\texttt{halo2\_gadgets}~0.4.0, as resolved by \texttt{orchard}~0.13.1, the
+version we cite, with file paths relative to each crate's \texttt{src/}.
+The deployed \texttt{orchard} (0.15.0) keeps \texttt{halo2\_proofs}~0.3.2
+but resolves \texttt{halo2\_gadgets}~0.5.0, the release carrying the
+NU6.2 circuit correction (ZIP 257; the \emph{Ironwood Guide}); every
+gate and lookup declaration cited below is identical in the two
+releases.
 
 \paragraph{Shape first, data second.}
 A circuit, to \texttt{halo2\_proofs}, is a type implementing the
@@ -587,7 +591,9 @@ selectors, whose compressed columns are among the $29$ fixed columns pinned
 in its verifying key; the pinned count is the post-compression one
 (\texttt{orchard}~0.13.1, \texttt{src/circuit\_description}; since 0.14
 the file lives at \texttt{src/circuit\_data/\allowbreak
-circuit\_description\_fixed}).
+circuit\_description\_insecure}, and the corrected post-NU6.2 key beside
+it, \texttt{circuit\_description\_fixed}, pins the identical constraint
+system, differing only in its permutation commitments).
 
 \paragraph{Regions, the layouter, and wiring.}
 Data enters at synthesis through a \texttt{Layouter}. A chip requests a
@@ -951,9 +957,11 @@ The lookup constraints above, like the permutation constraints of
 system reserves the trailing rows of every column for random blinding
 values (\S\ref{sec:halo-zk}). Each product-update constraint is therefore
 multiplied by the factor
-$\bigl(1 - (q_{\mathrm{last}}(X) + q_{\mathrm{blind}}(X))\bigr)$, where
-the fixed columns $q_{\mathrm{blind}}$ and $q_{\mathrm{last}}$ select the
-blinding rows and the boundary row immediately before them, and boundary
+$\bigl(1 - (\ell_{\mathrm{last}}(X) + \ell_{\mathrm{blind}}(X))\bigr)$,
+where $\ell_{\mathrm{blind}}$ and $\ell_{\mathrm{last}}$ are
+Lagrange-basis selectors of the blinding rows and of the boundary row
+immediately before them --- computed directly from the domain by both
+parties, not committed circuit columns --- and boundary
 constraints such as
 $\ell_{\mathrm{last}}(X)\bigl(Z(X)^2 - Z(X)\bigr) = 0$ pin the running
 product to $\{0, 1\}$ at the boundary row. The random rows consequently
@@ -1054,6 +1062,23 @@ $G^{(0)} = \Comm(g; 0)$ requires an $O(d)$-size multi-scalar
 multiplication (MSM). This asymmetry is the seed of the accumulation
 scheme (\S\ref{sec:halo-acc}).
 
+\begin{remark}[The deployed IPA normalisation]\label{rem:ipa-deployed}
+The deployed opening (\texttt{halo2\_proofs}~0.3.2,
+\texttt{poly/commitment/prover.rs} and \texttt{verifier.rs}) uses the
+rescaled Halo convention, not the Bulletproofs one above: the folding
+weights are $(1, u_j^{-1})$ on the coefficient vector and $(1, u_j)$ on
+$\vec{b}$ and $\vec{G}$, the verifier accumulates
+$[u_j^{-1}] L_j + [u_j] R_j$, and the deferred polynomial is
+$g(X) = \prod_{i=0}^{k-1} \bigl(1 + u_{k-1-i} X^{2^i}\bigr)$. The
+opening also begins with an extra blinding commitment $S$ and two
+challenges $\xi, z$, and ends with two scalars: the collapsed
+coefficient $c$ and a synthetic blinder $f$. The two conventions are
+equivalent up to per-round rescaling of the folded vectors and
+relabelling ($u_j^2$ here corresponds to the code's $u_j$, with the
+roles of $L_j$ and $R_j$ exchanged); every statement of this section
+transfers.
+\end{remark}
+
 \subsubsection{Worked example: an IPA opening at \texorpdfstring{$d = 4$}{d=4}}\label{sec:ipa-worked}
 
 Take $d = 4$, so $k = 2$ rounds. Let $p(X) = a_0 + a_1 X + a_2 X^2 + a_3 X^3$
@@ -1105,9 +1130,13 @@ the asymmetry the accumulator defers.
 \subsubsection{Knowledge soundness via rewinding}\label{sec:ipa-extract}
 
 \begin{theorem}[Knowledge soundness of IPA]\label{thm:ipa-ks}
-Under the DL assumption on $\G$, and modelling Fiat--Shamir as a random
-oracle, Construction~\ref{const:ipa} is knowledge-sound for
-$\Rel_{\mathrm{IPA}}$ with knowledge error $O(d / |\F_p|)$.
+Under the DL assumption on $\G$, the interactive opening protocol of
+Construction~\ref{const:ipa} is knowledge-sound for
+$\Rel_{\mathrm{IPA}}$ with knowledge error $O(d / |\F_p|)$, via an
+expected-polynomial-time tree extractor. The Fiat--Shamir-compiled
+argument inherits the bound only up to the naive $q^{O(\log d)}$
+random-oracle query loss; the tight non-interactive bound needs the
+AGM (\S\ref{sec:ks}).
 \end{theorem}
 
 \begin{proof}[Sketch of the tree extractor]
@@ -1290,21 +1319,22 @@ which exceeds the IPA's degree bound $n$. The prover therefore
 splits $h$ into \(\lceil (\deg h + 1)/n \rceil\) chunks
 $h_0, h_1, \dots$ of degree $< n$, with
 $h(X) = \sum_i X^{n i}\, h_i(X)$, and commits to each chunk separately;
-the verifier recombines the chunk evaluations at the evaluation point.
+the verifier recombines the chunk \emph{commitments}, weighted by
+powers of $x^n$ once the evaluation point $x$ is drawn.
 The prover's FFTs correspondingly run over an \emph{extended} domain
 whose size accommodates $\deg C$, a small multiple of $n$.
 
 \paragraph{Phase 5 --- evaluation challenge $x$.}
 The verifier returns $x \in \F$. The prover evaluates every committed
-polynomial at $x$, and at the rotated points the constraints reference
---- $\omega x$ for the running products (and for any gate reading an
-adjacent row), $\omega^{-1} x$ for the permuted lookup input $A'$ ---
-and sends these claimed evaluations as field elements. The verifier checks
-the gate equation $C(x) = h(x) Z_H(x)$ as a numerical identity in the
-sent evaluations. This check is meaningful only once the claimed
-evaluations bind to the commitments, which is the role of phases 6--7;
-a prover who sent inconsistent evaluations would pass this field identity
-but fail the opening argument.
+polynomial except the quotient chunks at $x$, and at the rotated points
+the constraints reference --- $\omega x$ for the running products (and
+for any gate reading an adjacent row), $\omega^{-1} x$ for the permuted
+lookup input $A'$ --- and sends these claimed evaluations as field
+elements. No evaluation of $h$ is sent: the verifier computes the
+expected quotient evaluation $C(x)/(x^n - 1)$ from the sent evaluations
+and enforces it against the collapsed chunk commitment inside the
+multipoint opening of phases 6--7, where the claimed evaluations
+themselves also bind to their commitments.
 
 \paragraph{Phase 6 --- multipoint opening.}
 The claimed evaluations must now be bound to the commitments, and Halo 2
@@ -1368,14 +1398,15 @@ all: each advice column, the permuted lookup columns, the running
 products, the quotient chunks, and the multipoint polynomial $f$
 (typical Orchard Action circuit: $n = 2^{11}$, a few seconds on commodity
 hardware). The verifier performs $O(\log n)$ field and group operations
-per proof --- recomputing the challenges, the gate-equation field check,
+per proof --- recomputing the challenges, the gate-equation field evaluation,
 the $\log n$ rounds of phase 7 --- plus the single deferred $O(n)$ MSM,
 amortised over a batch as in \S\ref{sec:halo-acc}.
 
 \paragraph{Proof size.}
 Two kinds of data make up a proof. The IPA of phase 7 contributes
-$2 \log_2 n$ group elements (the pairs $(L_j, R_j)$) plus the final
-scalars --- for Orchard's $n = 2^{11}$, twenty-two points; this is the
+$2 \log_2 n + 1$ group elements (a blinding commitment and the pairs
+$(L_j, R_j)$; Remark~\ref{rem:ipa-deployed}) plus two final scalars ---
+for Orchard's $n = 2^{11}$, twenty-two points in the pairs; this is the
 only part that scales with $n$, and only logarithmically. Everything
 else scales with the \emph{circuit structure}, independently of $n$: one
 commitment per advice column, two permuted-column commitments and one
@@ -1386,7 +1417,9 @@ For the Orchard Action circuit the total is fixed by consensus (ZIP 225):
 a bundle's proof occupies $2720 + 2272 \cdot a$ bytes for $a$ Actions ---
 just under 5\,kB for a single-Action bundle --- the per-Action term
 covering the per-circuit commitments and evaluations, the constant term
-the shared quotient, multipoint, and IPA data.
+the evaluations of the verifying key's fixed-column and permutation
+polynomials together with the shared quotient, multipoint, and IPA
+data.
 
 
 \subsection{Instance columns and binding the public statement}\label{sec:instance}
