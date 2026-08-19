@@ -37,6 +37,7 @@ VOLUME_META = [
     ("tachyon-guide", "Frontier", "design-stage"),
     ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
+    ("pq-guide", "Frontier", "design-stage"),
 ]
 VOLUMES = [v for v, _, _ in VOLUME_META]
 
@@ -131,7 +132,7 @@ def webprep():
 
 
 ROMANS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
-          "XI", "XII", "XIII", "XIV"]
+          "XI", "XII", "XIII", "XIV", "XV"]
 
 
 def vol_title(vol):

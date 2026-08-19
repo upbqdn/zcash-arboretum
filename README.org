@@ -66,6 +66,9 @@ Layered; read each atop the ones it names.
 13. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
     paper constructs it and RFC 9591 standardises it, the rerandomized form,
     and the surfaces that use it.
+14. *PQ Guide* (=pq-guide.tex=) — the cross-layer post-quantum picture: the
+    assumption inventory sorted by reversibility, quantum mining, ZIP-2005's
+    recoverability-not-resistance strategy, and the migration surface.
 
 Compiled PDFs are committed alongside the sources.
 
