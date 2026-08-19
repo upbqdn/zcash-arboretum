@@ -1399,6 +1399,56 @@ payment occurred and nothing else --- not sender, recipient, or amount.
 That sequence constitutes the entire protocol. The formal Action statement below
 is precisely the list of the in-circuit checks step 3 invokes.
 
+\subsection{How value enters the pool}\label{sec:pool-entry}
+
+The walkthrough moved value already inside the pool. Value \emph{enters}
+through three doors, each public in amount: the two below, and migration
+from another shielded pool (\S\ref{sec:iw-turnstile}).
+
+\paragraph{Shielding transactions.} The instrument is the sign of the
+balancing value: by the convention of \S\ref{sec:value}, a positive
+$v_{\mathrm{balance}}^{\mathsf{Orchard}}$ is net value leaving the pool,
+so a \emph{shielding} transaction is one whose transparent inputs fund a
+negative $v_{\mathrm{balance}}^{\mathsf{Orchard}}$: its Actions spend
+dummy notes ($v_{\mathrm{old}} = 0$, the anchor check A3 gated off,
+\S\ref{sec:circuit}) and create real ones, and the binding signature of
+\S\ref{sec:value} proves the books balance. An observer learns the
+entering amount --- the balancing field is a cleartext transaction field
+--- but not the receiving note or address. The deployed construction
+path is function \texttt{propose\_shielding}
+(\textsf{zcash\_client\_backend},
+\texttt{data\_api/\allowbreak wallet.rs} and
+\texttt{input\_selection.rs}): it sweeps the given source addresses'
+UTXOs, at zero confirmations under the default policy, and wallets
+auto-shield transparent receipts to internal keys.
+
+\paragraph{Shielded coinbase (ZIP-213).} Since Heartwood, new issuance
+may enter directly: ``[c]oinbase transactions MAY contain Sapling
+outputs'', extended at NU5 to the Orchard pool and re-scoped at NU6.3
+--- from then coinbase may carry ``Sapling-pool and/or Ironwood-pool
+outputs'', and ``it is only possible to mine to an Orchard address by
+sending the funds to the \emph{Ironwood pool}'' (ZIP-213). Two riders
+keep this auditable and consistent. Coinbase maturity is amended to
+bind transparent outputs only (the rule the \emph{Consensus Guide}
+reads through its theorem, \S``Reorg rails, maturity, and the finality
+floor''), and every shielded coinbase output ``MUST have valid note
+commitments'' when recovered under the \emph{all-zero} outgoing viewing
+key: coinbase shielding is publicly decryptable by construction, so
+anyone can verify what issuance entered which pool, while the notes
+spend exactly like any others afterwards.
+
+\paragraph{The ledger of crossings.} Every entry and exit is metered by
+ZIP-209's pool balances: for each shielded pool, the \emph{chain value
+pool balance} is the negation of the sum of that pool's balancing
+fields over the whole chain (for Sprout, the sum of
+$\mathtt{vpub\_old} - \mathtt{vpub\_new}$), and a block is invalid if
+it would drive any pool balance --- shielded, transparent, or the
+deferred fund --- negative, or total supply past
+$\mathsf{MAX\_MONEY}$. Entry, transfer, and exit therefore reconcile
+publicly at pool granularity while individual notes stay hidden; the
+Ironwood instantiation, and the one-way turnstile that closes the
+Orchard pool's entry door entirely, are \S\ref{sec:iw-turnstile}'s.
+
 \subsection{What a node verifies, without ever observing the note}\label{sec:netverify}
 
 Note that none of the previous subsection involved the \emph{network}. A
@@ -2442,7 +2492,8 @@ v_{\mathrm{balance}}^{\mathsf{Orchard}} \;\ge\; 0
 \qquad \text{(any transaction version; ZIP-258)},
 \]
 so value may exit but never enter; and the chain maintains an Ironwood
-analogue of every pool-balance rule (the ZIP-209 extension):
+analogue of every pool-balance rule of \S\ref{sec:pool-entry} (the
+ZIP-209 extension):
 \[
 \mathsf{IronwoodPoolBalance} \;:=\; -\sum_{\mathrm{tx}}
 v_{\mathrm{balance}}^{\mathsf{Ironwood}}(\mathrm{tx}),
