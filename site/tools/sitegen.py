@@ -275,15 +275,24 @@ the volumes, and where each is treated. Generated from the sources.</p>
 
 
 def postprocess(outdir):
-    """Inject the site bar + search into every built volume page, scope the
-    search index to the document body, and drop LaTeXML's footer logo."""
+    """Inject the site bar + search + MathJax into every built volume page,
+    scope the search index to the document body, and ship static assets that
+    the volume pages reference (the MathJax bundle)."""
+    import shutil
     out = Path(outdir)
+    shutil.copytree(ROOT / "site" / "mathjax", out / "mathjax",
+                    dirs_exist_ok=True)
     for vol, _group, _chip in VOLUME_META:
         vdir = out / vol
         if not vdir.is_dir():
             continue
         title, _ = vol_title(vol)
-        bar = f"""<header class="arb-bar"><a class="wordmark" href="../">The
+        mathjax = f"""<script>
+window.MathJax = {{ options: {{ enableMenu: false }},
+  svg: {{ fontCache: 'global' }} }};
+</script>
+<script src="../mathjax/mml-svg.js?v={ver()}" defer></script>"""
+        bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../">The
 Zcash Arboretum</a><span class="volname">{title}</span>
 <details class="arb-search"><summary>search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>

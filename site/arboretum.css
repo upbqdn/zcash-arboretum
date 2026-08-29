@@ -301,6 +301,24 @@ ol.plates li.plate:hover { border-color: var(--muted); }
 .ltx_page_main li.ltx_item > .ltx_tag { flex: none; }
 .ltx_page_main li.ltx_item > .ltx_para { flex: 1 1 0; min-width: 0; }
 
+/* Book typography: match the PDF's justified, hyphenated, indented
+   paragraph blocks instead of ragged blog paragraphs. Indent marks every
+   paragraph that continues another (LaTeXML wraps each in .ltx_para), and
+   the inter-paragraph gap shrinks to a book-like sliver. */
+.ltx_page_main .ltx_para > .ltx_p {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+.ltx_page_main .ltx_para { margin-bottom: .45em; }
+.ltx_page_main .ltx_para + .ltx_para > .ltx_p:first-child {
+  text-indent: 1.4em;
+}
+/* MathJax replaces the MathML with TeX-quality SVG; keep its display
+   equations on the page grid and let inline math inherit text colour. */
+mjx-container[jax="SVG"] { color: inherit; }
+mjx-container[jax="SVG"][display="true"] { margin: 1em 0 !important; }
+
 /* Feedback footer injected by sitegen postprocess */
 .arb-foot {
   text-align: center; font-size: .85rem; color: var(--muted);
