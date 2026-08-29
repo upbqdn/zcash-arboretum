@@ -115,7 +115,8 @@ deployed nodes disagree, the divergence is stated.
 \section{Scope, sources, and the two double-spends}\label{sec:cons-scope}
 
 Every volume above this one takes a working ledger for granted: the
-\emph{Ironwood Guide} proves what a shielded transaction commits to, the
+\emph{Ironwood Guide} proves what a shielded transaction --- one whose
+amounts and addresses are cryptographically hidden --- commits to, the
 \emph{Wallet Guide} builds transactions, the \emph{Sync Guide} fetches
 the chain, the \emph{FlyClient Guide} verifies it succinctly. This
 volume documents the mechanism that makes there be \emph{one} chain to
@@ -136,8 +137,9 @@ invalid (\emph{Ironwood Guide}, \S``Prevention of double-spending:
 nullifiers''). What consensus must prevent is the chain-level attack:
 paying a merchant on the chain everyone sees, then replacing that chain
 wholesale with another in which the payment never happened. No
-zero-knowledge proof rules this out; only the economics of proof of work
-bounds its probability, and this volume computes that bound.
+zero-knowledge proof (\emph{Crypto Guide}, \S``Interactive proofs, zero
+knowledge, and SNARKs'') rules this out; only the economics of proof of
+work bounds its probability, and this volume computes that bound.
 
 The volume assumes exactly one thing from the series below it: the
 \emph{Math Guide}'s probability section (\S``Probability, asymptotics,
@@ -210,9 +212,10 @@ Section~\ref{sec:cons-race} are ours.
 \section{The block tree and the most-work rule}\label{sec:cons-chain}
 
 Zcash transactions are grouped into blocks, and every block names its
-parent by including the parent header's hash; the genesis block alone
-has no parent. Blocks therefore form a tree rooted at genesis, and each
-root-to-leaf path --- each \emph{branch} --- is one internally
+parent by including the parent header's hash (\emph{Crypto Guide},
+\S``Hash functions and the random oracle model''); the genesis block
+alone has no parent. Blocks therefore form a tree rooted at genesis, and
+each root-to-leaf path --- each \emph{branch} --- is one internally
 consistent version of history. Branches need not be consistent with one
 another: one branch can contain a transaction that conflicts with a
 transaction in a sibling branch, and that freedom is exactly the attack
@@ -585,8 +588,9 @@ Conditioning on the first step,
   \qquad (0 \leq z \leq N - 1),
   \qquad h_N(-1) = 1, \quad h_N(N) = 0,
 \]
-a second-order linear recurrence with characteristic polynomial
-$p t^2 - t + q = p(t - 1)(t - q/p)$.
+a second-order linear recurrence. The trial solution $h_N(z) = t^z$
+satisfies it exactly when $t$ is a root of the \emph{characteristic
+polynomial} $p t^2 - t + q = p(t - 1)(t - q/p)$.
 
 If $q \neq p$ the roots $1$ and $q/p$ are distinct, so
 $h_N(z) = A + B (q/p)^z$; the boundary conditions give
@@ -803,8 +807,10 @@ confirmations is running a $2.33\%$ risk.
 \begin{remark}[Satoshi's approximation]\label{rem:cons-satoshi}
 The whitepaper's \S11 computes the same quantity with one
 approximation and two offsetting conventions: the attacker's progress
-is approximated as Poisson with mean $\lambda = n q / p$; no block is
-pre-mined, but success is scored at \emph{breakeven} rather than
+is approximated as Poisson with mean $\lambda = n q / p$ (the law
+$\Pr[k] = e^{-\lambda} \lambda^k / k!$ on the nonnegative integers);
+no block is pre-mined, but success is scored at \emph{breakeven}
+rather than
 strictly ahead, and those two conventions cancel exactly --- the
 whitepaper's catch-up factor for $m$ attacker blocks is
 $(q/p)^{n-m}$, term for term the factor of
@@ -1393,7 +1399,9 @@ behind a settled upgrade's activation is not up for probabilistic
 debate at all.
 \end{remark}
 
-The protocol itself hard-codes one confirmation count. ``A transaction
+The protocol itself hard-codes one confirmation count. A
+\emph{transparent} output is the Bitcoin-inherited kind, its value and
+destination in cleartext on chain. ``A transaction
 MUST NOT spend a transparent output of a coinbase transaction from a
 block less than 100 blocks prior to the spend'' (\S7.1.2;
 \texttt{MIN\_TRANSPARENT\_COINBASE\_MATURITY} $= 100$,
@@ -1404,8 +1412,8 @@ $r(0.4, 100) \approx 0.43\%$, but $r(0.45, 100) \approx 15.7\%$ ---
 even the deepest confirmation rule in the protocol is strong at
 moderate $q$ and porous near the majority line, as
 Proposition~\ref{prop:cons-divergence} says every fixed count must
-be. Since Heartwood a coinbase may shield its outputs, and the
-maturity rule binds only the transparent ones.
+be. Since the Heartwood network upgrade (ZIP-213) a coinbase may shield its outputs, and the maturity rule binds
+only the transparent ones.
 
 \subsection{What wallets actually wait for}\label{sec:cons-walletpolicy}
 
@@ -1415,8 +1423,11 @@ Deployed confirmation policy lives in \textsf{librustzcash}. Structure
 trusts) and $10$ for \emph{untrusted} ones, with zero-confirmation
 shielding of transparent funds allowed
 (\texttt{zcash\_client\_backend/src/data\_api/\allowbreak
-wallet.rs:444--455}, citing the draft ZIP-315); the spend anchor sits
-$3$ blocks below the target height (\texttt{wallet.rs:574--576}). The
+wallet.rs:444--455}, citing the draft ZIP-315); the spend anchor ---
+the note-commitment-tree root against which a spend proves its note
+exists (\emph{Crypto Guide}, \S``Privacy-preserving membership via
+zero-knowledge paths'') --- sits $3$ blocks below the target height
+(\texttt{wallet.rs:574--576}). The
 Android SDK passes exactly these defaults for transfers, and for
 shielding the minimum policy, under which the transparent funds being
 shielded need no confirmations at all
@@ -1459,7 +1470,8 @@ converges on.
 \emph{The gap finality closes.} Proposition~\ref{prop:cons-divergence}
 is the honest limit of Nakamoto consensus: as the adversary approaches
 half the work, no confirmation count survives. Crosslink's answer is
-to stop paying for the tail probabilistically --- a BFT protocol
+to stop paying for the tail probabilistically --- a vote among a fixed
+validator committee, safe while fewer than a third of it misbehaves,
 checkpoints the proof-of-work chain, and ``final'' becomes an assured
 status rather than a shrinking $r$ (\emph{Crosslink Guide}, \S``The
 ebb-and-flow model'', \S``Finality as a status''). The present volume

@@ -681,8 +681,10 @@ survivable, and every feasibility check of \S\ref{sec:fc-diffmmr} is an
 image of it. Backbone parameters are chosen so persistence and liveness
 hold, so a single chain is held by all honest full nodes.
 
-The adversary is rushing, mines with at most a $\mu$ fraction of honest
-power, and wants the light client to accept a chain of at least the honest
+The adversary is \emph{rushing} (each round it sees all honest
+messages before choosing its own), mines with at most a $\mu$ fraction
+of honest power, and wants the light client to accept a chain of at
+least the honest
 chain's cumulative difficulty. The verifier knows only the genesis block.
 Two structural facts already constrain the attack. A fork can carry no
 honest block from after its fork point --- the MMR roots inside those
@@ -1722,8 +1724,11 @@ stated model was found; the critical literature attacks velvet
 deployments and the realism of the adversary model, not the
 distribution. The nearest production relative is
 FlyClient-\emph{inspired} rather than FlyClient: Harmony's Horizon
-bridge design checkpoints MMR roots for an on-chain client ---
-BFT-finality checkpointing, not probabilistic PoW sampling. Claims that
+bridge design checkpoints MMR roots for an on-chain client --- the
+roots are final by supermajority vote of a fixed validator committee,
+a Byzantine-fault-tolerant (BFT) protocol safe while fewer than a
+third of the committee misbehaves arbitrarily, not by probabilistic
+PoW sampling. Claims that
 Grin or Beam ``use FlyClient'' conflate carrying MMR roots in headers
 (which Mimblewimble chains do natively --- the paper's own observation)
 with running a sampling verifier, for which no evidence surfaced.

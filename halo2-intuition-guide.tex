@@ -89,9 +89,12 @@ the content of the subject is \emph{soundness with zero-knowledge}, and that is
 what we will watch being built.
 
 Why this toy? Because it is the Orchard spend statement in miniature. When Alice
-spends a note she proves ``I know a note, a key, and a Merkle path such that
-the nullifier is computed correctly, the value commitment opens, and the note
-sits in the tree'' --- a conjunction of a few thousand small arithmetic facts
+spends a note she proves ``I know a note, a key, and a Merkle path (\emph{Crypto
+Guide}, \S``Merkle trees and commitments to sets'') such that
+the nullifier --- the unique tag whose publication marks the note spent ---
+is computed correctly, the value commitment (a Pedersen commitment to the note's
+value; \emph{Crypto Guide}, \S``The Pedersen commitment'') opens, and the note sits in the
+tree'' --- a conjunction of a few thousand small arithmetic facts
 over $\F_{p_{\mathsf{Pallas}}}$ (the \emph{Ironwood Guide}, checks~A1--A10). Our claim is
 a conjunction of \emph{four} small arithmetic facts. The proof system does not
 care which; it is the same machine at two scales. Master $x^3 + x + 5 = 35$ and
@@ -227,8 +230,9 @@ H \;=\; \{\,\omega^0, \omega^1, \omega^2, \omega^3\,\}
    \;=\; \{\,1,\ 22,\ -1,\ -22\,\}.
 \]
 Row $i$ now lives at the point $\omega^i$. (The roots of unity are chosen not
-for elegance but for speed: they make the polynomial arithmetic below an FFT.
-Any $4$ distinct points would do for correctness.)
+for elegance but for speed: they make the polynomial arithmetic below an FFT
+(\emph{Math Guide}, \S``The fast Fourier transform''). Any $4$ distinct
+points would do for correctness.)
 
 \paragraph{Columns become polynomials.} Each column of the table is four
 numbers, one per row. \emph{Interpolate}: for the advice column $a$ there is a
@@ -588,9 +592,11 @@ faintest idea what it is.
 \paragraph{The same machine, at Orchard scale.} Nothing above used that our
 statement was small. Replace the four gates by the few thousand constraints of
 the Orchard Action --- nullifier integrity, the value-commitment opening, the
-Merkle path recomputation, key re-randomisation (the \emph{Ironwood Guide},
+Merkle path recomputation, key re-randomisation (\emph{Crypto Guide}, \S``Key
+re-randomisation and unlinkability''; the \emph{Ironwood Guide},
 checks~A1--A10) --- and the columns grow from four rows to $2^{k}$, the gate
-polynomial gains custom high-degree terms, and a Sinsemilla lookup table joins
+polynomial gains custom high-degree terms, and a Sinsemilla lookup table (\emph{Crypto
+Guide}, \S``Sinsemilla: an algebraic hash-based commitment'') joins
 the permutation. But the spine is identical: arithmetise into a grid, interpolate
 to polynomials, compress ``all rows correct'' into one identity $G = t\,\ZH$,
 commit, and test at a random point. When a Zcash full node verifies a shielded

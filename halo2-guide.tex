@@ -161,6 +161,15 @@ verify each PCS opening, and run the PIOP's final accept/reject check.
 \end{enumerate}
 \end{construction}
 
+A PIOP is \emph{round-by-round} knowledge sound with error $\kappa_\Pi$
+if partial transcripts admit a ``doomed'' labelling under which a claim
+with no extractable witness starts doomed, no prover message lifts the
+label except with probability $\kappa_\Pi$ over the verifier's next
+challenge, and a complete doomed transcript is rejected; equivalently,
+the PIOP withstands a \emph{state-restoration} prover, one permitted to
+rewind the verifier to any earlier round and redraw its challenge, the
+two notions implying each other with comparable error.
+
 \begin{theorem}[Soundness preservation]\label{thm:piop-snark}
 If $\Pi$ has round-by-round (equivalently, state-restoration) knowledge
 soundness $\kappa_{\Pi}$ and the PCS is extractable
@@ -377,8 +386,8 @@ verification of \S\ref{sec:halo-acc} --- so we develop it with care.
 Consider a computation iterated many times,
 $z_n = f^{(n)}(z_0) := f(f(\dots f(z_0) \dots))$ --- Valiant's
 \emph{incrementally-verifiable computation} (TCC 2008) --- or, more
-generally, a DAG of computations each consuming the proofs of its
-predecessors --- \emph{proof-carrying data} (Chiesa, Tromer; ICS 2010).
+generally, computations that branch and merge, each consuming the proofs
+of its predecessors --- \emph{proof-carrying data} (Chiesa, Tromer; ICS 2010).
 The natural construction is \emph{recursive SNARK composition}: at step
 $i + 1$ the prover proves ``$z_{i+1} = f(z_i)$, \emph{and} there exists
 a proof $\pi_i$ that the verifier circuit for step $i$ accepts.'' One
@@ -524,8 +533,11 @@ verifiable by querying them at random points.
 \label{sec:statement-to-circuit}
 
 Definition~\ref{def:plonkish} states what a PLONKish circuit \emph{is}; it
-does not say how a statement \emph{becomes} one. This subsection traces that
-passage through the deployed code: a real custom gate (the ECC chip's
+does not say how a statement \emph{becomes} one. The deployed code is
+organised into \emph{chips}, reusable circuit components each packaging
+a set of columns, the gates and lookups declared on them, and the
+synthesis code that fills their cells. This subsection traces that
+passage: a real custom gate (the ECC chip's
 incomplete point addition), two real lookup declarations (the ten-bit range
 check and the Sinsemilla generator table), and the synthesis machinery that
 turns witness data into the column vectors on which every argument of this

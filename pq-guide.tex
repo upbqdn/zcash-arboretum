@@ -275,7 +275,9 @@ Action statements --- the most concentrated point & prosp. \\
 Sapling stack (Groth16, RedJubjub, Jubjub DH) & BLS12-381 / Jubjub
 DLP & one logarithm forges the whole pool's integrity & prosp. \\
 Sprout stack (Groth16, Ed25519 \texttt{JoinSplitSig}) & BLS12-381 /
-Curve25519 DLP & JoinSplit statements and signatures forgeable & prosp. \\
+Curve25519 DLP & statements and signatures of JoinSplits (Sprout's
+shielded transfers, spending and creating notes under one proof)
+forgeable & prosp. \\
 Transparent scripts (ECDSA, secp256k1) & secp256k1 DLP & spend any
 output whose public key is exposed & prosp. \\
 Crosslink finalizer votes (prototype; ed25519) & Curve25519 DLP &

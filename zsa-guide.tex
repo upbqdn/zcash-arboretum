@@ -848,7 +848,10 @@ $\mathsf{rseed}$), and \texttt{flagsIssuance} with finalize in the least
 significant bit; the burn encoding carries \texttt{assetBase} as
 \texttt{byte[32]} (\texttt{zip-0230.rst}:367--383, 446--494). On the
 transfer side, the v6 Orchard note plaintext inserts the asset between
-$\mathsf{rseed}$ and the memo key,
+$\mathsf{rseed}$ and the memo key (the $32$-byte key that replaces the
+in-band $512$-byte memo under ZIP-231 and from which the recipient
+derives the key decrypting its memo in the transaction-level memo
+bundle; \S\ref{sec:zsa-carrier}),
 \[
 [\mathtt{leadByte}] \,\|\, \mathrm{LEBS2OSP}_{88}(d) \,\|\,
 \mathrm{I2LEOSP}_{64}(v) \,\|\, \mathsf{rseed} \,\|\,
@@ -1087,7 +1090,10 @@ with the PRF keyed by $\nfsym$ as $32$ little-endian bytes
 ($\mathrm{I2LEOSP}_{256}$),
 where $\nfsym_{0,0}$ is the nullifier of the input note in the
 \emph{first} Action of the \emph{first} Action Group of the OrchardZSA
-bundle, and the two indices are the zero-based positions of the Issue
+bundle (the v6 format partitions a bundle's Actions into one or more
+Action Groups, each carrying its own anchor and proof;
+\S\ref{sec:zsa-v6}), and the two indices are the zero-based positions of
+the Issue
 Action within the issuance bundle and of the note within its action
 (ZIP-227, \emph{Computation of $\rho$}). The domain-separator byte
 $\mathtt{0x84}$ extends the $\mathsf{PRFexpand}$ lead-byte registry (the

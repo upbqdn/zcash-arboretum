@@ -332,8 +332,10 @@ once, here, for the whole volume:
 One surface refuses the clean split, and we bin it here once. No ZIP
 specifies FROST key generation: ZIP 312 declares it out of scope (as does
 RFC 9591), and ZIP 271's May-2025 note confirms the gap --- ZIP 312's
-missing key-generation text is its stated reason not to couple the
-lockbox disbursement to that specification. Yet crate \texttt{reddsa}
+missing key-generation text is its stated reason not to couple
+disbursement of the \emph{lockbox} (the in-protocol reserve that has
+accrued a portion of each block subsidy since NU6, per ZIP 2001) to
+that specification. Yet crate \texttt{reddsa}
 ships DKG support: hash personalisations \texttt{FROST\_RedPallasD}
 (HDKG) and \texttt{FROST\_RedPallasI} (HID), beyond ZIP 312's H1--H5 and
 HR, plus even-$Y$ normalisation hooks
@@ -739,8 +741,12 @@ complete key recovery in the multi-party setting).
 
 The paper proves EUF-CMA security, in the random oracle model, by
 reduction to the \emph{discrete logarithm problem} in $\G$ ---
-deliberately not to one-more discrete log, so that the Drijvers et al.\
-metareduction does not apply. The proof is for an intermediate scheme,
+deliberately not to one-more discrete log (the adversary must return the
+discrete logarithms of $\ell + 1$ challenges after at most $\ell$
+queries to a discrete-log oracle), so that the
+negative result of Drijvers et al., which rules out security reductions
+from that assumption for a family of two-round Schnorr multisignatures,
+does not apply. The proof is for an intermediate scheme,
 \emph{FROST-Interactive}, in which the binding value is produced by a
 one-time verifiable random function
 $\rho_i = a_{ij} + b_{ij} \cdot H_\rho(m, B)$ with committed keys.

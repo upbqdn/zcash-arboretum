@@ -237,7 +237,7 @@ Symbol & Said & Meaning \\
 
 \section{The integers and modular arithmetic}\label{sec:intmod}
 
-The integers \(\Z = \{\dots,-2,-1,0,1,2,\dots\}\) are the arithmetical bedrock on which every algebraic and cryptographic structure in this monograph ultimately rests. The finite fields underlying elliptic curves, the scalar arithmetic of Halo~2, and the polynomial commitments of Orchard all reduce, in the end, to computations with congruence classes of integers. This section develops the theory of the integers from a small set of assumptions and arrives at the ring \(\Z/n\Z\) of integers modulo \(n\), its group of units, and the algorithms that make arithmetic in it effective. We keep the treatment constructive throughout: every existence statement comes, wherever possible, with an algorithm that produces the object in question, since cryptography requires not merely that inverses and representatives exist but that one can compute them efficiently.
+The integers \(\Z = \{\dots,-2,-1,0,1,2,\dots\}\) are the arithmetical bedrock on which every algebraic and cryptographic structure in this monograph ultimately rests. The finite fields underlying elliptic curves, the scalar arithmetic of Halo~2, and the polynomial commitments of Orchard (short values that bind a prover to entire polynomials, which a verifier then tests by evaluation) all reduce, in the end, to computations with congruence classes of integers. This section develops the theory of the integers from a small set of assumptions and arrives at the ring \(\Z/n\Z\) of integers modulo \(n\), its group of units, and the algorithms that make arithmetic in it effective. We keep the treatment constructive throughout: every existence statement comes, wherever possible, with an algorithm that produces the object in question, since cryptography requires not merely that inverses and representatives exist but that one can compute them efficiently.
 
 We take the basic algebraic properties of \(\Z\) for granted: that it is a commutative ring with the usual addition and multiplication, that it has no zero divisors (if \(ab=0\) then \(a=0\) or \(b=0\)), and that it carries a total order \(\le\) compatible with the arithmetic. We assume axiomatically the single deep property that follows.
 
@@ -635,7 +635,7 @@ Multiplication of classes is associative and commutative (Theorem~\ref{intmod:th
 \end{proof}
 
 \begin{remark}\label{intmod:rem:totientcrypto}
-The totient \(\varphi(n)\) governs the multiplicative order structure modulo \(n\). For prime \(p\), \(\varphi(p)=p-1\), so \(\Fp^\times\) has order \(p-1\); for a prime power, \(\varphi(p^k)=p^{k-1}(p-1)\). Lagrange's theorem (developed in the group-theory section) then gives Euler's theorem \(a^{\varphi(n)}\equiv 1\pmod n\) for \(\gcd(a,n)=1\), and in particular Fermat's little theorem \(a^{p-1}\equiv 1\pmod p\) for \(p\nmid a\). These facts underlie modular exponentiation, the cyclic structure of \(\Fp^\times\), and the choice of scalar field sizes in the elliptic-curve constructions of Halo~2 and Orchard. The Chinese Remainder Theorem yields the multiplicativity of \(\varphi\), which then computes \(\varphi(n)\) for general \(n\).
+The totient \(\varphi(n)\) governs the multiplicative order structure modulo \(n\). For prime \(p\), \(\varphi(p)=p-1\), so \(\Fp^\times\) has order \(p-1\); for a prime power, \(\varphi(p^k)=p^{k-1}(p-1)\). Lagrange's theorem (developed in the group-theory section) then gives Euler's theorem \(a^{\varphi(n)}\equiv 1\pmod n\) for \(\gcd(a,n)=1\), and in particular Fermat's little theorem \(a^{p-1}\equiv 1\pmod p\) for \(p\nmid a\). These facts underlie modular exponentiation, the cyclic structure of \(\Fp^\times\), and the choice of scalar field sizes in the elliptic-curve constructions of Halo~2 and Orchard. The Chinese Remainder Theorem (proved in the number-theory section: for coprime \(m_1, m_2\), a residue modulo \(m_1 m_2\) corresponds exactly to a pair of residues modulo \(m_1\) and \(m_2\)) yields the multiplicativity of \(\varphi\), which then computes \(\varphi(n)\) for general \(n\).
 \end{remark}
 
 \section{Groups}\label{sec:groups}
@@ -1339,7 +1339,8 @@ Throughout this section, \(\F\) denotes a field. Polynomials over a field are
 among the central objects of the entire development: they are the engine behind
 finite fields, error-correcting codes, and — most importantly for the present
 purposes —
-the polynomial commitment schemes and arithmetization that underlie Halo~2 and
+the polynomial commitment schemes and \emph{arithmetization} (the encoding of
+a computation as identities between polynomials) that underlie Halo~2 and
 Zcash Orchard. The single most exploited fact in that entire edifice is
 elementary: \emph{a nonzero polynomial of degree \(d\) over a field has at most \(d\)
 roots}. From it we extract Lagrange interpolation and the Schwartz--Zippel
@@ -2182,7 +2183,9 @@ claim. For the gcd statements: a common root \(\alpha \in \F\) of \(f\) and
 nontrivial. The full separability statement requires care over extensions: one
 shows \(\gcd(f, f')\), computed in \(\F[X]\), is unchanged under field extension
 (the Euclidean algorithm uses only field operations in \(\F\)), and that over a
-splitting field a repeated factor \((X-\alpha)^m\), \(m\ge 2\), contributes a
+\emph{splitting field} of \(f\) (an extension field of \(\F\) in which \(f\)
+factors completely into linear factors) a repeated factor \((X-\alpha)^m\),
+\(m\ge 2\), contributes a
 common factor \((X-\alpha)\) to \(f\) and \(f'\) by the computation above, while
 distinct simple linear factors contribute none. Thus \(\gcd(f, f') = 1\) in
 \(\F[X]\) if and only if \(f\) has no repeated root in any extension.
@@ -3518,7 +3521,9 @@ The equation, and the cubic \(f(x) = x^3 + ax + b\), is \emph{nonsingular} (or \
 Let \(f(x) = x^3 + ax + b \in K[x]\). The following are equivalent.
 \begin{enumerate}
   \item \(4a^3 + 27 b^2 \neq 0\).
-  \item \(f\) has no repeated root in the algebraic closure \(\overline{K}\).
+  \item \(f\) has no repeated root in the algebraic closure \(\overline{K}\)
+    (the smallest extension field of \(K\) in which every nonconstant
+    polynomial over \(K\) factors into linear factors).
   \item \(f\) and its derivative \(f'\) are coprime in \(\overline{K}[x]\).
   \item There is no point \((x_0, y_0)\) in \(\overline{K}^2\) satisfying both \(y^2 = f(x)\) and the two partial-derivative equations \(2y = 0\) and \(f'(x) = 0\).
 \end{enumerate}
@@ -3750,11 +3755,11 @@ The baby-step giant-step method solves the ECDLP in a group of prime order \(r\)
 \end{proposition}
 
 \begin{proof}[Proof (sketch)]
-Baby-step giant-step writes \(n = i\lceil\sqrt r\rceil + j\) with \(0 \le i, j < \lceil\sqrt r\rceil\), precomputes the ``baby steps'' \([j]P\) in a table, and matches against the ``giant steps'' \(Q - [i\lceil\sqrt r\rceil]P\); a collision reveals \(n\). Pollard's rho achieves the same time with negligible space by a pseudo-random walk on \(G\) and the birthday paradox: a self-collision in the walk yields a relation \([a]P + [b]Q = [a']P + [b']Q\), from which \(n \equiv (a - a')(b' - b)^{-1} \pmod r\). Both are exponential in the bit length \(\log_2 r\).
+Baby-step giant-step writes \(n = i\lceil\sqrt r\rceil + j\) with \(0 \le i, j < \lceil\sqrt r\rceil\), precomputes the ``baby steps'' \([j]P\) in a table, and matches against the ``giant steps'' \(Q - [i\lceil\sqrt r\rceil]P\); a collision reveals \(n\). Pollard's rho achieves the same time with negligible space by a pseudo-random walk on \(G\) and the birthday paradox (a set of size \(r\) sees a repeat among \(O(\sqrt r)\) uniform samples with constant probability; Proposition~\ref{probability:prop-birthday} makes this quantitative): a self-collision in the walk yields a relation \([a]P + [b]Q = [a']P + [b']Q\), from which \(n \equiv (a - a')(b' - b)^{-1} \pmod r\). Both are exponential in the bit length \(\log_2 r\).
 \end{proof}
 
 \begin{remark}[Absence of better attacks]\label{ellipticcurves:rem-ecdlp-hardness}
-That nothing beats the square-root bound on a well-chosen curve is an empirical claim, not a theorem: after four decades of study, no algorithm faster than \(O(\sqrt r)\) is known for general elliptic curves. For \(r\) of cryptographic size (\(r \approx 2^{254}\), the 255-bit Pasta orders) this is \(\approx 2^{127}\) operations, infeasible. Curves with special structure can be weaker: if \(\#E(\Fp) = p\) (anomalous curves) there is a polynomial-time attack via the formal group, and the MOV/Frey--Rück attack transfers the ECDLP to a finite-field DLP when the \emph{embedding degree} is small. Cryptographically secure curves, including the Pasta curves, are chosen to have a large prime subgroup order, large embedding degree, and \(\#E(\Fp) \neq p\), defeating all known subexponential attacks.
+That nothing beats the square-root bound on a well-chosen curve is an empirical claim, not a theorem: after four decades of study, no algorithm faster than \(O(\sqrt r)\) is known for general elliptic curves. For \(r\) of cryptographic size (\(r \approx 2^{254}\), the 255-bit Pasta orders) this is \(\approx 2^{127}\) operations, infeasible. Curves with special structure can be weaker: if \(\#E(\Fp) = p\) (anomalous curves) there is a polynomial-time attack via the formal group, and the MOV/Frey--Rück attack transfers the ECDLP to a finite-field DLP when the \emph{embedding degree}---the least \(k \ge 1\) with \(r \mid p^k - 1\), the degree of the smallest extension of \(\Fp\) whose multiplicative group contains a subgroup of order \(r\)---is small. Cryptographically secure curves, including the Pasta curves, are chosen to have a large prime subgroup order, large embedding degree, and \(\#E(\Fp) \neq p\), defeating all known subexponential attacks.
 \end{remark}
 
 \begin{remark}\label{ellipticcurves:rem-index-calculus}

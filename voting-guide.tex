@@ -203,8 +203,10 @@ core idea --- pin a snapshot, prove note eligibility against it, and prevent
 double voting with a per-election nullifier --- but Zally adds hotkey
 delegation through a dedicated note type (the Vote Authority Note), split
 ElGamal shares, a threshold Election Authority, relayers, private
-eligibility queries by single-server PIR, a dedicated chain, and hardware
-signing, and it lives inside the production wallet rather than beside it.
+eligibility queries by single-server PIR (private information retrieval:
+the server answers without learning which entry was queried), a dedicated
+chain, and hardware signing, and it lives inside the production wallet
+rather than beside it.
 
 Two adjacent mechanisms are not ancestors. ZCAP, the Zcash Community
 Advisory Panel, polls an identified panel through Helios with no coin
@@ -231,7 +233,9 @@ mirror \texttt{z-cale/shielded-vote-book} (both return 404 to anonymous
 access, verified 2026-07-08). The public documentation
 (\texttt{valargroup.gitbook.io/shielded-vote-docs}, fetched 2026-07-08) is
 prose: its circuit pages list public and private inputs and some Poseidon
-preimages, but omit the governance-nullifier, VAN-nullifier, and
+preimages (the arithmetisation-friendly hash constructed in the
+\emph{Crypto Guide}, \S``Arithmetisation-friendly hashing: Poseidon''),
+but omit the governance-nullifier, VAN-nullifier, and
 share-nullifier formulas, the nullifier-domain derivation, the
 proposal-bitmask width, and the indexed-Merkle-tree leaf model --- and it
 misstates the ballot-quantisation rule, the sole open problem this volume
@@ -355,8 +359,10 @@ The ballot surface of the vote chain is five protobuf messages
 (\texttt{vote-sdk/proto/svote/v1/\allowbreak tx.proto}). In lifecycle order: a
 coordinator opens the round, holders delegate weight, governance hotkeys
 cast votes, helper servers reveal shares, and the round closes with a tally.
-The three voter-facing messages (2--4) are not ordinary Cosmos transactions:
-they bypass the Cosmos transaction envelope entirely, and the chain
+The vote chain is a Cosmos-SDK application, and an ordinary transaction
+there is a fee-paying envelope of messages signed by an on-chain account.
+The three voter-facing messages (2--4) are not ordinary Cosmos
+transactions: they bypass that envelope entirely, and the chain
 authenticates each by its zero-knowledge proof --- messages~2 and~3
 additionally by a RedPallas signature; message~4 carries none --- rather
 than by an account signature (\texttt{tx.proto:10-13};
@@ -406,7 +412,9 @@ the verifier; unlike message~2, the sighash here is recomputed on-chain
 
 \paragraph{Message 4: \texttt{MsgRevealShare} (ZKP\,3).} A share reveal
 carries \texttt{share\_nullifier}, \texttt{enc\_share} --- 64 bytes, one
-lifted-ElGamal ciphertext $C_1 \,\|\, C_2$ as compressed Pallas points ---
+lifted-ElGamal ciphertext $C_1 \,\|\, C_2$ (ElGamal with the plaintext
+in the exponent, Definition~\ref{def:vote-elgamal}) as compressed Pallas
+points ---
 \texttt{proposal\_id}, \texttt{vote\_decision}, \texttt{proof},
 \texttt{vote\_round\_id}, and \texttt{vote\_comm\_tree\_anchor\_height}
 (\texttt{tx.proto:89-97}). Helper servers, not wallets, submit it: the
@@ -441,8 +449,10 @@ describes.
 To delegate weight, a holder must prove three things about a set of Orchard
 notes without revealing any of them: the notes are theirs; each existed at
 the snapshot; each was unspent at the snapshot. The delegation circuit
-proves the conjunction --- one Halo\,2/IPA circuit over Pallas at $K=14$
-($16{,}384$ rows) with $14$ public inputs
+proves the conjunction --- one Halo\,2/IPA circuit (the proof system and
+inner-product commitment of the \emph{Halo 2 Guide}, \S``The Halo 2 proof
+system'', \S``The inner-product polynomial commitment'') over Pallas at
+$K=14$ ($16{,}384$ rows) with $14$ public inputs
 (\texttt{voting-circuits/src/delegation/circuit.rs:111} and the module
 README, both at commit \texttt{4c39abd5}).
 
@@ -626,8 +636,10 @@ tree's well-formedness, since the circuit cannot check it.
 
 Both anchors originate off-chain, in coordinator tooling. The
 note-commitment root \texttt{nc\_root} is recomputed by Rust FFI as the
-\Sinsemilla{} hash of an Orchard frontier fetched from a public
-lightwalletd server; the nullifier root \texttt{nullifier\_imt\_root} is
+\Sinsemilla{} hash of an Orchard frontier (the incremental-tree append
+state constructed in the \emph{Crypto Guide}, \S``Append-only and
+incrementally updatable trees'') fetched from a public lightwalletd
+server; the nullifier root \texttt{nullifier\_imt\_root} is
 fetched from the running PIR service
 (\texttt{vote-sdk/api/snapshot.go:44-66}). The coordinator posts both in
 message~1; the handler stores them verbatim in the round record and folds
@@ -1034,7 +1046,9 @@ constraint. Sixteen shares serve weight privacy under staggered reveal: the
 prover-chosen random decomposition leaves no weight fingerprint on any
 single revealed ciphertext (\texttt{src/vote\_proof/circuit.rs}, lines
 418--423). Client-side, the randomness $r_i$ and the blinds derive from a
-BLAKE2b-512 PRF with personalisation \texttt{ZcashVote\_Expand} under
+BLAKE2b-512 PRF (pseudorandom function; the keyed-BLAKE2 construction of
+the \emph{Crypto Guide}, \S``PRFs from hash functions: length extension
+and keyed BLAKE2'') with personalisation \texttt{ZcashVote\_Expand} under
 distinct domain bytes (\texttt{src/domain\_tags.rs}, lines 28--41).
 
 The cast binds everything into one public field element:
@@ -1110,8 +1124,9 @@ $t = \max(2, \lfloor (2n+2)/3 \rfloor)$ for $n \geq 2$ validators (the
 degenerate $n = 1$, $t = 1$ case exists for local testing), ceremony
 finalization quorum $\lceil 4n/5 \rceil$ acknowledgements --- stricter than
 $t$ for most $n$ --- with non-ackers stripped from the ceremony and
-non-participants jailed (\texttt{x/vote/keeper/keeper\_ceremony.go}, lines
-46--79; \texttt{keeper\_ceremony\_jailing.go}).
+non-participants suspended from the active validator set
+(\texttt{x/vote/keeper/keeper\_ceremony.go}, lines 46--79;
+\texttt{keeper\_ceremony\_jailing.go}).
 
 The known key-bias attack on plain Joint--Feldman applies: contributions
 arrive sequentially through the block-proposer path, so the last
@@ -1119,7 +1134,9 @@ contributor sees every prior commitment and can steer the combined key to
 a chosen point. The repository's design document concedes the bias and
 argues it is harmless here --- the shifted key reveals nothing about the
 round secret under the discrete-log assumption, and the key serves only
-ElGamal encryption, whose IND-CPA security holds for any valid key ---
+ElGamal encryption, whose IND-CPA security (indistinguishability under
+chosen-plaintext attack; the \emph{Crypto Guide}, \S``Security as a
+game'') holds for any valid key ---
 citing Gennaro et al.\ (2007) for the security of Joint--Feldman threshold
 decryption despite a biased key (\texttt{vote-sdk/docs/tss-ceremony.md},
 ``Why single-phase''). The argument is itself designed but unspecified: a
@@ -1175,7 +1192,9 @@ tally (\texttt{msg\_server\_tally\_decrypt.go}, lines 199--294).
 
 \paragraph{Final verification.} The block proposer alone may submit the
 claimed plaintext totals. For each entry the chain Lagrange-combines at
-least $t$ stored partials at zero,
+least $t$ stored partials at zero (the coefficients $\lambda_i$ below are
+the Lagrange basis polynomials of the \emph{Math Guide}, \S``Lagrange
+interpolation'', evaluated at zero),
 \[
 \sum_i \lambda_i\, D_i = \Bigl[\sum_i \lambda_i\, s_i\Bigr] C_1 =
 [s]\,C_1,
@@ -1405,7 +1424,7 @@ binding check is the recomputation). But the threshold $t$ is a liveness
 parameter as well as a secrecy parameter: if fewer than $t$ validators
 decrypt, the round sits in \texttt{TALLYING} until the timeout ---
 $21{,}600$ seconds by default (\texttt{x/vote/types/keys.go},
-\texttt{DefaultTallyTimeout}) --- and the end-blocker then finalizes it
+\texttt{DefaultTallyTimeout}) --- and end-of-block processing then finalizes it
 with \texttt{tally\_timed\_out = true} and \emph{empty results}
 (\texttt{x/vote/module.go}). A finalized round in which every cast vote
 remains permanently undisclosed is a protocol outcome, not an excluded

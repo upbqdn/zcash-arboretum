@@ -108,10 +108,13 @@ and the questions a future ZIP must answer are listed as such.
 \clearpage
 \section{Scope, status, and sources}\label{sec:xl-scope}
 
-Crosslink is a hybrid proof-of-work/BFT consensus construction for Zcash:
-it retains the existing best-chain (PoW) protocol and adds a trailing
-finality layer (TFL), a BFT protocol whose blocks and the best-chain
-blocks commit to one another --- the eponymous cross-links. The current
+Crosslink is a hybrid proof-of-work/BFT (Byzantine-fault-tolerant)
+consensus construction for Zcash: it retains the existing best-chain
+(PoW) protocol and adds a trailing finality layer (TFL), a BFT protocol
+(one that reaches agreement by explicit votes and remains correct while
+at most a bounded fraction of its participants misbehave arbitrarily)
+whose blocks and the best-chain blocks commit to one another --- the
+eponymous cross-links. The current
 version is Crosslink~2 (tfl-book @ \texttt{fe6e1d6},
 \texttt{src/design/crosslink.md} lines 1--3;
 \texttt{the-arguments-for-bounded-availability-and-finality-overrides.md}
@@ -123,7 +126,8 @@ Dilemma'', eprint 2020/1091; arXiv 2009.04987, v1 2020-09-10, v3
 architecture Crosslink keeps; its show-stopping defect for Zcash ---
 users cannot in general spend outputs of finalized transactions taken
 from a rolled-back fork's snapshot, because chain validity in
-$\Pi_{\mathrm{lc}}$ cannot depend on a node's local finalized ledger
+$\Pi_{\mathrm{lc}}$, Snap-and-Chat's longest-chain sub-protocol,
+cannot depend on a node's local finalized ledger
 --- is what the TFL book records as forcing the redesign: ``We are
 forced to conclude that the chain $\mathsf{ch}_i^t$ must include the
 information needed to calculate $\mathsf{LOG}_{\mathrm{fin}}$''
@@ -926,7 +930,10 @@ argument.)
 The proof of Theorem~\ref{thm:xl-lc-after-gst} extends Pass--Shi pivots to
 \emph{GST-strong pivots} ([NTT2020] Definition 4 and eq.~(8)): a slot
 $t \ge \max\{\mathsf{GST}, \mathsf{GAT}\}$ such that for any $t_a \le t
-\le t_b$, the convergence opportunities counted only after
+\le t_b$, the convergence opportunities (slots in which exactly one
+honest node produces a block and no other honest block appears within
+$\Delta$ on either side, forcing honest views to converge unless the
+adversary counters with a block of its own) counted only after
 $\max\{t_a, \mathsf{GST}, \mathsf{GAT}\}$ outnumber the adversarial slots
 in $[t_a, t_b]$ --- only post-transition convergence opportunities count,
 because their useful properties fail under asynchrony or while honest
@@ -1627,7 +1634,8 @@ be obtained only with knowledge of ballots collectively satisfying the
 rule (\texttt{construction.md}:129).
 
 A \emph{$\star$bft-block} consists of $(P, \mathsf{proof}_P)$ re-signed by
-the same proposer using a strongly unforgeable signature scheme. It is
+the same proposer using a strongly unforgeable signature scheme
+(\emph{Crypto Guide}, \S``Digital signatures''). It is
 bft-block-valid iff $P$ is bft-proposal-valid, $\mathsf{proof}_P$ validly
 proves that the notarization rule was satisfied by ballots cast for $P$,
 and the proposer's outer signature on $(P, \mathsf{proof}_P)$ is valid. A
@@ -2653,8 +2661,9 @@ their previous or future transactions'' (GH \#124, implementation book,
 first-deployment trade-offs cut the other way: \emph{not} ``supporting a
 large number of finalizers so that any user who wants to run their own
 finalizer can do so'', no support for casual users running finalizers,
-and no liquid staking derivatives --- the last excluded in both the
-tfl-book goals and the blog's V1 (ibid.; tfl-book,
+and no tokens representing staked ZEC that can be traded while the
+stake stays locked --- the last excluded in both the tfl-book goals and
+the blog's V1 (ibid.; tfl-book,
 \texttt{src/design/goals.md} at \texttt{fe6e1d6f}).
 
 \paragraph{Classification.} \emph{Designed but unspecified}: the actions

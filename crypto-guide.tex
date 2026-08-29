@@ -824,8 +824,13 @@ fixes its outputs in advance and hides its internal queries.
 
 \begin{example}[The benefit of the ROM: full-domain-hash, sketched]\label{model:exp:rom-fdh}
 In the ``full domain hash'' signature, the signer signs a message \(m\) as
-\(\sigma = H(m)^{d} \bmod N\) where \((N,d)\) is an RSA private key and \(H\) maps
-into \(\Z/N\Z\). To prove unforgeability one reduces to RSA inversion: given a
+\(\sigma = H(m)^{d} \bmod N\) where \((N,d)\) is an RSA private key---a modulus
+\(N = pq\) with secret prime factors and a secret exponent \(d\) paired with a
+public \(e\) so that \(x^{ed} \equiv x \pmod N\) for \(x\) coprime to \(N\), by
+Euler's theorem (\emph{Math Guide}, \S``Fermat's little theorem and Euler's
+theorem''); thus \(x \mapsto x^{e}\) is a permutation that only the holder of
+\(d\) can invert---and \(H\) maps into \(\Z/N\Z\). To prove unforgeability one
+reduces to RSA inversion: given a
 challenge \(y\) (find \(y^{d}\)), the reduction programs the oracle so that for a
 random subset of messages \(H(m) := y \cdot r_m^{e}\) (embedding the challenge)
 and for the rest \(H(m) := r_m^{e}\) (where it knows the ``signature''
@@ -1072,7 +1077,7 @@ which holds iff \(\log_g z \equiv ab\). Yet CDH (and a fortiori DLP) may remain 
 
 \begin{remark}
 \label{assumptions:rem:converse}
-The converse reductions are not known in general. Whether CDH implies DLP (i.e. whether one can extract \(a\) from the ability to compute \(g^{ab}\)) is the longstanding \emph{Diffie--Hellman vs.\ discrete log} question; partial results of den Boer and Maurer show equivalence when a suitable auxiliary group of smooth order is available, but no unconditional equivalence is known. Likewise DDH may be strictly easier than CDH, as Example~\ref{assumptions:exa:pairing} shows. In practice one assumes exactly the strength a protocol requires: signatures and key exchange often need only CDH, whereas semantic security of ElGamal-style encryption needs DDH.
+The converse reductions are not known in general. Whether CDH implies DLP (i.e. whether one can extract \(a\) from the ability to compute \(g^{ab}\)) is the longstanding \emph{Diffie--Hellman vs.\ discrete log} question; partial results of den Boer and Maurer show equivalence when a suitable auxiliary group of smooth order is available, but no unconditional equivalence is known. Likewise DDH may be strictly easier than CDH, as Example~\ref{assumptions:exa:pairing} shows. In practice one assumes exactly the strength a protocol requires: signatures and key exchange often need only CDH, whereas ElGamal-style encryption needs DDH for its ciphertexts to hide the plaintext.
 \end{remark}
 \subsection{Generic algorithms and the square-root barrier}
 \label{assumptions:subsec:generic}
@@ -1255,7 +1260,11 @@ A curve \(E/\Fp\) with prime order \(q = \#E(\Fp)\) is admissible for \(\lambda\
 \item (\emph{Prime order.}) \(q\) is prime, so Pohlig--Hellman is vacuous and the cofactor is \(1\) (Cor.~\ref{assumptions:cor:large-prime}).
 \item (\emph{Anti-MOV / large embedding degree.}) The multiplicative order \(k\) of \(p\) modulo \(q\) (the \emph{embedding degree}) is large. The MOV/Frey--Rück attack uses a pairing to embed \(E(\Fp)\) into \(\F_{p^{k}}^{\times}\) and then runs sub-exponential index calculus there (Rem.~\ref{assumptions:rem:index-calculus}); this is a threat only when \(k\) is small (e.g.\ supersingular curves, where \(k \le 6\)). Demanding \(k\) huge defeats it.
 \item (\emph{Anti-Smart / not anomalous.}) \(q \ne p\), i.e.\ the curve is not \emph{anomalous} (\(\#E(\Fp) = p\)). On an anomalous curve the Smart--Satoh--Araki--Semaev attack uses a \(p\)-adic (``lift to the formal group / elliptic logarithm'') map to solve ECDLP in \emph{linear} time. The trace \(t = 1\) case is fatal, and one must exclude it.
-\item (\emph{Twist security.}) The quadratic twist \(E'\) of \(E\) should also have a large prime order, so that an attacker cannot push computation onto a weak twist via a fault or an invalid-point injection.
+\item (\emph{Twist security.}) The \emph{quadratic twist} \(E'\) of \(E\) (the
+  curve \(dy^{2} = x^{3} + ax + b\) for a fixed nonsquare \(d \in \Fp\); every
+  \(x \in \Fp\) is then the \(x\)-coordinate of a point of \(E\) or of \(E'\))
+  should also have a large prime order, so that an attacker cannot push
+  computation onto a weak twist via a fault or an invalid-point injection.
 \end{enumerate}
 \end{definition}
 
@@ -1313,7 +1322,7 @@ There is a quantum algorithm that, given a cyclic group \(G = \langle g\rangle\)
 \[
 H = \{(\alpha,\beta) : \alpha \equiv x\beta \pmod q\} = \langle (x,1)\rangle \subseteq (\Z/q\Z)^2 ,
 \]
-a ``line of slope \(x\)''. The quantum algorithm prepares a uniform superposition over \((\Z/q\Z)^2\), evaluates \(f\) into an ancilla, and applies the quantum Fourier transform over \((\Z/q\Z)^2\); measuring the result samples characters that vanish on \(H\), and a handful of such samples reveal the slope \(x\) by classical linear algebra modulo \(q\). The entire procedure uses \(O(\mathrm{poly}(\log q))\) qubits and gates. Because it queries the group only through the black-box operation \((\alpha,\beta)\mapsto g^{\alpha}h^{-\beta}\), it is agnostic to the group's representation: it breaks elliptic-curve DLP exactly as it breaks \(\Fp^\times\) DLP and integer factoring (the latter via the order-finding variant).
+a ``line of slope \(x\)''. The quantum algorithm prepares a \emph{uniform superposition} over \((\Z/q\Z)^2\)---a single register holding every pair at once, each with equal weight---evaluates \(f\) into a second register, and applies the \emph{quantum Fourier transform}, the reversible change of basis that re-expresses the register in the characters of \((\Z/q\Z)^2\); measuring the result samples characters that vanish on \(H\), and a handful of such samples reveal the slope \(x\) by classical linear algebra modulo \(q\). The entire procedure uses \(O(\mathrm{poly}(\log q))\) qubits and gates. Because it queries the group only through the black-box operation \((\alpha,\beta)\mapsto g^{\alpha}h^{-\beta}\), it is agnostic to the group's representation: it breaks elliptic-curve DLP exactly as it breaks \(\Fp^\times\) DLP and integer factoring (the latter via the order-finding variant).
 \end{proof}
 
 \begin{remark}[Quantum does not contradict the square-root barrier]
@@ -1529,7 +1538,7 @@ The uninstantiability results are \emph{contrived}: no natural, deployed scheme 
 
 \subsection{Domain separation and personalisation}\label{hash:sub:domainsep}
 
-A single hash function routinely serves many logically distinct purposes within one protocol---to derive keys, to commit to notes, to compute nullifiers, to seed Fiat--Shamir challenges. If all these uses draw on the literally same function \(H\), an adversary can \emph{replay} an output produced for one purpose as if it were produced for another, since the digests are interchangeable bit strings. \emph{Domain separation} is the discipline of making the same physical hash behave like a family of \emph{independent} oracles, one per purpose.
+A single hash function routinely serves many logically distinct purposes within one protocol---to derive keys, to commit to notes, to tag notes as spent, to seed Fiat--Shamir challenges. If all these uses draw on the literally same function \(H\), an adversary can \emph{replay} an output produced for one purpose as if it were produced for another, since the digests are interchangeable bit strings. \emph{Domain separation} is the discipline of making the same physical hash behave like a family of \emph{independent} oracles, one per purpose.
 
 \begin{definition}[Domain separation]\label{hash:def:domainsep}
 Let \(H\) be a hash (modelled as a random oracle) and let \(\{ \tau_{i} \}_{i \in I}\) be a set of distinct, prefix-free \emph{domain tags} (also called \emph{labels} or \emph{personalisation strings}), one per intended use. The use-\(i\) hash is
@@ -1595,7 +1604,7 @@ Finally, we must map a message to a point of an elliptic curve \(E/\Fp\)---to de
 The obvious approach: hash \(m\) to a candidate \(x \in \Fp\) (via \S\ref{hash:sub:tofield}), test whether \(g(x)\) is a quadratic residue (so that a \(y\) exists), and if not increment \(x\) and retry. This is correct and roughly uniform, but the \emph{number of trials} depends on the message---about half of all \(x\) fail the residue test (by the theory of the Legendre symbol \(\legendre{g(x)}{p}\))---so the running time leaks information about \(m\), an avenue for side-channel attacks. Constant-time hashing to a curve requires a map that succeeds on the \emph{first} try for every input.
 \end{remark}
 
-The modern solution is an explicit, everywhere-defined algebraic map from \(\Fp\) to \(E(\Fp)\). The basic tool is the \emph{simplified Shallue--van~de~Woestijne--Ulas (SWU) map}, which applies directly to curves with \(ab \neq 0\). For curves with \(j\)-invariant \(0\) (\(a = 0\), such as the Pallas/Vesta curves of Halo~2) or \(1728\) (\(b = 0\)) the simplified SWU map does not apply directly; instead one evaluates it on an isogenous auxiliary curve with \(a'b' \neq 0\) and transports the result back through the isogeny map (see Remark~\ref{hash:rem:fullh2c}).
+The modern solution is an explicit, everywhere-defined algebraic map from \(\Fp\) to \(E(\Fp)\). The basic tool is the \emph{simplified Shallue--van~de~Woestijne--Ulas (SWU) map}, which applies directly to curves with \(ab \neq 0\). For curves with \(j\)-invariant \(0\) (\(a = 0\), such as the Pallas/Vesta curves of Halo~2) or \(1728\) (\(b = 0\)) the simplified SWU map does not apply directly; instead one evaluates it on an \emph{isogenous} auxiliary curve with \(a'b' \neq 0\)---one related to the target curve by an \emph{isogeny}, a nonconstant map between curves, given by polynomial formulas in the coordinates, that respects the group law---and transports the result back through the isogeny map (see Remark~\ref{hash:rem:fullh2c}).
 
 \begin{definition}[Simplified SWU map, high level]\label{hash:def:swu}
 Let \(E \colon y^{2} = g(x) = x^{3} + ax + b\) over \(\Fp\) with \(ab \neq 0\), and fix a nonsquare \(Z \in \Fp\) (a ``nothing-up-my-sleeve'' constant, e.g. the smallest nonsquare). The simplified SWU map \(\mathrm{SWU} \colon \Fp \to E(\Fp)\) sends a field element \(u\) to a point as follows. It computes two candidate \(x\)-coordinates,
@@ -1627,7 +1636,7 @@ since \(Z^{2}u^{6} = (Zu^{3})^{2}\) is a nonzero square and contributes a Legend
 \end{proof}
 
 \begin{remark}[From a field point to a uniform group point; full hash-to-curve]\label{hash:rem:fullh2c}
-A single SWU evaluation is \emph{not} surjective onto \(E(\Fp)\) and its image is not uniform; one SWU output covers only part of the curve and with a non-flat distribution. The standardised \(\mathrm{hash\_to\_curve}(m)\) therefore composes several stages: (i) \(\mathrm{hash\_to\_field}(m,2)\) yields two independent near-uniform field elements \(u_{0}, u_{1}\) (\S\ref{hash:sub:tofield}); (ii) apply the map to each, \(Q_{0} = \mathrm{SWU}(u_{0})\), \(Q_{1} = \mathrm{SWU}(u_{1})\); (iii) add them on the curve, \(R = Q_{0} + Q_{1}\)---summing two independent images provably smooths the distribution to within negligible distance of uniform on \(E(\Fp)\); and (iv) \emph{clear the cofactor} by multiplying \(R\) by \(h = \#E(\Fp)/r\) to land in the prime-order subgroup of order \(r\) where the cryptography occurs. For curves with \(a = 0\) (\(j\)-invariant \(0\)), such as Pallas/Vesta, the simplified SWU map of Definition~\ref{hash:def:swu} does not apply directly---its \(x_{1}\) formula needs \(ab \neq 0\)---so one instead evaluates simplified SWU on an isogenous auxiliary curve \(E' \colon y^{2} = x^{3} + a'x + b'\) with \(a'b' \neq 0\) and then transports the resulting point back to \(E\) through the \emph{isogeny map} \(E' \to E\); the obstruction is intrinsic, for the \(j\)-invariant is an isomorphism invariant: a Weierstrass change of variables rescales \((a, b)\) to \((u^{4}a, u^{6}b)\), so no model of these curves attains \(ab \neq 0\), and the simplified-SWU route always passes through the isogeny. (Curves in Montgomery or twisted Edwards form are hashed by a different standardised map, Elligator~2, with no isogeny; prime-order curves such as Pallas and Vesta admit no such form, their order being odd while Montgomery and Edwards curves have order divisible by four.) The result is a hash \(\{0,1\}^{*} \to E(\Fp)\) that is constant-time, indifferentiable from a random oracle into the group, and the standard way to produce independent generators for Pedersen-style commitments.
+A single SWU evaluation is \emph{not} surjective onto \(E(\Fp)\) and its image is not uniform; one SWU output covers only part of the curve and with a non-flat distribution. The standardised \(\mathrm{hash\_to\_curve}(m)\) therefore composes several stages: (i) \(\mathrm{hash\_to\_field}(m,2)\) yields two independent near-uniform field elements \(u_{0}, u_{1}\) (\S\ref{hash:sub:tofield}); (ii) apply the map to each, \(Q_{0} = \mathrm{SWU}(u_{0})\), \(Q_{1} = \mathrm{SWU}(u_{1})\); (iii) add them on the curve, \(R = Q_{0} + Q_{1}\)---summing two independent images provably smooths the distribution to within negligible distance of uniform on \(E(\Fp)\); and (iv) \emph{clear the cofactor} by multiplying \(R\) by \(h = \#E(\Fp)/r\) to land in the prime-order subgroup of order \(r\) where the cryptography occurs. For curves with \(a = 0\) (\(j\)-invariant \(0\)), such as Pallas/Vesta, the simplified SWU map of Definition~\ref{hash:def:swu} does not apply directly---its \(x_{1}\) formula needs \(ab \neq 0\)---so one instead evaluates simplified SWU on an isogenous auxiliary curve \(E' \colon y^{2} = x^{3} + a'x + b'\) with \(a'b' \neq 0\) and then transports the resulting point back to \(E\) through the \emph{isogeny map} \(E' \to E\); the obstruction is intrinsic, for the \(j\)-invariant is an isomorphism invariant: a Weierstrass change of variables rescales \((a, b)\) to \((u^{4}a, u^{6}b)\), so no model of these curves attains \(ab \neq 0\), and the simplified-SWU route always passes through the isogeny. (Curves in Montgomery or twisted Edwards form are hashed by a different standardised map, Elligator~2, with no isogeny; prime-order curves such as Pallas and Vesta admit no such form, their order being odd while Montgomery and Edwards curves have order divisible by four.) The result is a hash \(\{0,1\}^{*} \to E(\Fp)\) that is constant-time, able to stand in for a random oracle into the group in security arguments (no efficient distinguisher can exploit its internal structure to tell the two apart), and the standard way to produce independent generators for Pedersen-style commitments.
 \end{remark}
 
 \begin{remark}[Nothing-up-my-sleeve generators]\label{hash:rem:nums}
@@ -1667,7 +1676,7 @@ diffuses it across the whole state. The round counts stand against the known
 algebraic (Gr\"obner-basis) attacks.
 
 \paragraph{Circuit cost.} The only non-linear operation is
-\(x \mapsto x^{5}\), which a PLONKish circuit verifies with a couple of
+\(x \mapsto x^{5}\), which an arithmetic circuit verifies with a couple of
 multiplication gates per S-box; the round-constant additions and the MDS multiplication
 are linear and almost free. A \(2\)-to-\(1\) Poseidon hash costs a few hundred
 constraints, against tens of thousands for a bit-oriented hash --- the difference
@@ -1684,9 +1693,11 @@ the first state element after one permutation of the input padded by the fixed
 capacity value \(2^{65}\) (so no message padding is then required). Keyed by its first
 argument it is the pseudorandom function \(F_{\mathsf{nk}}(\rho) =
 \mathsf{PoseidonHash}(\mathsf{nk}, \rho)\) from which Orchard constructs the nullifier
-(\emph{Ironwood Guide}); unlike Pedersen or Sinsemilla its security rests on
-cryptanalytic confidence in the round function rather than on a clean assumption
-such as discrete log.
+(\emph{Ironwood Guide}); unlike the Pedersen and Sinsemilla hashes constructed
+later (\S\ref{commitments:subsec:pedersen},
+\S\ref{commitments:subsec:sinsemilla}), its security rests on cryptanalytic
+confidence in the round function rather than on a clean assumption such as
+discrete log.
 
 \clearpage
 
@@ -1829,7 +1840,7 @@ All constructions so far operate on bit strings of a length the cipher's block s
 Let \(\mathcal{X}\) be a finite set (the \emph{format}, e.g. \(\mathcal{X} = \{0,1,\dots,9\}^{16}\), the set of 16-digit strings). A \emph{format-preserving encryption scheme} on \(\mathcal{X}\) is a keyed permutation \(\mathcal{E} \colon \{0,1\}^{\kappa} \times \mathcal{X} \to \mathcal{X}\) such that for every key \(k\), \(\mathcal{E}_k \colon \mathcal{X} \to \mathcal{X}\) is a bijection with efficiently computable inverse \(\mathcal{D}_k\). Security requires \(\mathcal{E}\) to be a (strong) pseudorandom permutation on \(\mathcal{X}\) (Definition~\ref{prf:def:prp}, with \(\mathsf{Perm}(\mathcal{X})\) in place of \(\mathsf{Perm}(\{0,1\}^{\ell})\)): no efficient adversary distinguishes \(\mathcal{E}_k\) from a uniformly random permutation of \(\mathcal{X}\), even with access to the inverse.
 \end{definition}
 
-The defining feature is that the domain \(\mathcal{X}\) is \emph{arbitrary} --- in particular \(|\mathcal{X}|\) need not be a power of two, so a plain block cipher does not apply. What we require is a keyed pseudorandom \emph{bijection} on a set whose size is, say, \(10^{16}\). The deterministic nature is essential and distinguishes FPE from randomised block-cipher modes: \(\mathcal{X}\) has no room to store a random IV, so FPE is the deterministic, length-preserving (indeed format-preserving) analogue of a block cipher on the exotic alphabet of \(\mathcal{X}\). It necessarily leaks equality of plaintexts (like ECB), but this is the unavoidable cost of preserving format with no expansion, and it is acceptable for the tokenisation use cases FPE targets.
+The defining feature is that the domain \(\mathcal{X}\) is \emph{arbitrary} --- in particular \(|\mathcal{X}|\) need not be a power of two, so a plain block cipher does not apply. What we require is a keyed pseudorandom \emph{bijection} on a set whose size is, say, \(10^{16}\). The deterministic nature is essential and distinguishes FPE from randomised block-cipher modes: \(\mathcal{X}\) has no room to store a random IV, so FPE is the deterministic, length-preserving (indeed format-preserving) analogue of a block cipher on the exotic alphabet of \(\mathcal{X}\). It necessarily leaks equality of plaintexts, as any deterministic cipher must, but this is the unavoidable cost of preserving format with no expansion, and it is acceptable for the tokenisation use cases FPE targets.
 
 \paragraph{Reduction to integers.} Any format \(\mathcal{X}\) of the form ``strings of length \(\nu\) over an alphabet of radix \(\rho\)'' is in bijection with the integer interval \(\{0, 1, \dots, \rho^{\nu} - 1\}\) by reading the string as a base-\(\rho\) numeral. It therefore suffices to build a keyed pseudorandom permutation of \(\Z/M\Z = \{0, \dots, M-1\}\) for an arbitrary modulus \(M\) (here \(M = \rho^{\nu}\)). FF1 splits \(M = a \cdot b\) into two factors of nearly equal ``size'' and runs a Feistel network whose two halves live in \(\Z/a\Z\) and \(\Z/b\Z\).
 
@@ -1854,7 +1865,7 @@ For any choice of round functions \(F_1, \dots, F_r\) (which need not be injecti
 It suffices to show each round is invertible; the composition of bijections is a bijection. The \(i\)-th round map sends \((L_{i-1}, R_{i-1}) \mapsto (R_{i-1},\, L_{i-1} \oplus F_i(R_{i-1}))\). Given the output \((L_i, R_i)\), one recovers \(R_{i-1} = L_i\) immediately, and then \(L_{i-1} = R_i \oplus F_i(R_{i-1}) = R_i \oplus F_i(L_i)\), using that XOR is its own inverse. The recovery uses only forward evaluations of \(F_i\), so it \emph{never requires an inverse of the round function} --- this is the crucial point that permits building a permutation out of a one-way-ish PRF. The displayed backward recursion is exactly this inversion applied round by round.
 \end{proof}
 
-This proposition is the structural heart of FPE: it manufactures a \emph{keyed bijection} from a keyed function that is not itself a bijection. The round functions derive from a PRF (in FF1, AES iterated in cipher-block-chaining fashion; the FF1 description below gives the construction), so the network is invertible without ever inverting the PRF --- the construction only ever evaluates AES in the forward direction, exactly as in CTR mode.
+This proposition is the structural heart of FPE: it manufactures a \emph{keyed bijection} from a keyed function that is not itself a bijection. The round functions derive from a PRF (in FF1, AES iterated in cipher-block-chaining fashion; the FF1 description below gives the construction), so the network is invertible without ever inverting the PRF --- the construction only ever evaluates AES in the forward direction.
 
 The Luby--Rackoff theorem explains why enough Feistel rounds over a PRF yield a pseudorandom permutation, justifying the construction's security.
 
@@ -3281,7 +3292,7 @@ For cryptographic applications, including everything in the SNARK literature, th
 \end{remark}
 
 \begin{remark}[Why interaction and randomness are essential]\label{zk:rem:interaction}
-If the verifier were deterministic and the protocol non-interactive (a single prover message read and checked), the system would prove exactly the languages decidable in polynomial time with a certificate, i.e.\ \textsf{NP}, and would offer no hope of zero knowledge: the certificate \emph{is} the witness in spirit, and \(V\) could simply replay \(P\)'s analysis. Randomness in \(V\)'s challenges is what forces a cheating prover to commit before it knows what it will be asked, and interaction is what lets \(V\) adaptively probe. A celebrated line of results shows that interaction buys real power: \(\textsf{IP} = \textsf{PSPACE}\). For \emph{this} section the relevant point is humbler but sharper---interaction and randomness are what make zero knowledge and knowledge extraction possible at all.
+If the verifier were deterministic and the protocol non-interactive (a single prover message read and checked), the system would prove exactly the languages decidable in polynomial time with a certificate, i.e.\ \textsf{NP}, and would offer no hope of zero knowledge: the certificate \emph{is} the witness in spirit, and \(V\) could simply replay \(P\)'s analysis. Randomness in \(V\)'s challenges is what forces a cheating prover to commit before it knows what it will be asked, and interaction is what lets \(V\) adaptively probe. A celebrated line of results shows that interaction buys real power: \(\textsf{IP} = \textsf{PSPACE}\), the class of languages decidable with polynomial memory and unrestricted time, believed to reach far beyond \(\textsf{NP}\). For \emph{this} section the relevant point is humbler but sharper---interaction and randomness are what make zero knowledge and knowledge extraction possible at all.
 \end{remark}
 
 \paragraph{Soundness amplification by repetition.} Repetition upgrades a protocol with a constant soundness error such as \(1/2\) to negligible error. Running \(k\) \emph{independent} instances and accepting only if all accept drives soundness error from \(s\) to \(s^k\) for proofs (sequential repetition always works; parallel repetition works for proofs and, with care, for many arguments), while completeness error grows only to \(\le k\cdot c\) by a union bound. Taking \(k = \omega(\log|x|)\), e.g.\ \(k = |x|\), makes \(s^k\) negligible. We use this freely, and design base protocols aiming merely for a noticeable soundness gap.

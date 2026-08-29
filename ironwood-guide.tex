@@ -800,7 +800,8 @@ The second requirement is to prove the spent note is valid without revealing
 which note. When Alice spends, she must convince the network that
 the note she is spending is a valid note that someone actually created;
 otherwise she could spend a note she invented. On a transparent chain this
-is trivial: the output is present in the UTXO set. But Alice must prove
+is trivial: the output is present in the set of unspent transaction
+outputs (the UTXO set) that every node maintains. But Alice must prove
 it \emph{without revealing which note}, because revealing the note would
 deanonymise the payment.
 
@@ -1439,7 +1440,9 @@ pool balance} is the negation of the sum of that pool's balancing
 fields over the whole chain (for Sprout, the sum of
 $\mathtt{vpub\_old} - \mathtt{vpub\_new}$), and a block is invalid if
 it would drive any pool balance --- shielded, transparent, or the
-deferred fund --- negative, or total supply past
+deferred fund (ZIP-2001's lockbox, a chain value pool accruing a portion
+of each block subsidy for later disbursement) --- negative, or total
+supply past
 $\mathsf{MAX\_MONEY}$. Entry, transfer, and exit therefore reconcile
 publicly at pool granularity while individual notes stay hidden; the
 Ironwood instantiation, and the one-way turnstile that closes the
@@ -1649,8 +1652,9 @@ enforces.
 \emph{Math Guide}), together with variable- and fixed-base scalar
 multiplication (the former a double-and-add ladder of incomplete-addition
 rounds finished by a complete tail, the latter using precomputed fixed-base
-tables; the $j$-invariant-$0$ endomorphism serves only the recursion layer's
-endoscaling, not this circuit) and
+tables; the $j$-invariant-$0$ endomorphism serves only the recursion
+layer, where it cheapens multiplication by verifier challenges, not this
+circuit) and
 on-curve witnessing. It realises every group operation in the statement:
 $\aksym = [\ask]\,G^{\mathsf{SpendAuth}}$, the re-randomisation
 $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$ (A6), the transmission key
@@ -2076,9 +2080,10 @@ The proof size grew between Sapling and Orchard; this is the cost of
 transparency (a one-Action bundle's proof occupies $2720 + 2272 = 4992$
 bytes in the v5/v6 encodings, including the $2\log_2 2^{11} = 22$ group
 elements of the IPA rounds). The benefit, beyond the removal of trusted setup, is the
-foundation for recursion: future generations (Tachyon, eventual rollup
-designs) can build on Orchard's foundation without revisiting the
-cryptographic stack.
+foundation for recursion: future generations (Tachyon, eventual designs
+that aggregate many transactions under a single succinct proof) can
+build on Orchard's foundation without revisiting the cryptographic
+stack.
 
 \section{The Ironwood pool}\label{sec:iw}
 
@@ -2282,7 +2287,10 @@ Remark~\ref{rem:iw-legacy-rcm}.
 \label{def:iw-leadbytes}
 Let $\mathsf{pool}$ be the chain value pool of a note received at block
 height $h$ --- one of $\mathsf{SaplingPool}$, $\mathsf{OrchardPool}$, or
-$\mathsf{IronwoodPool}$. Then
+$\mathsf{IronwoodPool}$ --- and let $h_{\mathsf{Canopy}}$ be the
+activation height of the Canopy network upgrade, which deployed
+ZIP-212's $\mathsf{rseed}$-derived note plaintext format and its
+$\mathtt{0x02}$ lead byte. Then
 \[
 \mathsf{allowedLeadBytes}^{\mathsf{pool}}(h) :=
 \begin{cases}
@@ -2449,8 +2457,10 @@ note to the spent note's own receiver. The wallet must fill that output's
 $C_{\mathrm{enc}}$ with \emph{random} bytes: a real encryption would let any
 $\ivk$ holder --- including a quantum adversary who recovered $\ivk$ from a
 published address, the very adversary of \S\ref{sec:pq-hndl} --- decrypt it
-and link the Action's nullifier to the address (ZIP-326). In a PCZT the
-fabricated output carries its recipient, value, and $\mathsf{rseed}$
+and link the Action's nullifier to the address (ZIP-326). In a PCZT (a
+\emph{partially created Zcash transaction}, the format that carries an
+in-progress transaction between its constructor, prover, and signers)
+the fabricated output carries its recipient, value, and $\mathsf{rseed}$
 explicitly, so a signer can classify it as a tolerable dummy rather than an
 opaque payment (ZIP-326; \texttt{librustzcash pczt/src/orchard.rs}). One
 gap remains open by construction: paying \emph{into} an Orchard-pool
@@ -2503,9 +2513,11 @@ exactly as ZIP-229's privacy analysis states, and no per-transaction or
 aggregate cap is specified anywhere. The remaining Ironwood consensus rules
 are the Orchard ones of this volume, re-instantiated:
 $\mathsf{anchorIronwood}$ must be an earlier block's final Ironwood
-treestate (\S\ref{sec:tree}), the tree capacity is $2^{32}$, and the ZIP-221
-history tree (\emph{FlyClient Guide}, \S``NU5: the commitment becomes one
-of two'') gains three Ironwood fields (earliest root, latest root,
+treestate (\S\ref{sec:tree}), the tree capacity is $2^{32}$, and the
+ZIP-221 history tree (the Merkle mountain range over the chain's history
+whose root every block header commits to; \emph{FlyClient Guide},
+\S``NU5: the commitment becomes one of two'') gains three Ironwood
+fields (earliest root, latest root,
 transaction count) aggregated exactly like the Orchard trio (ZIP-258).
 
 \paragraph{Wallet posture.} Wallets SHOULD proactively move \emph{all}

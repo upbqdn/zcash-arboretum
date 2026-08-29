@@ -260,9 +260,10 @@ lines~14--86):
 
 \begin{itemize}
 \item Field \texttt{header} ``should always be unset (empty)'' per the
-  proto comment (lines~27--30). ZIP~307's block
-  header validation --- Equihash, \texttt{bits}, difficulty --- is therefore
-  unimplementable against deployed servers; the ZIP itself flags the section
+  proto comment (lines~27--30). ZIP~307's block header validation ---
+  Equihash (\emph{Consensus Guide}, \S``Equihash and the memoryless
+  model''), \texttt{bits}, difficulty --- is therefore unimplementable
+  against deployed servers; the ZIP itself flags the section
   as ``only partially implemented: currently only \texttt{prevHash} is
   checked'' (ZIP~307, ``Block header validation''). Client-side, only
   \texttt{prevHash} and height continuity are enforced
@@ -736,7 +737,7 @@ Per our conventions, we flag rather than resolve the following.
   (issue \texttt{zcash/lightwallet-protocol\#25}); \textsf{librustzcash}
   never reads it (\S\ref{sec:sync-compact-wire}).
 \item \emph{Dead header-validation surface.} The proto declares
-  \texttt{header} ``should always be unset''; ZIP~307's SPV-style header and
+  \texttt{header} ``should always be unset''; ZIP~307's header and
   \texttt{finalSaplingRoot} checks are unimplementable against deployed
   servers, and only \texttt{prevHash}/height continuity is enforced
   client-side (\S\ref{sec:sync-compact-wire},
@@ -802,8 +803,9 @@ proxy to provide a correct view of the best chain; network-level privacy
 scope (ZIP~307, \S~``Security Model''). The chain has carried commitments
 designed to let a client check that view succinctly since Heartwood
 (ZIP~221, via \texttt{hashLightClientRoot}, renamed
-\texttt{hashBlockCommitments} and composed with the auth-data root at
-NU5); no deployed client consumes
+\texttt{hashBlockCommitments} at NU5, where the field also binds a
+commitment to the block's transaction signatures and proofs); no
+deployed client consumes
 them (\emph{FlyClient Guide}, \S``The deployment gap'').
 
 \paragraph{Where the contract lives.} The wire contract is \emph{not} in
@@ -2461,7 +2463,9 @@ The tree state of one pool at one block is serialised in the legacy
 \]
 where $\mathrm{Opt}(\cdot)$ writes $\mathtt{0x00}$ for an absent node and
 $\mathtt{0x01}$ followed by the $32$-byte node otherwise,
-$\mathrm{Vec}(\cdot)$ is CompactSize-prefixed, and each node is the
+$\mathrm{Vec}(\cdot)$ is CompactSize-prefixed (Bitcoin's variable-length
+integer: counts below $253$ in one byte, larger ones as a marker byte
+then $2$, $4$, or $8$ little-endian bytes), and each node is the
 $32$-byte encoding of a base-field element --- Jubjub base for Sapling,
 Pallas base for Orchard --- with non-canonical encodings rejected at
 parse time. The parser \texttt{read\_commitment\_tree} bounds the
@@ -2879,8 +2883,10 @@ pool's tree is updated by \texttt{update\_tree}
   checkpoint-unification rule itself, \S\ref{sec:sync-persist}).
 \end{enumerate}
 Inside \textsf{shardtree}, \texttt{insert\_frontier} splits a non-empty
-frontier at the shard boundary: the leaf and the ommers below the shard
-level enter the shard containing the frontier's position, the ommers at
+frontier at the shard boundary: the leaf and the ommers (the sibling
+hashes a frontier stores, one per filled subtree along the leaf's path
+to the root) below the shard level enter the shard containing the
+frontier's position, the ommers at
 levels $\ge \mathrm{SHARD\_HEIGHT}$ enter the cap, checkpoint retention
 adds a checkpoint at the leaf position, and checkpoints beyond
 \texttt{max\_checkpoints} are pruned. An empty frontier with checkpoint

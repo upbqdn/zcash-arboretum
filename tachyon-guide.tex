@@ -289,8 +289,9 @@ the adjacent network-upgrade context (NU6.2 final, NU6.3 in draft), the
 out-of-band substrate ZIPs the design leans on, and Ragu's code state at
 \texttt{830bbcda}. Bin~(ii) holds the entire core protocol --- evolving
 nullifiers, dual-nullifier spends, the anchor chain, the proof tree,
-delegation, aggregation, the pool decision --- every part of it cited to the
-book at \texttt{26fdc165} as non-normative, dated, and in places already
+delegation, aggregation, the distinct shielded pool the notes inhabit ---
+every part of it cited to the book at \texttt{26fdc165} as non-normative,
+dated, and in places already
 superseded. No byte format, consensus rule, security theorem, or performance
 figure appears in this volume as a project claim, because none exists at that
 rigor.
@@ -355,7 +356,9 @@ Construction~\ref{def:tachyon-design-climb} states the derivation in full
 --- the climb and leaf domains, and the working depth and arity the crate
 pins (\S\ref{sec:tachyon-design-ggm}) while the book leaves them symbolic.
 The proof behind the header certifies a single sentence: the note whose
-commitment is $\cmsym$ was minted --- its creation stamp is folded into the
+commitment is $\cmsym$ was minted --- its creation \emph{stamp}, the proof
+object recording its transaction's published commitments and nullifiers
+(Definition~\ref{def:tachyon-design-bundle}), is folded into the
 pool state --- and none of its nullifiers, from the creation epoch through
 $e$, appears in the pool up to $\mathsf{anchor}$.
 
@@ -363,7 +366,9 @@ The fold advances this state without the wallet touching the chain. A
 synchronisation service --- holding only an opaque window of the note's
 future nullifiers, never the note, $\cmsym$, $\psi$, or $\mathsf{mk}$ ---
 assembles an \emph{Unspent} segment: \texttt{UnspentSeed} proves one
-wallet-supplied nullifier absent from one stamp's tachygram set,
+wallet-supplied nullifier absent from one stamp's tachygram set (a
+\emph{tachygram} is a 32-byte field element representing a note commitment
+or a nullifier, the two indistinguishable to consensus),
 \texttt{EmptyBlockUnspentSeed} covers empty blocks, \texttt{UnspentFuse}
 composes contiguous segments, and \texttt{UnspentEpochFuse} crosses an epoch
 boundary, splicing the completed epoch's nullifier into the segment's
@@ -565,9 +570,11 @@ story in two sentences, which we quote whole:
 ``Since we're using PIR to make repeated payments flows without OOB, there
 are stale parts of the book that will need to change. We're retaining
 in-band secret distribution for recover from seed flows.'' Repeated-payment
-flows are thus to use private information retrieval rather than
-sender-to-recipient out-of-band delivery --- the roadmap adds a post-quantum
-key exchange for the channel --- while in-band secret distribution returns,
+flows are thus to use private information retrieval (PIR), a query
+protocol in which the server learns nothing about which record the client
+fetched, rather than sender-to-recipient out-of-band delivery --- the
+roadmap adds a post-quantum key exchange for the channel --- while
+in-band secret distribution returns,
 scoped to recover-from-seed and restoring exactly the property the founding
 post conceded was lost. The protocol is ``developed independently in
 collaboration with'' the team and has no published specification; its
@@ -678,8 +685,11 @@ set; \S\ref{sec:tachyon-design-agg}), \texttt{anchorTachyon} (32 bytes),
 and \texttt{proofTachyon}, a \texttt{PROOF\_SIZE} blob --- ``serialized
 proof of fixed size''. The stripped trailer (state $\mathtt{0x02}$)
 carries only \texttt{tachyonAggregateId}, the 64-byte nonzero
-\texttt{wtxid} of the covering aggregate: the all-zero \texttt{wtxid},
-naming no aggregate, is rejected on read even for a stripped innocent, and
+\texttt{wtxid} (the ZIP~239 identifier \texttt{txid} $\|$
+\texttt{auth\_digest}; \S\ref{sec:tachyon-design-txid}) of the covering
+aggregate: the all-zero \texttt{wtxid},
+naming no aggregate, is rejected on read even for a stripped bundle
+whose action vector is empty, and
 the stripped trailer carries no \texttt{cActionsTachyon} --- that field
 rides on the stamp and strips away when a bundle becomes an adjunct.
 

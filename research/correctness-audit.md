@@ -532,3 +532,26 @@ would unify). Upstream candidates now 47 total (11 + 36), UNVERIFIED, in
 user reviews firsthand per standing rule. With this wave the overhaul
 covers every volume, both cross-volume sweeps, and an edit-landing check;
 the campaign's guide-fix track is CLOSED.
+
+## Undefined-terms wave (2026-08-29)
+
+New binding rule (CONVENTIONS.org, Register): no undefined terms —
+define before first use, cite the lower volume that does, or omit the
+name and state the substance. Trigger: the probability section's
+sigma-algebra name-drop (fixed same day).
+
+Method: 15 per-volume finders (candidates to
+`.wip/undefined-terms/findings/`), paired default-refute jurors in
+batches of 10 (both-keep = confirmed), 15 per-volume apply-preps
+emitting byte-exact edits (`.wip/undefined-terms/edits/`). 188
+candidates, 94 confirmed, 93 edits applied (one finding produced no
+edit). Seven prep edits corrected before apply: five nonstandard
+`\S\,` citation shapes in halo2-intuition (two pointing at nonexistent
+titles, retargeted to "The Pedersen commitment" and real titles), one
+new Heartwood activation height (dropped per the same-day no-heights
+rule), one Canopy date. Orphan check: removed first-use name-drops of
+PLONKish and semantic security leave the later defining occurrences as
+first use; BFT/ECB/CTR were single-use and are gone. Full-series gate:
+15/15 compile, zero overfull, zero unresolved refs (crypto's 8 log hits
+are pre-existing `TU/lmr/m/scit` font-shape warnings, count unchanged
+from HEAD).

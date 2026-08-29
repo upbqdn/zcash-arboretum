@@ -470,8 +470,10 @@ internal-scope address at diversifier index $0$
 
 The transparent pool needs the same external/internal $\ovk$ split ---
 its auto-shielding transactions carry shielded outputs whose outgoing
-ciphertexts want a viewing key --- but P2PKH keys have no protocol-level
-$\ovk$ to scope, so ZIP-316 synthesises the pair.
+ciphertexts want a viewing key --- but P2PKH keys
+(pay-to-public-key-hash: the output script pays to the hash of a single
+public key) have no protocol-level $\ovk$ to scope, so ZIP-316
+synthesises the pair.
 
 \begin{definition}[Transparent internal and external OVK]%
 \label{def:zip32-transparent-ovk}
@@ -635,7 +637,9 @@ single length byte,
 \mathsf{SeedFP}(S) := \mathrm{BLAKE2b\text{-}256}\bigl(
 \texttt{``Zcash\_HD\_Seed\_FP''},\ [\mathrm{length}(S)] \,\|\, S\bigr);
 \]
-the string form is Bech32m with human-readable part
+the string form is Bech32m (the checksummed base-32 string encoding of
+BIP-350: a human-readable part, a separator \texttt{1}, and base-32 data
+characters ending in a six-character checksum) with human-readable part
 \texttt{zip32seedfp}, and no short tag is defined; the length prefix was
 chosen to match \textsf{zcashd}'s implementation (ZIP-32, ``Seed
 Fingerprints''). Deployed, \texttt{SeedFingerprint::from\_seed} returns
@@ -984,8 +988,10 @@ For Sapling,
 \mathsf{GroupJHash^{URS}}\bigl(\texttt{"Zcash\_gd"},\
 \mathrm{LEBS2OSP}_{88}(d)\bigr),
 \]
-valued in the prime-order subgroup of Jubjub excluding zero, or $\bot$; the
-diversifier $d_j$ is \emph{valid} iff the result is not $\bot$, which for a
+valued in the prime-order subgroup of Jubjub --- Sapling's elliptic
+curve, carrying its keys and commitments as Pallas carries Orchard's ---
+excluding zero, or $\bot$; the diversifier $d_j$ is \emph{valid} iff the
+result is not $\bot$, which for a
 given $\dk$ holds for approximately half of all indices $j$. The Sapling
 \emph{default diversifier} is $d_j$ for the least nonnegative $j$ yielding
 a valid diversifier, and a Sapling account has at most approximately
@@ -1143,8 +1149,10 @@ one string, so the recipient distributes a single address and the sender's
 wallet chooses the pool. The choice is normative, by the \emph{priority
 list} of Table~\ref{tab:typecodes}: the Sender of a payment to a UA MUST
 use the receiver of the most preferred type it supports --- Orchard over
-Sapling over P2SH over P2PKH. A wallet MAY let its user configure which
-receiver types it can send to, but MUST NOT allow the priority order
+Sapling over P2SH (pay-to-script-hash: the output pays the hash of a
+script, revealed and satisfied when spending) over P2PKH. A wallet MAY
+let its user configure which receiver types it can send to, but MUST NOT
+allow the priority order
 itself to be changed, except via experiments (ZIP-316, \emph{Encoding of
 Unified Addresses}; mirrored in protocol specification \S5.6.4.1,
 \emph{Unified Payment Addresses and Viewing Keys}).
@@ -1178,7 +1186,10 @@ items in \emph{ascending} typecode order, of
 \mathrm{compactSize}(\mathit{typecode}) \,\|\,
 \mathrm{compactSize}(\ell_{\mathit{item}}) \,\|\, \mathit{item},
 \]
-where typecode and length values MUST be at most $\mathtt{0x02000000}$
+where $\mathrm{compactSize}$ is Bitcoin's variable-length integer
+encoding --- one byte for values below $253$, otherwise a marker byte
+followed by the value in $2$, $4$, or $8$ little-endian bytes --- and
+typecode and length values MUST be at most $\mathtt{0x02000000}$
 (the deployed bound is \texttt{MAX\_COMPACT\_SIZE} in
 \textsf{zcash\_encoding}, \texttt{src/lib.rs}). A transparent receiver is
 the bare $20$-byte hash --- the P2PKH validating-key hash or the P2SH
@@ -1339,7 +1350,9 @@ The deployed implementation keeps the state as
 $\mathit{left} \,\|\, \mathit{right}$ with $\mathit{left}$ the first
 $\min(64, \lfloor \ell_M/2 \rfloor)$ bytes, and runs
 \texttt{g\_round(0)} ($\mathit{right} \mathbin{\oplus{=}}
-G_0(\mathit{left})$, emulating the XOF chunkwise in $64$-byte blocks),
+G_0(\mathit{left})$, emulating the XOF (extendable-output function;
+\emph{Crypto Guide}, \S~``Hash functions and the random oracle model'')
+chunkwise in $64$-byte blocks),
 \texttt{h\_round(0)}, \texttt{g\_round(1)}, \texttt{h\_round(1)}, with the
 inverse running the same rounds in reverse; this matches the formulas
 above under the identification of $(a, b, x, y, c, d)$ with the successive
@@ -1767,10 +1780,14 @@ $\mathit{grace\_actions} = 2$ (ZIP-317, \emph{Fee calculation}).
 
 The two byte-size divisors are the standard P2PKH sizes, chosen so that one
 typical transparent input or output weighs one logical action. The standard
-input size $150 = 36 + 110 + 4$ decomposes as the outpoint ($36$), the
-script --- $1$ overall-length byte, $1$ signature-length byte, a $72$-byte
-signature, $1$ sighash-type byte, $1$ pubkey-length byte, a $33$-byte
-pubkey, and $1$ byte of margin, totalling $110$ --- and the sequence field
+input size $150 = 36 + 110 + 4$ decomposes as the outpoint ($36$: the
+$32$-byte transaction id and $4$-byte index naming the output being
+spent), the script --- $1$ overall-length byte, $1$ signature-length
+byte, a $72$-byte
+signature, $1$ sighash-type byte (the flag selecting which parts of the
+transaction the signature commits to), $1$ pubkey-length byte, a
+$33$-byte pubkey, and $1$ byte of margin, totalling $110$ --- and the
+sequence field
 ($4$). The standard output size $34 = 8 + 26$ decomposes as the value ($8$)
 and the script --- $1$ script-length byte plus the $25$-byte P2PKH script
 (ZIP-317, \emph{Rationale for the chosen parameters}).
@@ -1940,7 +1957,8 @@ builds before NU6.3. The deployed rule is exactly ZIP-317 Revision~1 minus
 Sprout.
 
 \paragraph{Transparent input sizing.} Transparent inputs are sized along
-two paths. At \emph{proposal} stage, a UTXO whose \texttt{script\_pubkey}
+two paths. At \emph{proposal} stage, a UTXO (unspent transaction output,
+the transparent pool's spendable coin) whose \texttt{script\_pubkey}
 is P2PKH is counted as
 $\texttt{InputSize::STANDARD\_P2PKH} = \texttt{Known}(150)$; any
 unrecognised script yields \texttt{InputSize::Unknown}
@@ -2231,7 +2249,8 @@ v5.5.0 (zcash/zcash\#6542) (ZIP-317, \emph{Deployment}). The
 \textsf{zebra} node is stricter than the ZIP suggests: since v1.8.0
 (ZcashFoundation/zebra\#8638) it hard-codes
 $\texttt{BLOCK\_UNPAID\_ACTION\_LIMIT} = 0$, and
-\texttt{mempool\_checks} --- run on every mempool candidate through
+\texttt{mempool\_checks} --- run on every candidate for the mempool, the
+node's pool of validated transactions awaiting mining, through
 \texttt{VerifiedUnminedTx::new} (\textsf{zebra-consensus},
 \texttt{transaction.rs}) --- rejects any transaction whose unpaid-action
 count exceeds that limit (\textsf{zebra-chain},
@@ -2277,8 +2296,9 @@ tx.\mathit{weight\_ratio} = \min\!\left(
 \]
 the $\max(1, \cdot)$ avoiding an all-zero-weight candidate set. Phase~1
 selects randomly, with probability proportional to weight ratio, among
-candidates paying at least the conventional fee, subject to the block size
-and sigop limits; phase~2 selects among the remaining candidates subject
+candidates paying at least the conventional fee, subject to the limits on
+block size and on the number of signature operations a block's scripts
+may perform; phase~2 selects among the remaining candidates subject
 additionally to the block's unpaid actions staying at most
 $\mathit{block\_unpaid\_action\_limit}$ (Definition~\ref{def:unpaid-actions}).
 Whatever an adversary submits, a block built this way carries at most $50$
@@ -3172,7 +3192,9 @@ TransparentInput; \textsf{pczt}, \texttt{src/transparent.rs}). A
 (\texttt{Option<UTF8String>}, set by an Updater; Signers MUST parse it and
 confirm that it contains the recipient, directly or as a receiver within a
 Unified Address), and \texttt{proprietary} (ZIP-374, TransparentOutput).
-Transparent partial signatures are stored as DER-encoded ECDSA with the
+Transparent partial signatures are stored as DER-encoded ECDSA --- the
+elliptic-curve digital signature algorithm over Bitcoin's curve
+secp256k1, the transparent pool's signature scheme --- with the
 sighash-type byte appended,
 $\mathit{sig\_bytes} = \mathrm{DER}(\mathit{sig}) \,\|\,
 \mathit{sighash\_type}$, matching the Bitcoin/PSBT convention
@@ -4495,8 +4517,10 @@ setting \texttt{confirmed\_unmined\_at\_height} to the current chain tip.
 On \texttt{Mined}(h) it sets \texttt{mined\_height} to $h$, lowers
 \texttt{min\_observed\_height} to at most $h$, clears
 \texttt{confirmed\_unmined\_at\_height}, links \texttt{block} if that block
-is already scanned, and updates transparent gap limits; in every case the
-pending \texttt{tx\_retrieval\_queue} entry is deleted
+is already scanned, and advances the window of unused transparent
+address indices the wallet derives and watches past the highest index
+observed used; in every case the pending \texttt{tx\_retrieval\_queue}
+entry is deleted
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs}). Independently,
 when chain scanning itself encounters a wallet-relevant transaction in a
 block, \texttt{put\_tx\_meta} upserts \texttt{block} and
