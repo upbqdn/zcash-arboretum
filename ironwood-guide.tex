@@ -616,24 +616,24 @@ arithmetisation-friendliness is irrelevant here.
 
 % ===== main spend->receive spine (x = 0) =====
 \node[spendn] (sk)   at (0, 0)     {$\mathsf{sk}$};
-\node[spendn] (ask)  at (0,-1.9)   {$\ask$};
-\node[fulln]  (ak)   at (0,-3.8)   {$\aksym$};
+\node[spendn] (ask)  at (0,-1.6)   {$\ask$};
+\node[fulln]  (ak)   at (0,-3.2)   {$\aksym$};
 % shifted right so the ak slot inside the tuple sits at x=0, under ak
-\node[fulln]  (fvk)  at ($(0,-5.7)-(\fvkakX,0)$) {$\fvk=(\aksym,\,\nksym,\,\rivk)$};
-\node[inoutn] (ivk)  at (0,-7.8)   {$\ivk$};
-\node[pubn]   (addr) at (0,-10.6)  {$\mathsf{addr}=(d,\,\pkd)$};
+\node[fulln]  (fvk)  at ($(0,-4.8)-(\fvkakX,0)$) {$\fvk=(\aksym,\,\nksym,\,\rivk)$};
+\node[inoutn] (ivk)  at (0,-6.4)   {$\ivk$};
+\node[pubn]   (addr) at (0,-9.2)  {$\mathsf{addr}=(d,\,\pkd)$};
 
 % ===== spend-side secrets expanded from sk (on ask's row, to the right) =====
-\node[spendn] (nk)   at (1.8,-1.9) {$\nksym$};
-\node[spendn] (rivk) at (3.4,-1.9) {$\rivk$};
+\node[spendn] (nk)   at (1.8,-1.6) {$\nksym$};
+\node[spendn] (rivk) at (3.4,-1.6) {$\rivk$};
 
 % ===== outgoing viewing key: paired with ivk as in/out viewing =====
-\node[inoutn] (ovk)  at (-2.6,-7.8) {$\ovk$};
+\node[inoutn] (ovk)  at (-2.6,-6.4) {$\ovk$};
 
 % ===== diversifier key + address row (the FF1-AES256 formula is in the gutter) =====
-\node[recvn]  (dk)   at (-2.6,-9.4) {$\dk$};
-\node[inputn] (dpln) at (-4.5,-10.6) {$d_{\mathrm{plain}}$};
-\node[recvn]  (d)    at (-2.6,-10.6) {$d$};
+\node[recvn]  (dk)   at (-2.6,-8.0) {$\dk$};
+\node[inputn] (dpln) at (-4.5,-9.2) {$d_{\mathrm{plain}}$};
+\node[recvn]  (d)    at (-2.6,-9.2) {$d$};
 
 % ===== spine arrows =====
 \draw[spine] (sk)  -- (ask);
@@ -656,7 +656,7 @@ arithmetisation-friendliness is irrelevant here.
 % the full viewing key derives all three sub-keys: ivk (spine), ovk, dk
 \draw[fork] ([yshift=-1.6mm]fvk.west) to[out=-150,in=80] (ovk.north);
 % swings left around the IN/OUT VIEW box, then back in to dk
-\draw[fork] ([yshift=1.6mm]fvk.west) .. controls (-4.4,-6.0) and (-4.6,-8.9) .. (dk.west);
+\draw[fork] ([yshift=1.6mm]fvk.west) .. controls (-4.4,-5.2) and (-4.6,-7.5) .. (dk.west);
 
 % diversifier: chosen index d_plain, keyed by dk, gives d, which enters addr
 \draw[fork] (dpln) -- (d.west);
@@ -664,13 +664,13 @@ arithmetisation-friendliness is irrelevant here.
 \draw[fork] (d.east) -- (addr.west);
 
 % ===== operation gutter, each line aligned with the box that step produces =====
-\node[op] at (\gx,-1.9) {$\ask,\nksym,\rivk := \mathsf{PRFexpand}_{\mathsf{sk}}(\mathtt{0x06}/\mathtt{07}/\mathtt{08})$};
-\node[op] at (\gx,-3.8)  {$\aksym := [\ask]\,G^{\mathsf{SpendAuth}}$};
-\node[op] at (\gx,-5.7)  {bundle $\aksym,\nksym,\rivk$ into the tuple $\fvk$};
-\node[op] at (\gx,-7.8)  {$\ivk := \CommitIvk_{\rivk}(\Extract(\aksym),\nksym)$};
-\node[op] at (\gx,-9.4)  {$(\dk,\ovk) :=$ the two halves of\\[1pt]
+\node[op] at (\gx,-1.6) {$\ask,\nksym,\rivk := \mathsf{PRFexpand}_{\mathsf{sk}}(\mathtt{0x06}/\mathtt{07}/\mathtt{08})$};
+\node[op] at (\gx,-3.2)  {$\aksym := [\ask]\,G^{\mathsf{SpendAuth}}$};
+\node[op] at (\gx,-4.8)  {bundle $\aksym,\nksym,\rivk$ into the tuple $\fvk$};
+\node[op] at (\gx,-6.4)  {$\ivk := \CommitIvk_{\rivk}(\Extract(\aksym),\nksym)$};
+\node[op] at (\gx,-8.0)  {$(\dk,\ovk) :=$ the two halves of\\[1pt]
                           $\mathsf{PRFexpand}_{\rivk}(\mathtt{0x82}\,\|\,\aksym\,\|\,\nksym)$};
-\node[op] at (\gx,-10.6) {$d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$;\\[1pt]
+\node[op] at (\gx,-9.2) {$d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$;\\[1pt]
                           $\gd := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}gd},d)$,\\[1pt]
                           $\pkd := [\ivk]\,\gd$};
 
