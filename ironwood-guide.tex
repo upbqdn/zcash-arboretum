@@ -654,9 +654,9 @@ arithmetisation-friendliness is irrelevant here.
 \draw[fork] (rivk.south) to[out=-90,in=80] (fvkrivk);
 
 % the full viewing key derives all three sub-keys: ivk (spine), ovk, dk
-\draw[fork] (fvk.south)      to[out=-115,in=72]  (ovk.north);
+\draw[fork] ([yshift=-1.6mm]fvk.west) to[out=-150,in=80] (ovk.north);
 % swings left around the IN/OUT VIEW box, then back in to dk
-\draw[fork] (fvk.west) .. controls (-4.4,-6.1) and (-4.6,-8.9) .. (dk.west);
+\draw[fork] ([yshift=1.6mm]fvk.west) .. controls (-4.4,-6.0) and (-4.6,-8.9) .. (dk.west);
 
 % diversifier: chosen index d_plain, keyed by dk, gives d, which enters addr
 \draw[fork] (dpln) -- (d.west);
