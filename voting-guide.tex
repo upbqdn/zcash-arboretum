@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 \makeatletter
 \g@addto@macro{\UrlBreaks}{\do\-}
 \makeatother
@@ -29,6 +35,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -214,7 +247,8 @@ weighting; the June 2026 NU7 question was scheduled through both
 instruments in parallel and paused for both together
 (\S\ref{sec:vote-shipped}), which makes the distinction operational, not
 academic. Hopwood's
-draft \texttt{draft-ecc-onchain-accountable-voting.md} (created 2025-02-21,
+draft \texttt{draft-ecc-\allowbreak onchain-\allowbreak
+accountable-\allowbreak voting.md} (created 2025-02-21,
 in the merged zips tree at \texttt{c6b70358}) targets the complement ---
 accountable on-chain voting by identified key-holders --- and shares no
 design lineage with either.
@@ -281,8 +315,10 @@ pinned by commit. Wallet-side integration is pinned separately:
 
 \paragraph{The single-crate caveat.} Crate \texttt{voting-circuits} exposes
 both the provers and the verifiers of all three circuits
-(\texttt{verify\_delegation\_proof}, \texttt{verify\_vote\_proof}, and
-\texttt{verify\_share\_reveal\_proof}, each in its circuit directory's
+(\texttt{verify\_\allowbreak delegation\_\allowbreak proof},
+\texttt{verify\_\allowbreak vote\_\allowbreak proof}, and
+\texttt{verify\_\allowbreak share\_\allowbreak reveal\_\allowbreak
+proof}, each in its circuit directory's
 \texttt{prove.rs}), and the
 chain consumes the same crate for validation:
 \texttt{vote-sdk/circuits/Cargo.toml} pins \texttt{voting-circuits} at
@@ -376,7 +412,9 @@ message carries the snapshot pin and the agenda: \texttt{snapshot\_height},
 display metadata (\texttt{tx.proto:36-48}). It is not a public RPC: it is
 absent from the \texttt{Msg} service and executes only as the payload of a
 threshold-approved coordinator action
-(\texttt{vote-sdk/x/vote/keeper/msg\_server\_coordinator\_actions.go:294-298}).
+(\texttt{vote-sdk/\allowbreak x/\allowbreak vote/\allowbreak
+keeper/\allowbreak msg\_\allowbreak server\_\allowbreak
+coordinator\_\allowbreak actions.go:294-298}).
 The handler derives the round identifier on-chain as one Poseidon hash
 over the creation height, the snapshot block hash and the proposals hash
 (each split into two field elements), the end time, and both anchors, so
@@ -426,7 +464,9 @@ protocol and the trust it grants are treated in
 \texttt{vote\_round\_id}, \texttt{creator} --- which the chain checks
 against the \emph{block proposer}: the proposer's node injects the message
 during tallying, and the proto comment naming the session creator is
-unenforced (\texttt{x/vote/keeper/msg\_server\_tally\_decrypt.go:77-79};
+unenforced (\texttt{x/\allowbreak vote/\allowbreak keeper/\allowbreak
+msg\_\allowbreak server\_\allowbreak tally\_\allowbreak
+decrypt.go:77-79};
 \texttt{app/prepare\_proposal.go:194-212}) --- and one \texttt{TallyEntry}
 $\{$\texttt{proposal\_id}, \texttt{vote\_decision}, \texttt{total\_value},
 \texttt{decryption\_proof}$\}$ per (proposal, decision) pair
@@ -485,7 +525,8 @@ a builder convention with no corresponding constraint. We state the total
 as fourteen --- eight keystone-global conditions plus six per-slot
 conditions instantiated five times --- and record the ``15'' headline
 counts and the cond-15 comment as stale.}
-(\texttt{src/delegation/circuit.rs:1497-1805}):
+(\texttt{src/\allowbreak delegation/\allowbreak
+circuit.rs:1497-1805}):
 \begin{itemize}
 \item \emph{Note commitment integrity} (condition~9). The prover witnesses
   the note plaintext $(\gd, \pkd, v, \rho, \psi)$, the trapdoor $\rcm$, and
@@ -530,8 +571,8 @@ counts and the cond-15 comment as stale.}
   too, must carry a valid non-membership proof
   (\texttt{README.md} \S13).
 \item \emph{Governance nullifier} (condition~14). The circuit computes and
-  publishes
-  $\nfsym^{\mathsf{gov}} = \mathsf{Poseidon}(\nksym, \mathsf{dom}, \nfsym)$
+  publishes $\nfsym^{\mathsf{gov}} = {}$
+  $\mathsf{Poseidon}(\nksym, \mathsf{dom}, \nfsym)$
   at the slot's public-input offset. Keyed by the private $\nksym$, the
   published value stays unlinkable to $\nfsym$ even after the note is later
   spent on the main chain (\texttt{circuit.rs:1703-1729}). Its role in
@@ -678,7 +719,8 @@ normative audit procedure with a defined challenge window.
 Delegated weight is denominated in ballots. The circuit sums the five slot
 values into $v_{\mathrm{total}} = \sum_{i=1}^{5} v_i$ (internal wires
 produced by condition~9, consumed by conditions~7 and~8;
-\texttt{src/delegation/README.md}, Inputs), and one ballot represents
+\texttt{src/\allowbreak delegation/\allowbreak README.md}, Inputs), and
+one ballot represents
 $D = 12{,}500{,}000$ zatoshi ($0.125$~ZEC): the constant
 \texttt{BALLOT\_DIVISOR} (\texttt{voting-circuits/src/params.rs:14}). The
 honest ballot count is $q = \lfloor v_{\mathrm{total}} / D \rfloor$.
@@ -1298,7 +1340,9 @@ single-share fallback described below.
 \paragraph{Any $t$ colluding validators decrypt every posted ciphertext.}
 Function \texttt{ThresholdForN} sets the reconstruction threshold
 $t = \max(2, \lfloor (2n+2)/3 \rfloor)$ for $n$ ceremony validators
-(\texttt{vote-sdk/x/vote/keeper/keeper\_ceremony.go}). Any $t$ of them can
+(\texttt{vote-sdk/\allowbreak x/\allowbreak vote/\allowbreak
+keeper/\allowbreak keeper\_\allowbreak ceremony.go}). Any $t$ of them
+can
 reconstruct the round's ElGamal secret key offline from their dealt shares
 and decrypt every \texttt{enc\_share} on the chain --- not merely the
 aggregates the tally publishes. The decision attached to each ciphertext
@@ -1332,10 +1376,12 @@ accumulate enough stake to create a validator, bypassing the controlled
 validator set'' (\texttt{vote-sdk/proto/svote/v1/tx.proto}, comment on
 \texttt{MsgAuthorizedSend}) --- and post-genesis validator creation is
 disallowed outside the registered-Pallas-key path
-(\texttt{vote-sdk/app/ante\_whitelist.go}). Round lifecycle, privileged
+(\texttt{vote-sdk/\allowbreak app/\allowbreak
+ante\_whitelist.go}). Round lifecycle, privileged
 funding, and software upgrades are threshold-gated \emph{coordinator
 actions} proposed and approved by a vote-manager set
-(\texttt{MsgProposeCoordinatorAction}, \texttt{MsgApproveCoordinatorAction});
+(\texttt{MsgPropose\allowbreak Coordinator\allowbreak Action},
+\texttt{MsgApprove\allowbreak Coordinator\allowbreak Action});
 the default genesis ships a single vote manager, and the coordinator
 threshold defaults to one (\texttt{vote-sdk/x/vote/module.go},
 \texttt{DefaultVoteManagerAddresses}; \texttt{tx.proto},

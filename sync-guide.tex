@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \emergencystretch=3em
 \hbadness=10000
@@ -26,6 +32,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -152,12 +185,13 @@ date to \textsf{lightwallet-protocol} v0.3.1 (2021-12-09), which also added
 The canonical proto files live in the \texttt{zcash/lightwallet-protocol}
 repository and are vendored --- git subtree or symlink --- into
 \textsf{lightwalletd}, \textsf{librustzcash} (the files under
-\texttt{zcash\_client\_backend/proto/} are symlinks into
+\texttt{zcash\_client\_backend/\allowbreak proto/} are symlinks into
 \texttt{lightwallet-protocol/walletrpc/}), and \textsf{Zaino}. The
 repository's README states that it ``IS not a specification'' and defers to
 ZIP~307 (\textsf{lightwalletd},
-\texttt{lightwallet-protocol/README.md}) --- which is itself stale. No
-current document therefore normatively specifies the deployed wire format.
+\texttt{lightwallet-protocol/\allowbreak README.md}) --- which is itself
+stale. No current document therefore normatively specifies the deployed
+wire format.
 Per our conventions we classify the compact-block format \emph{deployed but
 underspecified}: we cite \textsf{lightwallet-protocol} tagged releases as the
 de facto definition, and flag each point where ZIP text and deployment
@@ -300,9 +334,10 @@ lines~14--86):
 \item The \texttt{fee} field is documented ``present if server can
   provide'', but neither deployed server populates it:
   \textsf{lightwalletd} leaves it commented out with \texttt{TODO:
-  calculate fees} (\texttt{parser/transaction.go}, line~407) and
+  calculate fees} (\texttt{parser/\allowbreak transaction.go},
+  line~407) and
   \textsf{Zaino} hardcodes \texttt{fee: 0} (\texttt{zaino-fetch},
-  \texttt{src/chain/transaction.rs}, line~369).
+  \texttt{src/\allowbreak chain/\allowbreak transaction.rs}, line~369).
   Clients cannot rely on it. For a transaction with no transparent inputs
   the proto comment gives the client-side reconstruction
   (\texttt{compact\_formats.proto}, lines~59--64):
@@ -480,7 +515,9 @@ divergence in \S\ref{sec:sync-compact-divergences}.
 \label{sec:sync-compact-scan}
 
 \paragraph{Spend detection.} The scanner parses every compact nullifier
-field up front: each \texttt{CompactSaplingSpend.nf} and each
+field up front: each
+\texttt{CompactSapling}\allowbreak\texttt{Spend.}\allowbreak\texttt{nf}
+and each
 \texttt{CompactOrchardAction.}\allowbreak\texttt{nullifier}. A malformed
 length yields \texttt{ScanError::}\allowbreak\texttt{EncodingInvalid}
 rather than a panic. The parsed nullifiers are compared against the
@@ -518,7 +555,7 @@ protocol spec, ``Computing $\rho$ values and Nullifiers'' and ``Dummy
 Notes'').
 
 \paragraph{Where the tree size comes from.} The start size for a block is
-resolved by a ladder (\texttt{tree\_sizes\_around},
+resolved by a ladder (\texttt{tree\_sizes\_\allowbreak around},
 \textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs},
 lines~589--696):
 \[
@@ -538,7 +575,7 @@ and $n_{\mathrm{block}}$ the block's own output count. The subtraction is
 proto3's default-zero metadata (\S\ref{sec:sync-compact-wire}). After
 walking all \texttt{CompactTx}s the accumulated position must equal the
 \texttt{chainMetadata} size, else scanning fails with
-\texttt{ScanError::TreeSizeMismatch\{given, computed\}}
+\texttt{ScanError::}\allowbreak\texttt{TreeSizeMismatch\{given, computed\}}
 (\texttt{src/scanning/compact.rs}, lines~257--287, 745--770).
 
 The error taxonomy routes recovery: \texttt{TreeSizeMismatch},
@@ -551,10 +588,10 @@ Guide}, \S``Reorganisations: truncate and rescan'');
 \texttt{TreeSizeInvalid}, and \texttt{TreeSizeOverflow} do not
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs},
 lines~602--685). The final tree size also drives checkpointing: the
-helpers \texttt{compact\_tx\_contains\_last\_}\allowbreak%
+helpers \texttt{compact\_tx\_}\allowbreak\texttt{contains\_last\_}\allowbreak%
 \texttt{sapling\_outputs\_in\_block},
-\texttt{\ldots\_orchard\_actions\_in\_block}, and
-\texttt{\ldots\_ironwood\_actions\_in\_block}
+\texttt{\ldots\_orchard\_}\allowbreak\texttt{actions\_in\_block}, and
+\texttt{\ldots\_ironwood\_}\allowbreak\texttt{actions\_in\_block}
 compare the running position plus the current transaction's output or
 action count against the final size, to decide when to write the
 block-boundary checkpoint into the commitment tree
@@ -728,8 +765,9 @@ Per our conventions, we flag rather than resolve the following.
 \item \emph{Inclusion semantics.} ZIP~307 says Sapling-relevant
   transactions only; the deployed default stream includes Orchard data,
   transparent data is available on request
-  (\texttt{BlockRange.poolTypes}), and \texttt{GetBlock} returns all
-  pools unconditionally (\S\ref{sec:sync-compact-servers}).
+  (\texttt{BlockRange.}\allowbreak\texttt{poolTypes}), and
+  \texttt{GetBlock} returns all pools unconditionally
+  (\S\ref{sec:sync-compact-servers}).
 \item \emph{A \texttt{protoVersion} that never varies on the wire.}
   Server \textsf{lightwalletd} never sets it; deployed \textsf{Zaino}
   serves~\texttt{0}, byte-identical to an unset proto3 scalar; and
@@ -858,8 +896,9 @@ The fork in \textsf{librustzcash}
 \texttt{CompactTx.ironwoodActions = 9}. Zaino's fork
 (\texttt{zaino-proto}) adds \texttt{IRONWOOD = 4},
 \texttt{ironwoodTree = 7}, \texttt{ChainMetadata.\allowbreak
-ironwoodCommitmentTreeSize = 3}, and \texttt{CompactTx.ironwoodActions =
-9}, but not \texttt{ShieldedProtocol.ironwood}, and omits the
+ironwood\allowbreak CommitmentTreeSize = 3}, and
+\texttt{CompactTx.\allowbreak ironwoodActions = 9}, but not
+\texttt{Shielded\allowbreak Protocol.\allowbreak ironwood}, and omits the
 \texttt{deprecated} options on the two nullifier RPCs (diff of the three
 proto trees; \textsf{zaino}, \texttt{docs/internal\_spec.md},
 \S~``Zaino-Proto''). Zaino's documentation states the local copies exist
@@ -887,11 +926,11 @@ trial-decryption input and the nullifier.
 \begin{definition}[Compact Sapling output, ZIP~307]
 \label{def:sync-compact-output}
 A compact output retains three fields of a Sapling Output description:
-\[
+\begin{multline*}
 \mathtt{CompactSaplingOutput} \;=\;
-\bigl(\mathtt{cmu}[32],\; \mathtt{ephemeralKey}[32],\;
+\bigl(\mathtt{cmu}[32],\; \mathtt{ephemeralKey}[32],\;\\
 \mathtt{ciphertext} = \mathtt{encCiphertext}[0..52]\bigr),
-\]
+\end{multline*}
 116~bytes per output against $580 + 32$ bytes for the full description
 with its commitment --- an ${\sim}80\%$ reduction (ZIP~307, \S~``Output
 Compression''; \texttt{compact\_formats.proto:114--122}). The 52-byte
@@ -1012,7 +1051,7 @@ in the next section.
 The service defines twenty RPCs (\texttt{service.proto:221--326});
 Table~\ref{tab:sync-rpcs} groups them. Three are deprecated, one is
 testing-only, and six serve the transparent layer, outside this volume's
-shielded-sync scope. The four marked \checkmark\ are the ones the
+shielded-sync scope. The four marked $\checkmark$ are the ones the
 reference sync loop consumes for shielded sync
 (\S\ref{sec:sync-interaction}).
 
@@ -1023,17 +1062,17 @@ reference sync loop consumes for shielded sync
 \toprule
 Group & RPC & Sync loop & Notes \\
 \midrule
-Chain & \texttt{GetLatestBlock} & \checkmark & tip height and hash \\
+Chain & \texttt{GetLatestBlock} & $\checkmark$ & tip height and hash \\
  & \texttt{GetBlock} & & one block, all pools \\
- & \texttt{GetBlockRange} & \checkmark & streamed range, pool filter \\
+ & \texttt{GetBlockRange} & $\checkmark$ & streamed range, pool filter \\
  & \texttt{GetBlockNullifiers} & & deprecated (v0.4.0; proto option
    v0.4.1) \\
  & \texttt{GetBlockRangeNullifiers} & & deprecated (v0.4.0; proto option
    v0.4.1) \\
 \addlinespace
-Trees & \texttt{GetTreeState} & \checkmark & frontiers at height/hash \\
+Trees & \texttt{GetTreeState} & $\checkmark$ & frontiers at height/hash \\
  & \texttt{GetLatestTreeState} & & frontiers at the tip \\
- & \texttt{GetSubtreeRoots} & \checkmark & depth-16 subtree roots \\
+ & \texttt{GetSubtreeRoots} & $\checkmark$ & depth-16 subtree roots \\
 \addlinespace
 Transactions & \texttt{GetTransaction} & & full bytes by txid \\
  & \texttt{SendTransaction} & & submit raw bytes \\
@@ -1054,7 +1093,7 @@ Metadata & \texttt{GetLightdInfo} & & server and chain metadata \\
 \end{tabular}
 \caption{The twenty RPCs of \texttt{CompactTxStreamer}
 (\texttt{service.proto:221--326}, lightwallet-protocol v0.4.1). The
-\checkmark\ column marks the shielded-sync RPCs exercised by the
+$\checkmark$ column marks the shielded-sync RPCs exercised by the
 reference sync loop; with feature \texttt{transparent-inputs} the loop
 also issues \texttt{GetAddressUtxosStream} per account per cycle
 (\textsf{zcash\_client\_backend}, \texttt{src/sync.rs}).}
@@ -1171,8 +1210,10 @@ field \texttt{ironwoodTree} (hex, empty when absent) that exists only in
 Zaino's and librustzcash's proto forks (\S\ref{sec:sync-authority});
 \texttt{GetLatestTreeState} reuses \texttt{GetTreeState} at the current
 chain height (\textsf{zaino},
-\texttt{zaino-state/src/backends/state.rs:2516--2576};
-\texttt{zaino-proto/proto/service.proto:183}). One stale cross-reference:
+\texttt{zaino-state/src/backends/\allowbreak state.rs:2516--2576};
+\texttt{zaino-proto/proto/\allowbreak service.proto:\allowbreak 183}). One
+stale
+cross-reference:
 the proto comment for \texttt{GetTreeState} cites ``section 3.7 of the
 Zcash protocol specification'', while the current
 \texttt{protocol.tex} numbers note commitment trees as \S~3.8.
@@ -1189,8 +1230,10 @@ element is
 so that, for example, Sapling output $65535$ --- the last of subtree $0$
 --- falls in block $558822$ (\texttt{service.proto:191--200};
 \textsf{lightwalletd}, \texttt{common/common.go:178--219}). The RPC
-$\mathtt{GetSubtreeRoots}(\mathtt{GetSubtreeRootsArg})$ streams these for
-the chosen shielded protocol from \texttt{startIndex}, with
+$\mathtt{GetSubtree}$\allowbreak$\mathtt{Roots}$\allowbreak
+$(\mathtt{GetSubtreeRootsArg})$
+streams these for the chosen shielded protocol from \texttt{startIndex},
+with
 $\mathtt{maxEntries} = 0$ meaning all. The lightwalletd handler calls
 \texttt{z\_getsubtreesbyindex} and then, per subtree, fetches the
 completing block via \texttt{GetBlock} at its end height to obtain the
@@ -1225,8 +1268,10 @@ it names a txid of interest to the proxy --- is the reason for the ZIP's
 decoy mandate (\S\ref{sec:sync-interaction}).
 
 \paragraph{Submission.} The RPC
-$\mathtt{SendTransaction}(\mathtt{RawTransaction})$ submits via the
-node's \texttt{sendrawtransaction}. Success returns
+$\mathtt{SendTransaction}$\allowbreak$(\mathtt{RawTransaction})$ submits
+via the
+node's \texttt{send}\allowbreak\texttt{raw}\allowbreak
+\texttt{transaction}. Success returns
 $\mathtt{SendResponse}\{\mathtt{errorCode}{=}0,\
 \mathtt{errorMessage}{=}\text{txid hex}\}$; a node rejection is parsed
 from the ``code: message'' error string into a non-zero
@@ -1337,18 +1382,20 @@ tag being v0.4.1, though an untagged v0.5.0 changelog section
 \texttt{state.rs:2776}) --- defaults the Sapling activation height to 1
 on regtest, and
 carries the connected Zebra node's build information in the
-\texttt{zcashdBuild}/\texttt{zcashdSubversion} fields (\textsf{zaino},
-\texttt{zaino-state/src/backends/state.rs:2724--2793}). Both sides are
-flagged in \S\ref{sec:sync-divergences}.
+\texttt{zcashdBuild}/\allowbreak\texttt{zcashdSubversion} fields
+(\textsf{zaino},
+\texttt{zaino-state/src/backends/\allowbreak state.rs:2724--2793}). Both
+sides are flagged in \S\ref{sec:sync-divergences}.
 
 \paragraph{Ping.} The RPC \texttt{Ping} is testing-only; lightwalletd
 disables it unless started with the flag
 \texttt{-{}-ping-very-insecure}, because the call lets a client create
 arbitrarily many concurrent server threads --- a
 resource-exhaustion risk (\texttt{service.proto:324--325};
-\textsf{lightwalletd}, \texttt{frontend/service.go:920--936}). Zaino
+\textsf{lightwalletd},
+\texttt{frontend/\allowbreak service.go:920--936}). Zaino
 returns gRPC \texttt{Unimplemented} (\textsf{zaino},
-\texttt{zaino-state/src/backends/state.rs:2782--2792}).
+\texttt{zaino-state/src/backends/\allowbreak state.rs:2782--2792}).
 
 \paragraph{Transparent-address RPCs.} The six remaining RPCs
 (\texttt{GetTaddressTxids} --- deprecated and misnamed, it returns
@@ -1468,7 +1515,7 @@ the question as open.
 
 \paragraph{The chain index.} Server-side state is the
 \texttt{ChainIndex}, with three components (\textsf{zaino},
-\texttt{docs/internal\_spec.md}, \S~``Zaino-State'';
+\texttt{docs/\allowbreak internal\_spec.md}, \S~``Zaino-State'';
 \texttt{zaino-state/}\allowbreak\texttt{src/}\allowbreak
 \texttt{chain\_index.rs:1--100}). A \texttt{Mempool}
 --- a dashmap broadcast map keyed by txid, whose sync task polls
@@ -1480,7 +1527,8 @@ below the seam --- served either by a versioned LMDB-backed persistent
 database (v1) or, with \texttt{ephemeral\_finalised\_state}, by a
 stateless passthrough to the validator; large syncs and version
 migrations run in the background while serving continues
-(\texttt{chain\_index/finalised\_state.rs:1--80}). The seam is
+(\texttt{chain\_index/\allowbreak finalised\_state.rs:1--80}). The seam
+is
 \[
 \mathrm{floor}(t) \;=\; t - D_{\mathrm{op}}
 \quad\text{(saturating at genesis)},
@@ -1721,13 +1769,15 @@ commitment trees; and
 returning complete-subtree roots with their completing block hash and
 height, selected by \texttt{enum ShieldedProtocol \{ sapling=0; orchard=1;
 ironwood=2 \}}
-(\texttt{lightwallet-protocol/walletrpc/service.proto:24--321}).
+(\texttt{lightwallet-protocol/\allowbreak walletrpc/\allowbreak
+service.proto:24--321}).
 
 \begin{remark}[Deployment divergence at NU6.3]\label{rem:sync-divergence}
 The deployed \textsf{lightwalletd} tree (commit \texttt{61fee32e},
 2026-06-25) contains no Ironwood support: its \texttt{walletrpc} protos and
 Go code lack \texttt{ironwoodActions}, \texttt{ironwoodCommitmentTreeSize},
-\texttt{ironwoodTree}, and \texttt{ShieldedProtocol.ironwood}. The protos
+\texttt{ironwoodTree}, and \texttt{ShieldedProtocol.\allowbreak
+ironwood}. The protos
 vendored by \textsf{librustzcash} (commit \texttt{e30517e4}) define all
 four; \textsf{Zaino} (commit \texttt{0e057e22}) defines the first three
 but not \texttt{ShieldedProtocol.ironwood} (\S\ref{sec:sync-authority}),
@@ -1755,7 +1805,8 @@ ChainState} with a \texttt{recover\_until: Option<BlockHeight>}. The
 \mathsf{birthday} := \mathsf{priorChainState.height} + 1,
 \]
 the height of the first block to be scanned
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3013--3106}). A
+(\textsf{zcash\_client\_backend}, \texttt{src/\allowbreak
+data\_api.rs:3013--\allowbreak 3106}). A
 \texttt{ChainState} holds a block height, a block hash, and the final note
 commitment tree frontier of each pool: Sapling (depth
 \texttt{sapling::NOTE\_COMMITMENT\_TREE\_DEPTH} $= 32$), Orchard, and
@@ -1767,7 +1818,8 @@ keeps its own tree
 
 Constructor \texttt{AccountBirthday::from\_treestate} builds the birthday
 from a lightwalletd \texttt{TreeState} for the last block \emph{prior} to
-the birthday height. The conversion (\texttt{TreeState::to\_chain\_state})
+the birthday height. The conversion
+(\texttt{TreeState::}\allowbreak\texttt{to\_chain\_state})
 hex-decodes the block hash --- reversing the bytes, since zcashd renders
 block hashes byte-reversed in hex --- parses the height, and converts the
 hex-serialised Sapling, Orchard, and Ironwood trees into per-pool
@@ -1922,11 +1974,13 @@ range upper bounds exclusive throughout:
 where $\mathsf{PRUNING\_DEPTH} = 100$ blocks and heights at or below
 $\mathsf{stable}$ are treated as not subject to reorganisation
 (\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/scanning.rs:522--523,582--584};
+\texttt{src/wallet/\allowbreak scanning.rs:522--523,\allowbreak
+582--584};
 \textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:169}). The SQLite
 implementation
-proceeds as follows
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:488--660}):
+proceeds as follows (\textsf{zcash\_\allowbreak client\_\allowbreak
+sqlite},
+\texttt{src/\allowbreak wallet/\allowbreak scanning.rs:488--660}):
 \begin{enumerate}[label=(\alph*)]
 \item it is a no-op if the tip is below Sapling activation;
 \item it is a no-op if the new tip is below the prior maximum scanned
@@ -2026,10 +2080,12 @@ reaches the batch-size threshold ($100$ outputs in
 \textsf{rayon} thread pool (\texttt{rayon::spawn\_fifo}) and a fresh batch
 begins. Results are delivered per (block hash, txid) over \textsf{flume}
 channels, and \texttt{collect\_results} blocks until the relevant batch has
-run (\textsf{zcash\_client\_backend}, \texttt{src/scan.rs:194--220,461--626};
-\texttt{src/scanning/compact.rs:101--238};
-\texttt{src/data\_api/chain.rs:642}). Within a batch,
-\texttt{zcash\_note\_encryption::batch::try\_compact\_note\_decryption}
+run (\textsf{zcash\_client\_backend},
+\texttt{src/scan.rs:194--220,\allowbreak 461--626};
+\texttt{src/scanning/\allowbreak compact.rs:101--238};
+\texttt{src/data\_api/\allowbreak chain.rs:642}). Within a batch,
+\texttt{zcash\_note\_encryption::}\allowbreak\texttt{batch::}\allowbreak
+\texttt{try\_compact\_note\_\allowbreak decryption}
 batches the cryptography: \texttt{D::batch\_epk} parses and prepares all
 ephemeral keys at once, shared secrets are computed for every
 (\ivk, \textsf{epk}) pair --- the scalar multiplications themselves cannot
@@ -2281,7 +2337,8 @@ nullifier-map locators
 blocks is \textsf{librustzcash}'s reorganisation-safety depth
 (\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:169}), the nullifier-map
 pruning
-depth (\textsf{zcash\_client\_backend}, \texttt{src/data\_api/ll/wallet.rs:55}),
+depth (\textsf{zcash\_client\_\allowbreak backend},
+\texttt{src/data\_api/ll/\allowbreak wallet.rs:55}),
 and
 ZIP~307's suggested witness-cache size --- the ZIP asserts $100$ blocks is
 reasonable ``as no full Zcash node will roll back the chain by more than
@@ -2292,7 +2349,8 @@ node asked to reorganise deeper aborts
 (\texttt{src/main.cpp:4332--4337}). \textsf{Zebra}'s rollback window is
 $\mathsf{MAX\_BLOCK\_REORG\_HEIGHT} = 1000$, documented as local-only
 node policy, not consensus
-(\texttt{zebra-chain/src/parameters/constants.rs:20--30}), so the ZIP's
+(\texttt{zebra-chain/src/\allowbreak parameters/\allowbreak
+constants.rs:20--30}), so the ZIP's
 ``no full Zcash node'' claim no longer holds for Zebra-backed
 deployments; $\mathsf{PRUNING\_DEPTH} = 100$ matches the zcashd bound,
 as its doc comment says (\textsf{zcash\_client\_sqlite},
@@ -2501,8 +2559,10 @@ absent, and no \texttt{reserved} statement documents the gap
 Two byte-order pitfalls attach to these messages. First,
 \texttt{SubtreeRoot.completingBlockHash} is sent in big-endian display
 order --- \textsf{lightwalletd} sets it to
-\texttt{hash32.ReverseSlice(block.Hash)} --- which is the \emph{opposite}
-convention from \texttt{CompactBlock.hash}, parsed into little-endian
+\texttt{hash32.}\allowbreak\texttt{ReverseSlice(block.Hash)} --- which
+is the \emph{opposite}
+convention from \texttt{CompactBlock.\allowbreak hash}, parsed into
+little-endian
 wire order; the proto documents neither convention
 (\textsf{lightwalletd}, \texttt{frontend/service.go:896--900};
 \texttt{parser/block.go:59--61,115}). The reference client sidesteps the
@@ -2584,16 +2644,17 @@ the limit is reached
 \texttt{doc/release-notes/}\allowbreak\texttt{release-notes-5.6.0.md:28}).
 The records are
 maintained by the validator's incremental tree: \textsf{zcashd} stores
-$\texttt{SubtreeData}\{\mathsf{leadbyte}, \mathsf{root},
-\mathsf{nHeight}\}$ and
-$\texttt{LatestSubtree}\{\mathsf{leadbyte}, \mathsf{index},
-\mathsf{root}, \mathsf{nHeight}\}$ records under a \texttt{uint64\_t}
+$\texttt{SubtreeData}\{\mathsf{leadbyte},\allowbreak \mathsf{root},
+\allowbreak \mathsf{nHeight}\}$ and
+$\texttt{LatestSubtree}\{\mathsf{leadbyte},\allowbreak \mathsf{index},
+\allowbreak \mathsf{root},\allowbreak \mathsf{nHeight}\}$ records under
+a \texttt{uint64\_t}
 subtree index, fixes $\mathsf{TRACKED\_SUBTREE\_HEIGHT} = 16$, and
 produces a completed subtree root exactly when the tree size crosses a
 $2^{16}$ boundary (\textsf{zcashd},
 \texttt{src/zcash/}\allowbreak
 \texttt{IncrementalMerkleTree.hpp:20--70,\allowbreak 409--411};
-\texttt{IncrementalMerkleTree.cpp:913--925}):
+\texttt{IncrementalMerkleTree.cpp:\allowbreak 913--925}):
 \[
 \texttt{current\_subtree\_index()} \;=\; \mathsf{size}() \gg
 \mathsf{TRACKED\_SUBTREE\_HEIGHT}.
@@ -2638,9 +2699,10 @@ populates an \texttt{ironwood\_tree} field), its
 and its \texttt{get\_subtree\_roots} fetches each completing block via
 \texttt{z\_get\_block(end\_height)}
 (\textsf{zaino-state},
-\texttt{src/backends/}\allowbreak\texttt{fetch.rs:1836--1896};
-\texttt{src/indexer.rs:756--860};
-\texttt{src/chain\_index.rs:509--514,\allowbreak 2397--2431}). One behavioural
+\texttt{src/\allowbreak backends/}\allowbreak\texttt{fetch.rs:1836--1896};
+\texttt{src/\allowbreak indexer.rs:756--860};
+\texttt{src/\allowbreak chain\_index.rs:509--514,\allowbreak
+2397--\allowbreak 2431}). One behavioural
 divergence: Zaino maps the proto's \texttt{uint32}
 $\mathsf{startIndex}$/$\mathsf{maxEntries}$ down to \texttt{u16} and
 returns \texttt{InvalidArgument} when either exceeds $65535$ ---
@@ -2653,18 +2715,18 @@ but stricter than \textsf{lightwalletd}/\textsf{zcashd}, whose
 Both backends delegate to the validator:
 \texttt{NodeBackedChainIndex::}\allowbreak\texttt{get\_subtree\_roots}
 calls the blockchain
-source (\texttt{chain\_index.rs:2421--2431});
+source (\texttt{chain\_index.rs:\allowbreak 2421--2431});
 \texttt{ValidatorConnector::State} issues
 \texttt{ReadRequest::}\allowbreak\texttt{\{Sapling,}\allowbreak%
 \texttt{Orchard,}\allowbreak\texttt{Ironwood\}}\allowbreak%
 \texttt{Subtrees} to Zebra's
 \texttt{ReadStateService}, and \texttt{::Fetch} proxies
-\texttt{z\_getsubtreesbyindex}
-(\texttt{chain\_index/source/}\allowbreak
-\texttt{validator\_connector.rs:545--608}); only
+\texttt{z\_get}\allowbreak\texttt{subtrees}\allowbreak\texttt{byindex}
+(\texttt{chain\_\allowbreak index/\allowbreak source/}\allowbreak
+\texttt{validator\_\allowbreak connector.rs:545--608}); only
 the mockchain test source self-computes
-(\texttt{chain\_index/source/}\allowbreak
-\texttt{mockchain\_source.rs:579--665}).
+(\texttt{chain\_index/\allowbreak source/}\allowbreak
+\texttt{mockchain\_\allowbreak source.rs:579--665}).
 
 \subsection{Client state: shards, cap, and retention}
 \label{sec:sync-tree-store}
@@ -2706,7 +2768,7 @@ guidance (\S\ref{sec:sync-tree-linear})
 2558}).
 
 What survives pruning is governed by per-node \emph{retention}
-(\textsf{incrementalmerkletree}, \texttt{src/lib.rs:76--107}):
+(\textsf{incrementalmerkletree}, \texttt{src/\allowbreak lib.rs:76--107}):
 \begin{itemize}
 \item \texttt{Ephemeral} --- prunable together with its siblings;
 \item \texttt{Checkpoint\{id, marking\}} --- the position is retained
@@ -2723,7 +2785,8 @@ What survives pruning is governed by per-node \emph{retention}
 \subsection{Ingesting subtree roots}\label{sec:sync-tree-roots}
 
 The reference sync driver begins \emph{every} run by refreshing the
-shard roots: function \texttt{update\_subtree\_roots} downloads all
+shard roots: function \texttt{update\_}\allowbreak\texttt{subtree\_roots}
+downloads all
 subtree roots --- the default \texttt{GetSubtreeRootsArg}, i.e.\
 $\mathsf{startIndex} = 0$, $\mathsf{maxEntries} = 0$ --- for Sapling and,
 with the \texttt{orchard} feature, Orchard and Ironwood, converting each
@@ -2738,12 +2801,13 @@ and passing the batches, each with start index $0$, to
 \texttt{put\_orchard\_}\allowbreak\texttt{subtree\_roots}, and
 \texttt{put\_ironwood\_}\allowbreak\texttt{subtree\_roots}
 (\textsf{zcash\_client\_backend},
-\texttt{src/sync.rs:80--86,\allowbreak 228--299}).
+\texttt{src/\allowbreak sync.rs:\allowbreak 80--86,\allowbreak 228--299}).
 Type \texttt{CommitmentTreeRoot} pairs the subtree end height with the
-root hash (\texttt{src/data\_api/}\allowbreak\texttt{chain.rs:180--212}),
+root hash
+(\texttt{src/\allowbreak data\_api/}\allowbreak\texttt{chain.rs:180--212}),
 and the trait documentation
-(\texttt{src/}\allowbreak\texttt{data\_api.rs:3743--3826}) fixes the
-meaning:
+(\texttt{src/}\allowbreak\texttt{data\_api.rs:\allowbreak 3743--3826})
+fixes the meaning:
 each value ``should be the Merkle root of a subtree \ldots\ containing
 $2^{\mathrm{SHARD\_HEIGHT}}$ note commitments''.
 
@@ -2850,14 +2914,15 @@ per pool $P$, where $b_0$ is the batch's first block and the final
 tree size is read from the block's \texttt{chainMetadata}; violation
 yields error \texttt{NonSequentialBlocks}
 (\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/chain.rs:616--635};
-\texttt{src/data\_api/ll/wallet.rs:291--348}). The metadata sizes are
+\texttt{src/\allowbreak data\_api/\allowbreak chain.rs:616--635};
+\texttt{src/\allowbreak data\_api/\allowbreak ll/\allowbreak
+wallet.rs:291--348}). The metadata sizes are
 what give the scanner absolute leaf positions at all --- without them it
 cannot even derive nullifiers (\texttt{TreeSizeUnknown}, a hard error),
 and a size contradicted by block contents is \texttt{TreeSizeMismatch},
 a continuity error triggering the rewind of \S\ref{sec:sync-reorg}
 (\texttt{lightwallet-protocol/walletrpc/}\allowbreak
-\texttt{compact\_formats.proto:14--17,\allowbreak 31--40};
+\texttt{compact\_\allowbreak formats.proto:14--17,\allowbreak 31--40};
 \textsf{zcash\_client\_backend},
 \texttt{src/scanning.rs:602--685}).
 
@@ -2879,7 +2944,8 @@ pool's tree is updated by \texttt{update\_tree}
   subtree;
 \item add any cross-pool checkpoints missing above the minimum retained
   checkpoint
-  (\texttt{src/data\_api/ll/wallet.rs:1591--1664}; the cross-pool
+  (\texttt{src/\allowbreak data\_api/\allowbreak ll/\allowbreak
+  wallet.rs:1591--1664}; the cross-pool
   checkpoint-unification rule itself, \S\ref{sec:sync-persist}).
 \end{enumerate}
 Inside \textsf{shardtree}, \texttt{insert\_frontier} splits a non-empty
@@ -2897,7 +2963,8 @@ retention records a checkpoint for the empty tree
 Frontier seeding is also how a wallet is born and how it rewinds. An
 \texttt{AccountBirthday} wraps ``the chain state prior to the birthday
 height'' plus an optional \texttt{recover\_until};
-\texttt{AccountBirthday::from\_treestate} builds it directly from a
+\texttt{AccountBirthday::}\allowbreak\texttt{from\_treestate} builds it
+directly from a
 \texttt{TreeState} for the last block \emph{prior} to the birthday, with
 $\texttt{height()} = \mathsf{priorChainState}.\mathsf{blockHeight} + 1$,
 and account creation stores the birthday tree sizes and rewinds the
@@ -2926,7 +2993,8 @@ commitment tree shards adjacent to found notes''
 \texttt{src/data\_api/scanning.rs:13--29}).
 
 \paragraph{The tip shard.} On each tip update the backend computes per
-pool the maximum \texttt{subtree\_end\_height} over the pool's shards
+pool the maximum \texttt{subtree\_}\allowbreak\texttt{end\_height} over
+the pool's shards
 table --- the end of the last complete shard known from
 \texttt{GetSubtreeRoots} --- takes the minimum across pools, and
 enqueues
@@ -2977,7 +3045,8 @@ readiness condition under which it cannot fail.
 
 \paragraph{Spendability.} That condition is enforced in SQL. Writing
 $U_P$ for the rows of view
-\texttt{v\_\{pool\}\_shard\_unscanned\_ranges}, note selection excludes
+\texttt{v\_\{pool\}\_\allowbreak shard\_\allowbreak
+unscanned\_\allowbreak ranges}, note selection excludes
 any note at position $p$ for which some
 $(\mathsf{s}, \mathsf{e}, \mathsf{h}_0, \mathsf{h}_1) \in U_P$ satisfies
 \[
@@ -3292,7 +3361,8 @@ contiguous suggested ranges --- before it may be cited as fact.
 \end{remark}
 
 \paragraph{Mempool polling fingerprints the session.} Field
-\texttt{exclude\_txid\_suffixes} of the \texttt{GetMempoolTx} request
+\texttt{exclude\_}\allowbreak\texttt{txid\_suffixes} of the
+\texttt{GetMempool}\allowbreak\texttt{Tx} request
 carries suffixes of txids the client already holds, so a mempool-polling
 client additionally reveals which mempool transactions it has already
 seen, a session-linkable fingerprint (\textsf{lightwalletd},
@@ -3354,7 +3424,8 @@ makes no attempt at sanitization'' (\textsf{lightwalletd},
 \texttt{docs/architecture.md}).
 
 Zaino, the successor indexer, changes none of this structurally: it serves
-the full \texttt{CompactTxStreamer} surface; every handler logs the method
+the full \texttt{CompactTx}\allowbreak\texttt{Streamer} surface; every
+handler logs the method
 name
 at Info level --- the literal message is \texttt{[TEST] received call},
 apparent leftover test instrumentation in production code --- and, under

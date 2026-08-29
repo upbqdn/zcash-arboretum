@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \emergencystretch=3em
 \hbadness=10000
@@ -26,6 +32,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -1475,7 +1508,7 @@ protocol's $G^{\mathsf{SpendAuth}}$. Oracles $H_1/H_3/H_4/H_5$ carry the
 \texttt{FROST\_RedPallas\{R,N,M,C\}} personalisations of
 Table~\ref{tab:fr-pallas-suite}; $H_2$ goes through the crate's
 \texttt{HStar} default, \texttt{Zcash\_RedPallasH}; the
-\texttt{RandomizedCiphersuite::hash\_randomizer} impl uses
+\texttt{RandomizedCiphersuite::\allowbreak hash\_randomizer} impl uses
 \texttt{FROST\_RedPallasA} (the ZIP's $H_R$); scalar reduction is the
 $64$-byte-wide \texttt{from\_bytes\_wide} (\texttt{src/hash.rs}), whose
 Pallas implementation delegates to pasta's
@@ -1502,7 +1535,8 @@ re-randomised flow for the suite ---
 \texttt{PallasBlake2b512}. The module README's worked example runs the
 full trusted-dealer plus re-randomised signing flow and ends by
 verifying the aggregate under the
-\texttt{randomized\_verifying\_key()} of its \texttt{RandomizedParams}
+\texttt{randomized\_\allowbreak verifying\_key()} of its
+\texttt{RandomizedParams}
 --- the executable form of this chapter's claim that a FROST aggregate
 is a plain RedPallas signature under $\rk$.
 
@@ -2009,7 +2043,8 @@ Per the series' three-way scheme:
   Draft status --- PR \#895's in-flight randomizer and key-generation
   changes are its named revisit trigger and do not move the bin
   (\S\ref{sec:fr-deploy-rand}); the
-  \texttt{frost-core}/\texttt{frost-rerandomized}/\texttt{reddsa} API
+  \texttt{frost-core}/\allowbreak\texttt{frost-rerandomized}/%
+  \allowbreak\texttt{reddsa} API
   surface at the pinned versions (\S\ref{sec:fr-deploy-stack}); the PCZT
   Signer external-signature path (\S\ref{sec:fr-deploy-pczt}).
 \item \emph{Designed-but-unspecified.} FROST key generation for Zcash

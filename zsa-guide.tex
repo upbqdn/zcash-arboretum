@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \emergencystretch=3em
 \hbadness=10000
@@ -26,6 +32,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -525,9 +558,10 @@ $\mathit{tag} = [\,]$, omitted from the PRF message
 
 \begin{remark}[Domain separation between the Orchard and Issuance trees]
 \label{rem:zsa-ckd-domain}
-The byte $\mathsf{Issuance.CKDDomain} = \mathtt{0x81}$ equals
+The byte $\mathsf{Issuance.}\allowbreak\mathsf{CKDDomain}$
+$= \mathtt{0x81}$ equals
 $\mathsf{Orchard.CKDDomain}$ (\texttt{zip-0032.rst}:476), and the
-implementation reuses \texttt{PrfExpand::ORCHARD\_ZIP32\_CHILD}
+implementation reuses \texttt{PrfExpand::\allowbreak ORCHARD\_ZIP32\_CHILD}
 (\texttt{zcash\_spec} \texttt{src/prf\_expand.rs}:119 @
 \texttt{d5e84264}). Separation between the two ZIP-32 trees therefore
 rests entirely on the differing $\mathsf{MKGDomain}$: distinct master
@@ -709,7 +743,8 @@ $\Ep(\F_{p_{\Pallas}})$ in our notation. Its byte form is
 \mathrm{LEBS2OSP}_{\ell_{\PP}}(\mathrm{repr}_{\PP}(\mathsf{AssetBase})),
 \]
 the $32$-byte representation stored in note plaintexts and burn fields
-(\texttt{zip-0226.rst}:114; \texttt{zip-0230.rst}:540--545). ZIP~226 notes
+(\texttt{zip-0226.rst}:\allowbreak 114;
+\texttt{zip-0230.\allowbreak rst}:\allowbreak 540--545). ZIP~226 notes
 the encoding assumes canonicity, ``true for the Pallas group, but may not
 hold for future shielded protocols'' (\texttt{zip-0226.rst}:111--117).
 Table~\ref{tab:zsa-identity-sizes} collects the sizes along the chain.
@@ -793,10 +828,12 @@ point, $V^{\mathsf{Orchard}}$'' (\texttt{zip-0226.rst}:98); for ZEC,
 the Orchard protocol deployed in NU5. As such
 $\mathsf{ValueCommit}^{\mathsf{Orchard}}_{\rcv}(v)$ as defined in ZIP~224
 is used as
-$\mathsf{ValueCommit}^{\mathsf{OrchardZSA}}_{\rcv}(V^{\mathsf{Orchard}},
-v)$'' (\texttt{zip-0226.rst}:182--194). The point
-$V^{\mathsf{Orchard}} :=
-\GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}cv}, \texttt{"v"})$ is
+$\mathsf{ValueCommit}^{\mathsf{OrchardZSA}}_{\rcv}$\allowbreak
+$(V^{\mathsf{Orchard}},$ $v)$''
+(\texttt{zip-0226.rst}:\allowbreak 182--194). The point
+$V^{\mathsf{Orchard}} :=$
+$\GroupHash^{\Pallas}$\allowbreak$(\mathtt{z.cash:Orchard\text{-}cv},$
+$\texttt{"v"})$ is
 already constructed, together with its companion $R^{\mathsf{Orchard}}$,
 in the \emph{Ironwood Guide}, ``Conservation of value: value commitments
 and the binding signature'', Definition ``Net value commitment''; we cite
@@ -820,7 +857,7 @@ $(\mathsf{AssetBase}, v) \in \mathtt{assetBurn}$
 personalization \texttt{"z.cash:Orchard-cv"} of the message \texttt{"v"}
 --- exactly $V^{\mathsf{Orchard}}$; \texttt{AssetBase::is\_zatoshi()} is a
 constant-time equality with that point; and
-\texttt{ValueCommitment::derive} computes $[v]\,V + [\rcv]\,R$ with
+\texttt{ValueCommitment::\allowbreak derive} computes $[v]\,V + [\rcv]\,R$ with
 $V = \texttt{asset.cv\_base()}$ and $R$ the fixed base
 $R^{\mathsf{Orchard}}$, so a ZEC note's value commitment is bit-identical
 to NU5 Orchard's (\texttt{orchard-zsa} @ \texttt{cf801a5d}:
@@ -1439,9 +1476,10 @@ $\mathsf{issuance\_auth\_digest}$ =
 \end{center}
 --- and cross-implementation test vectors ship in
 \texttt{src/test\_vectors/} (\texttt{asset\_base.rs},
-\texttt{issuance\_auth\_sig.rs}), exercised by the asset-base and
-authorization tests (\texttt{orchard-zsa},
-\texttt{src/bundle/commitments/issuance.rs} lines~156--190 and
+\texttt{issuance\_\allowbreak auth\_\allowbreak sig.rs}), exercised by the
+asset-base and authorization tests (\texttt{orchard-zsa},
+\texttt{src/\allowbreak bundle/\allowbreak commitments/\allowbreak
+issuance.rs} lines~156--190 and
 \texttt{src/test\_vectors/} @ \texttt{cf801a5d}). The upstream ZIP-227
 Test Vectors section, by contrast, still reads LINK TBD.
 
@@ -1945,7 +1983,8 @@ and RedPallas on the base $R^{\mathsf{Orchard}}$ --- are those of the
 \begin{remark}[Implementation: $\mathsf{derive\_bvk}$]\label{rem:zsa-bvk-impl}
 Function \texttt{derive\_bvk\_raw} computes the ZIP equation verbatim:
 $\sum \cvsym^{\mathsf{net}}$ minus the zero-trapdoor commitment of
-\texttt{value\_balance} at \texttt{AssetBase::zatoshi()} minus, over the
+\texttt{value\_balance} at \texttt{AssetBase::\allowbreak zatoshi()}
+minus, over the
 burn set, the zero-trapdoor commitment of each \texttt{value} at its
 \texttt{asset} (\textsf{orchard-zsa}, \texttt{src/bundle.rs}). Function
 \texttt{ValueCommitment::derive} computes $V \cdot \mathsf{value} + R \cdot
@@ -2096,13 +2135,15 @@ Two gadgets carry the arithmetic weight. The in-circuit value commitment
 computes $[\mathrm{magnitude}]\,\mathsf{asset\_base}$ by variable-base long
 scalar multiplication on the witnessed non-identity point, applies
 $\mathsf{mul\_sign}$ for the sign, and adds the fixed-base
-$[\rcv]\,R^{\mathsf{Orchard}}$ (\texttt{src/circuit/value\_commit\_orchard.rs}).
+$[\rcv]\,R^{\mathsf{Orchard}}$
+(\texttt{src/\allowbreak circuit/\allowbreak value\_commit\_orchard.rs}).
 The in-circuit note commitment shares one Sinsemilla evaluation between the
 two branches of Definition~\ref{def:zsa-notecommit}: it muxes the initial
 point $Q$ between $Q_{\mathrm{ZEC}}$ (domain
 \texttt{z.cash:Orchard-NoteCommit-M}) and $Q_{\mathrm{ZSA}}$ (domain
 \texttt{z.cash:ZSA-NoteCommit-M}; the hard-coded point is test-asserted in
-\texttt{src/constants/sinsemilla.rs}) on $\mathsf{is\_zatoshi\_asset}$,
+\texttt{src/\allowbreak constants/\allowbreak sinsemilla.rs}) on
+$\mathsf{is\_zatoshi\_asset}$,
 hashes the common message prefix once, hashes the two suffixes (ZEC: the
 zero-padded piece $h_2$; ZSA: the Asset Base bits), muxes the resulting hash
 point, and adds the shared blinding term $[\rcm]\,R$ --- the shared
@@ -2183,8 +2224,10 @@ with $\mathsf{MEMO\_SIZE} = 512$ and no $K^{\mathsf{memo}}$ --- the
 pre-memo-bundle layout, giving $\mathsf{COMPACT\_NOTE\_SIZE\_ZSA} = 52 + 32
 = 84$ and a $612$-byte $\mathsf{encCiphertext}$, diverging from ZIP-230's
 $132$ bytes (\textsf{orchard-zsa},
-\texttt{src/primitives/zcash\_note\_encryption\_domain.rs},
-\texttt{src/primitives/orchard\_primitives.rs}). No lead byte is currently
+\texttt{src/\allowbreak primitives/\allowbreak
+zcash\_note\_\allowbreak encryption\_\allowbreak domain.rs},
+\texttt{src/\allowbreak primitives/\allowbreak orchard\_primitives.rs}).
+No lead byte is currently
 reserved for ZSA notes upstream. Bin: \emph{open}.
 \end{remark}
 
@@ -2310,9 +2353,11 @@ binding signature''), unchanged. The native asset keeps the old base:
 ``the Asset Base of the ZEC Asset will be kept as the original value base
 point $\mathcal{V}^{\mathsf{Orchard}}$'' (ZIP-226, ``Asset Identifiers'';
 in code \texttt{AssetBase::zatoshi()} is
-$\GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}cv}, \texttt{"v"})$,
-\texttt{orchard-zsa}, \texttt{src/note/asset\_base.rs},
-\texttt{src/constants/fixed\_bases.rs}). Verification subtracts the
+$\GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}cv},$ $\texttt{"v"})$,
+\texttt{orchard-zsa}, \texttt{src/\allowbreak note/\allowbreak
+asset\_base.rs},
+\texttt{src/\allowbreak constants/\allowbreak fixed\_bases.rs}).
+Verification subtracts the
 declared native balance and the declared burns (ZIP-226, ``Value Balance
 Verification''; implemented in \texttt{src/bundle.rs},
 \texttt{derive\_bvk\_raw}):
@@ -2558,7 +2603,8 @@ inside code-derived formulas.
 The implemented circuit concentrates the delta in a single gate,
 \texttt{q\_orchard}, which carries twelve named constraints
 where the vanilla circuit's corresponding gate has four
-(\texttt{src/circuit/circuit\_zsa.rs}, lines 68--185, versus
+(\texttt{src/\allowbreak circuit/\allowbreak circuit\_zsa.rs}, lines
+68--185, versus
 \texttt{src/circuit/circuit\_vanilla.rs}, lines 59--100). In the code's
 names:
 \begin{align*}
@@ -2642,7 +2688,7 @@ being by the \emph{witnessed} $\mathsf{AssetBase}$ and nothing else
 \texttt{circuit.rs}, lines 151--185).
 
 The flag interactions are tested asymmetrically: the three legal
-combinations of $(\mathsf{is\_zatoshi\_asset}, \mathsf{split\_flag})$ ---
+combinations of $(\mathsf{is\_zatoshi\_asset},$ $\mathsf{split\_flag})$ ---
 $(1,0)$, $(0,1)$, and $(0,0)$ --- are proven passing, while the $(1,1)$
 combination is excluded at witness-generation time by the test helper's
 assertion (``We cannot create a split note with a zatoshi asset''), so
@@ -2945,7 +2991,8 @@ vector of \emph{Action Groups}: \texttt{nActionGroupsOrchard},
 \texttt{vActionGroupsOrchard}, then a transaction-level
 \texttt{valueBalanceOrchard} (\texttt{int64}) and
 \texttt{bindingSigOrchard}. The balance and binding signature are present iff
-\texttt{nActionGroupsOrchard} $> 0$; an absent \texttt{valueBalanceOrchard}
+\texttt{nActionGroups\allowbreak Orchard} $> 0$; an absent
+\texttt{valueBalanceOrchard}
 means $v_{\mathrm{balance}}^{\mathsf{Orchard}} = 0$ (ZIP-230, Transaction
 Format). Each \texttt{ActionGroupDescription} contains, in order
 (ZIP-230, OrchardZSA Action Group Description):

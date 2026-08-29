@@ -1,11 +1,17 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{bm}
 \usepackage{xcolor}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 \emergencystretch=3em
 \hbadness=10000
 \hfuzz=2pt
@@ -17,6 +23,33 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{construction}[theorem]{Construction}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
 \newcommand{\N}{\ensuremath{\mathbb{N}}}
@@ -2211,7 +2244,7 @@ the probabilistic principle on which the remainder of this book rests.
 Every \(f \in \F[X]\) induces a \emph{polynomial function}
 \(\widetilde f \colon \F \to \F\), \(\alpha \mapsto f(\alpha)\). The assignment
 \(f \mapsto \widetilde f\) is a ring homomorphism from \(\F[X]\) to the ring
-\(\F^\F\) of all functions \(\F \to \F\) (with pointwise operations), by
+\(\F^{\F}\) of all functions \(\F \to \F\) (with pointwise operations), by
 Proposition~\ref{polynomials:prop:eval-hom} applied at every point.
 \end{definition}
 
@@ -2919,7 +2952,7 @@ We show by induction on \(k = 0, 1, \dots, m\) that, after renumbering the \(w_j
 \end{proof}
 
 \begin{theorem}[Dimension]\label{linalg:thm-dimension}
-Let \(V\) be a finitely generated \(\F\)-vector space. Then \(V\) has a basis, and any two bases have the same number of elements. We call this number the \emph{dimension} \(\dim_\F V\). In particular \(\dim_\F \F^n = n\).
+Let \(V\) be a finitely generated \(\F\)-vector space. Then \(V\) has a basis, and any two bases have the same number of elements. We call this number the \emph{dimension} \(\dim_{\F} V\). In particular \(\dim_{\F} \F^n = n\).
 \end{theorem}
 
 \begin{proof}
@@ -3221,7 +3254,7 @@ the denominator being nonzero because \(\zeta \ne 1\). The first claim is the ca
 Attention now passes from the group \(H\) to the polynomials we study on it. The space of polynomials of degree less than \(n\) has dimension \(n\) over \(\F\); since \(H\) has exactly \(n\) points, their values on \(H\) determine such polynomials. The basis adapted to this situation is the Lagrange basis.
 
 \begin{definition}\label{rootsofunity:def-poly}
-Let \(\F[X]_{<n}\) denote the \(\F\)-vector space of polynomials of degree strictly less than \(n\), together with the zero polynomial. It has the monomial basis \(\{1, X, \dots, X^{n-1}\}\) and so \(\dim_\F \F[X]_{<n} = n\).
+Let \(\F[X]_{<n}\) denote the \(\F\)-vector space of polynomials of degree strictly less than \(n\), together with the zero polynomial. It has the monomial basis \(\{1, X, \dots, X^{n-1}\}\) and so \(\dim_{\F} \F[X]_{<n} = n\).
 \end{definition}
 
 \begin{definition}\label{rootsofunity:def-lagrange}

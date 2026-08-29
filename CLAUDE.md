@@ -38,12 +38,17 @@ invocation.
 
 ## The shared-preamble contract
 
-Every volume opens with the same ~86-line preamble (theorem environments, the
-`\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*` figure colours,
-the redefined `abstract` environment). Copy it byte-for-byte from an existing
-volume (e.g. `sync-guide.tex:1-86`) when creating a new one — the notation
+Every volume opens with the same ~120-line preamble: the STIX Two font setup
+(`fontspec` + `unicode-math`, OTFs in `fonts/`; no `amssymb`), theorem
+environments, the mdframed kind-coded theorem bars and fancyhdr running
+heads, the `\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*`
+figure colours, and the redefined `abstract` environment. Copy it
+byte-for-byte from an existing volume (everything up to `\begin{document}`,
+minus the volume-specific `\title`) when creating a new one — the notation
 registry in `CONVENTIONS.org` is fixed across volumes and must not be
-re-derived locally.
+re-derived locally. `sitegen.py webprep` strips the font/design block for
+LaTeXML by exact string match — editing that block in the volumes requires
+updating `FONT_BLOCK`/`DESIGN_BLOCK_RE` in `sitegen.py` in the same commit.
 
 Two preamble lines are parsed by tooling and must match exactly:
 

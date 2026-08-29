@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \emergencystretch=3em
 \hbadness=10000
@@ -26,6 +32,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -116,8 +149,9 @@ at most a bounded fraction of its participants misbehave arbitrarily)
 whose blocks and the best-chain blocks commit to one another --- the
 eponymous cross-links. The current
 version is Crosslink~2 (tfl-book @ \texttt{fe6e1d6},
-\texttt{src/design/crosslink.md} lines 1--3;
-\texttt{the-arguments-for-bounded-availability-and-finality-overrides.md}
+\texttt{src/\allowbreak design/\allowbreak crosslink.md} lines 1--3;
+\texttt{the-arguments\allowbreak-for\allowbreak-bounded\allowbreak
+-availability\allowbreak-and\allowbreak-finality\allowbreak-overrides.md}
 line~9). The construction descends from the ebb-and-flow security model
 and the Snap-and-Chat construction of Neu, Ta\c{s}, and Tse
 (``Ebb-and-Flow Protocols: A Resolution of the Availability--Finality
@@ -1147,7 +1181,8 @@ can ``thrash'' between chains (same chapter).
 
 \begin{definition}[Finality depth and the Stalled Mode rule;
 \texttt{tfl-book} @ \texttt{fe6e1d6f},
-\texttt{notes-on-snap-and-chat.md}]\label{def:xl-finality-depth}
+\texttt{notes\allowbreak-on\allowbreak-snap\allowbreak-and\allowbreak
+-chat.md}]\label{def:xl-finality-depth}
 For a block header $H$, let
 \begin{align*}
 \mathsf{tailhead}(H) &:=
@@ -1387,7 +1422,8 @@ machine-checked coverage of the ebb-and-flow model itself is nil.
 
 \paragraph{What is checked.} As formalized
 (\texttt{validity.md}, ``Validity Function''), the check is
-$\mathsf{isValid}(\mathit{bft\_store}, \mathit{pow\_store}, p)$ requiring:
+$\mathsf{isValid}(\mathit{bft\_store},\allowbreak
+\mathit{pow\_store},\allowbreak p)$ requiring:
 the store contains $p.\mathit{block}$; the proposal context equals
 \texttt{bft\_store.last()}; \textsf{sigmaConfirmed} --- a fork-free tail
 of at least $\sigma$ PoW blocks, some element of which has the proposed
@@ -1790,7 +1826,8 @@ $\mathsf{context\_bft}$, the header wire format, and the trimming rule.
 
 \begin{definition}[$\Pi_{\mathrm{bft}}$ validity]\label{def:xl-bft-validity}
 The genesis rule is that $\mathsf{Origin}_{\mathrm{bft}}$ is
-bft-block-valid (\texttt{construction.md}:568). A bft-proposal
+bft-block-valid (\texttt{construction\allowbreak .md}:\allowbreak 568).
+A bft-proposal
 (respectively, non-genesis bft-block) $B$ is bft-proposal-valid
 (respectively, bft-block-valid) iff \emph{all} of:
 \begin{description}
@@ -2039,7 +2076,7 @@ there exists a time $r \le t$ such that $\mathsf{fin}_i^t
 By $\mathsf{candidate}(\mathsf{ch}_i^u) \preceq_{\mathrm{bc}}
 \mathsf{ch}_i^u \lceil^{\sigma}_{\mathrm{bc}}$ applied at the last time
 $\mathsf{fin}$ changed, or at genesis
-(\texttt{construction.md}:490--495).
+(\texttt{construction\allowbreak .md}:\allowbreak 490--495).
 \end{proof}
 
 \begin{definition}[Assured Finality]\label{def:xl-assured-finality}
@@ -2059,7 +2096,8 @@ sufficient (\texttt{construction.md}:473, 501--508).
 
 \paragraph{Why $\mathsf{candidate}(H)$, not
 $\mathsf{snapshot}(\mathsf{LF}(H))$.} The Last Final Snapshot rule
-guarantees $\mathsf{snapshot}(\mathsf{LF}(H)) \preceq_{\mathrm{bc}} H$,
+guarantees $\mathsf{snapshot}(\mathsf{LF}(H))\allowbreak
+\preceq_{\mathrm{bc}} H$,
 but \emph{not} that its depth relative to $H$ is at least $\sigma$. Using
 $\mathsf{candidate}(H)$ ensures the finalization point is at least
 $\sigma$-confirmed, which the proof of Assured Finality needs:
@@ -2220,7 +2258,8 @@ confirmation\_depth),\\
 where \texttt{sigmaConfirmed(b, t, sigma)} requires a fork-free
 confirmation tail of size \emph{at least} $\sigma$ whose parents chain
 back to \texttt{b}, and \texttt{linear(b, context, work\_store)} requires
-\texttt{work\_store.isDescendant(context.pow\_hash, b.hash)} \emph{and}
+\texttt{work\_store.\allowbreak isDescendant(context.\allowbreak
+pow\_hash, b.hash)} \emph{and}
 \texttt{not(context.pow\_hash == b.hash)} (crosslink-spec @
 \texttt{8edc3e9}, \texttt{validity.md}:131--138, 150--158, 171--176).
 
@@ -2317,8 +2356,10 @@ At the pinned commit, the further construction-level divergences are:
   dead-code module \texttt{src/malctx.rs}. It replaces both the book's
   plain $\mathsf{context\_bft}$ commitment and the
   notarization-proof/outer-signature structure with a self-certifying
-  pointer (\texttt{zebra-chain/src/block/header.rs}:109--133, 195--201;
-  \texttt{zebra-crosslink/src/lib.rs}:1811--2052).
+  pointer (\texttt{zebra-chain/\allowbreak src/\allowbreak
+  block/\allowbreak header.rs}:109--133, 195--201;
+  \texttt{zebra-crosslink/\allowbreak src/\allowbreak
+  lib.rs}:1811--2052).
 \item \emph{Immediate finality instead of
   $\operatorname{bft\text{-}last\text{-}final}$.} The BFT engine is
   Tendermint-style: the in-house \texttt{tenderlink} package
@@ -2353,7 +2394,8 @@ At the pinned commit, the further construction-level divergences are:
 \item \emph{Header-order inconsistency.} The in-memory header order is
   documented as ``reversed from the specification'' (built tip-first),
   and the accessors disagree at this commit:
-  \texttt{finalization\_candidate()} returns \texttt{headers.last()}
+  \texttt{finalization\_\allowbreak candidate()} returns
+  \texttt{headers.last()}
   while the decided-block handler computes the newly final PoW hash from
   \texttt{headers.first()}; the consistency assertion against
   \texttt{finalization\_candidate\_height} is commented out, and header
@@ -2643,7 +2685,8 @@ value fields under \S4.17 is unspecified, and the prototype sidesteps it
 entirely --- a transaction carrying a staking action bypasses the
 \texttt{has\_inputs\_and\_outputs} consensus check with a ``TODO: real
 staking transactions with inputs/outputs''
-(\texttt{zebra-consensus/src/transaction/check.rs} at \texttt{6d02a1b8}).
+(\texttt{zebra-consensus/\allowbreak src/\allowbreak
+transaction/\allowbreak check.rs} at \texttt{6d02a1b8}).
 Second, the phrase ``a power of 10 ZEC (or ZAT)'' leaves the bucket range
 ambiguous: whether sub-1-ZEC buckets ($10^k$ zatoshi) are permitted, and
 hence the minimum stake, is unspecified; the blog's examples start at
@@ -2990,7 +3033,8 @@ tracked ``to make weighted round-robin easy'' for proposer selection
 \texttt{6d02a1b8}).
 
 \emph{Rewards.} The prototype ignores the coinbase design entirely: a
-constant $R = \texttt{pos\_total\_reward} = 6000$~zats (``arbitrary
+constant $R = \texttt{pos\_total\_}\allowbreak\texttt{reward} =
+6000$~zats (``arbitrary
 scale'') is apportioned per newly finalized PoW block as
 $\mathsf{reward}_i = \lfloor v_i \cdot R / \sum_j v_j \rfloor$ over
 finalizer voting powers $v_i$, with the integer-division dust going to
@@ -3562,8 +3606,9 @@ possibly with shielded coinbase disabled; mining pools cannot distribute
 rewards during the stall (a rug-pull risk the book notes); and Stalled
 Mode ``can only be entered by consensus of a larger validator set, or if
 there is an availability failure of the finalization protocol'' (tfl-book
-\texttt{the-arguments-for-bounded-availability-and-finality-overrides.md}:24,
-103--111, 187).
+\texttt{the-arguments\allowbreak-for\allowbreak-bounded\allowbreak
+-availability\allowbreak-and\allowbreak-finality\allowbreak
+-overrides.md}:24, 103--111, 187).
 
 \paragraph{The divergence.} The SL~book pastes the construction verbatim
 but disclaims exactly this rule: ``The zebra-crosslink design in this book
