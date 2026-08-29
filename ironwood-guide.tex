@@ -606,8 +606,8 @@ arithmetisation-friendliness is irrelevant here.
 \draw[spine] (ivk) -- (addr);
 
 % sk expands to nk, rivk (to the right)
-\draw[fork] (sk.east) to[out=20,in=108] (nk.north);
-\draw[fork] (sk.east) to[out=2,in=100]  (rivk.north);
+\draw[fork] ([yshift=-1.4mm]sk.east) to[out=-8,in=115] (nk.north west);
+\draw[fork] ([yshift=1.4mm]sk.east)  to[out=14,in=95]  (rivk.north);
 
 % ak, nk, rivk bundle into fvk; nk and rivk land exactly on their slot in the
 % fvk tuple (positions measured from the label's own widths above)
