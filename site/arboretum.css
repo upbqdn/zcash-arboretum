@@ -29,6 +29,11 @@
   src: url("fonts/stix-two-text-latin-600-normal.woff2") format("woff2");
   font-weight: 600; font-style: normal; font-display: swap;
 }
+@font-face {
+  font-family: "STIX Two Math";
+  src: url("fonts/stix-two-math-regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
 
 /* ---------- tokens ---------- */
 :root {
@@ -572,4 +577,11 @@ h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
   .ltx_theorem_assumption {
     background: color-mix(in srgb, #d28c28 10%, var(--plate));
   }
+}
+
+/* MathML: serve the math face the font stack already names. Without
+   this, readers lacking a local STIX Two Math get system-font glyph
+   soup with broken script placement and stretchy delimiters. */
+math {
+  font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math;
 }
