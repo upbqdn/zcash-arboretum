@@ -3885,16 +3885,16 @@ We have constructed the elliptic curve group from the ground up: a nonsingular s
 
 \section{Probability, asymptotics, and computation}\label{sec:probability}
 
-Cryptography is the discipline of rendering certain computations easy for legitimate parties and infeasible for adversaries. Stating and proving such guarantees requires three intertwined languages: the language of \emph{probability}, which permits reasoning about random keys, random challenges, and the probability that an attack succeeds; the language of \emph{asymptotics}, which permits precise description of how resources and success probabilities scale; and the language of \emph{computation}, which fixes the notion of an efficient algorithm and of what it means for a problem to be hard. This section develops all three from elementary foundations. The only prerequisites are familiarity with finite sets, sums, and the elementary calculus of limits; we construct everything else here.
+Cryptography is the discipline of rendering certain computations easy for legitimate parties and infeasible for adversaries. Stating and proving such guarantees requires three intertwined languages: the language of \emph{probability}, which permits reasoning about random keys, random challenges, and the probability that an attack succeeds; the language of \emph{asymptotics}, which permits precise description of how resources and success probabilities scale; and the language of \emph{computation}, which fixes the notion of an efficient algorithm and of what it means for a problem to be hard. This section develops all three from elementary foundations. The only prerequisites are familiarity with finite sets, sums, and elementary calculus --- limits, the exponential function, and (for the closing subsection's density-defined laws) the improper Riemann integral; we construct everything else here.
 
 Until the closing probability subsection, all probability spaces are
 finite. This is no serious restriction for the cryptographic material:
 keys, messages, group elements, and the random coins of any terminating
 algorithm all reside in finite sets, and finite spaces need no measure
 theory. The closing subsection
-(\S\ref{probability:sub-beyond}) then extends the theory by exactly the
-three rungs later volumes need---countable additivity, continuity
-along monotone events, and laws defined by densities---declaring its
+(\S\ref{probability:sub-beyond}) then extends the theory by the rungs
+later volumes need---countable additivity, continuity along monotone
+events, the waiting-time toolkit, and laws defined by densities---declaring its
 one measure-theoretic debt in place
 (Remark~\ref{probability:rem-extension}).
 
@@ -3958,7 +3958,7 @@ Let \(A, B\) be events with \(\Pr[B] > 0\). The \emph{conditional probability of
 When \(\Pr[B] = 0\) we leave the quantity undefined.
 \end{definition}
 
-Conditioning on \(B\) restricts the sample space to \(B\) and renormalises so that \(B\) has probability \(1\): the map \(A \mapsto \Pr[A \mid B]\) is itself a probability mass function on \(B\). Two immediate and indispensable consequences follow.
+Conditioning on \(B\) restricts the sample space to \(B\) and renormalises so that \(B\) has probability \(1\): the map \(\omega \mapsto \Pr[\{\omega\} \mid B]\) is itself a probability mass function on \(B\), and \(\Pr[A \mid B]\) is the probability it assigns to \(A \cap B\). Two immediate and indispensable consequences follow.
 
 \begin{proposition}[Chain rule and total probability]\label{probability:prop-chain}
 Let \(A_1, \dots, A_n\) be events with \(\Pr[A_1 \cap \cdots \cap A_{n-1}] > 0\). Then
@@ -4030,7 +4030,7 @@ For any event \(A\), \(\E[\mathbf{1}_A] = \Pr[A]\).
 \end{proposition}
 
 \begin{proof}
-\(\E[\mathbf{1}_A] = \sum_{\omega} \mathbf{1}_A(\omega)\Pr[\omega] = \sum_{\omega \in A} \Pr[\omega] = \Pr[A]\), since the indicator vanishes off \(A\).
+By Definition~\ref{probability:def-exp}, \(\E[\mathbf{1}_A] = \sum_{\omega} \mathbf{1}_A(\omega)\Pr[\omega] = \sum_{\omega \in A} \Pr[\omega] = \Pr[A]\), since the indicator vanishes off \(A\).
 \end{proof}
 
 The principal property of expectation is its linearity, which holds with no independence assumption whatsoever. This renders expectation considerably more tractable than probability.
@@ -4054,6 +4054,17 @@ Directly from the definition,
 = a\sum_{\omega} X(\omega)\Pr[\omega] + b\sum_{\omega} Y(\omega)\Pr[\omega] = a\E[X] + b\E[Y],
 \]
 splitting the finite sum and extracting the constants. The \(n\)-term statement follows by induction on \(n\).
+\end{proof}
+
+A one-line consequence converts an expectation bound into a probability bound; it underlies every averaging (``heavy-row'') argument in the series.
+
+\begin{proposition}[Markov's inequality]\label{probability:prop-markov}
+Let \(X \geq 0\) be a real-valued random variable and \(a > 0\). Then
+\(\Pr[X \geq a] \leq \E[X]/a\).
+\end{proposition}
+
+\begin{proof}
+Every outcome contributes nonnegatively to \(\E[X]\), and each outcome with \(X(\omega) \geq a\) contributes at least \(a \Pr[\omega]\); hence \(\E[X] \geq a \Pr[X \geq a]\).
 \end{proof}
 
 \subsection{The union bound and a birthday calculation}
@@ -4096,7 +4107,7 @@ Sample \(x_1, \dots, x_k\) independently and uniformly from a set of size \(N\).
 \]
 and, on the other side,
 \[
-\Pr[C] \ge 1 - \prod_{i=0}^{k-1}\Big(1 - \frac{i}{N}\Big) \ge 1 - e^{-k(k-1)/(2N)} .
+\Pr[C] = 1 - \prod_{i=0}^{k-1}\Big(1 - \frac{i}{N}\Big) \ge 1 - e^{-k(k-1)/(2N)} .
 \]
 In particular a collision becomes likely once \(k = \Theta(\sqrt{N})\).
 \end{proposition}
@@ -4104,7 +4115,7 @@ In particular a collision becomes likely once \(k = \Theta(\sqrt{N})\).
 \begin{proof}
 \emph{Upper bound.} For \(i < j\) let \(A_{ij}\) be the event \(x_i = x_j\). Since \(x_i, x_j\) are independent and uniform, \(\Pr[A_{ij}] = \sum_{v} \Pr[x_i = v]\Pr[x_j = v] = N \cdot (1/N)^2 = 1/N\). Now \(C = \bigcup_{i<j} A_{ij}\), a union of \(\binom{k}{2}\) events, so the union bound (Theorem~\ref{probability:thm-union}) gives \(\Pr[C] \le \binom{k}{2}/N\).
 
-\emph{Lower bound.} The complement \(\overline{C}\) is the event that all \(k\) samples are distinct. Counting ordered tuples of distinct values, \(\Pr[\overline{C}] = \prod_{i=0}^{k-1}(1 - i/N)\): having fixed \(i\) distinct values, the next sample avoids them with probability \(1 - i/N\). Using \(1 - x \le e^{-x}\) for all \(x \in \R\),
+\emph{Lower bound.} The complement \(\overline{C}\) is the event that all \(k\) samples are distinct. Counting ordered tuples of distinct values, \(\Pr[\overline{C}] = \prod_{i=0}^{k-1}(1 - i/N)\): having fixed \(i\) distinct values, the next sample avoids them with probability \(1 - i/N\); this establishes the stated equality. For \(k > N\) the product contains the factor \(0\) and the exponential bound is trivial; for \(k \le N\) every factor is nonnegative, so the inequality \(1 - x \le e^{-x}\) applies factor by factor. (For \(0 \le x < 1\) it follows from Bernoulli: \((1 - x/n)^n \ge 1 - x\) for \(n > x\), and letting \(n \to \infty\) in the limit definition of \(e^{-x}\); for \(x \ge 1\) the left side is nonpositive.) Thus
 \[
 \Pr[\overline{C}] = \prod_{i=0}^{k-1}\Big(1 - \frac iN\Big) \le \prod_{i=0}^{k-1} e^{-i/N} = \exp\!\Big(-\tfrac1N\sum_{i=0}^{k-1} i\Big) = e^{-k(k-1)/(2N)} .
 \]
@@ -4165,7 +4176,7 @@ If \(|S| = 2^\ell\) is a power of two, the conversion is exact: read \(\ell\) un
 A common and elementary method is \emph{reduce-modulo}: sample a long uniform integer and reduce it mod \(q\). The result is not perfectly uniform---some residues receive one more preimage than others---but the bias is negligible provided the integer is long enough. We make this precise below.
 
 \begin{proposition}[Bias of modular reduction]\label{probability:prop-modbias}
-Let \(q \ge 2\) be an integer and let \(K = 2^L\) for some integer \(L\). Sample \(U\) uniformly from \(\{0, 1, \dots, K-1\}\) (equivalently, read \(L\) uniform bits as an integer), and set \(R = U \bmod q \in \{0, 1, \dots, q-1\}\). Let \(\mathcal{U}_q\) denote the uniform distribution on \(\{0,\dots,q-1\}\). Then the statistical distance of \(R\) from uniform satisfies
+Let \(q \ge 2\) be an integer and let \(K = 2^L\) for some nonnegative integer \(L\). Sample \(U\) uniformly from \(\{0, 1, \dots, K-1\}\) (equivalently, read \(L\) uniform bits as an integer), and set \(R = U \bmod q \in \{0, 1, \dots, q-1\}\). Let \(\mathcal{U}_q\) denote the uniform distribution on \(\{0,\dots,q-1\}\). Then the statistical distance of \(R\) from uniform satisfies
 \[
 \Delta(R, \mathcal{U}_q) \le \frac{q}{K} = \frac{q}{2^{L}}.
 \]
@@ -4189,7 +4200,7 @@ Therefore
 \end{proof}
 
 \begin{remark}\label{probability:rem-modbias}
-The consequence is as follows: to sample a scalar mod a \(\sim 256\)-bit prime \(q\) with statistical distance below \(2^{-128}\) from uniform, draw \(256 + 128 = 384\) uniform bits and reduce. The bias \(2^{-128}\) is negligible (Definition~\ref{probability:def-negl}), so the reduce-modulo sample is statistically indistinguishable from a perfectly uniform scalar, and by the data-processing inequality (Theorem~\ref{probability:thm-sd}(4)) substituting one for the other anywhere costs at most \(2^{-128}\) per use. An alternative, \emph{rejection sampling}---draw \(\lceil \log_2 q\rceil\) bits, accept if the result is \(< q\), else retry---gives \emph{exactly} uniform output at the cost of a variable but, with overwhelming probability, small number of retries; for the present purposes the negligible bias of reduce-modulo is acceptable and simpler to analyse. This is precisely the kind of distribution that the Orchard specification employs when deriving scalars from hash outputs.
+The consequence is as follows: to sample a scalar mod a \(\sim 256\)-bit prime \(q\) with statistical distance below \(2^{-128}\) from uniform, draw \(256 + 128 = 384\) uniform bits and reduce. The bias \(2^{-s}\), with the slack \(s\) set to the security parameter, is negligible (Definition~\ref{probability:def-negl}), so the reduce-modulo sample is statistically indistinguishable from a perfectly uniform scalar, and by the data-processing inequality (Theorem~\ref{probability:thm-sd}(4)) substituting one for the other anywhere costs at most \(2^{-128}\) per use. An alternative, \emph{rejection sampling}---draw \(\lceil \log_2 q\rceil\) bits, accept if the result is \(< q\), else retry---gives \emph{exactly} uniform output at the cost of a variable but, with overwhelming probability, small number of retries; for the present purposes the negligible bias of reduce-modulo is acceptable and simpler to analyse. The Orchard specification employs exactly this reduce-modulo sampling when deriving scalars from hash outputs: its \(\mathrm{ToScalar}\) reduces the full \(512\)-bit \(\mathsf{PRFexpand}\) output modulo the \(255\)-bit group order --- a slack of \(257\) bits, comfortably beyond the \(128\) of the example.
 \end{remark}
 
 \subsection{Beyond finite spaces: countable additivity, limits, and
@@ -4201,9 +4212,9 @@ challenges, and transcripts are finite strings. Two uses need more. A
 process watched for as long as it takes---a random walk pursued until
 it first hits a barrier---has no finite horizon, and a waiting time
 measured in continuous units has no finite sample space at all. This
-subsection extends the finite theory by exactly the three rungs those
-uses require: countable additivity, continuity along monotone events,
-and laws defined by densities.
+subsection extends the finite theory by the rungs those uses require:
+countable additivity, continuity along monotone events, a toolkit for
+waiting times under stopping rules, and laws defined by densities.
 
 \begin{definition}[Countable probability space]\label{probability:def-countable}
 A \emph{countable probability space} is a pair \((\Omega, \Pr)\) in
@@ -4215,8 +4226,11 @@ arbitrary subsets \(A \subseteq \Omega\), with
 \(\Pr[A] = \sum_{\omega \in A} \Pr[\omega]\), and
 Definitions \ref{probability:def-event}--\ref{probability:def-exp}
 carry over with ``finite'' read as ``countable'' (a random variable's
-image may now be countably infinite); expectation additionally requires
-its defining sum to converge absolutely.
+image may now be countably infinite), with one exception:
+Definition~\ref{probability:def-uniform} does not --- equal weights
+cannot sum to \(1\) on a countably infinite set, so the uniform
+distribution remains a strictly finite notion. Expectation additionally
+requires its defining sum to converge absolutely.
 \end{definition}
 
 \begin{proposition}[Countable additivity]\label{probability:prop-countadd}
@@ -4302,6 +4316,64 @@ their interval and joint-event probabilities being taken to cohere as
 the stated integrals.
 \end{remark}
 
+Waiting times are the extension's first dividend. Three short results
+--- used by the upper volumes' extractor and race analyses --- follow
+from countable expectation and finitely determined events alone.
+
+\begin{lemma}[Tail-sum formula]\label{probability:lem-tailsum}
+Let \(T\) be a random variable with values in \(\N \cup \{\infty\}\)
+and \(\Pr[T = \infty] = 0\). Then
+\(\E[T] = \sum_{k \geq 1} \Pr[T \geq k]\), either side being
+infinite exactly when the other is.
+\end{lemma}
+
+\begin{proof}
+Expanding \(\Pr[T \geq k] = \sum_{m \geq k} \Pr[T = m]\) and
+regrouping the doubly indexed nonnegative series, each term
+\(\Pr[T = m]\) is counted once for every \(k \leq m\), that is,
+\(m\) times; nonnegative series may be regrouped freely.
+\end{proof}
+
+\begin{proposition}[Geometric waiting time]\label{probability:prop-geometric}
+In an infinite sequence of independent trials, each succeeding with
+probability \(\varepsilon > 0\), let \(T\) be the index of the first
+success. Then \(\Pr[T \geq k] = (1-\varepsilon)^{k-1}\) and
+\(\E[T] = 1/\varepsilon\).
+\end{proposition}
+
+\begin{proof}
+The event \(T \geq k\) says the first \(k-1\) trials all fail --- a
+finitely determined event of probability \((1-\varepsilon)^{k-1}\); in
+particular \(\Pr[T = \infty] = \lim_k (1-\varepsilon)^{k-1} = 0\) by
+continuity (Theorem~\ref{probability:thm-continuity}). The tail-sum
+formula then gives
+\(\E[T] = \sum_{k \geq 1}(1-\varepsilon)^{k-1} = 1/\varepsilon\), a
+geometric series.
+\end{proof}
+
+\begin{proposition}[Wald's identity]\label{probability:prop-wald}
+Let \(X_1, X_2, \ldots\) be an infinite sequence of independent trials
+with common law, each \(X_i \geq 0\) with finite mean, and let \(T\)
+be a \emph{stopping rule}: a random index such that, for every \(k\),
+whether \(T = k\) is decided by the first \(k\) trials alone. If
+\(\E[T] < \infty\), then
+\[
+\E\Big[\sum_{i=1}^{T} X_i\Big] = \E[T] \cdot \E[X_1].
+\]
+\end{proposition}
+
+\begin{proof}
+Writing the sum as \(\sum_{i \geq 1} X_i \mathbf{1}_{T \geq i}\),
+the event \(T \geq i\) --- the negation of \(T \leq i - 1\) --- is
+decided by the first \(i - 1\) trials, hence independent of \(X_i\),
+so \(\E[X_i \mathbf{1}_{T \geq i}] = \E[X_1] \Pr[T \geq i]\).
+Summing over \(i\) and applying the tail-sum formula gives
+\(\E[X_1]\,\E[T]\). The expectation on the left is that of the
+increasing limit of the finitely determined partial sums
+\(\sum_{i \leq \min(T,n)} X_i\), and equals the limit of their
+expectations by the same free regrouping of nonnegative terms.
+\end{proof}
+
 \begin{definition}[Law defined by a density]\label{probability:def-density}
 A real-valued random quantity \(X\) has \emph{density}
 \(f\colon \R \to \R_{\geq 0}\) if
@@ -4318,14 +4390,16 @@ The expectation is \(\E[X] = \int_{-\infty}^{\infty} t\,f(t)\,dt\) when
 this integral converges absolutely. Two such quantities \(X, Y\) are
 \emph{independent} if
 \(\Pr[X \in I,\ Y \in J] = \Pr[X \in I]\,\Pr[Y \in J]\) for all
-intervals \(I, J\); probabilities of joint events then factor through
+intervals \(I, J\); probabilities of joint events are then taken to
+factor through
 iterated integrals of the product \(f_X(s)\,f_Y(t)\).
 \end{definition}
 
-The \emph{Consensus Guide} builds its block-discovery model directly on
-this base: its exponential clocks are density-defined laws, its
-block-attribution sequence is an infinite sequence of independent
-trials, and the limit step in its catch-up theorem is
+Later volumes build block-discovery and extraction analyses directly
+on this base: exponential clocks are density-defined laws,
+block-attribution sequences are infinite sequences of independent
+trials, extractor running times are the waiting times above, and the
+limit arguments instantiate
 Theorem~\ref{probability:thm-continuity}.
 
 \subsection{Asymptotic notation}
@@ -4348,7 +4422,7 @@ The ``\(=\)'' in ``\(f = O(g)\)'' is traditional but denotes set membership: \(O
 \end{remark}
 
 \begin{example}\label{probability:exp-asymp}
-\(3n^2 + 10 n + 7 = \Theta(n^2)\); indeed for \(n \ge 1\) one has \(3n^2 \le 3n^2 + 10n + 7 \le 20 n^2\). Also \(n^2 = o(n^3)\) since \(n^2/n^3 = 1/n \to 0\); \(\log_2 n = o(n)\); \(n^{100} = o(2^n)\) (any polynomial is little-o of any exponential with base \(> 1\)); and \(n! = \omega(2^n)\). Note that \(2^{n} = o(2^{n+1})\) is false, but \(2^{n} = \Theta(2^{n+1})\) is true, since \(2^{n+1} = 2 \cdot 2^n\) is within a constant factor.
+The polynomial \(3n^2 + 10 n + 7\) is \(\Theta(n^2)\); indeed for \(n \ge 1\) one has \(3n^2 \le 3n^2 + 10n + 7 \le 20 n^2\). Also \(n^2 = o(n^3)\) since \(n^2/n^3 = 1/n \to 0\); \(\log_2 n = o(n)\); \(n^{100} = o(2^n)\) (any polynomial is little-o of any exponential with base \(> 1\)); and \(n! = \omega(2^n)\). Note that \(2^{n} = o(2^{n+1})\) is false, but \(2^{n} = \Theta(2^{n+1})\) is true, since \(2^{n+1} = 2 \cdot 2^n\) is within a constant factor.
 \end{example}
 
 \begin{proposition}[Useful closure facts]\label{probability:prop-asymp-closure}
@@ -4368,7 +4442,7 @@ A function \(f\colon \N \to \R_{\ge 0}\) is \emph{polynomially bounded}, written
 \end{definition}
 
 \begin{definition}[Exponential]\label{probability:def-exp-fn}
-A function \(f\) is \emph{exponential} if \(f(\lambda) = 2^{\Omega(\lambda)}\); the prototypical case is \(f(\lambda) = 2^{c\lambda}\) for a constant \(c > 0\). A super-polynomial function with \(f(\lambda) = 2^{o(\lambda)}\) is \emph{sub-exponential}; examples are \(\lambda^{\log \lambda} = 2^{(\log\lambda)^2}\) and the index-calculus running time \(L_p[1/3] = 2^{\Theta(\lambda^{1/3} (\log \lambda)^{2/3})}\) in the bit length \(\lambda = \log_2 p\). Every exponential function is super-polynomial; the converse fails by the examples above.
+A function \(f\) is \emph{exponential} if \(f(\lambda) = 2^{\Omega(\lambda)}\); the prototypical case is \(f(\lambda) = 2^{c\lambda}\) for a constant \(c > 0\). A super-polynomial function with \(f(\lambda) = 2^{o(\lambda)}\) is \emph{sub-exponential}; examples are \(\lambda^{\log_2 \lambda} = 2^{(\log_2\lambda)^2}\) and the index-calculus running time \(L_p[1/3] = 2^{\Theta(\lambda^{1/3} (\log \lambda)^{2/3})}\) in the bit length \(\lambda = \log_2 p\). Every exponential function is super-polynomial; the converse fails by the examples above.
 \end{definition}
 
 The central cryptographic notion is that of a \emph{negligible} function: one that shrinks faster than the reciprocal of every polynomial. A negligible probability is one we may ignore, because no efficient (polynomially many) repetition of an experiment can amplify it to a noticeable chance.
@@ -4382,7 +4456,7 @@ Equivalently, \(\nu(\lambda) = o(\lambda^{-c})\) for every constant \(c > 0\); e
 \end{definition}
 
 \begin{example}\label{probability:exp-negl}
-\(2^{-\lambda}\), \(2^{-\sqrt{\lambda}}\), and \(\lambda^{-\log\lambda}\) are negligible. Indeed for \(2^{-\lambda}\): given any \(c\), since \(2^{-\lambda}\lambda^{c} = \lambda^c / 2^{\lambda} \to 0\) (a polynomial over an exponential), the function meets the definition. By contrast, \(1/\lambda^{100}\) is \emph{not} negligible---taking \(c = 101\) shows \(1/\lambda^{100} > 1/\lambda^{101}\) for all \(\lambda \ge 2\)---it is noticeable, even though it tends to \(0\). This is the key subtlety: tending to zero does not suffice; a negligible function must beat every inverse polynomial.
+The functions \(2^{-\lambda}\), \(2^{-\sqrt{\lambda}}\), and \(\lambda^{-\log\lambda}\) are negligible. Indeed for \(2^{-\lambda}\): given any \(c\), since \(2^{-\lambda}\lambda^{c} = \lambda^c / 2^{\lambda} \to 0\) (a polynomial over an exponential), the function meets the definition. By contrast, \(1/\lambda^{100}\) is \emph{not} negligible---taking \(c = 101\) shows \(1/\lambda^{100} > 1/\lambda^{101}\) for all \(\lambda \ge 2\)---it is noticeable, even though it tends to \(0\). This is the key subtlety: tending to zero does not suffice; a negligible function must beat every inverse polynomial.
 \end{example}
 
 The reason ``negligible'' is the correct closure of ``ignorable'' is the following stability under the operations that appear in security proofs.
@@ -4442,9 +4516,9 @@ where the probability is over the task's randomness and \(\Adv\)'s coins. Equiva
 \begin{remark}[Reading a hardness assumption]\label{probability:rem-hardness}
 Cryptographic assumptions are statements of this form. For instance, the discrete-logarithm assumption in a family of groups \(\{\G_\lambda\}\) of order \(q(\lambda)\) asserts: for every PPT \(\Adv\),
 \[
-\Pr\Big[\Adv(g, g^{x}) = x \;\Big|\; g \leftarrow \text{generator},\; x \leftarrow \Z/q\Z\Big] = \negl(\lambda).
+\Pr\big[\Adv(g, g^{x}) = x\big] = \negl(\lambda),
 \]
-The entire edifice of Halo~2 and Orchard rests on such infeasibility statements, which one makes true in practice by choosing \(\lambda\) (and hence the group size \(\approx 2^{2\lambda}\)) large enough that the best known attack---running in time \(\Theta(\sqrt{q}) = \Theta(2^{\lambda})\) by the birthday/rho phenomenon of Remark~\ref{probability:rem-birthday}---is astronomically slow. The asymptotic language of this section is what permits the terms ``negligible'' and ``polynomial'' without committing to a particular \(\lambda\); the concrete-security viewpoint then instantiates \(\lambda\) (e.g.\ \(\lambda = 128\)) to read off actual bit-counts.
+the probability taken over a uniformly chosen generator \(g\) of \(\G_\lambda\), a uniform \(x \leftarrow \Z/q\Z\), and \(\Adv\)'s coins. The entire edifice of Halo~2 and Orchard rests on such infeasibility statements, which one makes true in practice by choosing \(\lambda\) (and hence the group size \(\approx 2^{2\lambda}\)) large enough that the best known attack---running in time \(\Theta(\sqrt{q}) = \Theta(2^{\lambda})\) by the birthday/rho phenomenon of Remark~\ref{probability:rem-birthday}---is astronomically slow. The asymptotic language of this section is what permits the terms ``negligible'' and ``polynomial'' without committing to a particular \(\lambda\); the concrete-security viewpoint then instantiates \(\lambda\) (e.g.\ \(\lambda = 128\)) to read off actual bit-counts.
 \end{remark}
 
 \subsection{The security parameter}\label{probability:sub-secparam}
@@ -4461,6 +4535,6 @@ The \emph{security parameter} is a positive integer \(\lambda \in \N\) that one 
 \end{definition}
 
 \begin{remark}[Why unary, and what \(\lambda\) buys]\label{probability:rem-unary}
-Passing \(1^\lambda\) (a string of \(\lambda\) ones, of length \(\lambda\)) rather than the integer \(\lambda\) in binary (length \(\log_2\lambda\)) is a deliberate convention: it forces ``polynomial-time in the input length'' to mean polynomial in \(\lambda\) itself, so an honest key generator may take time \(\poly(\lambda)\) to produce \(\lambda\)-bit keys. As \(\lambda\) grows, two things happen in lockstep: honest parties pay a polynomial cost, while every adversary's success probability falls negligibly and (concretely) the best attack's running time grows exponentially. Asymptotic security is the statement that this gap holds for all sufficiently large \(\lambda\); the practitioner then fixes a single value (commonly \(\lambda = 128\), targeting \(2^{128}\)-operation attacks) and verifies that the concrete sizes---a \(\sim 255\)-bit Pallas/Vesta scalar field, hash outputs of \(\geq 256\) bits per the birthday bound of Proposition~\ref{probability:prop-birthday}, and sampling slack of \(\sim 128\) extra bits per Proposition~\ref{probability:prop-modbias}---deliver it. Every ``negligible'' in the remainder of this monograph is implicitly a function of this \(\lambda\).
+Passing \(1^\lambda\) (a string of \(\lambda\) ones, of length \(\lambda\)) rather than the integer \(\lambda\) in binary (length \(\log_2\lambda\)) is a deliberate convention: it forces ``polynomial-time in the input length'' to mean polynomial in \(\lambda\) itself, so an honest key generator may take time \(\poly(\lambda)\) to produce \(\lambda\)-bit keys. As \(\lambda\) grows, two things happen in lockstep: honest parties pay a polynomial cost, while every adversary's success probability falls negligibly and (concretely) the best attack's running time grows exponentially. Asymptotic security is the statement that this gap holds for all sufficiently large \(\lambda\); the practitioner then fixes a single value (commonly \(\lambda = 128\), targeting \(2^{128}\)-operation attacks) and verifies that the concrete sizes---a \(\sim 255\)-bit Pallas/Vesta scalar field, hash outputs of \(\geq 256\) bits per the birthday bound of Proposition~\ref{probability:prop-birthday}, and sampling slack of at least \(128\) extra bits per Proposition~\ref{probability:prop-modbias} (the deployed \(\mathrm{ToScalar}\) reduces \(512\) bits, a slack of \(257\))---deliver it. Every ``negligible'' in the remainder of this monograph is implicitly a function of this \(\lambda\).
 \end{remark}
 \end{document}
