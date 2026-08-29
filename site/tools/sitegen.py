@@ -195,7 +195,9 @@ window.addEventListener('DOMContentLoaded', () => {{
 </script>
 {chr(10).join(cards)}
 <p class="foot"><a href="concordance.html">Concordance</a> &middot; Sources and compiled PDFs:
-<a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a></p>
+<a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a>
+&middot; Spotted an error?
+<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
 </main></body></html>
 """
     out = Path(outdir)
@@ -308,6 +310,11 @@ document.querySelector('details.arb-search').addEventListener('toggle',
             t2 = t2.replace('class="ltx_page_content"',
                             'class="ltx_page_content" data-pagefind-body',
                             1)
+            t2 = t2.replace(
+                "</body>",
+                '<footer class="arb-foot">Spotted an error? '
+                '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
+                "Open an issue</a>.</footer></body>", 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1

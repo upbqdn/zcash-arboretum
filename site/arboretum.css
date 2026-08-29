@@ -291,6 +291,22 @@ ol.plates li.plate:hover { border-color: var(--muted); }
    specificity, so !important is required to win. */
 .ltx_page_main .ltx_para { display: block !important; max-width: 100%; }
 
+/* …but inside a list item that block display shoves the body under its
+   label (LaTeXML pairs li > .ltx_tag with an inline-block .ltx_para).
+   Re-pair them as a flex row — every item site-wide is tag + single para
+   with list-style-type:none inline, so no native markers are lost.
+   LaTeXML's hanging-label margins on the tag still apply; min-width: 0
+   lets wide children overflow-scroll instead of bursting the row. */
+.ltx_page_main li.ltx_item { display: flex; align-items: baseline; gap: .4em; }
+.ltx_page_main li.ltx_item > .ltx_tag { flex: none; }
+.ltx_page_main li.ltx_item > .ltx_para { flex: 1 1 0; min-width: 0; }
+
+/* Feedback footer injected by sitegen postprocess */
+.arb-foot {
+  text-align: center; font-size: .85rem; color: var(--muted);
+  margin: 1.5rem 1rem 2.5rem;
+}
+
 .ltx_title_document {
   font-family: var(--display); font-weight: 700;
   font-size: 2rem; line-height: 1.15;
