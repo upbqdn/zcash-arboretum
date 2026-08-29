@@ -287,10 +287,30 @@ def postprocess(outdir):
         if not vdir.is_dir():
             continue
         title, _ = vol_title(vol)
-        mathjax = f"""<script>
-window.MathJax = {{ options: {{ enableMenu: false }},
-  svg: {{ fontCache: 'global' }} }};
-</script>
+        # Math that LaTeXML could not fully parse (ltx_math_unparsed) or
+        # that embeds HTML anchors (\ref inside \text) breaks MathJax's
+        # MathML parser into a visible "Math input error". Detach those
+        # before typesetting and restore them after: they keep the native
+        # MathML rendering instead.
+        mathjax_cfg = """<script>
+window.MathJax = { options: { enableMenu: false },
+  svg: { fontCache: 'global' },
+  startup: { ready: function () {
+    var saved = [];
+    document.querySelectorAll('math').forEach(function (m) {
+      if (m.querySelector('a') || m.classList.contains('ltx_math_unparsed')) {
+        var ph = document.createElement('span');
+        m.parentNode.replaceChild(ph, m);
+        saved.push([ph, m]);
+      }
+    });
+    MathJax.startup.defaultReady();
+    MathJax.startup.promise.then(function () {
+      saved.forEach(function (p) { p[0].parentNode.replaceChild(p[1], p[0]); });
+    });
+  } } };
+</script>"""
+        mathjax = mathjax_cfg + f"""
 <script src="../mathjax/mml-svg.js?v={ver()}" defer></script>"""
         bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../">The
 Zcash Arboretum</a><span class="volname">{title}</span>
