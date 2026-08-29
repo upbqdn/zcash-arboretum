@@ -133,12 +133,12 @@ induction.
 \subsection{Symbols and how to say them}\label{sets:subsec:pronounce}
 The series draws on three alphabets: blackboard-bold letters for the standard
 number systems and structures, Greek letters, and a handful of relational and
-operator symbols. This subsection collects them and gives a spoken form for
-each --- useful when reading aloud, and because several Greek letters are
-routinely mispronounced. Pronunciations are given in the received-English
-form (so \(\beta\) is ``BEE-ta'', not ``BAY-ta''); a capitalised syllable
-carries the stress. Each symbol is defined where it is first used; the notes
-here are reminders, not definitions.
+operator symbols. This subsection collects the ones the series actually uses
+and gives a spoken form for each --- useful when reading aloud, and because
+several Greek letters are routinely mispronounced. Pronunciations are given in
+the received-English form (so \(\beta\) is ``BEE-ta'', not ``BAY-ta''); a
+capitalised syllable carries the stress. Each symbol is defined where it is
+first used; the notes here are reminders, not definitions.
 
 \begin{table}[ht]
 \centering
@@ -154,12 +154,15 @@ Symbol & Name & Said & Typical role in the series \\
 \(\C\) & blackboard C & ``the complexes'' & the complex numbers \\
 \(\F_q\) & blackboard F & ``eff-cue'' & the finite field of \(q\) elements \\
 \(\G\) & blackboard G & ``group G'' & an abstract group \\
-\(\E\) & script/blackboard E & ``E'' & an elliptic curve; also expectation \\
+\(\E\) & blackboard E & ``expectation'' & expectation of a random variable \\
+\(\mathbb{P}\) & blackboard P & ``the Pallas curve'' & the Pallas group
+  (protocol-spec notation) \\
 \bottomrule
 \end{tabular}
-\caption{Blackboard-bold letters. ``Blackboard bold'' names the
-double-struck style itself; in speech one usually says only the letter or the
-system it denotes.}
+\caption{Blackboard-bold letters. ``Blackboard bold'' names the double-struck
+style itself; in speech one usually says only the letter or the system it
+denotes. Elliptic curves are written italic \(E\) or calligraphic
+\(\mathcal{E}\), never blackboard bold.}
 \label{tab:notation-bb}
 \end{table}
 
@@ -170,25 +173,28 @@ system it denotes.}
 \toprule
 Sym. & Name & Said && Sym. & Name & Said \\
 \midrule
-\(\alpha\) & alpha & ``AL-fa'' && \(\nu\) & nu & ``new'' \\
-\(\beta\) & beta & ``BEE-ta'' && \(\xi\) & xi & ``ksi'' / ``zi'' \\
-\(\gamma\) & gamma & ``GAM-a'' && \(\pi\) & pi & ``pie'' \\
-\(\delta\) & delta & ``DEL-ta'' && \(\rho\) & rho & ``roe'' \\
-\(\epsilon\) & epsilon & ``EP-si-lon'' && \(\sigma\) & sigma & ``SIG-ma'' \\
-\(\zeta\) & zeta & ``ZEE-ta'' && \(\tau\) & tau & ``taw'' (rhymes ``paw'') \\
-\(\eta\) & eta & ``EE-ta'' && \(\phi,\varphi\) & phi & ``fie'' or ``fee'' \\
-\(\theta\) & theta & ``THEE-ta'' && \(\chi\) & chi & ``kie'' (hard \emph{k}) \\
-\(\kappa\) & kappa & ``KAP-a'' && \(\psi\) & psi & ``sie'' or ``psigh'' \\
-\(\lambda\) & lambda & ``LAM-da'' && \(\omega\) & omega & ``OH-meg-a'' \\
-\(\mu\) & mu & ``mew'' && & & \\
+\(\alpha\) & alpha & ``AL-fa'' && \(\mu\) & mu & ``mew'' \\
+\(\beta\) & beta & ``BEE-ta'' && \(\nu\) & nu & ``new'' \\
+\(\gamma\) & gamma & ``GAM-a'' && \(\xi\) & xi & ``ksigh'' / ``zigh'' \\
+\(\delta\) & delta & ``DEL-ta'' && \(\pi\) & pi & ``pie'' \\
+\(\epsilon,\varepsilon\) & epsilon & ``EP-si-lon'' && \(\rho\) & rho & ``roe'' \\
+\(\zeta\) & zeta & ``ZEE-ta'' && \(\sigma\) & sigma & ``SIG-ma'' \\
+\(\eta\) & eta & ``EE-ta'' && \(\tau\) & tau & ``taw'' (rhymes ``paw'') \\
+\(\theta\) & theta & ``THEE-ta'' && \(\phi,\varphi\) & phi & ``fie'' or ``fee'' \\
+\(\iota\) & iota & ``eye-OH-ta'' && \(\psi\) & psi & ``sigh'' or ``psigh'' \\
+\(\kappa\) & kappa & ``KAP-a'' && \(\omega\) & omega & ``OH-mig-a'' \\
+\(\lambda\) & lambda & ``LAM-da'' && & & \\
 \bottomrule
 \end{tabular}
 \caption{Lower-case Greek letters used in the series. The commonly muddled
-ones: \(\xi\) and \(\chi\) both begin with a hard consonant (``ksi'', ``kie''),
-\(\psi\) is ``sie'' with a silent or lightly-sounded \emph{p}, and \(\zeta\) is
-``ZEE-ta'' not ``ZAY-ta''. Capitals reuse the same names: \(\Delta\)
-(``delta''), \(\Sigma\) (``sigma'', the summation sign), \(\Pi\) (``pi'', the
-product sign), \(\Phi\), \(\Psi\), \(\Omega\), \(\Theta\), \(\Lambda\).}
+ones: \(\xi\) and \(\psi\) rhyme with ``eye'' (``ksigh'', ``sigh'' --- never
+``ksee''), \(\psi\) with a silent or lightly sounded \emph{p}, and \(\zeta\)
+is ``ZEE-ta'', not ``ZAY-ta''. The letter \(\tau\) is also heard rhyming with
+``cow''. Capitals reuse the same names: \(\Delta\) (``delta''), \(\Sigma\)
+(``sigma''; the summation sign, and the name of the \(\Sigma\)-protocol
+family), \(\Pi\) (``pi''; the product sign, and a conventional name for a
+protocol or problem), \(\Phi\), \(\Psi\), \(\Omega\), \(\Theta\),
+\(\Lambda\).}
 \label{tab:notation-greek}
 \end{table}
 
@@ -202,20 +208,29 @@ Symbol & Said & Meaning \\
 \(\in,\ \notin\) & ``in'', ``not in'' & set membership \\
 \(\subseteq,\ \subset\) & ``subset of'' & (proper) inclusion \\
 \(\cup,\ \cap\) & ``union'', ``intersect'' & set union and intersection \\
+\(A \setminus B\) & ``A minus B'' & set difference \\
 \(\times\) & ``times'' / ``cross'' & Cartesian product \\
 \(\mid,\ \nmid\) & ``divides'', ``does not divide'' & divisibility \\
-\(\equiv\) & ``congruent to'' & congruence (modular equality) \\
+\(\equiv\) & ``congruent to'' & congruence, qualified \(\pmod{n}\) \\
+\(a \bmod n\) & ``a mod n'' & remainder of division by \(n\) \\
 \(:=,\ =:\) & ``is defined as'' & definitional equality \\
 \(\mapsto\) & ``maps to'' & the action of a function \\
+\(g \circ f\) & ``g after f'' & function composition \\
 \(\lfloor x\rfloor,\ \lceil x\rceil\) & ``floor'', ``ceiling'' & round down, round up \\
-\(\langle a, b\rangle\) & ``inner product'' / ``angle-bracket'' & pairing or tuple \\
-\(\oplus,\ \otimes\) & ``x-or'' / ``direct sum'', ``tensor'' & bitwise sum; product \\
+\(\langle a, b\rangle\) & ``inner product'' & inner product; \(\langle g\rangle\)
+  the subgroup generated by \(g\) \\
+\(\oplus\) & ``x-or'' & bitwise exclusive or \\
+\(x \mathbin{\|} y\) & ``x concat y'' & concatenation of bit or byte strings \\
+\(x \gets D,\ x \xleftarrow{\$} S\) & ``drawn from'' & sampling (\(\$\) marks
+  uniform); also assignment \\
 \([k]\,P\) & ``k times P'' & scalar multiplication of a point \\
+\(P^\star\) & ``P star'' & canonical bit-encoding of a point or element \\
+\(\cdot\) & ``dot'' & product; argument placeholder, as in \(F(\cdot)\) \\
 \(\lvert A\rvert\) & ``size of A'' / ``order of A'' & cardinality \\
 \bottomrule
 \end{tabular}
-\caption{Relational and operator symbols. \(\oplus\) is read ``x-or'' for
-bitstrings and ``direct sum'' for groups; context disambiguates.}
+\caption{Relational and operator symbols. The symbol \(\oplus\) is read
+``x-or''; every use in the series is the bitwise exclusive or.}
 \label{tab:notation-ops}
 \end{table}
 
