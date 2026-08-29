@@ -607,12 +607,12 @@ arithmetisation-friendliness is irrelevant here.
   spine/.style={->, semithick, black!72, rounded corners=4pt},
   fork/.style={->, semithick, black!50, rounded corners=5pt},
   keyedge/.style={->, semithick, dash pattern=on 2.2pt off 1.6pt, black!55, rounded corners=5pt},
-  op/.style={font=\footnotesize, text=black!65, anchor=west, align=left, text width=57mm},
+  op/.style={font=\footnotesize, text=black!65, anchor=west, align=left, text width=76mm},
   note/.style={font=\scriptsize, text=black!55},
   tlab/.style={font=\footnotesize\bfseries, rotate=90, fill=white, inner sep=1.5pt},
   tlabh/.style={font=\footnotesize\bfseries, fill=white, inner sep=1.5pt},
 ]
-\def\gx{6.2}
+\def\gx{5.0}
 
 % ===== main spend->receive spine (x = 0) =====
 \node[spendn] (sk)   at (0, 0)     {$\mathsf{sk}$};
@@ -632,14 +632,14 @@ arithmetisation-friendliness is irrelevant here.
 
 % ===== diversifier key + address row (the FF1-AES256 formula is in the gutter) =====
 \node[recvn]  (dk)   at (-2.6,-9.4) {$\dk$};
-\node[inputn] (dpln) at (-6.3,-10.6) {$d_{\mathrm{plain}}$};
+\node[inputn] (dpln) at (-4.5,-10.6) {$d_{\mathrm{plain}}$};
 \node[recvn]  (d)    at (-2.6,-10.6) {$d$};
 
 % ===== spine arrows =====
 \draw[spine] (sk)  -- (ask);
 \draw[spine] (ask) -- (ak);
 \draw[spine] (ak)  -- (ak |- fvk.north);
-\draw[spine] (fvk) -- (ivk);
+\draw[spine] (ivk |- fvk.south) -- (ivk);
 \draw[spine] (ivk) -- (addr);
 
 % sk expands to nk, rivk (down-right onto ask's row)
@@ -668,11 +668,11 @@ arithmetisation-friendliness is irrelevant here.
 \node[op] at (\gx,-3.8)  {$\aksym := [\ask]\,G^{\mathsf{SpendAuth}}$};
 \node[op] at (\gx,-5.7)  {bundle $\aksym,\nksym,\rivk$ into the tuple $\fvk$};
 \node[op] at (\gx,-7.8)  {$\ivk := \CommitIvk_{\rivk}(\Extract(\aksym),\nksym)$};
-\node[op] at (\gx,-9.4)  {$(\dk,\ovk) := $ the two halves of\\[1pt]
+\node[op] at (\gx,-9.4)  {$(\dk,\ovk) :=$ the two halves of\\[1pt]
                           $\mathsf{PRFexpand}_{\rivk}(\mathtt{0x82}\,\|\,\aksym\,\|\,\nksym)$};
-\node[op] at (\gx,-10.6) {$\gd := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}gd},d)$,\\[1pt]
-                          $\pkd := [\ivk]\,\gd$;\\[1pt]
-                          $d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$};
+\node[op] at (\gx,-10.6) {$d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$;\\[1pt]
+                          $\gd := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}gd},d)$,\\[1pt]
+                          $\pkd := [\ivk]\,\gd$};
 
 \node[note, anchor=north] at (dpln.south) {chosen index};
 
