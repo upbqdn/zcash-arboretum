@@ -3918,7 +3918,14 @@ An \emph{event} is a subset \(A \subseteq \Omega\). Its \emph{probability} is
 with the convention \(\Pr[\varnothing] = 0\) (an empty sum). The event \(A\) \emph{occurs} on outcome \(\omega\) if \(\omega \in A\).
 \end{definition}
 
-Because \(\Omega\) is finite, every subset is an event; we require no separate \(\sigma\)-algebra. The following elementary facts hold, and we use them freely.
+Because \(\Omega\) is finite, every subset is an event. This is a
+convenience worth flagging: on an uncountable sample space not every
+subset can consistently be assigned a probability, so the general
+theory must fix in advance a family of admissible events; finiteness
+spares us that machinery, and
+Remark~\ref{probability:rem-extension} marks the one place this
+series touches it. The following elementary facts hold, and we use
+them freely.
 
 \begin{proposition}[Basic axioms]\label{probability:prop-axioms}
 For any finite probability space \((\Omega,\Pr)\) and events \(A, B \subseteq \Omega\):

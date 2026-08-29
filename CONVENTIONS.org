@@ -48,6 +48,10 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
 - Every quantity a volume relies on is either constructed in place, or cited
   to the exact volume and section that constructs it. ``Derived from X'' with
   no formula is a defect (the psi rule).
+- No undefined terms: every technical term is defined before first use, in
+  this volume or in a lower one cited at the point of use. A term the
+  critical path does not need is omitted, not name-dropped -- state the
+  substance in plain language instead of naming the machinery.
 - Claims about deployed behaviour cite the implementation (crate and file)
   and the spec section; claims about design-stage protocols are classified
   /specified/ | /designed-but-unspecified/ | /open problem/.

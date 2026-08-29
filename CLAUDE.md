@@ -102,6 +102,9 @@ the layering.
 - Every relied-upon quantity is constructed in place or cited to the exact
   volume+section that constructs it ("derived from X" with no formula is a
   defect — the "psi rule").
+- No undefined terms: define every technical term before first use (or cite
+  the lower volume that does). Off-critical-path machinery is omitted, not
+  name-dropped.
 - Deployed-behaviour claims cite the implementation (crate + file) and spec
   section; design-stage claims are classified *specified* /
   *designed-but-unspecified* / *open problem*.
