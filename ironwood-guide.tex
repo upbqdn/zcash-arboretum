@@ -590,6 +590,9 @@ arithmetisation-friendliness is irrelevant here.
 \newlength{\fvkWsufrivk}\settowidth{\fvkWsufrivk}{$\rivk)$}%
 \newlength{\fvknkX}\setlength{\fvknkX}{\dimexpr.5\fvkWfull-\fvkWsufnk+.5\fvkWnk\relax}%
 \newlength{\fvkrivkX}\setlength{\fvkrivkX}{\dimexpr.5\fvkWfull-\fvkWsufrivk+.5\fvkWrivk\relax}%
+\newlength{\fvkWak}\settowidth{\fvkWak}{$\aksym$}%
+\newlength{\fvkWsufak}\settowidth{\fvkWsufak}{$\aksym,\,\nksym,\,\rivk)$}%
+\newlength{\fvkakX}\setlength{\fvkakX}{\dimexpr.5\fvkWfull-\fvkWsufak+.5\fvkWak\relax}%
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   >={Stealth[length=2.4mm,width=1.9mm]},
@@ -615,7 +618,8 @@ arithmetisation-friendliness is irrelevant here.
 \node[spendn] (sk)   at (0, 0)     {$\mathsf{sk}$};
 \node[spendn] (ask)  at (0,-1.9)   {$\ask$};
 \node[fulln]  (ak)   at (0,-3.8)   {$\aksym$};
-\node[fulln]  (fvk)  at (0,-5.7)   {$\fvk=(\aksym,\,\nksym,\,\rivk)$};
+% shifted right so the ak slot inside the tuple sits at x=0, under ak
+\node[fulln]  (fvk)  at ($(0,-5.7)-(\fvkakX,0)$) {$\fvk=(\aksym,\,\nksym,\,\rivk)$};
 \node[inoutn] (ivk)  at (0,-7.8)   {$\ivk$};
 \node[pubn]   (addr) at (0,-10.6)  {$\mathsf{addr}=(d,\,\pkd)$};
 
@@ -634,7 +638,7 @@ arithmetisation-friendliness is irrelevant here.
 % ===== spine arrows =====
 \draw[spine] (sk)  -- (ask);
 \draw[spine] (ask) -- (ak);
-\draw[spine] (ak)  -- (fvk);
+\draw[spine] (ak)  -- (ak |- fvk.north);
 \draw[spine] (fvk) -- (ivk);
 \draw[spine] (ivk) -- (addr);
 

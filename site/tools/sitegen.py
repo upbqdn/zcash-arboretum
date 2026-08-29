@@ -48,6 +48,24 @@ DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\small\\begin{center}", "}{\\par\\medskip}")
 DROP_IN_WEB = ("\\usepackage{tikz}", "\\usetikzlibrary")
 
+# The PDF design preamble (fontspec + unicode-math + mdframed + fancyhdr)
+# is byte-identical across volumes; LaTeXML can't ingest it, and the web
+# build styles theorems and fonts in CSS instead. webprep swaps it back to
+# the classic package line. Keep these constants in sync with the volumes.
+FONT_BLOCK = """\\usepackage{amsmath,amsthm,mathtools}
+\\usepackage{fontspec}
+\\usepackage{unicode-math}
+\\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+"""
+FONT_CLASSIC = "\\usepackage{amsmath,amssymb,amsthm,mathtools}\n"
+DESIGN_BLOCK_RE = re.compile(
+    r"% kind-coded theorem blocks.*?"
+    r"\\renewcommand\{\\sectionmark\}\[1\]\{[^\n]*\}\n",
+    re.S)
+
 
 def volumes_present():
     return [v for v in VOLUMES if (ROOT / f"{v}.tex").exists()]
@@ -83,6 +101,9 @@ def render():
                 ["\\documentclass[tikz,border=2pt]{standalone}"]
                 + pre_lines + ["\\begin{document}"] + defs
                 + [m.group(0), "\\end{document}"])
+            # the standalone compiles in a temp dir, so the volume's
+            # repo-relative font path must become absolute
+            doc = doc.replace("Path=fonts/", f"Path={ROOT}/fonts/")
             with tempfile.TemporaryDirectory() as td:
                 tex = Path(td) / "fig.tex"
                 tex.write_text(doc)
@@ -111,6 +132,9 @@ def webprep():
 
         text = TIKZ_RE.sub(sub, text)
         text = text.replace("\\author{m@rek.onl}", "\\author{}")
+        if FONT_BLOCK in text:
+            text = text.replace(FONT_BLOCK, FONT_CLASSIC, 1)
+        text = DESIGN_BLOCK_RE.sub("", text, count=1)
         lines = []
         for ln in text.splitlines():
             s = ln.lstrip()
