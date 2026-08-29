@@ -273,7 +273,7 @@ ol.plates li.plate:hover { border-color: var(--muted); }
 }
 .ltx_page_content { background: transparent; color: var(--ink); }
 @media (max-width: 1099px) {
-  .ltx_page_main { margin: 0; border: 0; box-shadow: none;
+  .ltx_page_main { margin: 0 auto; border: 0; box-shadow: none;
     padding: .5rem 1.2rem 3rem; }
 }
 .ltx_document { line-height: 1.62; }
