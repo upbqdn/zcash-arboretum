@@ -1,6 +1,12 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=2.4cm]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -10,7 +16,7 @@
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierrecv}{RGB}{70,150,90}
-\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+\usepackage[psdextra,colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
 
 \emergencystretch=3em
 \hbadness=10000
@@ -26,6 +32,33 @@
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks, palette shared with the figures and the website:
+% definitions/constructions blue (tierin), assumptions amber (tierfull),
+% proved statements a neutral bar; remarks and examples run unframed
+\usepackage{mdframed}
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
+  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
+  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
+  skipabove=10pt,skipbelow=10pt}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
+\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
+\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
+\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
+\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -586,15 +619,15 @@ arithmetisation-friendliness is irrelevant here.
 \node[inoutn] (ivk)  at (0,-7.8)   {$\ivk$};
 \node[pubn]   (addr) at (0,-10.6)  {$\mathsf{addr}=(d,\,\pkd)$};
 
-% ===== spend-side secrets expanded from sk (top row, to the right) =====
-\node[spendn] (nk)   at (2.6,-0.95) {$\nksym$};
-\node[spendn] (rivk) at (5.0,-0.95) {$\rivk$};
+% ===== spend-side secrets expanded from sk (on ask's row, to the right) =====
+\node[spendn] (nk)   at (1.8,-1.9) {$\nksym$};
+\node[spendn] (rivk) at (3.4,-1.9) {$\rivk$};
 
 % ===== outgoing viewing key: paired with ivk as in/out viewing =====
 \node[inoutn] (ovk)  at (-2.3,-7.8) {$\ovk$};
 
 % ===== diversifier key + address row (the FF1-AES256 formula is in the gutter) =====
-\node[recvn]  (dk)   at (-4.7,-9.4) {$\dk$};
+\node[recvn]  (dk)   at (-2.6,-9.4) {$\dk$};
 \node[inputn] (dpln) at (-6.3,-10.6) {$d_{\mathrm{plain}}$};
 \node[recvn]  (d)    at (-2.6,-10.6) {$d$};
 
@@ -605,9 +638,9 @@ arithmetisation-friendliness is irrelevant here.
 \draw[spine] (fvk) -- (ivk);
 \draw[spine] (ivk) -- (addr);
 
-% sk expands to nk, rivk (to the right)
-\draw[fork] ([yshift=-1.4mm]sk.east) to[out=-8,in=115] (nk.north west);
-\draw[fork] ([yshift=1.2mm]sk.east)  to[out=8,in=95,looseness=0.8] (rivk.north);
+% sk expands to nk, rivk (down-right onto ask's row)
+\draw[fork] ([yshift=-1.4mm]sk.east) to[out=-30,in=110] (nk.north);
+\draw[fork] ([yshift=1.2mm]sk.east)  to[out=0,in=95,looseness=0.8] (rivk.north);
 
 % ak, nk, rivk bundle into fvk; nk and rivk land exactly on their slot in the
 % fvk tuple (positions measured from the label's own widths above)
@@ -618,15 +651,16 @@ arithmetisation-friendliness is irrelevant here.
 
 % the full viewing key derives all three sub-keys: ivk (spine), ovk, dk
 \draw[fork] (fvk.south)      to[out=-115,in=72]  (ovk.north);
-\draw[fork] (fvk.south west) to[out=-150,in=95]  (dk.north);
+% swings left around the IN/OUT VIEW box, then back in to dk
+\draw[fork] (fvk.west) .. controls (-4.4,-6.1) and (-4.6,-8.9) .. (dk.west);
 
 % diversifier: chosen index d_plain, keyed by dk, gives d, which enters addr
 \draw[fork] (dpln) -- (d.west);
-\draw[keyedge] (dk.south) to[out=-90,in=150] node[pos=0.6,above left=-0.5mm,note]{key} (d.north west);
+\draw[keyedge] (dk) -- node[pos=0.5,right=1.5pt,note]{key} (d);
 \draw[fork] (d.east) -- (addr.west);
 
 % ===== operation gutter, each line aligned with the box that step produces =====
-\node[op] at (\gx,-0.95) {$\ask,\nksym,\rivk := \mathsf{PRFexpand}_{\mathsf{sk}}(\mathtt{0x06}/\mathtt{07}/\mathtt{08})$};
+\node[op] at (\gx,-1.9) {$\ask,\nksym,\rivk := \mathsf{PRFexpand}_{\mathsf{sk}}(\mathtt{0x06}/\mathtt{07}/\mathtt{08})$};
 \node[op] at (\gx,-3.8)  {$\aksym := [\ask]\,G^{\mathsf{SpendAuth}}$};
 \node[op] at (\gx,-5.7)  {bundle $\aksym,\nksym,\rivk$ into the tuple $\fvk$};
 \node[op] at (\gx,-7.8)  {$\ivk := \CommitIvk_{\rivk}(\Extract(\aksym),\nksym)$};
@@ -649,9 +683,10 @@ arithmetisation-friendliness is irrelevant here.
 \node[draw=tierrecv, dashed, line width=0.9pt, rounded corners=3pt,
       fit=(dk)(d)(addr), inner sep=7pt] (Trecv) {};
 \end{scope}
-% tier labels: rotated on the left edge, except the wide bottom one set below
-\node[tlabh, text=tierspend, anchor=west] at ($(Tspend.east)+(1.5mm,-1.05)$) {SPEND};
-\node[tlabh, text=tierfull, anchor=west]  at ($(Tfull.east)+(1.5mm,0)$)       {FULL VIEW};
+% tier labels: SPEND and FULL VIEW on the left edge, IN/OUT VIEW on the
+% right, the wide bottom one set below
+\node[tlabh, text=tierspend, anchor=east] at ($(Tspend.west)+(-1.5mm,0)$) {SPEND};
+\node[tlabh, text=tierfull, anchor=east]  at ($(Tfull.west)+(-1.5mm,0)$)  {FULL VIEW};
 \node[tlabh, text=tierin, anchor=west] at ($(Tin.east)+(1.5mm,0)$) {IN/OUT VIEW};
 \node[tlabh, text=tierrecv, anchor=north] at ($(Trecv.south)+(0,-1mm)$) {DIVERSIFY \textmd{+} RECEIVE};
 \end{tikzpicture}%
@@ -817,9 +852,10 @@ The Orchard \emph{note commitment tree} is an append-only Merkle tree of
 fixed depth $32$ (so up to $2^{32}$ notes). Leaves are $\cmx$ values in
 creation order. The parent of a left child $\ell$ and right child $r$ at
 layer $\ell'$ is
-\[
-\mathsf{MerkleCRH}^{\mathsf{Orchard}}_{\ell'}(\ell, r) := \mathsf{ShortHash}_{\mathtt{z.cash:Orchard\text{-}MerkleCRH}}(\mathrm{LE}_{10}(\ell') \,\|\, \mathrm{LE}_{255}(\ell) \,\|\, \mathrm{LE}_{255}(r)) \in \F_{p_{\Pallas}},
-\]
+\begin{multline*}
+\mathsf{MerkleCRH}^{\mathsf{Orchard}}_{\ell'}(\ell, r) :=\\
+\mathsf{ShortHash}_{\mathtt{z.cash:Orchard\text{-}MerkleCRH}}(\mathrm{LE}_{10}(\ell') \,\|\, \mathrm{LE}_{255}(\ell) \,\|\, \mathrm{LE}_{255}(r)) \in \F_{p_{\Pallas}},
+\end{multline*}
 a layer-tagged Sinsemilla short hash (Definition~\ref{def:sinsemilla-commit})
 of the $10 + 255 + 255 = 520$-bit message --- $52$ ten-bit chunks, the same
 $\mathrm{LE}$-encoded input convention as $\CommitIvk$ and $\NoteCommit$
@@ -2161,9 +2197,10 @@ checked only against its own pool's set.
 
 \paragraph{The v6 transaction format.} A v6 transaction
 ($\texttt{V6\_TX\_VERSION} = 6$, version group
-$\mathtt{0xD884B698}$; \texttt{librustzcash
-zcash\_protocol/src/constants.rs}) is the v5 format --- with
-$\mathsf{enableSpendsOrchard}/\mathsf{enableOutputsOrchard}$ renamed to
+$\mathtt{0xD884B698}$; \texttt{librustzcash}
+\texttt{zcash\_protocol/\allowbreak src/\allowbreak constants.rs}) is
+the v5 format --- with $\mathsf{enableSpendsOrchard}$/\allowbreak
+$\mathsf{enableOutputsOrchard}$ renamed to
 $\mathsf{enableSpends}/\mathsf{enableOutputs}$ and bit~2 of
 $\mathsf{flagsOrchard}$ now carrying $\mathsf{enableCrossAddress}$ --- plus
 an Ironwood component that reuses the \texttt{OrchardAction} encoding
@@ -2352,10 +2389,10 @@ under one dispatcher,
 $\mathsf{Derive\_rcm}^{\mathsf{Orchard}}_{\mathsf{rseed}}(\mathsf{leadByte},
 \ldots)$, selecting $\mathtt{0x05} \,\|\, \rho$ for $\mathtt{0x02}$ and the
 hashed $\mathsf{pre\_rcm}$ for $\mathtt{0x03}$ (ZIP-2005 \S\,4.7.3 change).
-The dev-tree \texttt{Note::rcm()} at \texttt{bef8a27} implements only this
-legacy branch: $\rcm := \mathrm{ToScalar}(\mathsf{PRFexpand}_{\mathsf{rseed}}
-(\mathtt{0x05} \,\|\, \rho))$ (\texttt{src/note.rs:132--136}), with
-\texttt{PrfExpand::ORCHARD\_RCM} $= \mathtt{0x05}$ (\texttt{zcash\_spec}~0.2.1,
+The dev-tree \texttt{Note::rcm()} at \texttt{bef8a27} implements only the
+legacy branch above (\texttt{src/note.rs:132--136}), with
+\texttt{PrfExpand::\allowbreak ORCHARD\_RCM} $= \mathtt{0x05}$
+(\texttt{zcash\_spec}~0.2.1,
 \texttt{src/prf\_expand.rs:88}), no version dispatch, and no
 $\mathtt{0x03}$/hashed-$\mathsf{pre\_rcm}$ branch. The released
 \texttt{orchard}~0.15.0 that \texttt{librustzcash} pins adds the
