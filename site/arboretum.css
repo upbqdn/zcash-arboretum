@@ -474,3 +474,102 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_page_main .ltx_font_typewriter,
 .ltx_page_main .ltx_ref.ltx_url { overflow-wrap: anywhere; }
 .ltx_note { color: var(--muted); }
+
+/* ---------- reading-experience overhaul (volume pages) ---------- */
+
+/* anchor jumps land below the sticky bar, not under it */
+.ltx_page_main [id] { scroll-margin-top: 4.25rem; }
+
+/* internal cross-references read as part of the text; only external
+   links keep the conifer. LaTeXML marks refs with .ltx_ref. */
+.ltx_page_main a.ltx_ref {
+  color: var(--ink);
+  text-decoration: underline dotted var(--leafline) 1px;
+  text-underline-offset: 3px;
+}
+.ltx_page_main a.ltx_ref:hover { color: var(--conifer); text-decoration-color: var(--conifer); }
+
+/* environment kind-coding: the volumes' own TikZ tier palette.
+   proof-bearing (theorem family) = conifer; definitional = tierin;
+   premises = tierfull; asides (remark/example) = hairline, no fill. */
+.ltx_theorem_definition, .ltx_theorem_construction {
+  border-left-color: var(--tierin, #3c82b4);
+  background: color-mix(in srgb, #3c82b4 6%, var(--plate));
+}
+.ltx_theorem_assumption {
+  border-left-color: var(--tierfull, #d28c28);
+  background: color-mix(in srgb, #d28c28 7%, var(--plate));
+}
+.ltx_theorem_remark, .ltx_theorem_example {
+  background: transparent;
+  border-color: transparent;
+  border-left: 1px solid var(--leafline);
+  border-radius: 0;
+}
+
+/* the specimen tag: at desktop width, section numbers detach into the
+   left gutter as small mono accession tags; titles sit flush. */
+@media (min-width: 1100px) {
+  h1.ltx_title_section, h2.ltx_title_section,
+  h2.ltx_title_subsection, h3.ltx_title_subsection { position: relative; }
+  .ltx_title_section > .ltx_tag_section,
+  .ltx_title_subsection > .ltx_tag_subsection {
+    position: absolute;
+    right: calc(100% + .55rem);
+    top: .45em;
+    font-family: var(--mono);
+    font-size: .62rem;
+    letter-spacing: .1em;
+    color: var(--plaque-ink);
+    border: 1px solid var(--leafline);
+    border-radius: 2px;
+    padding: .12rem .3rem .09rem;
+    line-height: 1;
+    background: var(--paper);
+  }
+}
+
+/* tables: quiet booktabs manners */
+.ltx_tabular { border-collapse: collapse; }
+.ltx_tabular thead .ltx_th {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--plaque-ink);
+  border-bottom: 1px solid var(--leafline);
+}
+
+/* the TOC sidebar marks the page being read (LaTeXML tags it ref_self) */
+.ltx_page_navbar .ltx_ref_self {
+  color: var(--conifer);
+  font-weight: 600;
+}
+.ltx_page_navbar .ltx_ref_self::before { content: "\2937\00a0"; }
+
+/* titles and paragraphs: small rhythm refinements */
+.ltx_title_section { text-wrap: balance; }
+.ltx_para p, .ltx_p { text-wrap: pretty; }
+h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
+
+/* print: the sheet alone */
+@media print {
+  .arb-bar, .ltx_page_navbar, .ltx_page_footer,
+  .ltx_page_main .ltx_page_header { display: none !important; }
+  body, .ltx_page_main {
+    background: #fff; color: #000;
+    box-shadow: none; border: 0; max-width: none; margin: 0;
+  }
+  .ltx_theorem { break-inside: avoid; }
+  a { color: #000; text-decoration: none; }
+}
+
+/* dark mode: soften the kind tints against the night palette */
+@media (prefers-color-scheme: dark) {
+  .ltx_theorem_definition, .ltx_theorem_construction {
+    background: color-mix(in srgb, #3c82b4 12%, var(--plate));
+  }
+  .ltx_theorem_assumption {
+    background: color-mix(in srgb, #d28c28 10%, var(--plate));
+  }
+}
