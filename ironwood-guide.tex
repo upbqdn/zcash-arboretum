@@ -91,15 +91,16 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the \emph{Math Guide}, the \emph{Crypto Guide}, and the \emph{Halo~2 Guide}, this volume of \emph{The Zcash Arboretum} develops Zcash's Orchard shielded-payment protocol: the key hierarchy, notes and note commitments, the commitment tree and the procedure by which a wallet obtains a membership path, nullifiers, note encryption and trial decryption, value commitments and the RedPallas signature, the formal Action statement the SNARK proves, and the end-to-end security analysis that derives balance and nullifier uniqueness from knowledge soundness, and privacy from zero knowledge. NU6.3 splits the protocol's value across two pools --- the legacy Orchard pool, sealed to spend-only, and the current Ironwood pool (activated on Testnet at height 4134000; Mainnet activation height 3428143, shipped in \texttt{zebra}~6.2.x) --- and the volume develops the split, the quantum-recoverable Ironwood note format, and the cross-address restriction, closing with the Zcash proof-system lineage.
+Assuming the \emph{Math Guide}, the \emph{Crypto Guide}, and the \emph{Halo~2 Guide}, this volume of \emph{The Zcash Arboretum} develops Zcash's Orchard shielded-payment protocol: the key hierarchy, notes and note commitments, the commitment tree and the procedure by which a wallet obtains a membership path, nullifiers, note encryption and trial decryption, value commitments and the RedPallas signature, the formal Action statement the SNARK proves, and the end-to-end security analysis that derives balance and nullifier uniqueness from knowledge soundness, and privacy from zero knowledge. NU6.3 splits the protocol's value across two pools --- the legacy Orchard pool, sealed to spend-only, and the current Ironwood pool --- and the volume develops the split, the quantum-recoverable Ironwood note format, and the cross-address restriction, closing with the Zcash proof-system lineage.
 \end{abstract}
 \clearpage
 \tableofcontents
 \clearpage
 
 \section{Introduction}\label{sec:intro}
-This is the \emph{Ironwood Guide}, the fourth and final volume of a development of the cryptography
-behind Zcash's Orchard protocol. It assumes the three companion volumes: the \emph{Math Guide}
+This is the \emph{Ironwood Guide}, the volume of \emph{The Zcash Arboretum}
+that develops the cryptography behind Zcash's Orchard protocol as deployed.
+It assumes three earlier volumes: the \emph{Math Guide}
 (the underlying mathematics), the \emph{Crypto Guide} (hash functions, commitments, signatures,
 key agreement, zero knowledge, and the remainder of the primitive toolbox), and the \emph{Halo~2 Guide}
 (the general-purpose proof system). This volume assembles those tools into the Orchard
@@ -108,11 +109,7 @@ vocabulary up front: the \emph{Orchard protocol} is the shared cryptographic
 construction --- curves, Sinsemilla, the Action circuit, notes, commitments,
 nullifiers, keys, and note encryption --- and it survives; the \emph{Orchard
 pool} is the legacy value pool it ran from NU5, sealed to spend-only at
-NU6.3; the \emph{Ironwood pool} is the current pool (activated on Testnet
-at height $4134000$; Mainnet activation at height $3428143$, the parameter
-shipped in \texttt{zebra}~6.2.x and falling due late July 2026 on the
-75-second block schedule, while ZIP-258, Draft, still lists Mainnet TBD at
-\texttt{zips} commit \texttt{69610984}).
+NU6.3; the \emph{Ironwood pool} is the current pool.
 
 We develop the protocol from the problems it solves. After
 we fix the curve-level preliminaries and the Sinsemilla hash, we develop each of the following
@@ -1020,13 +1017,12 @@ tree, her path still folds to exactly that root, and check~A3 asserts exactly
 that equality --- collision resistance of the layer-tagged hash
 (\S\ref{sec:sinsemilla}) makes a path to that root for a non-member
 infeasible. Consensus accepts the anchor of \emph{any} main-chain block from
-Orchard activation onward (NU5, mainnet block $1{,}687{,}104$) --- for the
+Orchard activation onward (NU5) --- for the
 legacy Orchard-pool tree: the two pools keep separate, independent
 commitment trees and nullifier sets (ZIP-229), and an Ironwood Action
 instead proves against $\mathsf{anchorIronwood}$ over the Ironwood tree,
-empty at NU6.3 activation (Testnet height $4134000$, Mainnet height
-$3428143$ per \texttt{zebra}~6.2.x; the ZIP-258 draft still lists Mainnet
-TBD), whose anchors are valid from activation onward. In neither pool is there a
+empty at NU6.3 activation, whose anchors are valid from activation
+onward. In neither pool is there a
 sliding window, so proving is fully decoupled from broadcasting --- Alice
 need not race the chain tip. The one recency caveat runs in the opposite
 direction: a reorganisation can strike the anchoring block from the main
@@ -2115,14 +2111,12 @@ unspecified}, or \emph{open problem}.
 \subsection{Two pools, one protocol: activation and framing}\label{sec:iw-pools}
 
 \paragraph{Activation.} NU6.3 carries consensus branch identifier
-$\mathtt{0x37A5165B}$ and activates on Testnet at height $4134000$. On
-Mainnet the deployed validator fixes the height: \texttt{zebra}~6.2.x ships
-$3428143$ (\texttt{zebra-chain/src/parameters/\allowbreak constants.rs},
-released 2026-07-24), falling due late July 2026 on the 75-second block
-schedule, and \texttt{librustzcash} hardcodes the same value
-(\texttt{zcash\_protocol/src/consensus.rs}); the ZIP-258 draft still lists
-Mainnet TBD --- implementations ahead of their specification, which we flag
-rather than resolve.
+$\mathtt{0x37A5165B}$. Its activation heights are fixed by the deployed
+validator (\texttt{zebra-chain/src/parameters/\allowbreak constants.rs},
+with \texttt{librustzcash} hardcoding the same values in
+\texttt{zcash\_protocol/src/consensus.rs}), while the ZIP-258 draft still
+lists Mainnet TBD --- implementations ahead of their specification, which
+we flag rather than resolve.
 %% TODO: MIN_NETWORK_PROTOCOL_VERSION is still TBD on both networks
 %% (zip-0258.md:72-74); revisit when ZIP-258 leaves Draft.
 From activation, three consensus rules seal the Orchard pool to
@@ -2622,7 +2616,7 @@ $(\mathsf{epk}, C_{\mathrm{enc}})$ is consensus data, replicated on every full
 node forever; its secrecy was fixed at recording time by one specific DH
 instance; any protocol upgrade alters only ciphertexts not yet created. An
 adversary needs no quantum computer today --- only storage --- and every
-Orchard output recorded since NU5 activation in 2022 is already in that
+Orchard output recorded since NU5 activation is already in that
 corpus, which accrues Ironwood outputs from NU6.3 activation onward
 (ZIP-2005, Non-requirements).
 
@@ -2747,9 +2741,8 @@ is the deployed-track response to the prospective breaks of
 it arranges that funds survive the eventual switch-off.
 
 \paragraph{Deployment.} Activation is bound to the NU6.3 network upgrade
-(ZIP-258, Draft: consensus branch $\mathtt{0x37A5165B}$; Testnet activation
-height $4134000$; Mainnet height not yet set at \texttt{zips} commit
-\texttt{69610984}); the scheduling follows the NU6.2 emergency circuit
+(ZIP-258, Draft: consensus branch $\mathtt{0x37A5165B}$); the scheduling
+follows the NU6.2 emergency circuit
 correction (ZIP-257, Final), which is why the originally planned earlier
 deployment slipped. The pool split itself is the subject of \S\ref{sec:iw};
 what this subsection relies on is the seal. From activation the legacy

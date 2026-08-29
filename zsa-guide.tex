@@ -150,7 +150,7 @@ Assets; the changes to the Action circuit; the issuance layer of ZIP~227 ---
 issuance keys, issue notes, reference notes, and the node-side issuance
 state --- and the note-plaintext extension.
 
-Everything the delta rests on is constructed in the companion volumes and is
+Everything the delta rests on is constructed in earlier volumes and is
 cited, never re-derived: notes and note commitments (\emph{Ironwood Guide},
 \S``Representation of a note: notes and note commitments''); value
 commitments, the bases $V^{\mathsf{Orchard}}$ and $R^{\mathsf{Orchard}}$, and
@@ -188,9 +188,9 @@ explicitly non-decisional: ``no decision has been made on whether to include
 each of these ZIPs''; the deployment draft ``will define which ZIPs are
 included in NU7'' (\texttt{README.rst} lines~70--92 @ \texttt{69610984}). In
 the Zcash Foundation's February 2026 NU7 sentiment polls, the proposal that
-drew ``universal or near-universal support'' was Tachyon, not ZSA
-(\emph{Tachyon Guide}, \S``Standing''). ZSA's own standing in those polls is
-split: ZCAP supported ZSAs at 70.4\%, the coinholder poll ran 98.6\%
+drew ``universal or near-universal support'' was Tachyon, not ZSA. ZSA's
+own standing in those polls is split: ZCAP supported ZSAs at 70.4\%, the
+coinholder poll ran 98.6\%
 against, and the Foundation did not recommend ZSAs for NU7, writing that
 ``before any decision is made, we need to understand why coinholders oppose
 ZSAs so strongly'' (zfnd.org, ``NU7 Polling Results: What We Heard and Where
@@ -373,9 +373,10 @@ is library-side only (\texttt{orchard-zsa}
 \subsection{Method: the three bins for ZSA}\label{sec:zsa-method}
 
 This volume adopts the series' classification of design-stage claims
-(\emph{Tachyon Guide}, \S``The three-bin method''): every claim is
-\emph{specified}, \emph{designed but unspecified}, or an \emph{open problem},
-and the bin stays visible in the prose. The distribution differs sharply from
+(\emph{Voting Guide}, \S``The source situation: code as the de facto
+specification''): every claim is \emph{specified}, \emph{designed but
+unspecified}, or an \emph{open problem}, and the bin stays visible in the
+prose. The distribution differs sharply from
 the Tachyon volume's. Bin~(i) holds the entire cryptographic core --- the
 per-asset note and its commitment, the Asset Base derivation, value
 commitments and the balance equation, split notes, the circuit statement,
