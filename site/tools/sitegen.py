@@ -218,10 +218,13 @@ window.addEventListener('DOMContentLoaded', () => {{
 }});
 </script>
 {chr(10).join(cards)}
-<p class="foot"><a href="concordance.html">Concordance</a> &middot; Sources and compiled PDFs:
-<a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a>
-&middot; Spotted an error?
+<footer class="foot">
+<p><a href="concordance.html">Concordance</a></p>
+<p>Sources and compiled PDFs:
+<a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a></p>
+<p>Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
+</footer>
 </main></body></html>
 """
     out = Path(outdir)
@@ -365,10 +368,13 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                             'class="ltx_page_content" data-pagefind-body',
                             1)
             t2 = t2.replace(
-                "</body>",
-                '<footer class="arb-foot">Spotted an error? '
+                '<footer class="ltx_page_footer">\n'
+                '<div class="ltx_align_center">',
+                '<footer class="ltx_page_footer">\n'
+                '<div class="ltx_align_center">'
+                '<span class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
-                "Open an issue</a>.</footer></body>", 1)
+                'Open an issue</a>.</span>', 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1
