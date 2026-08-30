@@ -40,15 +40,16 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --desk: #171b11;
-    --paper: #171b11;
-    --ink: #e2e6d9;
-    --muted: #96a189;
-    --conifer: #9dbe8d;
-    --leafline: #414d31;
-    --plate: #1c2216;
-    --edge: #343e28;
-    --plaque-ink: #aab99c;
+    color-scheme: dark;
+    --desk: #0d1117;
+    --paper: #0d1117;
+    --ink: #f0f6fc;
+    --muted: #9198a1;
+    --conifer: #4493f8;
+    --leafline: #3d444d;
+    --plate: #151b23;
+    --edge: #3d444db3;
+    --plaque-ink: #9198a1;
   }
 }
 
