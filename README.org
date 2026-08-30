@@ -74,7 +74,7 @@ Compiled PDFs are committed alongside the sources.
 
 * Website
 
-Each site deployment must render at both addresses:
+The rendered site is available at both addresses:
 
 - [[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]]
 - [[https://marek.onl/arboretum/][marek.onl/arboretum]]

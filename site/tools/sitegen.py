@@ -368,7 +368,7 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                             'class="ltx_page_content" data-pagefind-body',
                             1)
             t2 = t2.replace(
-                '</div>\n</footer>',
+                '</div></footer>',
                 '</div>\n<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
                 'Open an issue</a>.</div>\n</footer>', 1)
