@@ -341,7 +341,7 @@ window.MathJax = { options: { enableMenu: false },
 <script src="../mathjax/mml-svg.js?v={ver()}" defer></script>"""
         bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../">The
 Zcash Arboretum</a><span class="volname">{title}</span>
-<a class="arb-pdf" href="../pdf/{vol}.pdf">PDF</a>
+<a class="arb-pdf" href="../pdf/{vol}.pdf">PDF edition</a>
 <details class="arb-search"><summary>search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
 </header>
@@ -367,6 +367,10 @@ document.querySelector('details.arb-search').addEventListener('toggle',
             t2 = t2.replace('class="ltx_page_content"',
                             'class="ltx_page_content" data-pagefind-body',
                             1)
+            t2 = re.sub(
+                r'Generated\s+on [^<]+ by '
+                r'(<a [^>]*class="ltx_LaTeXML_logo"[\s\S]*?</a>)',
+                r'Web edition generated from LaTeX with \1.', t2, count=1)
             t2 = t2.replace(
                 '</div></footer>',
                 '</div>\n<div class="arb-feedback">Spotted an error? '

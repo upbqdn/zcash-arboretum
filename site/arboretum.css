@@ -319,7 +319,7 @@ h3.ltx_title_subsection, .ltx_title_subsection {
              border-left: 1px solid var(--leafline); }
 
 /* math + tables breathe, never overflow the page */
-.ltx_equation, .ltx_equationgroup, table.ltx_equation, .ltx_eqn_table {
+.ltx_eqn_table {
   display: block; width: 100%; max-width: 100%;
   overflow-x: auto; overflow-y: hidden; padding: .2rem 0;
 }
@@ -329,6 +329,7 @@ h3.ltx_title_subsection, .ltx_title_subsection {
 .ltx_eqn_table > tbody { display: table; margin-inline: auto; }
 .ltx_eqn_cell.ltx_eqn_center_padleft,
 .ltx_eqn_cell.ltx_eqn_center_padright { display: none; }
+.ltx_eqn_cell.ltx_eqn_eqno { min-width: 2.5rem; padding-left: .75rem; }
 .ltx_p math[display="block"] { display: block; max-width: 100%; overflow-x: auto; }
 .ltx_page_main math[display="inline"] {
   display: inline-block; max-width: 100%;
@@ -352,7 +353,13 @@ figure.ltx_table { overflow-x: auto; max-width: 100%; }
    the inner image cannot reach. */
 figure.ltx_figure { margin: 1.6rem 0; overflow-x: auto; max-width: 100%; }
 .ltx_transformed_outer { max-width: 100%; }
-figure.ltx_figure figcaption { color: var(--muted); font-size: .9rem; }
+figure.ltx_table figcaption,
+figure.ltx_figure figcaption {
+  margin: .75rem 0 0;
+  color: var(--muted); font-size: .9rem; line-height: 1.45;
+  text-align: left !important;
+}
+figcaption .ltx_tag { color: var(--ink); font-weight: 600; }
 
 /* TOC + navigation */
 .ltx_TOC { background: var(--plate); border: 1px solid var(--edge);
@@ -532,7 +539,6 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   color: var(--conifer);
   font-weight: 600;
 }
-.ltx_page_navbar .ltx_ref_self::before { content: "\2937\00a0"; }
 
 /* titles and paragraphs: small rhythm refinements */
 .ltx_title_section { text-wrap: balance; }
