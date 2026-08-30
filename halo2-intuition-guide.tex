@@ -434,8 +434,7 @@ $255$-bit Pallas field the gap polynomial still has at most $\degr D$ roots ---
 now a vanishingly small fraction of the $\approx 2^{254}$ candidate points, a
 soundness error on the order of $2^{-240}$ from a \emph{single} draw of $z$ ---
 so one random challenge already suffices, and the deployed proof even replaces
-that coin toss with a hash of the transcript (Fiat--Shamir, the \emph{Halo~2
-Guide}).
+that coin toss with a hash of the transcript (Fiat--Shamir, \S\ref{sec:fs}).
 
 \paragraph{Bounding the degree.} The argument needs $D$ to have \emph{low}
 degree relative to $|\F|$ --- otherwise ``$d/|\F|$ roots'' is no constraint.
@@ -587,6 +586,53 @@ hence learned nothing. The simulator construction is deferred to the
 \emph{Halo~2 Guide} (\S\,zero knowledge in Halo~2); the intuition is simply:
 \emph{commitments hide, and blinded openings are noise pinned to one honest
 constraint}.
+
+\section{Removing the verifier: the Fiat--Shamir transform}\label{sec:fs}
+
+One awkwardness remains. Everything above needs a \emph{live} verifier
+for exactly one service: once the commitments a challenge tests are
+pinned, somebody the prover cannot predict must choose that challenge
+--- $z$ here, $\beta$ and $\gamma$ for the permutation argument, the
+coins inside each opening round (\S\ref{sec:commit}). Nothing else about
+him matters: his
+messages are coin tosses, and his final act is a computation anyone could
+run. A payment protocol cannot work this way. Alice would have to sit in
+a live session with every full node that will ever validate her
+transaction.
+
+The fix is almost impudent. Wherever the verifier would send a fresh
+challenge, the prover instead computes it herself as
+\[
+\text{challenge} := H(\text{everything sent so far}),
+\]
+the digest of the entire conversation to that point, public statement and
+every commitment included, under a fixed hash function $H$. The ordering
+that \S\ref{sec:commit} fought for is now enforced by construction: a
+commitment is an \emph{input} of the hash, so it is fixed before the
+challenge that tests it exists at all.
+
+Why is a hash as good as a coin? Because the prover's only route to a
+favourable challenge is to vary some input of $H$ --- and every input she
+controls is something the finished proof must stand behind: the statement
+she is claiming, or a commitment she must open. Each variation re-rolls
+the challenge blindly: one hash evaluation buys one ticket in a lottery
+she wins only with the soundness error, about $2^{-240}$ per draw of
+$z$ (\S\ref{sec:random}). She may grind through as many
+tickets as she can hash; against odds like these it changes nothing. Two
+fine points matter. The hash must digest the \emph{whole} transcript ---
+leave the statement or any commitment out, and she aims precisely at what
+the hash cannot see. And the guarantee is proved with $H$ modelled as a
+random oracle, a strong but standard heuristic; the \emph{Crypto Guide}
+(\S``The Fiat--Shamir transform: from interactive to non-interactive'')
+gives the theorem and its caveats.
+
+What this buys is the ``N'' in SNARK: \emph{non-interactive}. The proof
+becomes a single static object --- commitments and openings, nothing else
+--- and verification becomes recomputing the challenges by the same hash
+and running the same checks. No session, no coordination: a full node
+that has never met Alice verifies her Action years later, exactly as the
+deployed system does (the \emph{Halo~2 Guide}, \S``The complete Halo 2
+protocol'', describes the transcript it uses).
 
 \section{Why the verifier is convinced}\label{sec:assemble}
 
