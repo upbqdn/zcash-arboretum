@@ -218,7 +218,7 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 }
 .arb-landing .foot {
   border-top: 1px solid var(--edge); margin-top: 3rem; padding-top: 1rem;
-  font-size: .88rem; color: var(--muted);
+  font-size: .88rem; color: var(--muted); text-align: center;
 }
 .arb-landing .foot p { margin: .2rem 0; }
 
