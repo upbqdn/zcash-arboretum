@@ -277,7 +277,8 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
    paragraph blocks instead of ragged blog paragraphs. Indent marks every
    paragraph that continues another (LaTeXML wraps each in .ltx_para), and
    the inter-paragraph gap shrinks to a book-like sliver. */
-.ltx_page_main .ltx_para > .ltx_p {
+.ltx_page_main .ltx_para > .ltx_p,
+.ltx_page_main .ltx_abstract > .ltx_p {
   text-align: justify;
   hyphens: auto;
   -webkit-hyphens: auto;
@@ -286,10 +287,15 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 .ltx_page_main .ltx_para + .ltx_para > .ltx_p:first-child {
   text-indent: 1.4em;
 }
-/* MathJax replaces the MathML with TeX-quality SVG; keep its display
-   equations on the page grid and let inline math inherit text colour. */
-mjx-container[jax="SVG"] { color: inherit; }
-mjx-container[jax="SVG"][display="true"] { margin: 1em 0 !important; }
+/* MathJax replaces the MathML with TeX-quality SVG; retain the native
+   MathML overflow behaviour after replacement. */
+mjx-container[jax="SVG"] {
+  color: inherit; display: inline-block; max-width: 100%;
+  overflow-x: auto; overflow-y: hidden; vertical-align: middle;
+}
+mjx-container[jax="SVG"][display="true"] {
+  display: block; margin: 1em 0 !important;
+}
 
 .ltx_title_document {
   font-family: var(--display); font-weight: 600;
@@ -465,6 +471,7 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
   .arb-bar { gap: .75rem; }
   .arb-bar .volname { display: none; }
   .arb-bar details.arb-search { margin-left: auto; }
+  .ltx_abstract { margin-inline: 0; }
   .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .35rem; }
   .ltx_page_footer a[rel="next"] { margin-left: 0; align-self: flex-start; }
 }
