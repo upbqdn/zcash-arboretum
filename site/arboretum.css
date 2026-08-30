@@ -417,30 +417,10 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_subtitle, .ltx_page_main .ltx_title_document .ltx_text {
   color: var(--muted);
 }
-/* prev/next crumbs above the section title: quiet utility text.
-   The header's start/up links repeat the document title the site bar
-   already shows - drop them; keep only the directional crumbs. */
-.ltx_page_main .ltx_page_header {
-  font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
-  padding: .8rem 0 0;
-}
-.ltx_page_main .ltx_page_header > div {
-  display: flex; justify-content: space-between; gap: 1.5rem;
-  text-align: left;
-}
-.ltx_page_main .ltx_page_header a { min-width: 0; }
-.ltx_page_main .ltx_page_header a[rel="start"],
-.ltx_page_main .ltx_page_header a[rel="up"],
-.ltx_page_main .ltx_page_header a[rel="bibliography"] { display: none; }
-.ltx_page_main .ltx_page_header a[rel="prev"]::before { content: "\2190  "; }
-/* the prev-crumb to a title page embeds the title's inline 248% span */
-.ltx_page_main .ltx_page_header a span { font-size: 1em !important; }
-.ltx_page_main .ltx_page_header a[rel="next"]::after { content: "  \2192"; }
-.ltx_page_main .ltx_page_header a[rel="next"] { margin-left: auto; }
-.ltx_page_main .ltx_page_header a { color: var(--muted); }
-.ltx_page_main .ltx_page_header a:hover { color: var(--conifer); }
+/* Navigation lives in the footer; do not repeat it above every section. */
+.ltx_page_main .ltx_page_header { display: none; }
 
-/* footer crumbs: same structure and treatment as the header row */
+/* footer navigation */
 .ltx_page_footer {
   font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
   border-top: 1px solid var(--edge);
@@ -470,9 +450,7 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   .arb-bar { gap: .75rem; }
   .arb-bar .volname { display: none; }
   .arb-bar details.arb-search { margin-left: auto; }
-  .ltx_page_main .ltx_page_header > div { flex-direction: column; gap: .35rem; }
   .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .35rem; }
-  .ltx_page_main .ltx_page_header a[rel="next"],
   .ltx_page_footer a[rel="next"] { margin-left: 0; align-self: flex-start; }
 }
 
@@ -563,8 +541,7 @@ h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
 
 /* print: the sheet alone */
 @media print {
-  .arb-bar, .ltx_page_navbar, .ltx_page_footer,
-  .ltx_page_main .ltx_page_header { display: none !important; }
+  .arb-bar, .ltx_page_navbar, .ltx_page_footer { display: none !important; }
   body, .ltx_page_main {
     background: #fff; color: #000;
     box-shadow: none; border: 0; max-width: none; margin: 0;
