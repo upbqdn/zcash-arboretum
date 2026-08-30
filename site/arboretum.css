@@ -109,11 +109,13 @@ code, kbd, pre { font-family: var(--mono); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .arb-bar details.arb-search { position: relative; }
+.arb-bar .arb-pdf,
 .arb-bar details.arb-search summary {
   list-style: none; cursor: pointer;
   font-family: var(--mono); font-size: .72rem;
   letter-spacing: .1em; color: var(--muted);
 }
+.arb-bar .arb-pdf:hover { color: var(--conifer); text-decoration: none; }
 .arb-bar details.arb-search summary::-webkit-details-marker { display: none; }
 .arb-bar details.arb-search[open] summary { color: var(--conifer); }
 .arb-bar .arb-search-panel {

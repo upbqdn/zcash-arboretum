@@ -338,6 +338,7 @@ window.MathJax = { options: { enableMenu: false },
 <script src="../mathjax/mml-svg.js?v={ver()}" defer></script>"""
         bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../">The
 Zcash Arboretum</a><span class="volname">{title}</span>
+<a class="arb-pdf" href="../pdf/{vol}.pdf">PDF</a>
 <details class="arb-search"><summary>search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
 </header>
