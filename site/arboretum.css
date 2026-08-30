@@ -183,10 +183,10 @@ main.arb-landing {
 /* volume list */
 ol.plates { list-style: none; margin: 0; padding: 0; }
 ol.plates li.plate {
-  border-top: 1px solid var(--edge);
   padding: .9rem 0 .85rem;
   margin: 0;
 }
+ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 ol.plates li.plate:last-child { border-bottom: 1px solid var(--edge); }
 .plate .label {
   display: flex; align-items: baseline; gap: .7rem;
