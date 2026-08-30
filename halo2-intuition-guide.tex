@@ -485,10 +485,11 @@ blinding term is added. To prove $f(z) = v$ is to prove a statement about the
 inner product of $\vec f$ with the vector $(1, z, z^2, \dots)$, and the IPA
 does this in a logarithmic number of rounds, each \emph{halving} the vectors,
 until the claim is trivial --- so the evaluation proof is $O(\log m)$ group
-elements and, decisively, needs \emph{no trusted setup}. The full fold, its
-soundness, and the accumulation trick that makes it recursion-friendly are the
-business of the \emph{Halo~2 Guide} (\S\,the inner-product polynomial
-commitment, and \S\,the Halo trick). For our purposes one property is enough:
+elements and, decisively, needs \emph{no trusted setup}
+(\S\ref{sec:halo} says why, and what the fold's one expensive step
+costs). The full fold and its soundness are the business of the
+\emph{Halo~2 Guide} (\S``The inner-product polynomial commitment'').
+For our purposes one property is enough:
 \emph{the commitment binds}, so the prover is honestly answering for
 polynomials she could not change once $z$ was on the table.
 
@@ -551,6 +552,56 @@ and the whole product feels it.
 the grand product comes out to exactly $1$. Tamper one wire --- set $b_1 = 4$,
 breaking the copy $b_1 = x = 3$ --- and the same product becomes $61 \neq 1$:
 the inconsistent dataflow is exposed without any value being revealed.
+
+\section{Proving a value sits in a table: lookups}\label{sec:lookups}
+
+Gates handle algebra; some constraints are not algebra. ``This chunk
+indexes an entry of the Sinsemilla generator table'' or ``this cell is
+a ten-bit number'' has no low-degree formula. Written as one polynomial
+gate it would need degree about the size of the table --- which in our
+toy field would eat the soundness budget outright (\S\ref{sec:random}),
+and at any scale balloons the quotient polynomial the prover must
+split, commit, and open (\S\ref{sec:vanish}). Yet Orchard's circuit
+needs such range and table facts constantly.
+
+The statement has a familiar shape. ``Every entry of my column $A$
+appears somewhere in the table $S$'' is, like the copy constraints, a
+statement about \emph{multisets}. One wrinkle: membership is not a
+permutation --- $A$ may repeat one table entry and ignore the rest ---
+so the prover first tidies both sides. She commits to $A'$, her column
+reshuffled so equal values sit in contiguous runs, and $S'$, a
+reshuffle of the table aligned so that each run in $A'$ begins beside
+its matching table value. Two \emph{row-local} checks then pin
+membership: each row of $A'$ either \emph{starts a run}
+($A'_i = S'_i$: the value is vouched for by the table) or
+\emph{continues one} ($A'_i = A'_{i-1}$: equal to the row above,
+already vouched for). What certifies the two reshuffles is the
+\S\ref{sec:perm} machinery with one deliberate change: \emph{no
+labels}. Labelled factors pinned one particular wiring $\sigma$; here
+the reshuffles are the prover's own choice, so a single running product
+with unlabelled factors --- row by row, $(A' + \beta)(S' + \gamma)$
+against $(A + \beta)(S + \gamma)$ --- certifies exactly that each
+primed column is \emph{some} reshuffle of its original, which is all
+membership needs. Induction up the rows does the rest.
+
+On the toy's own four-row grid: constrain cells to two-bit values with
+the table $S = (0, 1, 2, 3)$ and the column $A = (2, 3, 2, 2)$.
+Grouped, $A' = (2, 2, 2, 3)$; align $S' = (2, 0, 1, 3)$, a reshuffle of
+$S$ placing $2$ beside the first run and $3$ beside the second. Row~$0$
+starts a run ($2 = 2$), rows $1$ and $2$ continue it ($2$ above),
+row~$3$ starts a run ($3 = 3$) --- every check row-local, every
+polynomial low-degree, however large the table. A forged
+$A = (2, 7, 2, 2)$ dies: its $7$ lands at the start of a run in $A'$,
+and no reshuffle of a table without a $7$ can put a $7$ beside it.
+
+This is how the deployed circuit affords its ten-bit range checks and
+its $2^{10}$-entry Sinsemilla generator table: a table fact costs a few
+committed columns and one more running product, and the gates stay
+low-degree. The deployed declarations of both are exhibited in the
+\emph{Halo~2 Guide}, \S``From statement to circuit: arithmetisation in
+practice''; the exact constraints, the boundary row, the padding of
+short columns, and multi-column tables are its \S``The lookup
+argument''.
 
 \section{Binding the public statement, and hiding the witness}\label{sec:zk}
 
@@ -634,6 +685,51 @@ that has never met Alice verifies her Action years later, exactly as the
 deployed system does (the \emph{Halo~2 Guide}, \S``The complete Halo 2
 protocol'', describes the transcript it uses).
 
+\section{The ``Halo'' in Halo 2: deferring the expensive check}\label{sec:halo}
+
+One cost has stayed quietly non-trivial. The opening proofs of
+\S\ref{sec:commit} shrink by halving, so the verifier's rounds are
+logarithmic --- except at the very end, where checking the final fold
+means recomputing one combination of \emph{all} the generators
+$G_0, \dots, G_m$: a wall of group arithmetic proportional to the whole
+circuit's size. Even without any recursion the deployed verifier
+declines to pay this per proof: checking a batch of transactions, it
+folds all their deferred walls into one and pays a single wall for the
+batch (the \emph{Halo~2 Guide}, \S``Accumulation and the Halo trick'').
+Where the cost would be truly ruinous is \emph{recursion}. For a
+circuit to verify a \emph{proof} --- the step that would let one proof
+attest to a whole chain of others --- everything the verifier does must
+be re-expressed as gates, and a circuit-sized wall of group arithmetic
+inside a circuit defeats the point.
+
+Halo's namesake trick is to not pay. The expensive claim has a special
+shape --- ``this point equals that known combination of the generators''
+--- and two claims of this shape can be \emph{folded} into one by the
+move this guide keeps meeting: commit, draw a challenge, take a random
+combination, a few group operations in place of a wall. So the recursive
+verifier checks everything cheap, and instead of paying the expensive
+step it folds the claim into a running \emph{accumulator} carried along
+the chain. One final check, run once at the chain's end and outside any
+circuit, pays a single wall of group arithmetic for the entire history.
+The bookkeeping's soundness reduces to the discrete logarithm, exactly
+like the commitments it manages (the \emph{Halo~2 Guide},
+\S``Accumulation and the Halo trick''; the cycle of curves that keeps
+the recursive arithmetic in the right fields is its \S``Recursive proof
+composition and accumulation schemes'').
+
+A last remark completes the picture begun in \S\ref{sec:commit}: none of
+this ever needed a ceremony. The generators $G_0, \dots, G_m$ are
+nothing-up-my-sleeve points, hashed into existence, with no secret
+behind them that anyone ever knew --- nothing to leak, nothing to
+destroy. The alternative family of commitments buys smaller proofs at
+the price of a \emph{trusted setup}: secret randomness drawn at a
+ceremony, whose compromise forges proofs silently, and which Zcash's
+earlier shielded pools in fact required (the \emph{Crypto Guide},
+\S``Polynomial commitment schemes'', constructs that scheme, its
+ceremony, and the forgery its trapdoor permits). Halo 2's inner-product
+commitment trades proof size for exactly this freedom; being rid of
+ceremonies was a stated reason Orchard chose it.
+
 \section{Why the verifier is convinced}\label{sec:assemble}
 
 Stand back and read the chain in the direction the verifier experiences it. He
@@ -674,8 +770,9 @@ the Orchard Action --- nullifier integrity, the value-commitment opening, the
 Merkle path recomputation, key re-randomisation (\emph{Crypto Guide}, \S``Key
 re-randomisation and unlinkability''; the \emph{Ironwood Guide},
 checks~A1--A10) --- and the columns grow from four rows to $2^{k}$, the gate
-polynomial gains custom high-degree terms, and a Sinsemilla lookup table (\emph{Crypto
-Guide}, \S``Sinsemilla: an algebraic hash-based commitment'') joins
+polynomial gains custom high-degree terms, and a Sinsemilla lookup table
+(\S\ref{sec:lookups}; the \emph{Crypto Guide},
+\S``Sinsemilla: an algebraic hash-based commitment'') joins
 the permutation. But the spine is identical: arithmetise into a grid, interpolate
 to polynomials, compress ``all rows correct'' into one identity $G = t\,\ZH$,
 commit, and test at a random point. When a Zcash full node verifies a shielded
@@ -687,9 +784,8 @@ was spent by its rightful owner.
 \paragraph{Where to go next.} Every deferral above is discharged in the
 \emph{Halo~2 Guide}: the inner-product argument and why its openings are
 trustworthy; the algebraic-group-model extractor behind ``the prover knows
-$x$''; the accumulation/Halo trick that lets one proof verify another so the
-whole chain folds into constant work; and the cycle of curves that makes that
-recursion efficient. This guide has supplied the thing those formalisms are
+$x$''; the soundness of the accumulation fold sketched in \S\ref{sec:halo};
+and the cycle of curves that makes that recursion efficient. This guide has supplied the thing those formalisms are
 formalising: the picture of \emph{why a single random number, checked against a
 committed polynomial, is enough to know that an unseen computation was done
 right}.
