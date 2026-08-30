@@ -1,19 +1,7 @@
 /* The Zcash Arboretum — site stylesheet.
-   Identity: herbarium plates and specimen labels; STIX Two Text (the
-   mathematical literature's face) for prose, Fraunces for display,
-   monospace small-caps for the brass-plaque labels. */
+   STIX Two Text throughout, with quiet monospace metadata. */
 
 /* ---------- faces ---------- */
-@font-face {
-  font-family: "Fraunces";
-  src: url("fonts/fraunces-latin-600-normal.woff2") format("woff2");
-  font-weight: 600; font-style: normal; font-display: swap;
-}
-@font-face {
-  font-family: "Fraunces";
-  src: url("fonts/fraunces-latin-700-normal.woff2") format("woff2");
-  font-weight: 700; font-style: normal; font-display: swap;
-}
 @font-face {
   font-family: "STIX Two Text";
   src: url("fonts/stix-two-text-latin-400-normal.woff2") format("woff2");
@@ -37,23 +25,23 @@
 
 /* ---------- tokens ---------- */
 :root {
-  --desk: #edebe0;       /* the desk beneath the sheet */
-  --paper: #fbfaf5;      /* herbarium sheet */
+  --desk: #fbfaf5;
+  --paper: #fbfaf5;
   --ink: #20261e;        /* green-black ink */
   --muted: #5d6656;
   --conifer: #2f5138;    /* interactive green */
   --leafline: #b9c2ae;   /* pressed-stem rules */
-  --plate: #f1f1e8;      /* specimen card */
+  --plate: #f1f1e8;
   --edge: #d9dcc9;
   --plaque-ink: #4e5a45;
   --serif: "STIX Two Text", "STIX Two Math", Charter, Georgia, serif;
-  --display: "Fraunces", "STIX Two Text", Georgia, serif;
+  --display: var(--serif);
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --desk: #0d0f0a;     /* the desk, dark */
-    --paper: #171b11;    /* night garden sheet */
+    --desk: #171b11;
+    --paper: #171b11;
     --ink: #e2e6d9;
     --muted: #96a189;
     --conifer: #9dbe8d;
@@ -84,18 +72,14 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 ::selection { background: var(--conifer); color: var(--paper); }
 code, kbd, pre { font-family: var(--mono); }
 
-/* ---------- the plaque (signature label) ---------- */
+/* ---------- status metadata ---------- */
 .plaque {
   font-family: var(--mono);
-  font-size: .64rem;
+  font-size: .68rem;
   letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--plaque-ink);
-  border: 1px solid var(--leafline);
-  border-radius: 2px;
-  padding: .18rem .5rem .14rem;
   white-space: nowrap;
-  background: transparent;
 }
 
 /* ---------- site bar (injected on every volume page) ---------- */
@@ -148,14 +132,6 @@ main.arb-landing {
   margin: 2.6rem auto 3.5rem;
   padding: 3rem 2.6rem 3.5rem;
   background: var(--paper);
-  border: 1px solid var(--edge);
-  box-shadow: 0 1px 2px rgb(0 0 0 / .06), 0 16px 48px rgb(0 0 0 / .10);
-}
-@media (prefers-color-scheme: light) {
-  main.arb-landing, .ltx_page_main {
-    background-image: repeating-linear-gradient(0deg,
-      rgb(0 0 0 / .012) 0 1px, transparent 1px 4px);
-  }
 }
 @media (max-width: 700px) {
   main.arb-landing { margin: 0; border: 0; box-shadow: none;
@@ -171,7 +147,7 @@ main.arb-landing {
 }
 .arb-landing h1 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(2.3rem, 6vw, 3.1rem);
   letter-spacing: -.015em;
   line-height: 1.08;
@@ -202,27 +178,21 @@ main.arb-landing {
   content: ""; flex: 1; height: 1px; background: var(--leafline);
 }
 
-/* specimen plates */
+/* volume list */
 ol.plates { list-style: none; margin: 0; padding: 0; }
 ol.plates li.plate {
-  background: var(--plate);
-  border: 1px solid var(--edge);
-  border-radius: 2px;
-  padding: .85rem 1.05rem .8rem;
-  margin: .55rem 0;
-  transition: border-color .15s ease;
+  border-top: 1px solid var(--edge);
+  padding: .9rem 0 .85rem;
+  margin: 0;
 }
-ol.plates li.plate:hover { border-color: var(--muted); }
-@media (prefers-reduced-motion: reduce) {
-  ol.plates li.plate { transition: none; }
-}
+ol.plates li.plate:last-child { border-bottom: 1px solid var(--edge); }
 .plate .label {
   display: flex; align-items: baseline; gap: .7rem;
   margin-bottom: .28rem;
 }
 .plate .acc {
   font-family: var(--mono);
-  font-size: .64rem;
+  font-size: .68rem;
   letter-spacing: .16em;
   color: var(--muted);
   flex: 1;
@@ -242,7 +212,7 @@ ol.plates li.plate:hover { border-color: var(--muted); }
 }
 .plate .links {
   display: flex; gap: 1rem;
-  font-family: var(--mono); font-size: .72rem;
+  font-family: var(--mono); font-size: .78rem;
   letter-spacing: .08em; text-transform: uppercase;
 }
 .arb-landing .foot {
@@ -269,8 +239,6 @@ ol.plates li.plate:hover { border-color: var(--muted); }
   padding: 1rem 3rem 3.2rem;
   font-family: var(--serif);
   background: var(--paper);
-  border: 1px solid var(--edge);
-  box-shadow: 0 1px 2px rgb(0 0 0 / .06), 0 16px 48px rgb(0 0 0 / .10);
   color: var(--ink);
   /* long words (URLs, DOIs) break at the column edge on narrow screens
      rather than pushing the page wider than the viewport */
@@ -326,7 +294,7 @@ mjx-container[jax="SVG"][display="true"] { margin: 1em 0 !important; }
 }
 
 .ltx_title_document {
-  font-family: var(--display); font-weight: 700;
+  font-family: var(--display); font-weight: 600;
   font-size: 2rem; line-height: 1.15;
   margin: 2.2rem 0 1rem;
 }
@@ -475,9 +443,6 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_page_main .ltx_page_header a { color: var(--muted); }
 .ltx_page_main .ltx_page_header a:hover { color: var(--conifer); }
 
-/* retire the default footer logo (Sammy stays in the source tree) */
-.ltx_page_logo { display: none; }
-
 /* footer crumbs: same structure and treatment as the header row */
 .ltx_page_footer {
   font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
@@ -497,9 +462,16 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_page_footer a[rel="prev"]::before { content: "\2190  "; }
 .ltx_page_footer a[rel="next"]::after { content: "  \2192"; }
 .ltx_page_footer a[rel="next"] { margin-left: auto; }
+.ltx_page_footer > .ltx_page_logo {
+  display: block; float: none; width: 100%;
+  margin-top: 1rem; text-align: center;
+}
 
 /* mobile: stack the prev/next crumbs so long section titles never collide */
 @media (max-width: 640px) {
+  .arb-bar { gap: .75rem; }
+  .arb-bar .volname { display: none; }
+  .arb-bar details.arb-search { margin-left: auto; }
   .ltx_page_main .ltx_page_header > div,
   .ltx_page_footer > div { flex-direction: column; gap: .35rem; }
   .ltx_page_main .ltx_page_header a[rel="next"],
