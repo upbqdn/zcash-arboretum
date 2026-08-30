@@ -219,10 +219,7 @@ window.addEventListener('DOMContentLoaded', () => {{
 </script>
 {chr(10).join(cards)}
 <footer class="foot">
-<p><a href="concordance.html">Concordance</a></p>
-<p>Sources and compiled PDFs:
-<a href="https://github.com/upbqdn/zcash-arboretum">github.com/upbqdn/zcash-arboretum</a></p>
-<p>Spotted an error?
+<p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
 </footer>
 </main></body></html>
