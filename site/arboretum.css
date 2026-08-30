@@ -284,6 +284,7 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
   -webkit-hyphens: auto;
 }
 .ltx_page_main .ltx_para { margin-bottom: .45em; }
+.ltx_page_main .ltx_abstract > .ltx_p { text-indent: 0; }
 .ltx_page_main .ltx_para + .ltx_para > .ltx_p:first-child {
   text-indent: 1.4em;
 }
