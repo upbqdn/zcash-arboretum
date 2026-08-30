@@ -72,6 +72,16 @@ Layered; read each atop the ones it names.
 
 Compiled PDFs are committed alongside the sources.
 
+* Website
+
+Each site deployment must render at both addresses:
+
+- [[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]]
+- [[https://marek.onl/arboretum/][marek.onl/arboretum]]
+
+Both addresses serve the same generated site and should be verified after a
+deployment.
+
 * Method
 
 Every protocol-level claim is checked against the protocol specification and
