@@ -900,7 +900,9 @@ realism for provability along the same axis as the ROM, and the constructions
 ahead invoke them by name where they require them.
 \end{remark}
 
-\subsection{Concrete versus asymptotic security and \(\lambda\)-bit security}\label{model:subsec:concrete}
+\subsection{Concrete versus asymptotic security and
+\texorpdfstring{\(\lambda\)-bit}{lambda-bit} security}
+\label{model:subsec:concrete}
 
 The asymptotic language---``negligible,'' ``polynomial,'' ``for all sufficiently
 large \(\lambda\)''---is mathematically clean but operationally silent. It establishes
@@ -1066,7 +1068,8 @@ DDH, like DLP, is random self-reducible: given a target triple \((u, v, w) = (g^
 If \(c = ab\) then \(cr + bt = b(ar + t)\), so the new exponents satisfy the DH relation and \((u',v',w')\) is a fresh uniform DH triple; if \(c \ne ab\) the third exponent is uniform and independent. Thus the rerandomisation maps DH triples to DH triples and non-DH triples to uniform triples, so any noticeable advantage on random instances transfers to every instance.
 \end{remark}
 
-\subsection{The hierarchy DDH \(\le\) CDH \(\le\) DLP}
+\subsection{The hierarchy
+\texorpdfstring{DDH \(\le\) CDH \(\le\) DLP}{DDH <= CDH <= DLP}}
 \label{assumptions:subsec:hierarchy}
 
 The three problems are not independent; they form a chain. Write \(A \le B\) to mean ``\(A\) reduces to \(B\)'', i.e. an oracle solving \(B\) yields an efficient solver for \(A\); equivalently, \(B\) is \emph{at least as hard} as \(A\), so if \(B\) is easy then \(A\) is easy; equivalently, the assumption ``\(A\) is hard'' is the \emph{stronger} one (it implies ``\(B\) is hard''). The reductions go
@@ -3387,7 +3390,8 @@ According to the grade of indistinguishability (Definition~\ref{model:def:indist
 The simulator receives \(x\) but \emph{not} the witness \(w\). If it can nonetheless output transcripts indistinguishable from real ones, then the real transcript carries no efficiently extractable information about \(w\) beyond \(x\in L\)---for were it otherwise, the distinguisher could detect the difference. The crucial subtlety is that \(\mathrm{Sim}\) wields a power \(P\) lacks: it can \emph{rewind} \(V^*\), retrying until \(V^*\)'s challenges align with a transcript the simulator could prepare without \(w\). This is legitimate because \(\mathrm{Sim}\) is, again, the reduction's tool, not a protocol participant. The auxiliary input \(z\) models prior knowledge a malicious verifier may bring (e.g.\ from earlier protocol runs); requiring zero knowledge to hold for all \(z\) is what makes the property \emph{compose}---a zero-knowledge protocol remains zero knowledge when run as a subroutine inside a larger system. Practice adopts this auxiliary-input formulation.
 \end{remark}
 
-\subsection{\(\Sigma\)-protocols}\label{zk:subsec:sigma}
+\subsection{\texorpdfstring{\(\Sigma\)-protocols}{Sigma-protocols}}
+\label{zk:subsec:sigma}
 
 Almost every practical zero-knowledge building block is a \emph{\(\Sigma\)-protocol}: a three-move, public-coin protocol whose shape---a Greek capital sigma traced by the prover's commitment going out, the verifier's challenge coming back, and the prover's response going out again---gives the family its name. The structure is rigid enough to admit clean, checkable security definitions, and rich enough to capture an enormous range of statements through composition.
 
@@ -3506,7 +3510,8 @@ The ROM is an idealisation: real hash functions are fixed, public, and not rando
 Fiat--Shamir applied to Schnorr's \(\Sigma\)-protocol (Example~\ref{zk:exp:schnorr}), with a message \(m\) hashed into the challenge, is precisely the Schnorr signature scheme of Definition~\ref{signatures:def:schnorrsig}, whose EUF-CMA security Theorem~\ref{signatures:thm:schnorr-euf} establishes by exactly the forking argument above. This is the canonical illustration that ``proof of knowledge \(+\) Fiat--Shamir \(=\) signature.''
 \end{example}
 
-\subsection{From \(\Sigma\)-protocols toward general computation}\label{zk:subsec:general}
+\subsection{From \texorpdfstring{\(\Sigma\)-protocols}{Sigma-protocols}
+toward general computation}\label{zk:subsec:general}
 
 \(\Sigma\)-protocols handle algebraic relations (discrete logs, openings of commitments, linear statements) with a single move of each kind. To prove arbitrary \textsf{NP} statements---``I know an input making this circuit output \(1\)''---we need protocols for general computation.
 

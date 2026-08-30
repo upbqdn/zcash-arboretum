@@ -1376,9 +1376,10 @@ against the field widths), with \texttt{hashChainHistoryRoot} changing
 ``only through the added node fields'' and
 \texttt{hashBlockCommitments} otherwise unaffected. That trio is the
 one this series' Ironwood volume already cites at its turnstile
-(\emph{Ironwood Guide}, \S``Migration and the turnstile''); it is Draft,
-not consensus, and ZIP-258 proposes that \textsf{zcashd} will not
-implement it.
+(\emph{Ironwood Guide}, \S``Migration and the turnstile''). ZIP-258 remains
+Draft as a document, but these rules and fields are active consensus and are
+implemented by Zebra; the ZIP proposes that \textsf{zcashd} will not
+implement NU6.3.
 
 \subsection{Activation constants}\label{sec:fc-activations}
 
@@ -1393,7 +1394,7 @@ Heartwood & \texttt{0xF5B9230B} & 903{,}000 & 903{,}800 & V1 (fields
 1--11) \\
 NU5 & \texttt{0xC2D6D0B4} & 1{,}687{,}104 & 1{,}842{,}420 & V2 (+
 Orchard trio) \\
-NU6.3 (draft) & \texttt{0x37A5165B} & TBD & 4{,}134{,}000 & V3 (+
+NU6.3 & \texttt{0x37A5165B} & 3{,}428{,}143 & 4{,}134{,}000 & V3 (+
 Ironwood trio) \\
 \bottomrule
 \end{tabular}
@@ -1734,7 +1735,7 @@ The deployment gap has a neat summary: the node that has the prover's
 data (zcashd, full per-epoch node arrays in LevelDB) has no future, and
 the node that has the future (Zebra) has no data. Neither has an
 interface. Meanwhile consensus keeps paying the feature's maintenance
-cost --- the draft NU6.3 upgrade extends the node vector a second time
+cost --- the NU6.3 upgrade extends the node vector a second time
 (\S\ref{sec:fc-nu5}), Zebra already implements it, and still nothing
 reads the tree.
 \end{remark}

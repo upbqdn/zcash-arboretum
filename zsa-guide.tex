@@ -220,6 +220,12 @@ does not include ZIP~226 or ZIP~227, still names the withdrawn ZIP~230, and is
 explicitly non-decisional: ``no decision has been made on whether to include
 each of these ZIPs''; the deployment draft ``will define which ZIPs are
 included in NU7'' (\texttt{README.rst} lines~70--92 @ \texttt{69610984}). In
+the current \textsf{zips} tree, ZIP-204 assigns NU7 protocol versions
+$170180$ (Testnet) and $170190$ (Mainnet), but
+\texttt{draft-arya-deploy-nu7} still says $170150$ and $170160$; the draft is
+therefore internally stale even though its activation heights remain TBD
+(\textsf{zips} \texttt{ad30e59}, ZIP-204 and
+\texttt{draft-arya-deploy-nu7}). In
 the Zcash Foundation's February 2026 NU7 sentiment polls, the proposal that
 drew ``universal or near-universal support'' was Tachyon, not ZSA. ZSA's
 own standing in those polls is split: ZCAP supported ZSAs at 70.4\%, the
@@ -343,6 +349,17 @@ Artifact & Pin / date & Role \\
 \caption{Primary ZSA sources, pinned.}
 \label{tab:zsa-sources}
 \end{table}
+
+\paragraph{Current-head boundary (2026-08-30).} The QED-it forks have moved
+since the source snapshot: \textsf{orchard} \texttt{b578ad9} is based on
+0.15.0 and adds the NU6.3 cross-address restriction to the ZSA circuit, while
+\textsf{librustzcash} \texttt{c5c232d} synchronises the NU6.2-era upstream
+transaction changes. Neither change supplies a current normative carrier for
+ZSA: upstream ZIPs~230 and~246 remain withdrawn, ZIPs~226 and~227 remain
+Draft, and the NU7 deployment draft still does not select them. Detailed
+wire, circuit, and fee claims below therefore continue to describe the
+explicit pins in Table~\ref{tab:zsa-sources}; later fork behaviour is not
+silently attributed to that public-testnet snapshot.
 
 \paragraph{Upstream versus fork.} Upstream ZIP~226 diverged from the fork text
 at \texttt{fd71419a} in three substantive ways: it added the ZIP~2005
@@ -1072,7 +1089,7 @@ the action's \texttt{assetDescHash}, never reading it off the wire
 (\S\ref{sec:zsa-identity-wire}; consensus rules,
 \S\ref{sec:zsa-issuance-state}).
 
-\subsection{Issue notes and the derived $\rho$}%
+\subsection{Issue notes and the derived \texorpdfstring{$\rho$}{rho}}%
 \label{sec:zsa-issuance-notes}
 
 \begin{definition}[Issue note]\label{def:zsa-issue-note}
@@ -3012,7 +3029,9 @@ Format). Each \texttt{ActionGroupDescription} contains, in order
   Action.
 \end{itemize}
 Field \texttt{nAGExpiryHeight} exists for forward compatibility with ZSA
-atomic swaps (ZIP-228, currently a Reserved stub); for OrchardZSA it is zero
+atomic swaps. ZIP-228 is now a Draft that uses this field to expire swap
+orders, but it still depends on the withdrawn ZIP-230/246 carrier; for the
+core OrchardZSA proposal the field is zero
 by consensus (ZIP-230, Rationale for \texttt{nAGExpiryHeight};
 \S\ref{sec:zsa-tx-rules}). A normative rule of ZIP-230 (its consensus-rule
 list, not the rationale) states ``In NU7, \texttt{nExpiryHeight} MUST be set
@@ -3238,8 +3257,9 @@ implementation, not the ZIP, is currently the more precise artifact.
 Groups, ZIP-227 collapses it for OrchardZSA: per transaction,
 \texttt{nActionGroupsOrchard} MUST be $0$ or $1$, and
 \texttt{nAGExpiryHeight} MUST be $0$ (ZIP-227, Specification: Consensus Rule
-Changes). The vector form is forward provisioning for ZSA swaps (ZIP-228),
-nothing more.
+Changes). The vector form is used by draft ZIP-228's proposed ZSA swaps,
+which would relax the one-group rule for swap bundles; it is not active in
+the core ZIP-227 rules.
 
 \paragraph{Issuance requires an Action Group.} A transaction with an
 issuance bundle MUST also contain at least one OrchardZSA Action Group
@@ -3502,7 +3522,9 @@ draft is unnumbered (\texttt{draft-arya-deploy-nu7}, Status: Draft,
 replacing the withdrawn ZIP-254), fixes
 $\texttt{CONSENSUS\_BRANCH\_ID} = \mathtt{0x77190AD8}$ and minimum protocol
 versions ($170150$ Testnet, $170160$ Mainnet) with activation heights TBD,
-and lists \emph{no} ZIPs. The repository's NU7 candidate list (ZIPs 218,
+and lists \emph{no} ZIPs. Those version numbers now conflict with ZIP-204's
+NU7 assignment of $170180$ and $170190$, so the deployment draft needs an
+editorial update. The repository's NU7 candidate list (ZIPs 218,
 230, 231, 233, 234, 235, 2002, 2003, plus a possible ZIP-317 update) does
 not include ZIP-226/227, still names the withdrawn ZIP-230, and states that
 ``no decision has been made on whether to include each of these ZIPs''
@@ -3531,7 +3553,8 @@ respecification problems, none of which is per-object protocol work.
   the Zcash protocol with the changes specified in ZIP 2005 applied,'' with
   ZIP-2005 (Ironwood Quantum Recoverability) ``expected to deploy before any
   ZSA activation'' (ZIP-226, header notes). NU6.3 (ZIP-258, testnet
-  activation $4{,}134{,}000$, Mainnet TBD) introduces the Ironwood pool and
+  activation $4{,}134{,}000$, Mainnet $3{,}428{,}143$) introduces the
+  Ironwood pool and
   restricts transfers into the Orchard pool (ZIP-2006, currently a Reserved
   stub). No ZIP specifies whether OrchardZSA then targets the restricted
   Orchard pool or is rebased onto Ironwood; the audited revisions

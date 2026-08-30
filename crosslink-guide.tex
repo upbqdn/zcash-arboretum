@@ -300,6 +300,15 @@ Shielded Labs web/forum/Arborist
 \label{tab:xl-sources}
 \end{table}
 
+\paragraph{Current-head boundary (2026-08-30).} The four Crosslink design
+repositories were rechecked: \textsf{tfl-book} remains at
+\texttt{fe6e1d6}, \textsf{crosslink-spec} at \texttt{8edc3e9},
+\textsf{zebra-crosslink} at \texttt{6d02a1b}, and
+\textsf{crosslink-protocol-guide} at \texttt{b77d845}. Current upstream
+\textsf{zips} \texttt{ad30e59} still contains no Crosslink or NU8 ZIP. The
+repository-backed design and classification below therefore remain current;
+web-sourced rollout statements retain their explicit 2026-07-15 access date.
+
 \paragraph{The TFL book.} The construction source of record is the ECC
 Trailing Finality Layer book, an mdBook formerly deployed at
 \url{https://electric-coin-company.github.io/tfl-book/} (404 since at
@@ -627,7 +636,8 @@ The name \emph{ebb-and-flow} denotes the security model and goal
 construction proposed in the same paper to achieve that goal
 (\S\ref{sec:xl-snap-and-chat}). The distinction is the book's own
 admonition (\texttt{tfl-book} @ \texttt{fe6e1d6f},
-\texttt{notes-on-snap-and-chat.md}, ``Terminology''), and it matters
+\texttt{notes-on-\allowbreak snap-and-\allowbreak chat.md}, ``Terminology''),
+and it matters
 because Crosslink adopts the model while replacing the construction. The
 book further replaces the paper's ``longest chain protocol'' by
 \emph{best-chain protocol} ($\Pi_{\mathrm{bc}}$): Bitcoin and Zcash follow
@@ -1382,7 +1392,7 @@ accessed 2026-07-15). We record it here for attribution and for the
 outlook; whether Crosslink's design draws on it is a question for the
 design-lineage section, not this one.
 
-\paragraph{Deployment status.} As of this writing, Crosslink is
+\paragraph{Deployment status.} As verified on 2026-07-15, Crosslink is
 implementation-stage, not consensus-stage: Shielded Labs completed
 Crosslink Milestone 5 on 2026-04-15 and pivoted to long-running
 ``seasonal'' FeatureNets; an incentivized FeatureNet paying real ZEC
@@ -1822,7 +1832,8 @@ for typical BFT protocols (\texttt{construction.md}:456--460).
 specification would need to pin the commitment encoding of
 $\mathsf{context\_bft}$, the header wire format, and the trimming rule.
 
-\subsection{The BFT side: $\Pi_{\mathrm{bft}}$}\label{sec:xl-bft}
+\subsection{The BFT side:
+\texorpdfstring{$\Pi_{\mathrm{bft}}$}{Pi-bft}}\label{sec:xl-bft}
 
 \begin{definition}[$\Pi_{\mathrm{bft}}$ validity]\label{def:xl-bft-validity}
 The genesis rule is that $\mathsf{Origin}_{\mathrm{bft}}$ is
@@ -1929,7 +1940,8 @@ finalization-latency/security trade-off
 prototype does not yet enforce this subsection's rules on its voting path
 (\S\ref{sec:xl-divergences}).
 
-\subsection{The best-chain side: $\Pi_{\mathrm{bc}}$}\label{sec:xl-bc}
+\subsection{The best-chain side:
+\texorpdfstring{$\Pi_{\mathrm{bc}}$}{Pi-bc}}\label{sec:xl-bc}
 
 All Crosslink~2 consensus-rule changes to $\Pi_{\mathrm{bc}}$ are
 non-contextual; modulo them, contextual validity is the same as in

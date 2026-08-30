@@ -2980,7 +2980,8 @@ Choose a basis \(u_1, \dots, u_k\) of \(\ker T\) and extend it to a basis \(u_1,
 
 Rank--nullity is the dimension-counting engine of the section: it shows, for instance, that a linear map from a higher-dimensional space into a lower-dimensional one must have a nontrivial kernel --- the fact that makes vector commitments compressing and only \emph{computationally} binding (Remark~\ref{linalg:rem-msm-meaning}).
 
-\subsection{Bilinear forms and inner products on \(\F^n\)}\label{linalg:subsec-bilinear}
+\subsection{Bilinear forms and inner products on
+\texorpdfstring{\(\F^n\)}{F to the n}}\label{linalg:subsec-bilinear}
 
 The maps considered so far are linear in a single argument. Commitment and proof systems are pervaded by expressions that are linear in \emph{each} of two arguments — most importantly the inner product. We treat these next. Because the fields of interest are finite, there is no notion of ``positive length'' or ``angle''; the appropriate level of generality is the \emph{bilinear form}.
 
@@ -3136,7 +3137,8 @@ The powers \(1, \omega, \dots, \omega^{n-1}\) are pairwise distinct: if \(\omega
 
 Over the complex numbers a primitive \(n\)-th root of unity always exists, namely \(\omega = e^{2\pi i / n}\); this is the classical picture of \(n\) equally spaced points on the unit circle. Over a finite field the situation is more delicate, and it is exactly the finite case that matters for cryptography.
 
-\subsection{Existence over finite fields: the condition \(n \mid q-1\)}
+\subsection{Existence over finite fields: the condition
+\texorpdfstring{\(n \mid q-1\)}{n divides q-1}}
 
 The decisive structural fact about finite fields is that their multiplicative group is cyclic; the existence theorem for roots of unity rests on it.
 
@@ -3187,7 +3189,8 @@ Take \(\Fq = \Fp\) with \(p = 7\). Here \(q - 1 = 6\), and \(3\) is a generator 
 For the fast algorithms below it is desirable that \(n\) be a power of two (or have many factors of two and other small primes). \Cref{rootsofunity:thm-existence} shows this is possible exactly when \(2^k \mid q-1\). The largest \(k\) with \(2^k \mid q-1\) is called the \emph{two-adicity} of the field. Designers deliberately choose primes \(p\) with high two-adicity---so that \(p - 1 = 2^k \cdot c\) for large \(k\)---as scalar fields in proof systems precisely so that large smooth evaluation domains exist. Both Pasta primes satisfy \(2^{32} \mid p - 1\) (two-adicity exactly \(32\)), so each Pasta field contains primitive \(2^k\)-th roots of unity for every \(k \le 32\), furnishing power-of-two evaluation domains of every size up to \(2^{32}\); this is what makes the entire machinery of this section available to Halo~2 and Orchard.
 \end{remark}
 
-\subsection{The evaluation domain \(H\) and its vanishing polynomial}
+\subsection{The evaluation domain \texorpdfstring{\(H\)}{H} and its
+vanishing polynomial}
 
 We now fix the central object of this section.
 
@@ -3249,7 +3252,7 @@ If \(n \mid k\) then \(\omega^{ki} = (\omega^n)^{ki/n} = 1\) for each \(i\), so 
 the denominator being nonzero because \(\zeta \ne 1\). The first claim is the case \(k = 1\), valid for \(n > 1\) since then \(n \nmid 1\).
 \end{proof}
 
-\subsection{The Lagrange basis on \(H\)}
+\subsection{The Lagrange basis on \texorpdfstring{\(H\)}{H}}
 
 Attention now passes from the group \(H\) to the polynomials we study on it. The space of polynomials of degree less than \(n\) has dimension \(n\) over \(\F\); since \(H\) has exactly \(n\) points, their values on \(H\) determine such polynomials. The basis adapted to this situation is the Lagrange basis.
 
@@ -3719,7 +3722,7 @@ Let \(R_j\) be the value of \(R\) after processing bits \(n_{k-1}, \ldots, n_j\)
 
 Thus scalar multiplication by an \(n\)-bit scalar costs \(O(n)\) group operations --- hence \(O(n)\) field operations up to constant factors, or \(O(n \log^2 p)\) bit operations with schoolbook field arithmetic. This efficiency in the ``forward'' direction, contrasted with the apparent hardness of the inverse problem (\S\ref{ellipticcurves:subsec-ecdlp}), is the foundation of the cryptography.
 
-\subsection{The group structure of \(E(\Fp)\)}
+\subsection{The group structure of \texorpdfstring{\(E(\Fp)\)}{E(Fp)}}
 
 Now specialize \(K = \Fp\), the finite field with \(p\) elements (\(p\) prime, \(p > 3\)). Since \(\Fp\) is finite, so is \(E(\Fp)\): it has at most \(2p + 1\) points (for each of the \(p\) values of \(x\), at most two values of \(y\), plus \(\mathcal{O}\)). Theorem~\ref{ellipticcurves:thm-grouplaw} makes \(E(\Fp)\) a finite abelian group. One of the central theorems of the subject governs its order.
 
@@ -3799,7 +3802,8 @@ That nothing beats the square-root bound on a well-chosen curve is an empirical 
 The contrast with multiplicative groups \(\Fp^{\times}\) is essential: in \(\Fp^{\times}\) the index-calculus method solves the discrete logarithm in subexponential time \(L_p[1/3]\), forcing those groups to be very large. On a well-chosen elliptic curve no index calculus is known, so the generic \(O(\sqrt r)\) bound stands and much smaller groups suffice (about \(256\) bits for \(128\)-bit security, versus thousands of bits for \(\Fp^{\times}\)). Smaller groups mean faster arithmetic and shorter keys, which is why elliptic curves dominate modern protocols, including Halo~2.
 \end{remark}
 
-\subsection{The \(j\)-invariant and the GLV endomorphism}
+\subsection{The \texorpdfstring{\(j\)-invariant}{j-invariant} and the GLV
+endomorphism}
 
 \begin{definition}[\(j\)-invariant]\label{ellipticcurves:def-jinvariant}
 The \emph{\(j\)-invariant} of the curve \(y^2 = x^3 + ax + b\) (with \(4a^3 + 27 b^2 \neq 0\)) is
@@ -3890,7 +3894,8 @@ since \(5\cdot 9 = 45 \equiv 1\). Then
   y_3 &= \lambda(x_1 - x_3) - y_1 = 2(0 - 10) - 4 = -24 \equiv 9 \pmod{11}.
 \end{aligned}
 \]
-So \(P + Q = (10, 9)\), which is on the curve: \(9^2 = 81 \equiv 4\) and \(10^3 + 5 = 1005 \equiv 4 \pmod{11}\). \checkmark
+So \(P + Q = (10, 9)\), which is on the curve: \(9^2 = 81 \equiv 4\) and
+\(10^3 + 5 = 1005 \equiv 4 \pmod{11}\), as required.
 
 \smallskip
 \emph{A doubling.} Take \(P = (0, 4)\). With \(a = 0\),

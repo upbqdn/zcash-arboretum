@@ -2156,14 +2156,14 @@ unspecified}, or \emph{open problem}.
 \subsection{Two pools, one protocol: activation and framing}\label{sec:iw-pools}
 
 \paragraph{Activation.} NU6.3 carries consensus branch identifier
-$\mathtt{0x37A5165B}$. Its activation heights are fixed by the deployed
-validator (\texttt{zebra-chain/src/parameters/\allowbreak constants.rs},
-with \texttt{librustzcash} hardcoding the same values in
-\texttt{zcash\_protocol/src/consensus.rs}), while the ZIP-258 draft still
-lists Mainnet TBD --- implementations ahead of their specification, which
-we flag rather than resolve.
-%% TODO: MIN_NETWORK_PROTOCOL_VERSION is still TBD on both networks
-%% (zip-0258.md:72-74); revisit when ZIP-258 leaves Draft.
+$\mathtt{0x37A5165B}$. ZIP-258 now fixes activation at height
+$4{,}134{,}000$ on Testnet and $3{,}428{,}143$ on Mainnet, agreeing with
+\texttt{zebra-chain/\allowbreak src/\allowbreak parameters/\allowbreak
+constants.rs} and \texttt{zcash\_protocol/\allowbreak src/\allowbreak
+consensus.rs}. It also fixes the minimum network
+protocol version at $170160$ on both networks (ZIP-258 at \textsf{zips}
+\texttt{ad30e59}; ZIP-204 records that NU6.3 is the last upgrade for which
+the two networks may share a protocol version).
 From activation, three consensus rules seal the Orchard pool to
 \emph{spend-only}, and they bind every transaction regardless of version:
 \begin{itemize}[leftmargin=*]
@@ -2579,16 +2579,58 @@ $v_{\mathrm{balance}}^{\mathsf{Orchard}} \ge 0$ means a zero balance can
 never become nonzero --- while Ironwood scans from the later of birthday
 and activation to the tip (ZIP-326).
 
-\paragraph{Status of ZIP-318.} The migration ZIP itself --- ``Orchard to
-Ironwood Migration'' --- is an eleven-line Reserved stub (owners Schell Carl
-Scivally and Pacu Gindre; created 2026-06-16; discussion
-\texttt{zcash/zips\#1315}). Everything consensus-level above is specified
-in ZIP-229/258; what ZIP-318 is expected to own --- batching, scheduling,
-and amount-disclosure guidance in the style of the Sprout-to-Sapling
-migration (ZIP-308), mitigating the public crossing amounts --- exists
-nowhere as text and is an \emph{open problem}.
-%% TODO: when ZIP 318 is published, absorb its wallet mechanics here and
-%% reclassify.
+\paragraph{ZIP-318's construction.} At \textsf{zips} commit
+\texttt{ad30e59} (2026-08-25), ZIP-318 is a Draft specification rather than
+the former Reserved stub. Its privacy-preserving migration has two phases.
+First, the wallet decomposes the migratable balance into canonical crossing
+denominations $n \cdot 10^k$ ZEC for $n \in \{1,2,5\}$, from $0.01$ through
+$10000$ ZEC, and creates exact-value funding notes by shielded send-to-self
+preparation transactions. Each funding note contains one denomination plus
+its canonical fee; less than $0.01$ ZEC remains as a residual. Preparation
+transactions should contain exactly 16 Orchard Actions, use ordinary
+near-tip anchors, and be separated by independently drawn delays with mean
+16 blocks and cap 96 blocks. Layering supplies fan-in or fan-out when one
+transaction cannot prepare all notes.
+
+Second, each scheduled crossing should spend exactly one funding note in an
+Orchard bundle padded to two Actions and create exactly one unpadded Ironwood
+Action paying one canonical denomination. It has no transparent component
+or other shielded pool, pays the canonical fee, and sets lock time to zero.
+The wallet shuffles the parts and draws independent exponential broadcast
+delays with mean 66 blocks and cap 576 blocks. Each proof uses an Orchard
+anchor at a shared boundary height divisible by 144; its age in boundaries
+is drawn from a geometric distribution with parameter $1/2$ and truncated
+at four. A part scheduled at height $h$ uses the common expiry height
+\[
+  69120 + 34560\left\lfloor\frac{h}{34560}\right\rfloor,
+\]
+giving between one and two months of validity at the 75-second target
+spacing. Because version~6 signatures do not bind the anchor, the wallet may
+pre-sign the schedule and later update each anchor and proof without
+re-signing (ZIP-318, Specification).
+
+The procedure mitigates, but cannot remove, the public turnstile. It requires
+the user's consent to the visible crossing values, separates synchronisation
+sessions from broadcast sessions, and offers a network-privacy path such as
+Tor, Nym, or a VPN. Its local schedule is deliberately stateful: restoring
+only the seed need not recover an in-progress migration (ZIP-318,
+Requirements, Non-requirements, and Privacy Implications).
+
+\paragraph{Implementation boundary.} The released
+\textsf{zcash\_pool\_\allowbreak migration}~0.1.0 crate and
+\textsf{zcash\_client\_\allowbreak sqlite}~0.22.0 implement the backend engine
+and persistent store described above: denomination and preparation planning,
+PCZT construction and signing, block-height scheduling, proof refresh, and state
+transitions (\textsf{librustzcash} \texttt{91f448b},
+\texttt{zcash\_pool\_\allowbreak migration/} and
+\texttt{zcash\_client\_\allowbreak sqlite/\allowbreak src/\allowbreak
+pool\_migration/}). The consuming-wallet
+boundary remains unfinished at the cited heads. Zallet \texttt{f904040}
+pins the engine but its source tree exposes no migration command or RPC, and
+ZIP-318's own ``Reference implementation'' section still contains only a
+TODO. The backend is therefore released; the specified mobile scheduling,
+network path, user consent, and application-open fallback are not a deployed
+end-to-end wallet flow.
 %% TODO: ZIP 317 fee accounting across two Orchard-protocol bundles is
 %% described as "updated" by ZIP 258; confirm the ZIP's logical-action
 %% counting matches librustzcash's separate per-bundle padding
@@ -2826,6 +2868,10 @@ $\mathsf{qk}$ derived by one BLAKE3
 \texttt{derive\_key} compression from a secret $\mathsf{qsk}$, with signatures
 of knowledge over the transaction sighash tying the claimed keys to the spend
 (the ZIP types it only as a message hash and pins no sighash algorithm). The
+Recovery Statement carries the $\mathsf{qk}$ and $\mathsf{sk}$ alternatives
+as a tagged union, and the key-binding condition pins that tag as well as the
+key value: a recovery-authorised $\mathsf{qk}$ witness cannot collide with an
+$\mathsf{sk}$-branch witness for the same $\ivk$. The
 non-normative Recovery Statement then proves, in a post-quantum
 knowledge-sound system over a re-hashed commitment tree: the key derivations
 ($\mathsf{BindKeys}$ and the $\rivk$ branch), $\ivk = \CommitIvk$,

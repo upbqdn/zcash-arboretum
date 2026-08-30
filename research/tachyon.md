@@ -114,10 +114,12 @@ Adjacent ZIP environment:
   3364600 on 2026-06-03), the corrected verifying key, and the canonical proof-length rule
   (2720 + 2272·nActionsOrchard bytes). [zips `zip-0257.md`, `README.rst:49–52` @ `c6b70358`]
 - NU6.3 deployment constants are pinned in ZIP 258 (Status: Draft): CONSENSUS_BRANCH_ID
-  `0x37A5165B`, Testnet activation 4134000, v6 TX_VERSION_GROUP_ID `0xD884B698`, Orchard pool
-  spend-only, ZIP 2005 activation. Not pinned: Mainnet height, MIN_NETWORK_PROTOCOL_VERSION, and
-  the Action-circuit-update draft (in-flight in open PR #1319 only). [zips `zip-0258.md` lines 5,
-  56–98 @ `c6b70358`; zcash/zips#1319]
+  `0x37A5165B`, Testnet activation 4134000, Mainnet activation 3428143,
+  MIN_NETWORK_PROTOCOL_VERSION 170160 on both networks, v6 TX_VERSION_GROUP_ID
+  `0xD884B698`, Orchard pool spend-only, and ZIP 2005 activation. The Mainnet
+  height and protocol versions landed after this memo's original snapshot;
+  the Action-circuit-update draft remains separate. [zips `zip-0258.md` lines 5,
+  56–98 @ `c6b70358`, current constants @ `ad30e59`; zcash/zips#1319]
 
 Ragu code facts (all verified in source at `830bbcda`):
 
@@ -333,7 +335,8 @@ Adjacent ZIP landscape:
 - NU7 has regressed in rigor: ZIP 254 (Deployment of NU7) withdrawn, replaced by
   draft-arya-deploy-nu7 (heights TBD, empty ZIP list); the README's candidate list (218, 230,
   231, 233, 234, 235, 2002, 2003) is non-decisional and stale (names withdrawn ZIP 230); ZSA
-  ZIPs 226/227 no longer listed; ZIP 228 a Reserved stub. [zips `README.rst:74–92`,
+  ZIPs 226/227 no longer listed; ZIP 228 was a Reserved stub at the cited
+  snapshot and became Draft on 2026-08-04. [zips `README.rst:74–92`,
   `zip-0254.md` @ `c6b70358`]
 - Other adjacent groundwork sits below spec rigor: draft-ecc-authenticated-reply-addrs is
   skeletal (Abstract/Motivation literally "TODO", blocked on ZIP 231 multi-part memos); ZIP 325

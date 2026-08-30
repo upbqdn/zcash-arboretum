@@ -46,10 +46,11 @@ Refs (protocol.tex at zips `c6b70358`; source at orchard `bef8a27e`):
 
 **Status.** Proposed (`zips/zip-2005.md:9`, verified 2026-07-08 against zips.z.cash). Owners
 Hopwood, Grigg; created 2025-03-31; discussion zcash/zips#1135. Deployment bound to NU6.3
-(ZIP 258, Draft, branch ID `0x37A5165B`; Testnet activation 4134000, Mainnet TBD in-repo, press
-targets 2026-07-21). NU6.3 introduces the Ironwood pool (v6 transactions, ZIP 229 Draft) running
-Orchard with the updated Action circuit; the legacy Orchard pool becomes spend-only with
-cross-address transfers disabled.
+(ZIP 258, Draft, branch ID `0x37A5165B`; Testnet activation 4134000; Mainnet
+activation 3428143, added to the ZIP after this memo's original 2026-07-08
+snapshot). NU6.3 introduces the Ironwood pool (v6 transactions, ZIP 229 Draft)
+running Orchard with the updated Action circuit; the legacy Orchard pool becomes
+spend-only with cross-address transfers disabled.
 
 **Mechanism.** For every Ironwood output (lead byte 0x03), rcm is derived as
 `ToScalar(PRFexpand_rseed([0x0B] ‖ g_d* ‖ pk_d* ‖ v ‖ ρ ‖ ψ))` — all note fields pass through

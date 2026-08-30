@@ -507,7 +507,8 @@ product at a random point.
 \paragraph{Equalities as a permutation.} Group the cells into classes that must
 share a value --- here $\{a_0, b_0, b_1, b_2\}$, $\{c_0, a_1\}$,
 $\{c_1, a_2\}$, $\{c_2, a_3\}$ --- and let $\sigma$ be the permutation that
-cycles each class. Give every cell a distinct \emph{label}: cell in row $j$ of
+cycles each displayed class in the order written. Give every cell a distinct
+\emph{label}: cell in row $j$ of
 the $a$-, $b$-, $c$-column gets $\omega^j$, $k_1\omega^j$, $k_2\omega^j$
 respectively, where $k_1, k_2$ place the three columns in disjoint cosets so no
 two labels collide (in $\F_{97}$ we may take $k_1 = 2, k_2 = 3$). Asserting
@@ -721,12 +722,13 @@ A last remark completes the picture begun in \S\ref{sec:commit}: none of
 this ever needed a ceremony. The generators $G_0, \dots, G_m$ are
 nothing-up-my-sleeve points, hashed into existence, with no secret
 behind them that anyone ever knew --- nothing to leak, nothing to
-destroy. The alternative family of commitments buys smaller proofs at
-the price of a \emph{trusted setup}: secret randomness drawn at a
-ceremony, whose compromise forges proofs silently, and which Zcash's
-earlier shielded pools in fact required (the \emph{Crypto Guide},
-\S``Polynomial commitment schemes'', constructs that scheme, its
-ceremony, and the forgery its trapdoor permits). Halo 2's inner-product
+destroy. The pairing-based KZG family buys constant-size opening proofs and
+constant-time verification at the price of a \emph{trusted setup}: secret
+randomness contributed through a ceremony, whose compromise permits silent
+forgeries (the \emph{Crypto Guide}, \S``Polynomial commitment schemes'',
+constructs that scheme and the forgery its trapdoor permits). Zcash's earlier
+shielded pools likewise needed parameter ceremonies for their Groth16 proof
+systems, though that is a separate construction. Halo 2's inner-product
 commitment trades proof size for exactly this freedom; being rid of
 ceremonies was a stated reason Orchard chose it.
 

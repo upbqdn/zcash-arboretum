@@ -9,6 +9,7 @@
 \setbeamertemplate{footline}[frame number]
 \setbeamertemplate{itemize items}[circle]
 \setbeamersize{text margin left=9mm,text margin right=9mm}
+\renewcommand{\appendixname}{Appendix}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
 \usepackage{tikz}
@@ -750,9 +751,10 @@ somewhere a valid note was spent by its rightful owner.''
 \begin{frame}{What is still printed on the envelope}
 For a \emph{fully shielded} transaction, an on-chain observer still sees:
 \begin{itemize}
-  \item \textbf{Action count} --- padded to a floor of 2 with shuffled
-    dummies; above the floor it reveals $\max(\text{spends},
-    \text{outputs})$ \emph{exactly} (only 1-vs-2 hides);
+  \item \textbf{Action counts} --- visible separately for Orchard and
+    Ironwood. Cross-address-enabled bundles pad to a floor of 2 and then
+    reveal $\max(\text{spends},\text{outputs})$; the restricted post-NU6.3
+    Orchard builder instead needs separate spend and output actions;
   \item \textbf{fee} --- public by construction (the transparent value left
     unclaimed); the ZIP-317 formula that keeps it from leaking or
     fingerprinting is a wallet convention (SHOULD), not consensus;
@@ -773,9 +775,10 @@ defaults. The deployed anti-fingerprinting strategy is \emph{conformity}.
     signed field: the net flow $v_{\mathrm{balance}}$ (positive $=$ value
     leaving the pool) is exact, per transaction.
   \item Pool migrations (Sprout retirement then, Orchard $\to$ Ironwood at
-    NU6.3 --- testnet-active, mainnet pending) pass through the same public
-    turnstile --- per-transaction amounts in the clear, no batching guidance
-    specified.
+    NU6.3) pass through the same public turnstile: per-transaction amounts
+    remain clear. ZIP-318 mitigates linkage with canonical denominations,
+    transaction shapes, shared anchor buckets, and randomised delays; it does
+    not hide a crossing amount.
   \item Paying a transparent-only recipient from shielded funds (ZIP-320)
     transits the paid amount through an ephemeral transparent output ---
     visible once, in full.

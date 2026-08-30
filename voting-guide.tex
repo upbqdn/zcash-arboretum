@@ -120,16 +120,16 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
-\title{\textbf{\Huge Voting Guide}\\[6pt]\large The Zally shielded voting protocol, as deployed for Zcash coinholder polling}
+\title{\textbf{\Huge Voting Guide}\\[6pt]\large The May--June 2026 Zally shielded-voting deployment snapshot}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-This volume of \emph{The Zcash Arboretum} documents the shielded voting protocol
-deployed for Zcash coinholder polling. No specification of the protocol has
-merged anywhere; the commit-pinned implementation is the de facto
+This volume of \emph{The Zcash Arboretum} documents the commit-pinned
+May--June 2026 shielded-voting deployment snapshot. No specification of the
+protocol has merged anywhere; the commit-pinned implementation is the de facto
 specification, and this volume documents that implementation: ballot structure
 and eligibility proving against a snapshot of the note-commitment tree, the
 layered nullifier defences against double voting, threshold ElGamal tallying
@@ -313,6 +313,20 @@ pinned by commit. Wallet-side integration is pinned separately:
 \label{tab:vote-sources}
 \end{table}
 
+\paragraph{Current-head boundary (2026-08-30).} The implementation has moved
+substantially since this snapshot. Current heads are
+\textsf{voting-circuits} \texttt{bd2531f} (release~0.11.2),
+\textsf{vote-sdk} \texttt{7cf9b9c}, \textsf{zcash\_voting}
+\texttt{4535b0d}, and \textsf{vote-nullifier-pir} \texttt{20e9c4a}
+(release~0.11.2). The current delegation builder requires Ironwood V3 notes,
+the circuit verifying keys and integration APIs have changed, and the client,
+chain, and PIR services have gone through several coordinated release lines.
+The one-ballot under-claim window proved in this volume remains explicitly
+documented in the current circuit. Unless a paragraph names one of these later
+heads, every formula and deployment-behaviour claim below is about the pinned
+snapshot in Table~\ref{tab:vote-sources}; this is historical protocol
+documentation, not a compatibility guide for the current stack.
+
 \paragraph{The single-crate caveat.} Crate \texttt{voting-circuits} exposes
 both the provers and the verifiers of all three circuits
 (\texttt{verify\_\allowbreak delegation\_\allowbreak proof},
@@ -483,7 +497,8 @@ envelope-bypass transport, and the round-identifier derivation --- the last
 currently fixed only by a proto comment and the FFI implementation it
 describes.
 
-\subsection{Eligibility: the note-bundle relation (ZKP\,1)}
+\subsection{Eligibility: the note-bundle relation
+(\texorpdfstring{ZKP\,1}{ZKP 1})}
 \label{sec:vote-zkp1}
 
 To delegate weight, a holder must prove three things about a set of Orchard

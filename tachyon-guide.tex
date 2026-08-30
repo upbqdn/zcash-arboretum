@@ -233,6 +233,20 @@ Blog, forum t/50789, ZK Podcast 388
 \label{tab:tachyon-sources}
 \end{table}
 
+\paragraph{Current-head boundary (2026-08-30).} The detailed design below
+remains a reproducible snapshot of the commits in
+Table~\ref{tab:tachyon-sources}, not a reconstruction of later main branches.
+For current status, we also checked \textsf{tachyon} \texttt{fd022416}
+(2026-08-27), \textsf{ragu} \texttt{f4f6315b} (2026-08-22), and upstream
+\textsf{zips} \texttt{ad30e59}. The Tachyon README still lists note
+commitments, nullifier derivation, and proof creation, merging, verification,
+and stamp compression as stubbed. Ragu has added extensive formal-verification
+and fuzzing material and published crate documentation, but still labels
+itself unaudited, under heavy development, and unsuitable for production.
+Upstream \textsf{zips} still contains no core Tachyon ZIP. Thus the status
+classification has not changed; later implementation and book details are not
+silently projected backward onto the pinned construction.
+
 \paragraph{The eprint note.} The canonical publication is Bowe and Miers, ``A
 Note on Notes: Towards Scalable Anonymous Payments via Evolving Nullifiers and
 Oblivious Synchronization'' (eprint 2025/2031; received 2025-11-02, revised
@@ -318,7 +332,8 @@ institutional fact we record without inference.
 
 In bin~(i) we can place only the standing environment: the poll outcome and
 editorships above,
-the adjacent network-upgrade context (NU6.2 final, NU6.3 in draft), the
+the adjacent network-upgrade context (NU6.2 and NU6.3 active, although the
+ZIP-258 document remains Draft), the
 out-of-band substrate ZIPs the design leans on, and Ragu's code state at
 \texttt{830bbcda}. Bin~(ii) holds the entire core protocol --- evolving
 nullifiers, dual-nullifier spends, the anchor chain, the proof tree,

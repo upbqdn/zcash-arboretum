@@ -1477,7 +1477,11 @@ version 0.5.2), examined 2026-07-15. The pinned commits are the
 published releases --- tag \texttt{frost-core/v3.0.0} (crates.io
 2026-04-23) and \texttt{reddsa} 0.5.2 --- so main-at-commit and the
 released crates coincide. ZIP 312 names \texttt{reddsa} as the
-reference implementation of both ciphersuites.
+reference implementation of both ciphersuites. A current-head check on
+2026-08-30 found \textsf{frost} \texttt{0966bd1} and the same
+\textsf{reddsa} head \texttt{3792daa}; the seven later FROST commits update
+the Rust edition, minimum compiler, dependencies, and CI, not the
+re-randomized protocol derived below.
 
 \paragraph{The generic layer.} Crate \texttt{frost-rerandomized}
 (\texttt{frost-rerandomized/src/lib.rs}) implements
@@ -1822,6 +1826,16 @@ signature; for it to verify, the Coordinator must use the PCZT action's
 $\alpha$ as the randomizer, so that the re-randomised group key
 $\mathsf{RandPK}$ produces equals that action's $\rk$.
 
+PCZT v2 has since shipped in \textsf{pczt}~0.8.0. Current
+\textsf{pczt}~0.9.3 carries separate Orchard and Ironwood bundles and tags an
+externally produced \texttt{SpendAuthSignature} with its value pool and action
+index; \texttt{apply\_orchard\_spend\_auth\_signature} dispatches to the
+corresponding bundle and verifies under that action's $\rk$. The invariant in
+the preceding paragraph --- one shared shielded sighash and the action's own
+$\alpha$ --- is unchanged for v6 Ironwood spends
+(\textsf{librustzcash} \texttt{91f448b5},
+\texttt{pczt/src/roles/signer/mod.rs}).
+
 The end-to-end flow has been demonstrated (ZF FROST book,
 \texttt{zcash/devtool-demo.md}):
 \begin{enumerate}
@@ -1858,11 +1872,6 @@ the mechanism out of scope. In the demonstrated flow the SIGHASH travels
 from \texttt{zcash-sign} to the participants through
 \texttt{frost-client}; by what mechanism a share-holding participant
 gains independent confidence in it is unspecified.
-%% TODO: PCZT v2 (v6 transactions, ZIP 230/229 era) may change the
-%% Signer/alpha surface the Coordinator consumes; recheck this
-%% subsection against the Wallet Guide's sec:pczt-v2 material when v2
-%% ships.
-
 \subsection{Wallet-integration constraints}\label{sec:fr-deploy-wallet}
 
 The ZF FROST book's technical-details chapter records the constraints a
@@ -2063,8 +2072,13 @@ Per the series' three-way scheme:
   hardware-wallet FROST signers, but no device implements a share signer.
 \end{itemize}
 
-The classifications above expire on identifiable events. In rough order
-of expected impact:
+Two former revisit triggers have fired without changing these bins. NU6.3 is
+active, but \texttt{zcash\_keys} still gates
+\texttt{from\_orchard\_fvk} behind \texttt{unstable-frost} pending a specified
+FROST derivation. PCZT v2 is released, and the current signer preserves the
+$\alpha$ and external-signature surface for Ironwood as described in
+\S\ref{sec:fr-deploy-pczt}. The remaining classifications expire on the
+following identifiable events, in rough order of expected impact:
 
 \begin{itemize}
 \item \emph{PR \#895 merges.} The randomizer flow, the key-generation
@@ -2076,15 +2090,6 @@ of expected impact:
   ``no completed third-party audit'' claim of
   \S\ref{sec:fr-deploy-audit} must be rechecked immediately before any
   printing in any case.
-\item \emph{NU6.3 approaches.} Whether $\mathsf{use\_qsk} =
-  \mathsf{true}$ key generation becomes normative for all new FROST
-  wallets, and whether \texttt{zcash\_keys}' \texttt{unstable-frost}
-  surface is replaced by a specified derivation, both resolve with the
-  upgrade timeline (\S\ref{sec:fr-deploy-pczt},
-  \S\ref{sec:fr-deploy-qsk}).
-\item \emph{PCZT v2 ships.} The Signer/$\alpha$ surface the Coordinator
-  consumes may change with v6 transactions
-  (\S\ref{sec:fr-deploy-pczt}).
 \item \emph{A finalizer key-management design is published.} The
   Crosslink bin moves, and the \texttt{frost-ed25519} observation is
   either confirmed or discarded (\S\ref{sec:fr-deploy-crosslink}).

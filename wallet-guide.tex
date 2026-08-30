@@ -785,7 +785,8 @@ from \texttt{from\_zip32\_seed}, and validates every node above per
 Definition~\ref{def:zip32-validity}.
 \end{example}
 
-\subsection{The $\mathsf{PRFexpand}$ lead-byte registry}\label{sec:zip32-registry}
+\subsection{The \texorpdfstring{$\mathsf{PRFexpand}$}{PRFexpand} lead-byte
+registry}\label{sec:zip32-registry}
 
 One PRF underlies every derivation above and in the \emph{Ironwood Guide},
 but domain separation is per PRF \emph{key}, not protocol-wide: under a
@@ -884,12 +885,14 @@ index discipline shared across Sapling, Orchard, and transparent
 derivation, the raw and unified encodings, viewing-key containers, and the
 deployed address-generation code.
 
-As of this writing ZIP-316 is organised into revisions: Revision~0 is
+At \textsf{zips} \texttt{ad30e59}, ZIP-316 is organised into revisions:
+Revision~0 is
 Active and is what the deployed stack implements; Revision~1 was withdrawn;
 Revision~2 is a Draft (ZIP-316, \emph{Revisions}). This volume documents
 Revision~0 and states Revision~2 in \S\ref{sec:addresses-r2}, classified
 \emph{specified, not deployed}; its reference implementation is
-\textsf{librustzcash} PR~\#2199, absent from the deployed crates.
+\textsf{librustzcash} PR~\#2199, absent from both the baseline and current
+\texttt{91f448b5} crates.
 Deployed-behaviour claims below are verified against \textsf{librustzcash}
 commit \texttt{e30517e4} --- the volume's baseline
 (\S\ref{sec:zip321-crate}) --- and the crates-io releases
@@ -1771,15 +1774,16 @@ preferentially mine, transactions paying at least the conventional fee
 (\S\ref{sec:fees-network}).
 \end{remark}
 
-As of this writing ZIP-317 is organised into \emph{revisions}
+ZIP-317 is organised into \emph{revisions}
 (Last-Updated 2026-06-26): Revision~0 is Active and is the deployed fee
 mechanism; Revision~1 (a fee contribution for Ironwood-pool Actions, NU6.3)
 and Revision~2 (memo bundles, depending on the undeployed ZIP~248) are both
 Draft. A contribution defined by a revision is included in all later
-revisions. This volume documents Revision~0 as the deployed rule and
-states Revisions 1--2 below; Revision~1 is implemented in the deployed
-crates (\S\ref{sec:fees-librustzcash}), inert until NU6.3 bundles exist,
-while Revision~2 remains \emph{specified, not deployed}.
+revisions. This volume documents Revision~0 as the base rule and states
+Revisions 1--2 below. Although its document status remains Draft, Revision~1
+is implemented and is the fee contribution used for active NU6.3 Ironwood
+bundles (\S\ref{sec:fees-librustzcash}); Revision~2 remains
+\emph{specified, not deployed}.
 
 \subsection{The conventional fee}\label{sec:fees-conventional}
 
@@ -1790,7 +1794,8 @@ are public transaction fields defined in the protocol specification
 $\mathit{tx\_in\_total\_size}$ and $\mathit{tx\_out\_total\_size}$ of the
 transparent \texttt{tx\_in} and \texttt{tx\_out} fields, and the counts
 $\mathit{nJoinSplit}$, $\mathit{nSpendsSapling}$,
-$\mathit{nOutputsSapling}$, $\mathit{nActionsOrchard}$.
+$\mathit{nOutputsSapling}$, $\mathit{nActionsOrchard}$, and --- from v6 ---
+$\mathit{nActionsIronwood}$.
 
 \begin{definition}[Logical actions, ZIP-317 Revision 0]%
 \label{def:logical-actions}
@@ -1874,8 +1879,8 @@ memo bundles, dependent on the unmerged ZIP~248 transaction format) adds
 \end{cases}
 \end{align*}
 bounding the additional fee for a ZIP-231 memo bundle by $0.0019$~ZEC
-(ZIP-317, Revision~2). Revision~1 is implemented in the deployed crates
-(\S\ref{sec:fees-librustzcash}), inert until NU6.3 bundles exist;
+(ZIP-317, Revision~2). Revision~1 is implemented in the deployed crates and
+applies to NU6.3 Ironwood bundles (\S\ref{sec:fees-librustzcash});
 Revision~2 is not implemented.
 
 \subsection{The fee is computed on padded counts}\label{sec:fees-padding}
@@ -1907,7 +1912,7 @@ $\mathit{num\_actions} = \max(\mathit{requested}, \mathit{min})$, the floor
 $\mathit{min}$ being the bundle type's \texttt{pad\_to\_minimum} count,
 default $\texttt{DEFAULT\_MIN\_ACTIONS} = 2$. The $\max$ form of
 $\mathit{requested}$ applies when the bundle's flags enable cross-address
-transfers, as every bundle the deployed wallet builds does
+transfers, as the baseline's pre-NU6.3 bundles do
 (\texttt{Flags::ENABLED}); Remark~\ref{rem:orchard-padding-future} states
 the sum rule that replaces it when the flags disable them.
 \end{itemize}
@@ -1925,10 +1930,13 @@ $\texttt{DEFAULT\_MIN\_ACTIONS} = 2$ when nonempty) (\textsf{zcash\_primitives},
 \texttt{transaction/builder.rs}). The proposal-stage balance computation in
 \textsf{zcash\_client\_backend} does the same --- additionally counting the
 prospective change outputs --- using
-\texttt{sapling::builder::BundleType::DEFAULT} and
-\texttt{orchard::builder::BundleType::DEFAULT}
-(\textsf{zcash\_client\_backend}, \texttt{fees/common.rs} and
-\texttt{data\_api/wallet/input\_selection.rs}). Fee estimation and final
+\texttt{sapling::builder::\allowbreak BundleType::DEFAULT} and
+\texttt{orchard::builder::\allowbreak BundleType::DEFAULT}, except for the
+current ZIP-318 canonical-crossing Ironwood bundle's explicit unpadded choice
+(\textsf{zcash\_client\_\allowbreak backend},
+\texttt{fees/\allowbreak common.rs} and
+\texttt{data\_api/\allowbreak wallet/\allowbreak input\_selection.rs}). Fee
+estimation and final
 construction therefore agree on the shielded counts by construction.
 
 \begin{remark}[The flag-dependent Orchard action count]%
@@ -2389,6 +2397,22 @@ places every decision that requires judgement --- which notes to spend, what
 fee to pay, where change goes --- into an inspectable value computed before
 any key is touched; execution is then deterministic given the plan.
 
+\paragraph{Current-head extension.}
+The detailed source trace below was established at the volume baseline
+\texttt{e30517e4}; current \textsf{librustzcash} \texttt{91f448b5} preserves
+that pipeline and extends every pool-indexed step to Ironwood. A proposal now
+carries separate Ironwood inputs, anchor, witnesses, and padding. After NU6.3,
+an ordinary payment to an Orchard-protocol receiver targets Ironwood; Orchard
+change from an Orchard spend stays in Orchard through
+\texttt{add\_orchard\_change\_output}, paired with the required fabricated
+same-receiver spend. Conventional Ironwood bundles retain default padding,
+while a canonical ZIP-318 crossing uses an unpadded one-Action Ironwood bundle,
+the shared rolling expiry, and the separately selected anchor bucket. The
+builder then constructs, proves, signs, and records the Ironwood bundle beside
+the Orchard bundle using the same Orchard spend authority. Pool lists below
+that name only Sapling and Orchard describe the pinned pre-Ironwood snapshot;
+the invariants and role ordering apply unchanged to the added pool.
+
 \subsection{The proposal}\label{sec:pipeline-proposal}
 
 \paragraph{The payment request.} The input is a ZIP-321
@@ -2765,9 +2789,10 @@ commitment tree'') and are not repeated here.
 
 \paragraph{Builder configuration.} The \textsf{zcash\_primitives} builder is
 constructed with \texttt{BuildConfig::}\allowbreak\texttt{Standard} carrying
-the per-pool anchors, which selects \texttt{BundleType::DEFAULT} for Sapling
-and Orchard alike; the Orchard builder exists only if NU5 is active at the
-target height
+the per-pool anchors and Orchard/Ironwood padding choices, which normally
+select \texttt{BundleType::DEFAULT}; the Orchard builder exists only if NU5
+is active at the target height, and the Ironwood builder only for a format and
+branch supporting Ironwood
 (\texttt{zcash\_primitives/src/}\allowbreak%
 \texttt{transaction/builder.rs}, \texttt{BuildConfig} and
 \texttt{Builder::new}).
@@ -2807,7 +2832,10 @@ since external and internal notes sign under different keys; but a
 \emph{single} Orchard spend-authorising key
 (\texttt{SpendAuthorizingKey}), because Orchard internal and external
 addresses share $\ask$ (the \emph{Ironwood Guide},
-\S~``Keys: capabilities for spending and for viewing''). All randomness for
+\S~``Keys: capabilities for spending and for viewing''). Ironwood spends use
+that same Orchard full-viewing and spend-authorizing key, but enter the
+separate Ironwood builder and commitment tree; current output and change
+routing is summarized in the current-head extension above. All randomness for
 the build is drawn from \texttt{OsRng}.
 
 \begin{remark}[OVK policy: none for change]\label{rem:ovk-none}
@@ -2926,13 +2954,15 @@ The build proceeds in a fixed order (\textsf{zcash\_primitives},
 (Definition~\ref{def:zip317-fee}) and require the balance invariant below;
 \item build the Sapling bundle and create its zk-proofs (proofs before
 signatures, because V4 transactions commit to proofs in the digest);
-\item build the Orchard bundle, unproven;
+\item build the Orchard bundle and, on current v6 paths, the Ironwood bundle,
+  both unproven;
 \item assemble the unauthorised transaction data and compute the digest
 parts (\texttt{TxIdDigester});
 \item authorise the transparent inputs;
 \item compute the shared shielded sighash;
 \item apply the Sapling signatures;
-\item create the Orchard proof and apply the Orchard signatures;
+\item create the Orchard proof and apply its signatures, then do the same for
+  Ironwood when present;
 \item freeze the result into the final \texttt{Transaction}.
 \end{enumerate}
 \end{construction}
@@ -2942,7 +2972,8 @@ Before building, the builder requires, exactly,
 \[
 \mathsf{value\_balance} - \mathsf{fee} = 0,
 \]
-where the value balance sums the transparent, Sapling, and Orchard balances;
+where the value balance sums the transparent, Sapling, Orchard, and --- on
+current v6 paths --- Ironwood balances;
 a negative difference is \texttt{Error::InsufficientFunds} and a positive
 one \texttt{Error::ChangeRequired}
 (\texttt{builder.rs}, \texttt{value\_balance} and
@@ -2951,7 +2982,8 @@ are precisely what make the invariant hold.
 \end{definition}
 
 \paragraph{One sighash for everything.} The message for \emph{all} shielded
-spend-auth signatures and both binding signatures is the single $32$-byte
+spend-auth signatures and every present shielded pool's binding signature is
+the single $32$-byte
 ZIP-244 sighash,
 \[
 \mathsf{sighash} := \texttt{signature\_hash}(\mathrm{tx}_{\mathrm{unauth}},\,
@@ -2961,7 +2993,8 @@ ZIP-244 sighash,
 \texttt{zcash\_primitives/src/transaction/sighash.rs}); the digest
 tree itself is constructed in the \emph{Ironwood Guide}
 (\S~``Conservation of value\dots'', ``The transaction digest (ZIP-244)'')
-and not repeated. For each Orchard action, with
+and not repeated. For each Orchard-protocol action (in either the Orchard or
+Ironwood pool), with
 $\rsk = \ask + \alpha$ and $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$
 in the notation of the \emph{Ironwood Guide}
 (\S~``Authorisation of the spend: RedPallas''),
@@ -2982,14 +3015,15 @@ $\aksym$ matches the given authorising key, and \texttt{finalize} fails with
 \texttt{MissingSignatures} if any action remains unsigned
 (\texttt{src/builder.rs:984--1026}).
 
-\begin{remark}[The proving key is rebuilt every time]\label{rem:pk-rebuild}
-The Orchard proving key is reconstructed from scratch inside every
-\texttt{Builder::build} call --- \texttt{orchard::circuit::ProvingKey::build()}
-runs Halo~2 key generation on the fly --- and the deployed pipeline does not
-cache it (\texttt{builder.rs}, \texttt{build\_internal};
-\textsf{orchard}~0.12.0 \texttt{src/circuit.rs:787--793}). The Sapling
-provers, by contrast, are
-passed in as arguments, typically a \texttt{LocalTxProver}.
+\begin{remark}[Proving-key cache]\label{rem:pk-rebuild}
+At the pinned source-line baseline, the Orchard proving key was reconstructed
+inside every \texttt{Builder::build} call by
+\texttt{orchard::circuit::ProvingKey::build()} (\textsf{orchard}~0.12.0,
+\texttt{src/circuit.rs:787--793}). Current \textsf{librustzcash}
+\texttt{91f448b5} derives the Orchard/Ironwood circuit version once and reuses
+a process-wide cached proving key under \texttt{std}; the no-\texttt{std}
+fallback builds it once for that transaction. The Sapling provers remain
+arguments, typically a \texttt{LocalTxProver}.
 \end{remark}
 
 \subsection{After the build}\label{sec:pipeline-after}
@@ -3027,13 +3061,29 @@ the proposal metadata under the proprietary fields
 \texttt{transaction/builder.rs}, \texttt{PcztParts} and
 \texttt{build\_for\_pczt}).
 
-\begin{remark}[Deployed versus in-flight builders]\label{rem:crate-versions}
-This section states the semantics of \textsf{orchard}~0.12.0 as resolved by
-\textsf{librustzcash}'s \texttt{Cargo.lock}. The development head of the
-\textsf{orchard} repository already carries NU6.3-era builder changes ---
-cross-address-transfer flags, an explicit \texttt{add\_change\_output}, and
-per-version proving keys --- none of which exist in 0.12.0; they are
-design-stage and out of scope for the deployed layer documented here.
+\paragraph{Orchard-to-Ironwood pool migration.}
+The current \textsf{librustzcash} head (\texttt{91f448b5}) also contains the
+released \textsf{zcash\_pool\_migration}~0.1.0 engine and
+\textsf{zcash\_client\_sqlite}~0.22.0 store.  The engine plans denominations,
+builds and signs the migration transactions as PCZTs, schedules them by block
+height, and persists its state through a wallet backend; the consuming
+application remains responsible for broadcast and for reporting the result.
+The complete privacy and scheduling rules, and the boundary between these
+released backend pieces and an end-user wallet flow, are in the
+\emph{Ironwood Guide}, \S~``Scheduled Orchard-to-Ironwood migration
+(ZIP-318).''
+
+\begin{remark}[Source-line baseline versus current builders]%
+\label{rem:crate-versions}
+The line-by-line derivation above was written against
+\textsf{orchard}~0.12.0, but the volume baseline actually pins
+\textsf{orchard}~0.15.0.  That release includes the NU6.3 bundle versions,
+cross-address restriction, explicit change-output handling, and
+version-specific proving keys described in \S\ref{sec:pczt-v2}; those features
+are deployed, not design-stage.  As a currentness check, the standalone
+\textsf{orchard} head \texttt{38bd2274} is release 0.15.5, while the current
+\textsf{librustzcash} lockfile at \texttt{91f448b5} resolves 0.15.3.  Neither
+changes the padding construction derived above.
 \end{remark}
 
 \section{Partially created transactions (PCZT)}\label{sec:pczt}
@@ -3052,12 +3102,14 @@ transaction creation needs to perform its step, and that holds the
 accumulated proofs and signatures while the set is still incomplete ---
 signers can be fully offline (ZIP-374, Abstract). The ZIP is Status Draft,
 Revision~0, owned by Jack Grigg, created 2024-12-09 (ZIP-374, header);
-throughout this section we document the \emph{deployed} surface --- the
-\textsf{pczt} crate, version 0.7.0, in the librustzcash workspace, the
-release ZIP-374 names for the v1 encoding --- and classify the draft's v2
-material as \emph{implemented but unreleased}: the workspace head already
-carries it as the crate's 0.8.0-\textsc{planned} changes (\textsf{pczt},
-\texttt{CHANGELOG.md}; \S\ref{sec:pczt-v2}).
+The ZIP fixes the v1 reference encoding to \textsf{pczt}~0.7.0.  The current
+\textsf{librustzcash} head \texttt{91f448b5} ships
+\textsf{pczt}~0.9.3: release 0.8.0 added the v2 encoding and Ironwood support,
+and 0.9.0 made the convenience serializer emit the minimum encoding version
+that can represent the logical PCZT (\textsf{pczt},
+\texttt{CHANGELOG.md}; \S\ref{sec:pczt-v2}).  Thus the role semantics below
+describe the current released surface; references to 0.7.0 identify only the
+ZIP's byte-exact v1 baseline.
 
 The Motivation section of the ZIP names four problems the format solves:
 (i)~offline and hardware signers that cannot compute Halo~2 or Groth16
@@ -3092,11 +3144,14 @@ Specification). Two PCZT versions are specified: v1 supports creation of
 v5 transactions (ZIP-225); v2 supports v5 and v6 (ZIP-229). A PCZT version
 does not pin a transaction version --- a v2 PCZT may carry a v5 or a v6
 transaction, a v1 PCZT only v5 (ZIP-374, Versioning). The released
-\textsf{pczt} 0.7.0 implements only v1, but the workspace head parses
-both: \texttt{Pczt::parse} accepts version numbers $1$ and $2$, rejecting
-any other with \texttt{ParseError::UnknownVersion}, and its
-\texttt{serialize} emits the v2 encoding (\textsf{pczt},
-\texttt{src/lib.rs}).
+\textsf{pczt}~0.9.3 parses both: \texttt{Pczt::parse} accepts version
+numbers $1$ and $2$, rejecting any other with
+\texttt{ParseError::UnknownVersion}.  Its \texttt{serialize} emits v1 for a
+representable pre-v6 PCZT with a canonical-empty Ironwood bundle and no
+v2-only compact field state, and v2 otherwise; callers that require a fixed
+wire version use \texttt{pczt::v1::Pczt} or
+\texttt{pczt::v2::Pczt} (\textsf{pczt}, \texttt{src/lib.rs} and
+\texttt{CHANGELOG.md}, 0.9.0).
 
 \subsection{Roles and lifecycle}\label{sec:pczt-roles}
 
@@ -3160,12 +3215,12 @@ Specification: Structure):
 \end{itemize}
 \end{definition}
 
-The workspace-head \texttt{Pczt} struct is
+The current \texttt{Pczt} struct is
 $\{\texttt{global}, \texttt{transparent}, \texttt{sapling},
 \texttt{orchard}, \texttt{ironwood}\}$ with all four bundles non-optional
-(\textsf{pczt}, \texttt{src/lib.rs}); the released 0.7.0 struct carries
-the first three protocol bundles, the \texttt{ironwood} slot being among
-the 0.8.0-\textsc{planned} additions (\S\ref{sec:pczt-v2}). The bundles
+(\textsf{pczt}~0.9.3, \texttt{src/lib.rs}); the historical 0.7.0 v1
+implementation carried the first three, and release 0.8.0 added the
+\texttt{ironwood} slot (\S\ref{sec:pczt-v2}). The bundles
 are not logically optional because a
 PCZT does not always contain a semantically valid transaction, and there
 may be phases where protocol-specific metadata must be stored before it is
@@ -4107,12 +4162,11 @@ v6 transactions (ZIP-229): it adds an \texttt{IronwoodBundle}, adds a
 Orchard-protocol bundles, makes shielded bundle anchors
 \texttt{Option<[u8;32]>}, and omits canonically-empty bundles from the
 encoding (ZIP-374, Versioning and v2 Encoding). Classification per our
-conventions: \emph{implemented but unreleased} --- specified in the Draft
-ZIP and present in the workspace \textsf{pczt} source as the crate's
-0.8.0-\textsc{planned} changes (the v2 module with \texttt{Option}-wrapped
-bundles and empty-bundle omission, the \texttt{ironwood} slot,
-\texttt{note\_version}, and optional anchors), though absent from the
-released \textsf{pczt} 0.7.0.
+conventions: \emph{implemented and released} --- specified in the Draft ZIP
+and released in \textsf{pczt}~0.8.0 on 2026-07-23 (the v2 module with
+\texttt{Option}-wrapped bundles and empty-bundle omission, the
+\texttt{ironwood} slot, \texttt{note\_version}, and optional anchors).
+The current 0.9.3 logical model retains these fields.
 
 For \texttt{tx\_version} $6$, anchors and witnesses become deferrable:
 signatures commit to neither, an Updater may set or replace an anchor
@@ -4152,7 +4206,7 @@ quantum-recoverable note plaintext, lead byte $\mathtt{0x03}$); a
 non-empty \texttt{IronwoodBundle} in a \texttt{tx\_version}-$5$ PCZT MUST
 be rejected (ZIP-374, IronwoodBundle and Rationale).
 
-The local \textsf{orchard} repository (0.14.0) already implements the
+The \textsf{orchard} 0.15 release line implements the
 NU6.3-era machinery --- bundle-format-aware flag parsing
 (\texttt{Flags::from\_byte(flags, format)},
 \texttt{UnexpectedFlagBitsSet}); the check
@@ -4162,14 +4216,11 @@ $(\gd, \pkd)$ as its spend when flag bit $2$ is $0$, enforced by
 \texttt{finalize\_io} and \texttt{create\_proof} and provable only with
 an Ironwood-version proving key; same-receiver comparison via
 \texttt{Address::same\_receiver}; and change outputs paired with a
-fabricated same-receiver spend --- and \textsf{librustzcash} now pins
-\textsf{orchard} 0.15.0, ahead of the local 0.14.0 checkout the citations
-trace (\textsf{orchard}, \texttt{src/pczt/verify.rs},
+fabricated same-receiver spend (\textsf{orchard},
+\texttt{src/pczt/verify.rs},
 \texttt{io\_finalizer.rs}, \texttt{prover.rs}, \texttt{parse.rs}, and
-\texttt{src/builder.rs}; librustzcash \texttt{Cargo.toml}). When we cite
-\textsf{orchard} PCZT behaviour above, the claims are about the 0.14 line
-of the local checkout, which the deployed 0.15.0 tracks, except where
-marked.
+\texttt{src/builder.rs}; librustzcash \texttt{Cargo.toml}).  The current
+standalone head is 0.15.5; the librustzcash lockfile resolves 0.15.3.
 
 \subsection{Divergences between ZIP-374 and the deployed code}%
 \label{sec:pczt-divergences}
@@ -4180,7 +4231,7 @@ Per our conventions, we flag rather than resolve the following.
 \item \emph{Dummy-key rejection is not implemented in the reference
   Signer.} ZIP-374 states that ``Signers MUST reject PCZTs that contain
   \texttt{dummy\_sk} values'' (likewise \texttt{dummy\_ask}), but no code
-  path in the \textsf{pczt} Signer, through 0.7.0 and the workspace head,
+  path in the \textsf{pczt} Signer, through the current 0.9.3 source,
   inspects those fields --- only the
   Redactor offers \texttt{clear\_spend\_dummy\_sk}/%
   \texttt{clear\_dummy\_ask}, and the IO Finalizer clears the keys after
@@ -4191,10 +4242,11 @@ Per our conventions, we flag rather than resolve the following.
   creating v4-or-earlier transactions, yet
   \texttt{Creator::build\_from\_parts} maps \texttt{TxVersion::V4} to a
   PCZT with $\texttt{tx\_version} = 4$ (Sprout/V3 return \texttt{None}).
-  Every subsequent role rejects anything but $(5, \mathtt{0x26A7270A})$,
-  so the state cannot progress (\textsf{pczt},
+  Extraction and therefore roles that parse transaction effects reject that
+  version as \texttt{UnsupportedTxVersion}, so the state cannot progress
+  (\textsf{pczt},
   \texttt{src/roles/creator/mod.rs};
-  \texttt{src/roles/signer/mod.rs}).
+  \texttt{src/lib.rs}, \texttt{extract\_tx\_version}).
 \item \emph{Negative-zero initialization (resolved upstream).} The
   released \textsf{pczt} 0.5.1 had \texttt{Creator::new} set the Orchard
   $\texttt{value\_sum} = (0, \mathrm{true})$, differing from the v2
@@ -4216,13 +4268,13 @@ Per our conventions, we flag rather than resolve the following.
   boolean's meaning; only the reference implementation defines it (true
   $=$ negative) --- a spec gap (ZIP-374, OrchardBundle;
   \textsf{orchard}, \texttt{src/pczt/parse.rs}).
-\item \emph{Version skew.} The ZIP names \textsf{pczt} 0.7.0 as the
-  release whose serialization defines the v1 encoding; the librustzcash
-  checkout has caught up --- it ships 0.7.0 and builds against
-  \textsf{orchard} 0.15.0 --- so the only residual skew is that the
-  checkout's unreleased 0.8.0-\textsc{planned} changes (v2 serialization,
-  the Ironwood bundle) go beyond the named release (ZIP-374, Reference
-  implementation; librustzcash \texttt{Cargo.toml}; \textsf{pczt},
+\item \emph{Reference-version scope.} The ZIP names
+  \textsf{pczt}~0.7.0 specifically as the release that defines the v1
+  encoding.  Current \textsf{pczt}~0.9.3 still exposes that fixed encoding
+  through \texttt{pczt::v1}, but also ships the ZIP's v2 encoding and
+  Ironwood bundle.  This is no longer an implementation-versus-release
+  skew; 0.7.0 remains a deliberate historical anchor for v1 bytes
+  (ZIP-374, Reference implementation; \textsf{pczt},
   \texttt{CHANGELOG.md}).
 \end{itemize}
 
@@ -4252,25 +4304,29 @@ surface is exactly the two status queries of
 \label{sec:lifecycle-txid}
 
 A built transaction is serialised for broadcast by
-\texttt{Transaction::write}, which dispatches on version: v5 transactions
-(version $5$, version group id $\mathtt{0x26A7270A}$;
-\textsf{zcash\_protocol}, \texttt{src/constants.rs}) use \texttt{write\_v5},
-the ZIP-225 wire format of the protocol specification \S7.1
-(\emph{Transaction Encoding and Consensus}), while v1--v4 use
-\texttt{write\_v4} (\textsf{zcash\_primitives},
+\texttt{Transaction::write}, which dispatches on version. Transactions v5
+(version-group ID $\mathtt{0x26A7270A}$) use \texttt{write\_v5}, while v6
+(version-group ID $\mathtt{0xD884B698}$) use \texttt{write\_v6}, which adds
+the separately encoded Ironwood bundle; v1--v4 use \texttt{write\_v4}
+(ZIP-225; ZIP-229; protocol specification \S7.1, \emph{Transaction Encoding
+and Consensus}; \textsf{zcash\_protocol}, \texttt{src/constants.rs};
+\textsf{zcash\_primitives},
 \texttt{src/transaction/mod.rs}). The wallet places the resulting raw bytes
 in the \texttt{data} field of a \texttt{RawTransaction} gRPC message for
 submission (\textsf{zcash-devtool}, \texttt{src/commands/wallet/send.rs}).
 
 The identifier under which the network, the mempool, and the wallet's own
-database all track the transaction depends on the version. For v5, the
+database all track the transaction depends on the version. For v5 and v6, the
 \emph{txid} is the root of the ZIP-244 digest tree,
 \[
 \mathsf{txid} := \mathrm{BLAKE2b\text{-}256}\bigl(\texttt{ZcashTxHash\_}
   \,\|\, \mathsf{branchid},\ d_{\mathrm{hdr}} \,\|\, d_{\mathrm{trans}}
   \,\|\, d_{\mathrm{Sap}} \,\|\, d_{\mathrm{Orch}}\bigr),
 \]
-where the personalisation is the $12$-byte literal
+for v5; v6 appends the separate Ironwood digest
+$d_{\mathrm{Iron}}$ to the same top-level preimage. Every absent shielded
+pool contributes its protocol-defined empty-bundle digest. Here the
+personalisation is the $12$-byte literal
 \texttt{ZcashTxHash\_} (one underscore) followed by
 $\mathsf{branchid} = \mathrm{LE}_{32}(\mathrm{CONSENSUS\_BRANCH\_ID})$, the
 $4$-byte little-endian consensus branch id, and an absent pool hashes the
@@ -4279,8 +4335,10 @@ empty string under its own personalisation (ZIP-244, \emph{TxId Digest};
 \emph{Ironwood Guide} assembles this tree in full (``The transaction digest
 (ZIP-244)'', within its binding-signature section); we do not re-derive it.
 Two consequences matter for the lifecycle. First, the tree is computed over
-\emph{effecting} data only, so the v5 txid is non-malleable: no third party
-can alter the transaction's serialisation without changing its identifier.
+\emph{effecting} data only: changing the transaction's consensus effect changes
+the identifier, while allowed recomputation of excluded attestations such as
+proofs or signatures leaves both the effect and identifier unchanged. This is
+ZIP-244's non-malleability property.
 For v1--v4 the txid is instead the double-SHA-256 of the serialised
 transaction, which \emph{is} malleable and therefore reliable only once the
 transaction is mined (\textsf{zcash\_protocol}, \texttt{src/txid.rs}).
@@ -5278,7 +5336,7 @@ invalid to the deployed stack today (\textsf{zip321},
 
 The reference implementation is the \textsf{zip321} crate in librustzcash
 (\texttt{components/zip321}, a single file \texttt{src/lib.rs}), published
-at version $0.8.0$; release $0.1.0$ (2024-08-20) factored it out of
+at version $0.9.0$; release $0.1.0$ (2024-08-20) factored it out of
 \textsf{zcash\_client\_backend} $0.13.0$, which still re-exports it as a
 deprecated module
 \texttt{zcash\_}\allowbreak\texttt{client\_}\allowbreak%
@@ -5289,8 +5347,10 @@ deprecated module
 \texttt{src/}\allowbreak\texttt{lib.rs}).
 The Guide's baseline is the local checkout --- librustzcash \texttt{main}
 at commit \texttt{e30517e4} --- as for every other librustzcash citation in
-this volume. The optional-amount semantics shipped in release $0.7.0$
-(2026-04-23), so the published crate and the checkout now agree.
+this volume, where the crate was 0.8.0. The optional-amount semantics shipped
+in release $0.7.0$ (2026-04-23); current 0.9.0 changes dependencies and fixes
+the \texttt{test-dependencies} feature, not the parser semantics documented
+below.
 
 \begin{definition}[Types \texttt{Payment} and \texttt{TransactionRequest}]
 \label{def:zip321-types}

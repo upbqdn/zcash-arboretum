@@ -45,15 +45,15 @@ Layered; read each atop the ones it names.
    key derivation, unified addresses (ZIP-316), fees (ZIP-317), and the
    transaction-construction pipeline as deployed in librustzcash.
 7. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
-   compact blocks, the lightwalletd/Zaino service surface, the scanning
-   pipeline, and — stated plainly — what the server learns.
+   compact blocks, the lightwalletd, Zaino, and Zebra service surfaces, the
+   scanning pipeline, and — stated plainly — what the server learns.
 8. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
    the FlyClient sampling protocol and its security analysis, the deployed
    ZIP-221 chain-history commitment, and the unbuilt bridge between them.
 
 ** Frontier
-9. *Voting Guide* (=voting-guide.tex=) — the shielded coin-voting protocol
-   deployed in Zashi.
+9. *Voting Guide* (=voting-guide.tex=) — the May--June 2026 snapshot of the
+   shielded coin-voting protocol deployed in Zashi.
 10. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
     transfer, and the counterfeiting boundary.
 11. *Tachyon Guide* (=tachyon-guide.tex=) — the Tachyon scaling architecture:

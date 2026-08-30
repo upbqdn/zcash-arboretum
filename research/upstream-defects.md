@@ -85,6 +85,13 @@ version it actually implements.
 
 Observed at zingolabs/zaino `0e057e22`.
 
+**Resolved upstream.** `lightwallet-protocol` v0.5.0 is now tagged, and
+lightwalletd 0.5.4 both serves that revision and reports
+`lightwalletProtocolVersion = "v0.5.0"`. Zaino's value now names a real
+canonical release. Its remaining extra `CompactBlock.protoVersion` field is a
+vendored-schema skew, but it is encoded as zero and is not the
+version-advertising defect recorded here.
+
 ---
 
 # Upstream defects found while writing the ZSA Guide
@@ -316,6 +323,10 @@ in this dossier (entry 2 is the `ScanSummary` counters gap).
 
 Observed at librustzcash `e30517e4` (`components/zcash_protocol/src/consensus.rs:496,529`);
 zcash/zips `69610984` (`zip-0258.md:68-70`).
+
+**Resolved upstream.** At zcash/zips `ad30e59` (2026-08-25), ZIP-258 fixes
+Mainnet activation at `3428143`, matching both implementations. This entry is
+retained as historical audit evidence and is no longer actionable.
 
 ---
 
@@ -2539,3 +2550,61 @@ Observed at zaino `0e057e22` (`packages/zaino-state/src/backends/state.rs:1475-1
 2076-2084,2516-2525`; `backends/fetch.rs:1836-1845`); zebra local
 (`zebra-chain/src/block/hash.rs:28-42,82-85`); lightwalletd `61fee32`
 (`frontend/service.go:83-84,328-329,412-413`).
+
+---
+
+## 58. zcash/zips — ZIP-318's reference-implementation section is stale
+
+**DRAFT. Severity: low.**
+
+**Title:** ZIP-318 still says its Rust backend is merely ``intended'' and asks
+for SDK links, although `zcash_pool_migration` 0.1.0 and
+`zcash_client_sqlite` 0.22.0 shipped on 2026-08-18
+
+**Body:**
+
+ZIP-318's ``Reference implementation'' section contains only ``TODO: link to
+the SDK and wallet pull requests implementing this flow'' and says Phase 2 is
+``intended to be implemented in a Rust backend''. The backend now exists.
+`zcash_pool_migration` 0.1.0 describes itself as a backend-agnostic engine that
+plans note splits, builds and signs migration PCZTs, schedules transactions by
+height, and persists state through a wallet backend. `zcash_client_sqlite`
+0.22.0 supplies its persistent pool-migration store. Both changelogs date the
+releases 2026-08-18.
+
+The ZIP should link these released crates and distinguish the shipped backend
+from the consuming application work that remains. This is documentation lag,
+not a protocol defect: the engine's README explicitly leaves broadcasting and
+result reporting to the application.
+
+Observed at zcash/zips `ad30e59` (`zips/zip-0318.md`, ``Reference
+implementation''); librustzcash `91f448b`
+(`zcash_pool_migration/{Cargo.toml,README.md,CHANGELOG.md}`;
+`zcash_client_sqlite/CHANGELOG.md` and `src/pool_migration/`).
+
+---
+
+## 59. zcash/zips — the NU7 deployment draft conflicts with ZIP-204
+
+**DRAFT. Severity: low.**
+
+**Title:** `draft-arya-deploy-nu7` assigns Testnet/Mainnet protocol versions
+170150/170160, while ZIP-204 now requires 170180/170190 for NU7
+
+**Body:**
+
+ZIP-204 now specifies that from NU7 onward Testnet versions are the least
+`170000 + 20*k` above the preceding Mainnet version and Mainnet uses that value
+plus 10. With NU6.3 at 170160, ZIP-204 computes NU7 as 170180 on Testnet and
+170190 on Mainnet. The current NU7 deployment draft instead retains 170150 and
+170160. Those are the already-assigned NU6.2 and NU6.3 values, and violate both
+ZIP-204's per-network monotonicity invariant and its rule that a protocol
+version identify only one network/upgrade pair.
+
+The deployment draft should use 170180/170190, or ZIP-204 must be amended. Its
+activation heights remain TBD, so this is presently an editorial conflict
+rather than a deployed interoperability failure.
+
+Observed at zcash/zips `ad30e59` (`zips/zip-0204.rst`, ``Assigning Protocol
+Versions to Network Upgrades''; `zips/draft-arya-deploy-nu7.md`, ``NU7
+deployment'').

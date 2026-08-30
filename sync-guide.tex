@@ -127,10 +127,11 @@
 Assuming the Orchard protocol of the \emph{Ironwood Guide} and the wallet layer
 of the \emph{Wallet Guide}, this volume of \emph{The Zcash Arboretum}
 documents how a light client synchronises: the compact-block format (ZIP-307)
-and its deployed divergences, the light-client service surface as lightwalletd
-and Zaino implement it, the scanning pipeline of \textsf{librustzcash} with
-its verify-first reorg discipline, commitment-tree synchronisation, and ---
-stated without euphemism --- what the server learns about its clients. The
+and its deployed divergences, the light-client service surface as lightwalletd,
+Zaino, and Zebra implement it, the scanning pipeline of
+\textsf{librustzcash} with its verify-first reorg discipline, commitment-tree
+synchronisation, and --- stated without euphemism --- what the server learns.
+The
 wire format is deployed but underspecified; where the draft ZIP and the
 deployed implementations disagree, this volume documents the deployment and
 flags the divergence.
@@ -219,18 +220,16 @@ v0.4.0 & 2025-12-03 & \texttt{CompactTxIn}/\texttt{TxOut} and
   (serialization-compatible) \\
 v0.4.1 & 2026-02-20 & nullifier RPCs designated deprecated in the
   proto \\
-v0.5.0 (untagged) & 2026-06-30 & Ironwood fields added;
+v0.5.0 & 2026-06-30 & Ironwood fields added;
   \texttt{protoVersion} removed, field number~1 and name reserved \\
 \bottomrule
 \end{tabular}
 \caption{Wire-format history of \textsf{lightwallet-protocol}
-(\texttt{CHANGELOG.md}, librustzcash-vendored copy); v0.5.0 is a
-changelog entry with no corresponding tag --- the latest tag is
-v0.4.1.}%
+(\texttt{CHANGELOG.md}); v0.5.0 is the current tagged release.}%
 \label{tab:sync-lwp-history}
 \end{table}
 
-The three deployed codebases vendor three different revisions:
+At the pinned revisions, the three codebases vendor three different revisions:
 \textsf{lightwalletd} v0.4.1 (\texttt{protoVersion} present, no Ironwood);
 \textsf{librustzcash} main v0.5.0 (\texttt{protoVersion} removed and
 reserved; Ironwood fields present); \textsf{Zaino} an intermediate snapshot
@@ -241,6 +240,14 @@ Deployed-behaviour claims in this section are verified against
 \textsf{librustzcash} \texttt{e30517e4}, \textsf{lightwalletd}
 \texttt{61fee32e}, \textsf{Zaino} \texttt{0e057e22}, and \textsf{zips}
 \texttt{6961098} (checkouts of 2026-07-14).
+
+Since that snapshot, \textsf{lightwalletd} has caught up: release~0.5.0
+vendored tagged \textsf{lightwallet-protocol}~v0.5.0, removed
+\texttt{protoVersion}, and added Ironwood parsing and service data; release
+0.5.4 now reports \texttt{lightwalletProtocolVersion = ``v0.5.0''}
+(\textsf{lightwalletd} \texttt{09593ed}, \texttt{CHANGELOG.md}). Detailed
+behaviour comparisons below retain their explicit older pins so that their
+line citations and divergence findings remain reproducible.
 
 \subsection{The deployed messages}\label{sec:sync-compact-wire}
 
@@ -725,13 +732,13 @@ exist only in \textsf{lightwallet-protocol} v0.5.0;
 \texttt{NetworkUpgrade::Nu6\_3}, and \textsf{lightwalletd} --- the deployed
 service --- neither parses nor serves Ironwood data
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs},
-lines~687--696; \texttt{proto/compact\_formats.proto}, lines~17, 74). Per
-our conventions: the wire fields exist in the canonical proto files and
-changelog (v0.5.0, 2026-06-30) but in no tagged release --- the latest
-tag is v0.4.1 (\texttt{research/upstream-defects.md}, item~3); the pool
-and its activation are \emph{specified} (ZIP~2005, Proposed; ZIP~258,
-Draft: Testnet activation $4{,}134{,}000$, Mainnet scheduled in deployed
-node software at $3{,}428{,}143$); deployed \textsf{Zaino} wires both
+lines~687--696; \texttt{proto/compact\_formats.proto}, lines~17, 74). This
+describes the pinned \textsf{lightwalletd} revision: current
+\textsf{lightwalletd}~0.5.4 parses and serves Ironwood and vendors the tagged
+v0.5.0 protocol. The pool and its activation are \emph{specified}
+(ZIP~2005, Proposed; ZIP~258 remains Draft as a document, while NU6.3 is
+active from Testnet height $4{,}134{,}000$ and Mainnet height
+$3{,}428{,}143$); deployed \textsf{Zaino} wires both
 fields through its serving builders (\textsf{zaino-state},
 \texttt{chain\_index/types/db/legacy.rs}), where they remain empty until
 NU6.3 data exists on chain.
@@ -783,7 +790,8 @@ Per our conventions, we flag rather than resolve the following.
 \item \emph{An advertised but unpopulated \texttt{fee} field.} The proto
   says ``present if server can provide''; \textsf{lightwalletd} has a TODO,
   \textsf{Zaino} hardcodes zero (\S\ref{sec:sync-compact-wire}).
-\item \emph{Vendored-revision skew.} \textsf{lightwalletd} vendors v0.4.1,
+\item \emph{Vendored-revision skew at the pinned revisions.}
+  \textsf{lightwalletd} vendors v0.4.1,
   \textsf{librustzcash} main v0.5.0, and \textsf{Zaino} an intermediate
   snapshot with both the Ironwood fields and \texttt{protoVersion};
   \textsf{Zaino}'s vendored changelog dates v0.5.0 as 2026-07-03 without
@@ -819,9 +827,10 @@ authority trail from ZIP~307 through the canonical protobuf definitions
 (\S\ref{sec:sync-authority}), the compact data format
 (\S\ref{sec:sync-compact}), the interaction model the ZIP prescribes
 (\S\ref{sec:sync-interaction}), the twenty RPCs and their semantics
-(\S\ref{sec:sync-rpcs}), the two server implementations --- lightwalletd,
-the deployed proxy (\S\ref{sec:sync-lwd}), and Zaino, its successor
-(\S\ref{sec:sync-zaino}) --- and a register of the points where the
+(\S\ref{sec:sync-rpcs}), the server implementations --- lightwalletd,
+the deployed proxy (\S\ref{sec:sync-lwd}); Zaino, its successor
+(\S\ref{sec:sync-zaino}); and Zebra's newer in-process server
+(\S\ref{sec:sync-zebra-grpc}) --- and a register of the points where the
 implementations and the normative texts disagree
 (\S\ref{sec:sync-divergences}). The linear costs this architecture accepts
 --- trial decryption of every output, a maintained witness per note --- are
@@ -869,8 +878,8 @@ change-logged, as the deployed contract, and cite the ZIP for architecture
 and rationale. Both lightwalletd and Zaino vendor the proto files by git
 subtree (\textsf{lightwallet-protocol}, \texttt{README.md}).
 
-\paragraph{Contract version.} The canonical protocol is at v0.4.1
-(2026-02-20). Version 0.4.0 (2025-12-03) added transparent data to the
+\paragraph{Contract version.} The canonical protocol is at v0.5.0
+(2026-06-30). Version 0.4.0 (2025-12-03) added transparent data to the
 compact format --- \texttt{PoolType}, \texttt{CompactTxIn}, \texttt{TxOut},
 \texttt{CompactTx.vin}/\texttt{vout}, \texttt{BlockRange.poolTypes} --- and
 the \texttt{LightdInfo} fields \texttt{upgradeName},
@@ -879,20 +888,24 @@ declared \texttt{GetBlockNullifiers} and
 \texttt{GetBlockRangeNullifiers} deprecated; v0.4.1 designated the pair
 deprecated in the proto itself (\texttt{option deprecated = true},
 \texttt{service.proto:247,267}) and documented \texttt{GetBlock}'s
-transparent-data behaviour (\textsf{lightwallet-protocol},
-\texttt{CHANGELOG.md}).
+transparent-data behaviour. Version~0.5.0 added the Ironwood fields and
+removed and reserved \texttt{CompactBlock.protoVersion}
+(\textsf{lightwallet-protocol}, \texttt{CHANGELOG.md}).
 
-\paragraph{The proto forks.} The vendored copies have already diverged
-from the canonical file, in one direction: fields for the future Ironwood
-pool. The canonical v0.4.1 has \texttt{PoolType} $=$ \{\texttt{INVALID},
+\paragraph{The proto forks at the pinned revisions.} The following is the
+July snapshot preserved for the behaviour audit. The canonical v0.4.1 has
+\texttt{PoolType} $=$ \{\texttt{INVALID},
 \texttt{TRANSPARENT}, \texttt{SAPLING}, \texttt{ORCHARD}\} and
-\texttt{ShieldedProtocol} $=$ \{\texttt{sapling}, \texttt{orchard}\}.
+\texttt{Shielded\allowbreak Protocol} $=$
+\{\texttt{sapling}, \texttt{orchard}\}.
 The fork in \textsf{librustzcash}
-(\texttt{zcash\_client\_backend/proto/service.proto} and
-\texttt{compact\_formats.proto}) adds \texttt{IRONWOOD = 4},
-\texttt{TreeState.ironwoodTree = 7},
-\texttt{ShieldedProtocol.ironwood = 2},
-\texttt{ChainMetadata.\allowbreak ironwoodCommitmentTreeSize = 3}, and
+(\texttt{zcash\_client\_\allowbreak backend/\allowbreak proto/\allowbreak
+service.proto} and \texttt{compact\_\allowbreak formats.proto}) adds
+\texttt{IRONWOOD = 4},
+\texttt{TreeState.\allowbreak ironwoodTree = 7},
+\texttt{ShieldedProtocol.\allowbreak ironwood = 2},
+\texttt{ChainMetadata.\allowbreak ironwood\allowbreak Commitment\allowbreak
+TreeSize = 3}, and
 \texttt{CompactTx.ironwoodActions = 9}. Zaino's fork
 (\texttt{zaino-proto}) adds \texttt{IRONWOOD = 4},
 \texttt{ironwoodTree = 7}, \texttt{ChainMetadata.\allowbreak
@@ -900,7 +913,8 @@ ironwood\allowbreak CommitmentTreeSize = 3}, and
 \texttt{CompactTx.\allowbreak ironwoodActions = 9}, but not
 \texttt{Shielded\allowbreak Protocol.\allowbreak ironwood}, and omits the
 \texttt{deprecated} options on the two nullifier RPCs (diff of the three
-proto trees; \textsf{zaino}, \texttt{docs/internal\_spec.md},
+proto trees; \textsf{zaino},
+\texttt{docs/\allowbreak internal\_\allowbreak spec.md},
 \S~``Zaino-Proto''). Zaino's documentation states the local copies exist
 ``for development purposes'' with a plan to rely on librustzcash's. The
 ``as deployed'' wire surface therefore differs by repository; this volume
@@ -1371,13 +1385,13 @@ the upgrades map --- the chain tip's consensus branch ID, block height,
 build and git fields, \texttt{estimatedHeight} (less than the tip while
 the node itself syncs), donation address, and the next pending upgrade's
 name and height (\texttt{service.proto:97--118}; \textsf{lightwalletd},
-\texttt{common/common.go:261--319}). The proxy does \emph{not}
-populate the proto's \texttt{lightwalletProtocolVersion} field~18. Zaino
+\texttt{common/common.go:261--319}). At the pinned revision the proxy does
+\emph{not} populate the proto's \texttt{lightwalletProtocolVersion}
+field~18; current \textsf{lightwalletd}~0.5.4 reports ``v0.5.0''. Zaino
 reports vendor ``ZingoLabs ZainoD'', hard-codes
-$\mathtt{lightwallet\_protocol\_version} = \text{``v0.5.0''}$ --- a
-version with no tagged release in the canonical repository, the latest
-tag being v0.4.1, though an untagged v0.5.0 changelog section
-(2026-06-30) exists (\texttt{research/upstream-defects.md}, item~3;
+$\mathtt{lightwallet\_protocol\_version} = \text{``v0.5.0''}$ --- then an
+untagged version but now the canonical tagged release
+(\texttt{research/upstream-defects.md}, item~3;
 \texttt{zaino-state/src/backends/fetch.rs:2097},
 \texttt{state.rs:2776}) --- defaults the Sapling activation height to 1
 on regtest, and
@@ -1573,12 +1587,49 @@ superseding zcashd in that role (\textsf{zaino},
 \texttt{docs/internal\_spec.md}, \S~``Zaino-Testutils and
 Integration-Tests''; \texttt{docs/rpc\_api.md}).
 
+\paragraph{Current-head update.} The detailed account above deliberately
+describes the pinned July revision. At \textsf{zaino} \texttt{afd609e}
+(2026-08-28), validator support is Zebra-only and the old
+\texttt{StateService}\allowbreak/\allowbreak\texttt{FetchService} split has
+been replaced by one
+\texttt{ZebraValidator} composite. JSON-RPC is always present; direct
+\texttt{ZebraReadStateAdapter} database access is an optional accelerator.
+Configuration now names the modes \texttt{direct} and \texttt{rpc}, while
+retaining \texttt{state} and \texttt{fetch} only as compatibility aliases
+(\texttt{zaino-source-zebra/\allowbreak src/\allowbreak lib.rs};
+\texttt{zainod/src/config.rs}). Consequently, the behaviour-by-backend claims
+and divergence table below are a reproducible snapshot, not a claim about
+current Zaino internals.
+
+\subsection{Zebra's in-process server}\label{sec:sync-zebra-grpc}
+
+Zebra main \texttt{0a43e0e} contains a third implementation, added at
+\texttt{85ce9a3} on 2026-08-18 after the zebrad~6.3.0 release. It runs
+\texttt{CompactTxStreamer} inside zebrad: most handlers call Zebra's JSON-RPC
+methods in process, while compact blocks and mempool streams read the state and
+mempool services directly. The surface defines handlers for all twenty RPC
+names; nineteen are implemented, while the testing-only \texttt{Ping}
+deliberately returns
+\texttt{Unimplemented} (\textsf{zebra-rpc},
+\texttt{src/lightwalletd/\allowbreak methods.rs} and
+\texttt{server.rs}).
+
+This server is unreleased at the cited head, experimental, and disabled unless
+\texttt{rpc.\allowbreak lightwalletd\_\allowbreak listen\_\allowbreak addr}
+is configured. It serves plaintext
+HTTP/2 without TLS or authentication; Zebra therefore directs operators to
+bind it to loopback or a private address and terminate TLS in a reverse proxy
+(\textsf{zebra-rpc}, \texttt{src/config/rpc.rs}). Its existence invalidates
+the former statement that lightwalletd and Zaino were the only maintained
+server implementations, but it does not retroactively alter the pinned
+two-server comparison below.
+
 \subsection{Divergence register}\label{sec:sync-divergences}
 
 Table~\ref{tab:sync-divergences} collects the contract-level points at
-which the two deployed servers differ from each other or from the
-normative texts; each row is developed, with citations, in the paragraph
-of \S\ref{sec:sync-rpcs}--\S\ref{sec:sync-zaino} that covers the RPC.
+which lightwalletd and Zaino at the pinned revisions differ from each other or
+from the normative texts; each row is developed, with citations, in the
+paragraph of \S\ref{sec:sync-rpcs}--\S\ref{sec:sync-zaino} that covers the RPC.
 The ZIP-versus-deployment gaps --- the message sketch, partial header
 validation, unimplemented bucketing --- are flagged in
 \S\ref{sec:sync-authority} and \S\ref{sec:sync-interaction}; the proto
@@ -1615,9 +1666,8 @@ always 0 (\texttt{fee = None}) \\
 \addlinespace
 \texttt{lightwalletProtocolVersion} (\texttt{LightdInfo} field 18,
 v0.4.0) &
-never populated &
-hard-coded ``v0.5.0'', no tagged canonical release (latest tag
-v0.4.1) \\
+never populated at \texttt{61fee32} &
+hard-coded ``v0.5.0'' before that canonical tag existed \\
 \addlinespace
 Behaviour before server is synced &
 proxies the node immediately &
@@ -1633,9 +1683,9 @@ unbounded address lists &
 capped at 1000 addresses \\
 \bottomrule
 \end{tabular}
-\caption{Deployed divergences across the \texttt{CompactTxStreamer}
-contract. Citations for each row appear in the covering paragraphs of
-\S\ref{sec:sync-rpcs}--\S\ref{sec:sync-zaino}.}
+\caption{Pinned-revision divergences across the
+\texttt{CompactTxStreamer} contract. Citations for each row appear in the
+covering paragraphs of \S\ref{sec:sync-rpcs}--\S\ref{sec:sync-zaino}.}
 \label{tab:sync-divergences}
 \end{table}
 
@@ -3423,7 +3473,8 @@ identifiable user data. It hasn't received any privacy analysis yet and
 makes no attempt at sanitization'' (\textsf{lightwalletd},
 \texttt{docs/architecture.md}).
 
-Zaino, the successor indexer, changes none of this structurally: it serves
+At the pinned Zaino revision, the successor indexer changes none of this
+structurally: it serves
 the full \texttt{CompactTx}\allowbreak\texttt{Streamer} surface; every
 handler logs the method
 name
