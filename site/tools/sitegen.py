@@ -368,13 +368,10 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                             'class="ltx_page_content" data-pagefind-body',
                             1)
             t2 = t2.replace(
-                '<footer class="ltx_page_footer">\n'
-                '<div class="ltx_align_center">',
-                '<footer class="ltx_page_footer">\n'
-                '<div class="ltx_align_center">'
-                '<span class="arb-feedback">Spotted an error? '
+                '</div>\n</footer>',
+                '</div>\n<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
-                'Open an issue</a>.</span>', 1)
+                'Open an issue</a>.</div>\n</footer>', 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1

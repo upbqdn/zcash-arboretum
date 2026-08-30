@@ -446,10 +446,8 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   border-top: 1px solid var(--edge);
   margin-top: 2.8rem; padding: 1rem 0 2.2rem;
 }
-.ltx_page_footer > div:not(.ltx_page_logo) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 1.5rem;
+.ltx_page_footer > .ltx_align_center {
+  display: flex; justify-content: space-between; gap: 1.5rem;
   text-align: left;
 }
 .ltx_page_footer a { color: var(--muted); min-width: 0; }
@@ -458,17 +456,14 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
 .ltx_page_footer a[rel="up"], .ltx_page_footer a[rel="start"] {
   display: none;
 }
-.ltx_page_footer a[rel="prev"] { grid-column: 1; justify-self: start; }
 .ltx_page_footer a[rel="prev"]::before { content: "\2190  "; }
-.ltx_page_footer .arb-feedback {
-  grid-column: 2; text-align: center; white-space: nowrap;
-}
 .ltx_page_footer a[rel="next"]::after { content: "  \2192"; }
-.ltx_page_footer a[rel="next"] { grid-column: 3; justify-self: end; }
+.ltx_page_footer a[rel="next"] { margin-left: auto; }
 .ltx_page_footer > .ltx_page_logo {
   display: block; float: none; width: 100%;
   margin-top: 1rem; text-align: center;
 }
+.ltx_page_footer > .arb-feedback { margin-top: .55rem; text-align: center; }
 
 /* mobile: stack the prev/next crumbs so long section titles never collide */
 @media (max-width: 640px) {
@@ -476,12 +471,7 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   .arb-bar .volname { display: none; }
   .arb-bar details.arb-search { margin-left: auto; }
   .ltx_page_main .ltx_page_header > div { flex-direction: column; gap: .35rem; }
-  .ltx_page_footer > div:not(.ltx_page_logo) {
-    display: flex; flex-direction: column; gap: .35rem;
-  }
-  .ltx_page_footer a[rel="prev"] { order: 1; }
-  .ltx_page_footer .arb-feedback { order: 2; align-self: center; }
-  .ltx_page_footer a[rel="next"] { order: 3; }
+  .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .35rem; }
   .ltx_page_main .ltx_page_header a[rel="next"],
   .ltx_page_footer a[rel="next"] { margin-left: 0; align-self: flex-start; }
 }
