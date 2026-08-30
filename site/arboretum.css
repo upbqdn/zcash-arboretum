@@ -187,7 +187,6 @@ ol.plates li.plate {
   margin: 0;
 }
 ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
-ol.plates li.plate:last-child { border-bottom: 1px solid var(--edge); }
 .plate .label {
   display: flex; align-items: baseline; gap: .7rem;
   margin-bottom: .28rem;
