@@ -190,7 +190,7 @@ def landing(outdir):
 {plaque}</div>
 <a class="title" href="{vol}/">{title}</a>
 <p class="sub">{sub}</p>
-<div class="links"><a href="{vol}/">Read</a>
+<div class="links"><a href="{vol}/">Web</a>
 <a href="pdf/{vol}.pdf">PDF</a></div></li>""")
     cards = []
     for group, items in groups.items():
