@@ -79,8 +79,10 @@ Each site deployment must render at both addresses:
 - [[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]]
 - [[https://marek.onl/arboretum/][marek.onl/arboretum]]
 
-Both addresses serve the same generated site and should be verified after a
-deployment.
+The GitHub Pages workflow publishes the first address. The second is proxied to
+the Docker service at =d.lan:~/services/arboretum=, whose builder polls =main=
+and rebuilds the site into its shared volume. Both addresses serve the same
+generated site and should be verified after a deployment.
 
 * Method
 
