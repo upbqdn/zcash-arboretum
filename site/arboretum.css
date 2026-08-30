@@ -132,7 +132,7 @@ code, kbd, pre { font-family: var(--mono); }
 /* ---------- landing ---------- */
 main.arb-landing {
   max-width: 46rem;
-  margin: 2.6rem auto 3.5rem;
+  margin: 0 auto;
   padding: 3rem 2.6rem 3.5rem;
   background: var(--paper);
 }
