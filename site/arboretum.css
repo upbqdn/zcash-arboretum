@@ -451,6 +451,9 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   margin-top: 1rem; text-align: center;
 }
 .ltx_page_footer > .arb-feedback { margin-top: .55rem; text-align: center; }
+a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
+  color: var(--conifer); text-decoration: underline; text-underline-offset: 3px;
+}
 
 /* mobile: stack the prev/next crumbs so long section titles never collide */
 @media (max-width: 640px) {
