@@ -342,16 +342,6 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 .ltx_page_main .ltx_para + .ltx_para > .ltx_p:first-child {
   text-indent: 1.4em;
 }
-/* MathJax replaces the MathML with TeX-quality SVG; retain the native
-   MathML overflow behaviour after replacement. */
-mjx-container[jax="SVG"] {
-  color: inherit; display: inline-flex; max-width: 100%;
-  overflow-x: auto; overflow-y: hidden; vertical-align: middle;
-}
-mjx-container[jax="SVG"][display="true"] {
-  display: block; margin: 1em 0 !important;
-}
-
 .ltx_title_document {
   font-family: var(--display); font-weight: 600;
   font-size: 2rem; line-height: 1.15;

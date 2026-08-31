@@ -34,6 +34,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
     assert html.count('class="arb-theme"') == 1
     assert '<body data-arb="vol">' in html
+    assert "MathJax" not in html
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
 assert ':root[data-theme="warm"]' in css
