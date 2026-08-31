@@ -345,7 +345,7 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 /* MathJax replaces the MathML with TeX-quality SVG; retain the native
    MathML overflow behaviour after replacement. */
 mjx-container[jax="SVG"] {
-  color: inherit; display: inline-block; max-width: 100%;
+  color: inherit; display: inline-flex; max-width: 100%;
   overflow-x: auto; overflow-y: hidden; vertical-align: middle;
 }
 mjx-container[jax="SVG"][display="true"] {
