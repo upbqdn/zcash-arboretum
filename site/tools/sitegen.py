@@ -41,6 +41,36 @@ VOLUME_META = [
 ]
 VOLUMES = [v for v, _, _ in VOLUME_META]
 
+THEME_INIT = """<script>
+try {
+  const theme = localStorage.getItem('arb-theme');
+  if (['light', 'warm', 'dark', 'dim'].includes(theme))
+    document.documentElement.dataset.theme = theme;
+} catch (_) {}
+</script>"""
+THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
+<option value="system">System</option>
+<option value="light">Light</option>
+<option value="warm">Light warm</option>
+<option value="dark">Dark</option>
+<option value="dim">Dim dark</option>
+</select>
+<script>
+(function () {
+  const select = document.currentScript.previousElementSibling;
+  let theme = 'system';
+  try { theme = localStorage.getItem('arb-theme') || theme; } catch (_) {}
+  if (!['system', 'light', 'warm', 'dark', 'dim'].includes(theme)) theme = 'system';
+  select.value = theme;
+  select.addEventListener('change', function () {
+    theme = select.value;
+    if (theme === 'system') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('arb-theme', theme); } catch (_) {}
+  });
+})();
+</script>"""
+
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
@@ -200,12 +230,14 @@ def landing(outdir):
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Zcash Arboretum</title>
+{THEME_INIT}
 <link rel="stylesheet" href="arboretum.css?v={ver()}">
 <link href="pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="pagefind/pagefind-ui.js"></script>
 </head><body>
 <main class="arb-landing">
-<h1>The Zcash Arboretum</h1>
+<div class="arb-heading"><h1>The Zcash Arboretum</h1>
+{THEME_PICKER}</div>
 <hr class="stem">
 <p class="tag">Documentation of the Zcash protocol &mdash; the deployed
 core and the protocols growing on top of it. Non-normative: where these volumes and the
@@ -274,6 +306,7 @@ def concordance(outdir):
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Concordance &mdash; The Zcash Arboretum</title>
+{THEME_INIT}
 <link rel="stylesheet" href="arboretum.css?v={ver()}">
 <style>
 .zc table {{ border-collapse: collapse; width: 100%; font-size: .93rem; }}
@@ -284,7 +317,8 @@ def concordance(outdir):
              color: var(--plaque-ink); }}
 </style></head><body>
 <main class="arb-landing zc">
-<h1>Concordance</h1>
+<div class="arb-heading"><h1>Concordance</h1>
+{THEME_PICKER}</div>
 <hr class="stem">
 <p class="tag">Every ZIP and protocol-specification section cited across
 the volumes, and where each is treated. Generated from the sources.</p>
@@ -336,9 +370,10 @@ window.MathJax = { options: { enableMenu: false },
 </script>"""
         mathjax = mathjax_cfg + f"""
 <script src="../mathjax/mml-svg.js?v={ver()}" defer></script>"""
-        bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../">The
-Zcash Arboretum</a><span class="volname">{title}</span>
+        bar = mathjax + f"""<header class="arb-bar"><a class="wordmark" href="../"><span
+class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{title}</span>
 <a class="arb-pdf" href="../pdf/{vol}.pdf">PDF</a>
+{THEME_PICKER}
 <details class="arb-search"><summary>search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
 </header>
@@ -356,7 +391,9 @@ document.querySelector('details.arb-search').addEventListener('toggle',
         n = 0
         for page in vdir.glob("*.html"):
             t = page.read_text()
-            t2 = t.replace('href="../arboretum.css"',
+            t2 = re.sub(r'(<head[^>]*>)',
+                        lambda m: m.group(1) + THEME_INIT, t, count=1)
+            t2 = t2.replace('href="../arboretum.css"',
                            f'href="../arboretum.css?v={ver()}"', 1)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)
             t2 = re.sub(r"(<body[^>]*>)", r"\1" + bar.replace("\\", "\\\\"),
