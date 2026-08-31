@@ -19,6 +19,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert html.count('class="arb-theme"') == 1
         for value in ("system", "light", "warm", "dark", "midnight"):
             assert f'value="{value}"' in html
+        assert ">Warm dark</option>" in html
 
     page = out / "math-guide" / "index.html"
     page.parent.mkdir()

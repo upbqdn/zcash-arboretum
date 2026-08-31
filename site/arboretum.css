@@ -68,15 +68,15 @@
 }
 :root[data-theme="midnight"] {
   color-scheme: dark;
-  --desk: #0b1020;
-  --paper: #0b1020;
-  --ink: #e6edf7;
-  --muted: #9aa8ba;
-  --conifer: #79b8ff;
-  --leafline: #283650;
-  --plate: #121a2b;
-  --edge: #283650;
-  --plaque-ink: #a7b3c3;
+  --desk: #171411;
+  --paper: #171411;
+  --ink: #eee8df;
+  --muted: #aaa096;
+  --conifer: #d6ad72;
+  --leafline: #3d352d;
+  --plate: #211d19;
+  --edge: #473d33;
+  --plaque-ink: #b7aa9e;
   --tierin-mix: 12%;
   --tierfull-mix: 10%;
 }

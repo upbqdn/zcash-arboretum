@@ -53,7 +53,7 @@ THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
 <option value="light">Light</option>
 <option value="warm">Light warm</option>
 <option value="dark">Dark</option>
-<option value="midnight">Midnight</option>
+<option value="midnight">Warm dark</option>
 </select>
 <script>
 (function () {
