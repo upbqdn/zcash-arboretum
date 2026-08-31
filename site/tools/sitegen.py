@@ -44,7 +44,7 @@ VOLUMES = [v for v, _, _ in VOLUME_META]
 THEME_INIT = """<script>
 try {
   const theme = localStorage.getItem('arb-theme');
-  if (['light', 'warm', 'dark', 'dim'].includes(theme))
+  if (['light', 'warm', 'dark', 'midnight'].includes(theme))
     document.documentElement.dataset.theme = theme;
 } catch (_) {}
 </script>"""
@@ -53,14 +53,14 @@ THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
 <option value="light">Light</option>
 <option value="warm">Light warm</option>
 <option value="dark">Dark</option>
-<option value="dim">Dim dark</option>
+<option value="midnight">Midnight</option>
 </select>
 <script>
 (function () {
   const select = document.currentScript.previousElementSibling;
   let theme = 'system';
   try { theme = localStorage.getItem('arb-theme') || theme; } catch (_) {}
-  if (!['system', 'light', 'warm', 'dark', 'dim'].includes(theme)) theme = 'system';
+  if (!['system', 'light', 'warm', 'dark', 'midnight'].includes(theme)) theme = 'system';
   select.value = theme;
   select.addEventListener('change', function () {
     theme = select.value;

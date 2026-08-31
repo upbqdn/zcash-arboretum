@@ -66,17 +66,17 @@
   --tierin-mix: 12%;
   --tierfull-mix: 10%;
 }
-:root[data-theme="dim"] {
+:root[data-theme="midnight"] {
   color-scheme: dark;
-  --desk: #22272e;
-  --paper: #22272e;
-  --ink: #adbac7;
-  --muted: #8c98a5;
-  --conifer: #539bf5;
-  --leafline: #444c56;
-  --plate: #2d333b;
-  --edge: #444c56;
-  --plaque-ink: #8c98a5;
+  --desk: #0b1020;
+  --paper: #0b1020;
+  --ink: #e6edf7;
+  --muted: #9aa8ba;
+  --conifer: #79b8ff;
+  --leafline: #283650;
+  --plate: #121a2b;
+  --edge: #283650;
+  --plaque-ink: #a7b3c3;
   --tierin-mix: 12%;
   --tierfull-mix: 10%;
 }
