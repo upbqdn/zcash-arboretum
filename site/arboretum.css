@@ -367,8 +367,10 @@ h3.ltx_title_subsection, .ltx_title_subsection {
   margin: 1.1rem 0;
 }
 .ltx_theorem .ltx_title { font-family: inherit; }
-.ltx_proof { margin: 1rem 0 1rem .2rem; padding-left: .9rem;
+.ltx_proof { display: flow-root; margin: 1rem 0 1rem .2rem; padding-left: .9rem;
              border-left: 1px solid var(--leafline); }
+.arb-proof-end { white-space: nowrap; }
+.arb-qed { float: right; margin-left: .35em; }
 
 /* math + tables breathe, never overflow the page */
 .ltx_eqn_table {

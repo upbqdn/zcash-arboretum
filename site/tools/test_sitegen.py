@@ -26,7 +26,10 @@ with tempfile.TemporaryDirectory() as tmp:
     page.parent.mkdir()
     page.write_text(
         '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
-        '<body><main class="ltx_page_content"></main>'
+        '<body><main class="ltx_page_content"><div class="ltx_proof"><p>'
+        'Given <math display="inline" alttext="S"><mi>S</mi></math>, thus '
+        '<math display="inline" alttext="x=1"><mi>x</mi></math>.\n∎'
+        '</p><p>Done.\n∎</p></div></main>'
         '<footer><div>Generated on today by '
         '<a class="ltx_LaTeXML_logo">LaTeXML</a></div></footer></body></html>')
     sitegen.postprocess(out)
@@ -36,9 +39,15 @@ with tempfile.TemporaryDirectory() as tmp:
     assert '<body data-arb="vol">' in html
     assert html.count("window.MathJax") == 1
     assert 'font: \'mathjax-stix2\'' in html
+    assert "macros: { qed: '\\\\tag*{□}' }" in html
     assert "linebreaks: { inline: true" in html
     assert "replace(/%\\s+/g, '')" in html
     assert 'src="../mathjax/tex-chtml.js"' in html
+    assert ('<span class="arb-proof-end"><math display="inline" '
+            'alttext="x=1"><mi>x</mi></math>.</span> '
+            '<span class="arb-qed">□</span>') in html
+    assert html.count('class="arb-proof-end"') == 1
+    assert html.count('class="arb-qed"') == 2
     assert (out / "mathjax" / "tex-chtml.js").is_file()
     assert (out / "@mathjax" / "mathjax-stix2-font" / "chtml.js").is_file()
 

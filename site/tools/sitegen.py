@@ -76,6 +76,7 @@ MATHJAX = r"""<script>
 window.MathJax = {
   loader: { paths: { fonts: '[mathjax]/../@mathjax' } },
   options: { enableMenu: false },
+  tex: { macros: { qed: '\\tag*{□}' } },
   output: {
     font: 'mathjax-stix2',
     displayOverflow: 'linebreak',
@@ -128,6 +129,8 @@ MathJax.startup.promise.then(function () {
 </script>"""
 
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
+PROOF_MATH_END_RE = re.compile(
+    r'(<math\b(?:(?!</math>)[\s\S])*?</math>)([.!?])(?=\s*∎</p>)')
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
                       "\\author{", "\\date{",
@@ -439,6 +442,10 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                 '</div>\n<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
                 'Open an issue</a>.</div>\n</footer>', 1)
+            t2 = PROOF_MATH_END_RE.sub(
+                r'<span class="arb-proof-end">\1\2</span>', t2)
+            t2 = re.sub(r'\s*∎(?=</p>)',
+                        ' <span class="arb-qed">□</span>', t2)
             t2 = t2.replace('</body>', MATHJAX + '\n</body>', 1)
             if t2 != t:
                 page.write_text(t2)
