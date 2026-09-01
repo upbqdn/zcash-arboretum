@@ -34,11 +34,19 @@ with tempfile.TemporaryDirectory() as tmp:
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
     assert html.count('class="arb-theme"') == 1
     assert '<body data-arb="vol">' in html
-    assert "MathJax" not in html
+    assert html.count("window.MathJax") == 1
+    assert 'font: \'mathjax-stix2\'' in html
+    assert "linebreaks: { inline: true" in html
+    assert "replace(/%\\s+/g, '')" in html
+    assert 'src="../mathjax/tex-chtml.js"' in html
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
 assert ':root[data-theme="warm"]' in css
 assert ':root[data-theme="dark"]' in css
 assert ':root[data-theme="midnight"]' in css
 assert 'a[rel="next"] { margin-left: 0; align-self: flex-end; }' in css
+assert 'mjx-container.arb-math-scroll' in css
+assert (sitegen.ROOT / "site" / "mathjax" / "tex-chtml.js").is_file()
+assert (sitegen.ROOT / "site" / "@mathjax" / "mathjax-stix2-font"
+        / "chtml.js").is_file()
 print("site generator checks passed")

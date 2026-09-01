@@ -388,6 +388,15 @@ h3.ltx_title_subsection, .ltx_title_subsection {
   overflow-x: auto; overflow-y: hidden;
   vertical-align: middle;
 }
+/* MathJax handles normal TeX line breaks. Only expressions with no legal
+   breakpoint get a local scroll box instead of widening the page. */
+mjx-container.arb-math-scroll {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+}
 
 .ltx_tabular { font-size: .95rem; }
 .ltx_tabular .ltx_td, .ltx_tabular .ltx_th { padding: .25rem .6rem; }

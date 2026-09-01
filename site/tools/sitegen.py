@@ -71,6 +71,61 @@ THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
 })();
 </script>"""
 
+MATHJAX = r"""<script>
+window.MathJax = {
+  loader: { paths: { fonts: '[mathjax]/../@mathjax' } },
+  options: { enableMenu: false },
+  output: {
+    font: 'mathjax-stix2',
+    displayOverflow: 'linebreak',
+    linebreaks: { inline: true, width: '100%', lineleading: .2 }
+  },
+  startup: {
+    ready() {
+      document.querySelectorAll('math[alttext]').forEach(function (math) {
+        const tex = math.getAttribute('alttext').replace(/%\s+/g, '');
+        math.replaceWith(document.createTextNode(
+          math.getAttribute('display') === 'block'
+            ? `\\[${tex}\\]` : `\\(${tex}\\)`));
+      });
+      MathJax.startup.defaultReady();
+    }
+  }
+};
+</script>
+<script src="../mathjax/tex-chtml.js"></script>
+<script>
+MathJax.startup.promise.then(function () {
+  function constrainMath() {
+    document.querySelectorAll('.arb-math-scroll').forEach(function (math) {
+      math.classList.remove('arb-math-scroll');
+    });
+    document.querySelectorAll('mjx-container:not([display="true"])').forEach(function (math) {
+      let parent = math.parentElement;
+      while (parent && ['inline', 'contents'].includes(getComputedStyle(parent).display))
+        parent = parent.parentElement;
+      if (!parent) return;
+      const box = math.getBoundingClientRect();
+      const outer = parent.getBoundingClientRect();
+      if (box.left < outer.left - 1 || box.right > outer.right + 1)
+        math.classList.add('arb-math-scroll');
+    });
+  }
+  constrainMath();
+  let width = innerWidth;
+  let timer;
+  addEventListener('resize', function () {
+    if (innerWidth === width) return;
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      width = innerWidth;
+      MathJax.startup.document.rerender();
+      requestAnimationFrame(constrainMath);
+    }, 150);
+  });
+});
+</script>"""
+
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
@@ -381,6 +436,7 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                 '</div>\n<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
                 'Open an issue</a>.</div>\n</footer>', 1)
+            t2 = t2.replace('</body>', MATHJAX + '\n</body>', 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1
