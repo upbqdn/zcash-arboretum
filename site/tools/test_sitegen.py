@@ -39,6 +39,8 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "linebreaks: { inline: true" in html
     assert "replace(/%\\s+/g, '')" in html
     assert 'src="../mathjax/tex-chtml.js"' in html
+    assert (out / "mathjax" / "tex-chtml.js").is_file()
+    assert (out / "@mathjax" / "mathjax-stix2-font" / "chtml.js").is_file()
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
 assert ':root[data-theme="warm"]' in css

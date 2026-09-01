@@ -12,6 +12,7 @@ Modes:
 """
 
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -391,6 +392,8 @@ def postprocess(outdir):
     """Inject the site bar and search into every built volume page, and
     scope the search index to the document body."""
     out = Path(outdir)
+    for asset in ("mathjax", "@mathjax"):
+        shutil.copytree(ROOT / "site" / asset, out / asset, dirs_exist_ok=True)
     for vol, _group, _chip in VOLUME_META:
         vdir = out / vol
         if not vdir.is_dir():

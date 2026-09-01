@@ -47,7 +47,6 @@ jobs:
           python3 site/tools/sitegen.py concordance --out _site
           cp site/arboretum.css _site/
           cp -r site/fonts _site/fonts
-          cp -r site/mathjax site/@mathjax _site/
       - name: Build search index
         run: npx --yes pagefind --site _site
       - uses: actions/upload-pages-artifact@v3
