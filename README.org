@@ -71,7 +71,8 @@ Layered; read each atop the ones it names.
     recoverability-not-resistance strategy, and the migration surface.
 
 Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
-combines every volume into one document.
+combines every volume into one document; the landing page publishes it in Web
+and PDF formats.
 
 * Website
 

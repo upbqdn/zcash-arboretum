@@ -42,6 +42,29 @@ VOLUME_META = [
 ]
 VOLUMES = [v for v, _, _ in VOLUME_META]
 
+OMNIBUS_INTRO = r"""\phantomsection
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+\markboth{Introduction}{}
+This complete edition gathers every numbered volume of \emph{The Zcash
+Arboretum} and its \emph{How Halo~2 Proves} companion into one document.  It
+adds no new protocol claims: each part is the same non-normative text published
+separately, and the protocol specification and ZIPs remain authoritative.
+
+The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
+Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
+\emph{Wallet}, \emph{Sync}, and \emph{FlyClient} Guides explain the deployed
+system and its boundaries.  The remaining parts examine applications,
+proposals, threshold authorization, and the post-quantum migration surface.
+
+Three reading paths cover most uses.  For prerequisites, begin with the first
+three parts and use the Halo~2 companion as the worked example.  For the life
+of a shielded payment, read \emph{Ironwood}, then \emph{Wallet}, \emph{Sync},
+and \emph{Consensus}.  For proposed changes, read the relevant frontier part
+only after its lower-layer dependencies.  Each part restarts its own section
+numbering so that citations agree with the separately published volume.
+"""
+
 THEME_INIT = """<script>
 try {
   const theme = localStorage.getItem('arb-theme');
@@ -242,6 +265,7 @@ def webprep():
                                 "\\usepackage{graphicx}", 1)
         (WEBDIR / f"{vol}.tex").write_text(text)
         print(f"prepared {WEBDIR / (vol + '.tex')}")
+    omnibus(WEBDIR, WEBDIR / "arboretum-complete.tex")
 
 
 ROMANS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
@@ -264,18 +288,19 @@ def ver():
 MACRO_RE = re.compile(r"\\(?:re)?newcommand\{(\\[A-Za-z]+)\}(\[\d\])?\{(.*)\}\s*$")
 
 
-def omnibus():
+def omnibus(srcdir=ROOT, out=None):
     """Generate arboretum-complete.tex: every volume as a \\part of one
     document. Mechanical: shared preamble (packages etc. deduped, macros
     stripped), per-part counter resets + the volume's own macros as \\def
     (volumes disagree on eight macro bodies), per-volume label prefixing."""
-    vols = volumes_present()
+    srcdir = Path(srcdir)
+    out = Path(out) if out else ROOT / "arboretum-complete.tex"
+    vols = [v for v in VOLUMES if (srcdir / f"{v}.tex").exists()]
     companions = {v for v, _group, chip in VOLUME_META
                   if chip == "companion"}
-    first = (ROOT / f"{vols[0]}.tex").read_text()
-    pre_lines, seen, macro_free = [], set(), []
+    seen, macro_free = set(), []
     for vol in vols:
-        pre = preamble_of((ROOT / f"{vol}.tex").read_text())
+        pre = preamble_of((srcdir / f"{vol}.tex").read_text())
         for ln in pre.splitlines():
             s = ln.strip()
             if (not s or s.startswith(("\\title", "\\author", "\\date"))
@@ -288,7 +313,8 @@ def omnibus():
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
              "\\large The complete series in one volume}",
-             "\\author{m@rek.onl}\n\\date{}",
+             ("\\author{}\n\\date{}" if srcdir == WEBDIR
+              else "\\author{m@rek.onl}\n\\date{}"),
              "\\newcounter{arbvolume}\n"
              "\\renewcommand*{\\theHsection}{\\arabic{arbvolume}.\\arabic{section}}\n"
              "\\renewcommand*{\\theHsubsection}{\\theHsection.\\arabic{subsection}}\n"
@@ -299,9 +325,10 @@ def omnibus():
              "\\renewcommand*{\\theHfigure}{\\arabic{arbvolume}.\\arabic{figure}}\n"
              "\\renewcommand*{\\theHtable}{\\arabic{arbvolume}.\\arabic{table}}",
              "\\begin{document}\n\\maketitle\n\\thispagestyle{empty}",
-             "\\clearpage\n\\tableofcontents\n\\clearpage"]
+             "\\clearpage\n\\tableofcontents\n\\clearpage",
+             OMNIBUS_INTRO]
     for vol in vols:
-        text = (ROOT / f"{vol}.tex").read_text()
+        text = (srcdir / f"{vol}.tex").read_text()
         title, sub = vol_title(vol)
         short = vol.replace("-guide", "").replace("halo2-intuition", "h2i")
         macros = []
@@ -335,7 +362,6 @@ def omnibus():
             "\\setcounter{figure}{0}\\setcounter{table}{0}\n"
             f"{heading}\n" + "\n".join(macros) + "\n" + body)
     parts.append("\\end{document}")
-    out = ROOT / "arboretum-complete.tex"
     out.write_text("\n".join(parts))
     print(f"wrote {out} ({len(vols)} parts)")
 
@@ -368,9 +394,10 @@ def landing(outdir):
 <li class="plate">
 <div class="label"><span class="acc">all volumes</span>
 <span class="plaque">complete</span></div>
-<a class="title" href="pdf/arboretum-complete.pdf">The Complete Arboretum</a>
+<a class="title" href="complete/">The Complete Arboretum</a>
 <p class="sub">Every volume in a single document</p>
-<div class="links"><a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
+<div class="links"><a href="complete/">Web</a>
+<a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -395,8 +422,8 @@ window.addEventListener('DOMContentLoaded', () => {{
   new PagefindUI({{ element: '#search', showSubResults: true }});
 }});
 </script>
-{complete}
 {chr(10).join(cards)}
+{complete}
 <footer class="foot">
 <p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
@@ -490,14 +517,17 @@ def postprocess(outdir):
     out = Path(outdir)
     for asset in ("mathjax", "@mathjax"):
         shutil.copytree(ROOT / "site" / asset, out / asset, dirs_exist_ok=True)
-    for vol, _group, _chip in VOLUME_META:
+    documents = [(vol, vol_title(vol)[0], vol)
+                 for vol, _group, _chip in VOLUME_META]
+    documents.append(("complete", "The Complete Arboretum",
+                      "arboretum-complete"))
+    for vol, title, pdf in documents:
         vdir = out / vol
         if not vdir.is_dir():
             continue
-        title, _ = vol_title(vol)
         bar = f"""<header class="arb-bar"><a class="wordmark" href="../"><span
 class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{title}</span>
-<a class="arb-pdf" href="../pdf/{vol}.pdf">PDF</a>
+<a class="arb-pdf" href="../pdf/{pdf}.pdf">PDF</a>
 {THEME_PICKER}
 <details class="arb-search"><summary>search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
@@ -521,11 +551,15 @@ document.querySelector('details.arb-search').addEventListener('toggle',
             t2 = t2.replace('href="../arboretum.css"',
                            f'href="../arboretum.css?v={ver()}"', 1)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)
+            if vol == "complete":
+                t2 = re.sub(r"<body", '<body data-pagefind-ignore', t2,
+                            count=1)
             t2 = re.sub(r"(<body[^>]*>)", r"\1" + bar.replace("\\", "\\\\"),
                         t2, count=1)
-            t2 = t2.replace('class="ltx_page_content"',
-                            'class="ltx_page_content" data-pagefind-body',
-                            1)
+            if vol != "complete":
+                t2 = t2.replace('class="ltx_page_content"',
+                                'class="ltx_page_content" data-pagefind-body',
+                                1)
             t2 = re.sub(
                 r'Generated\s+on [^<]+ by '
                 r'(<a [^>]*class="ltx_LaTeXML_logo"[\s\S]*?</a>)',

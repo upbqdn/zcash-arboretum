@@ -40,6 +40,12 @@ jobs:
                      "build/web/$vol.tex"
             cp "$vol.pdf" _site/pdf/
           done
+          latexmlc --dest="_site/complete/index.html" \
+                   --splitat=section --format=html5 \
+                   --navigationtoc=context \
+                   --css=../arboretum.css \
+                   --timeout=1800 \
+                   build/web/arboretum-complete.tex
       - name: Landing page and assets
         run: |
           python3 site/tools/sitegen.py landing --out _site
