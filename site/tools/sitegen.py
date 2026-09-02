@@ -512,9 +512,16 @@ the volumes, and where each is treated. Generated from the sources.</p>
 
 
 def postprocess(outdir):
-    """Inject the site bar and search into every built volume page, and
-    scope the search index to the document body."""
+    """Ensure the complete edition exists, then finish every HTML page."""
     out = Path(outdir)
+    complete = out / "complete"
+    if not complete.is_dir():
+        subprocess.run([
+            "latexmlc", f"--dest={complete / 'index.html'}",
+            "--splitat=section", "--format=html5",
+            "--navigationtoc=context", "--css=../arboretum.css",
+            "--timeout=1800", "build/web/arboretum-complete.tex",
+        ], cwd=ROOT, check=True)
     for asset in ("mathjax", "@mathjax"):
         shutil.copytree(ROOT / "site" / asset, out / asset, dirs_exist_ok=True)
     documents = [(vol, vol_title(vol)[0], vol)

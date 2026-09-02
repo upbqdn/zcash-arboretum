@@ -4,6 +4,7 @@
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent))
 import sitegen  # noqa: E402
@@ -49,12 +50,21 @@ with tempfile.TemporaryDirectory() as tmp:
         '<footer><div>Generated on today by '
         '<a class="ltx_LaTeXML_logo">LaTeXML</a></div></footer></body></html>')
     complete_page = out / "complete" / "index.html"
-    complete_page.parent.mkdir()
-    complete_page.write_text(
-        '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
-        '<body><main class="ltx_page_content"></main>'
-        '<footer><div></div></footer></body></html>')
-    sitegen.postprocess(out)
+    run = sitegen.subprocess.run
+
+    def build_complete(args, **kwargs):
+        if args[0] != "latexmlc":
+            return run(args, **kwargs)
+        assert args[-1] == "build/web/arboretum-complete.tex"
+        assert kwargs == {"cwd": sitegen.ROOT, "check": True}
+        complete_page.parent.mkdir()
+        complete_page.write_text(
+            '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
+            '<body><main class="ltx_page_content"></main>'
+            '<footer><div></div></footer></body></html>')
+
+    with patch.object(sitegen.subprocess, "run", side_effect=build_complete):
+        sitegen.postprocess(out)
     html = page.read_text()
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
     assert html.count('class="arb-theme"') == 1
