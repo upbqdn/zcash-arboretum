@@ -575,3 +575,27 @@ and re-verified by two independent agents against ground truth, zero
 failures. Swapped in gate-clean (51 pp, 0 overfull, 0 unresolved, 0
 zcashd, no activation heights). Rewrite text never mentions zcashd per
 the standing rule.
+
+## Rewrite: math-guide (2026-09-02)
+
+Second volume of the campaign. 457-claim inventory (145 theorems with
+proof ideas) → dependency-led architecture, both judges, with
+problem-hook openings grafted; 457/457 mapped, 0 drops; the 12 section
+titles other volumes cite preserved verbatim (citable surface). Draft:
+scripts-first (all 22 worked numbers regenerated, plus a new
+Euler-criterion proof that 13 is a non-square in both Pasta fields),
+then eight dependency waves. Battery: 22 coverage jurors, seam/number
+agents, statement-correctness hunter (all candidates refuted), and a
+proof-validity hunt that needed sharding per section after twice
+exceeding the output cap monolithically — 24 candidates, 17
+refuter-confirmed proof defects, among them a false order-3 argument
+(counterexample y^2 = x^3 + 4 over F_7), an unproved two-torsion
+trichotomy, wrong Tonelli–Shanks failure detection, a splitting-field
+existence circularity, a UFD-uniqueness induction gap, missing
+generalized associativity, Wald-identity interchange gaps, and two
+overclaimed complexity bounds. All 33 surgical findings repaired to
+mathematical validity and re-verified by two independent agents, zero
+failures; 32 coverage repairs, 49 flags rejected with reasons. Swapped
+in gate-clean: 120 pp (grew from 91 by carrying full proofs;
+subject-driven, no length targets), 0 overfull, 0 unresolved. The
+architecture's eight planned figures remain a logged follow-up pass.
