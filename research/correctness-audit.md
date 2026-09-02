@@ -555,3 +555,23 @@ first use; BFT/ECB/CTR were single-use and are gone. Full-series gate:
 15/15 compile, zero overfull, zero unresolved refs (crypto's 8 log hits
 are pre-existing `TU/lmr/m/scit` font-shape warnings, count unchanged
 from HEAD).
+
+## Rewrite pilot: ironwood-guide (2026-09-02)
+
+First volume of the from-scratch rewrite campaign (plan of record:
+`.wip/rewrite/PLAN.md`; baseline tag `pre-rewrite`). Method: 246-claim
+audited inventory as the spec → judged lifecycle-led architecture
+(claim-map an exact partition: 241 mapped, 5 duplicate/superseded drops)
+→ six-wave draft with compute-scripted numbers → full battery: 28
+coverage jurors (union-of-pair recall), seam/number/citation agents, two
+concept-inversion hunters with paired default-refute confirmation.
+Battery yield: 86 coverage repairs applied, 35 flags rejected with
+reasons, 12 seams and 6 number findings fixed, 8 confirmed inversions
+surgically corrected (inverted Merkle layer tag + propagations, false
+x-coordinate collision bridge, OR-as-AND unlinkability assumption,
+Sinsemilla CR theorem/proof scope mismatch, broken discharge promise,
+misattributed watermark soundness ×2, Poseidon/QROM discharge mismatch)
+and re-verified by two independent agents against ground truth, zero
+failures. Swapped in gate-clean (51 pp, 0 overfull, 0 unresolved, 0
+zcashd, no activation heights). Rewrite text never mentions zcashd per
+the standing rule.
