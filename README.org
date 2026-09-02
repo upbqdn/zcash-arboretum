@@ -70,7 +70,8 @@ Layered; read each atop the ones it names.
     assumption inventory sorted by reversibility, quantum mining, ZIP-2005's
     recoverability-not-resistance strategy, and the migration surface.
 
-Compiled PDFs are committed alongside the sources.
+Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
+combines every volume into one document.
 
 * Website
 

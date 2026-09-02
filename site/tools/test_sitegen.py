@@ -22,6 +22,11 @@ with tempfile.TemporaryDirectory() as tmp:
         assert ">Warm light</option>" in html
         assert ">Warm dark</option>" in html
 
+    landing = (out / "index.html").read_text()
+    assert landing.count('href="pdf/arboretum-complete.pdf"') == 2
+    assert "Every volume in a single document" in landing
+    assert (out / "pdf" / "arboretum-complete.pdf").is_file()
+
     page = out / "math-guide" / "index.html"
     page.parent.mkdir()
     page.write_text(

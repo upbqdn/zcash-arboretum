@@ -270,6 +270,8 @@ def omnibus():
     stripped), per-part counter resets + the volume's own macros as \\def
     (volumes disagree on eight macro bodies), per-volume label prefixing."""
     vols = volumes_present()
+    companions = {v for v, _group, chip in VOLUME_META
+                  if chip == "companion"}
     first = (ROOT / f"{vols[0]}.tex").read_text()
     pre_lines, seen, macro_free = [], set(), []
     for vol in vols:
@@ -287,6 +289,15 @@ def omnibus():
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
              "\\large The complete series in one volume}",
              "\\author{m@rek.onl}\n\\date{}",
+             "\\newcounter{arbvolume}\n"
+             "\\renewcommand*{\\theHsection}{\\arabic{arbvolume}.\\arabic{section}}\n"
+             "\\renewcommand*{\\theHsubsection}{\\theHsection.\\arabic{subsection}}\n"
+             "\\renewcommand*{\\theHsubsubsection}{\\theHsubsection.\\arabic{subsubsection}}\n"
+             "\\renewcommand*{\\theHparagraph}{\\theHsubsubsection.\\arabic{paragraph}}\n"
+             "\\renewcommand*{\\theHtheorem}{\\theHsection.\\arabic{theorem}}\n"
+             "\\renewcommand*{\\theHequation}{\\theHsection.\\arabic{equation}}\n"
+             "\\renewcommand*{\\theHfigure}{\\arabic{arbvolume}.\\arabic{figure}}\n"
+             "\\renewcommand*{\\theHtable}{\\arabic{arbvolume}.\\arabic{table}}",
              "\\begin{document}\n\\maketitle\n\\thispagestyle{empty}",
              "\\clearpage\n\\tableofcontents\n\\clearpage"]
     for vol in vols:
@@ -313,11 +324,16 @@ def omnibus():
             body)
         body = re.sub(r"(\\hyperref\[)([^\]]+)\]",
                       lambda m: f"{m.group(1)}{short}:{m.group(2)}]", body)
+        heading = (f"\\part*{{{title}: {sub}}}\n"
+                   f"\\phantomsection\\addcontentsline{{toc}}{{part}}"
+                   f"{{{title}: {sub}}}"
+                   if vol in companions else f"\\part{{{title}: {sub}}}")
         parts.append(
             "\\clearpage\n"
+            "\\stepcounter{arbvolume}\n"
             "\\setcounter{section}{0}\\setcounter{equation}{0}"
             "\\setcounter{figure}{0}\\setcounter{table}{0}\n"
-            f"\\part{{{title}: {sub}}}\n" + "\n".join(macros) + "\n" + body)
+            f"{heading}\n" + "\n".join(macros) + "\n" + body)
     parts.append("\\end{document}")
     out = ROOT / "arboretum-complete.tex"
     out.write_text("\n".join(parts))
@@ -348,6 +364,14 @@ def landing(outdir):
     for group, items in groups.items():
         cards.append(f'<h3 class="grp">{group}</h3><ol class="plates">'
                      + "\n".join(items) + "</ol>")
+    complete = """<h3 class="grp">Complete edition</h3><ol class="plates">
+<li class="plate">
+<div class="label"><span class="acc">all volumes</span>
+<span class="plaque">complete</span></div>
+<a class="title" href="pdf/arboretum-complete.pdf">The Complete Arboretum</a>
+<p class="sub">Every volume in a single document</p>
+<div class="links"><a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
+</ol>"""
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -371,10 +395,10 @@ window.addEventListener('DOMContentLoaded', () => {{
   new PagefindUI({{ element: '#search', showSubResults: true }});
 }});
 </script>
+{complete}
 {chr(10).join(cards)}
 <footer class="foot">
-<p><a href="concordance.html">Concordance</a> &middot;
-<a href="pdf/arboretum-complete.pdf">Complete edition (PDF)</a> &middot; Spotted an error?
+<p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
 </footer>
 </main></body></html>

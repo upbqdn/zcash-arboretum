@@ -556,7 +556,7 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
    links keep the conifer. LaTeXML marks refs with .ltx_ref. */
 .ltx_page_main a.ltx_ref {
   color: var(--ink);
-  text-decoration: underline dotted var(--leafline) 1px;
+  text-decoration: underline solid color-mix(in srgb, var(--ink) 40%, transparent) 1px;
   text-underline-offset: 3px;
 }
 .ltx_page_main a.ltx_ref:hover { color: var(--conifer); text-decoration-color: var(--conifer); }
