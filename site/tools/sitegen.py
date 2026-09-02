@@ -261,6 +261,69 @@ def ver():
                           cwd=ROOT).stdout.strip() or "0"
 
 
+MACRO_RE = re.compile(r"\\(?:re)?newcommand\{(\\[A-Za-z]+)\}(\[\d\])?\{(.*)\}\s*$")
+
+
+def omnibus():
+    """Generate arboretum-complete.tex: every volume as a \\part of one
+    document. Mechanical: shared preamble (packages etc. deduped, macros
+    stripped), per-part counter resets + the volume's own macros as \\def
+    (volumes disagree on eight macro bodies), per-volume label prefixing."""
+    vols = volumes_present()
+    first = (ROOT / f"{vols[0]}.tex").read_text()
+    pre_lines, seen, macro_free = [], set(), []
+    for vol in vols:
+        pre = preamble_of((ROOT / f"{vol}.tex").read_text())
+        for ln in pre.splitlines():
+            s = ln.strip()
+            if (not s or s.startswith(("\\title", "\\author", "\\date"))
+                    or MACRO_RE.match(s)):
+                continue
+            if ln not in seen:
+                seen.add(ln)
+                macro_free.append(ln)
+    parts = ["\n".join(macro_free),
+             "\\setcounter{tocdepth}{1}",
+             "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
+             "\\large The complete series in one volume}",
+             "\\author{m@rek.onl}\n\\date{}",
+             "\\begin{document}\n\\maketitle\n\\thispagestyle{empty}",
+             "\\clearpage\n\\tableofcontents\n\\clearpage"]
+    for vol in vols:
+        text = (ROOT / f"{vol}.tex").read_text()
+        title, sub = vol_title(vol)
+        short = vol.replace("-guide", "").replace("halo2-intuition", "h2i")
+        macros = []
+        for ln in preamble_of(text).splitlines():
+            m = MACRO_RE.match(ln.strip())
+            if m:
+                name, nargs, body = m.group(1), m.group(2), m.group(3)
+                args = "".join(f"#{i+1}" for i in range(int(nargs[1:-1]))) \
+                    if nargs else ""
+                macros.append(f"\\def{name}{args}{{{body}}}")
+        body = text.split("\\begin{document}", 1)[1].rsplit("\\end{document}", 1)[0]
+        for drop in ("\\maketitle", "\\thispagestyle{empty}",
+                     "\\tableofcontents"):
+            body = body.replace(drop + "\n", "").replace(drop, "")
+        body = re.sub(r"(\\clearpage\s*)+", "\n", body, count=2)
+        body = re.sub(
+            r"(\\(?:label|ref|eqref|pageref|autoref|cref|Cref)\{)([^}]+)\}",
+            lambda m: m.group(1) + ",".join(
+                f"{short}:{x.strip()}" for x in m.group(2).split(",")) + "}",
+            body)
+        body = re.sub(r"(\\hyperref\[)([^\]]+)\]",
+                      lambda m: f"{m.group(1)}{short}:{m.group(2)}]", body)
+        parts.append(
+            "\\clearpage\n"
+            "\\setcounter{section}{0}\\setcounter{equation}{0}"
+            "\\setcounter{figure}{0}\\setcounter{table}{0}\n"
+            f"\\part{{{title}: {sub}}}\n" + "\n".join(macros) + "\n" + body)
+    parts.append("\\end{document}")
+    out = ROOT / "arboretum-complete.tex"
+    out.write_text("\n".join(parts))
+    print(f"wrote {out} ({len(vols)} parts)")
+
+
 def landing(outdir):
     groups, n = {}, 0
     for vol, group, chip in VOLUME_META:
@@ -310,13 +373,19 @@ window.addEventListener('DOMContentLoaded', () => {{
 </script>
 {chr(10).join(cards)}
 <footer class="foot">
-<p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
+<p><a href="concordance.html">Concordance</a> &middot;
+<a href="pdf/arboretum-complete.pdf">Complete edition (PDF)</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
 </footer>
 </main></body></html>
 """
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
+    comp = ROOT / "arboretum-complete.pdf"
+    if comp.exists():
+        import shutil
+        (out / "pdf").mkdir(parents=True, exist_ok=True)
+        shutil.copy(comp, out / "pdf" / comp.name)
     (out / "index.html").write_text(html)
     print(f"wrote {out / 'index.html'}")
 
@@ -463,6 +532,8 @@ if __name__ == "__main__":
         landing(sys.argv[sys.argv.index("--out") + 1])
     elif mode == "concordance":
         concordance(sys.argv[sys.argv.index("--out") + 1])
+    elif mode == "omnibus":
+        omnibus()
     elif mode == "postprocess":
         postprocess(sys.argv[sys.argv.index("--out") + 1])
     else:

@@ -2607,7 +2607,7 @@ absent, and no \texttt{reserved} statement documents the gap
 
 \begin{remark}[Byte-order warts]\label{rem:sync-tree-byteorder}
 Two byte-order pitfalls attach to these messages. First,
-\texttt{SubtreeRoot.completingBlockHash} is sent in big-endian display
+\texttt{SubtreeRoot.\allowbreak completingBlockHash} is sent in big-endian display
 order --- \textsf{lightwalletd} sets it to
 \texttt{hash32.}\allowbreak\texttt{ReverseSlice(block.Hash)} --- which
 is the \emph{opposite}
@@ -2615,10 +2615,10 @@ convention from \texttt{CompactBlock.\allowbreak hash}, parsed into
 little-endian
 wire order; the proto documents neither convention
 (\textsf{lightwalletd}, \texttt{frontend/service.go:896--900};
-\texttt{parser/block.go:59--61,115}). The reference client sidesteps the
-trap by ignoring \texttt{completingBlockHash} entirely, reading only
-\texttt{rootHash} and \texttt{completingBlockHeight}
-(\textsf{zcash\_client\_backend}, \texttt{src/sync.rs:247--253}).
+\texttt{parser/\allowbreak block.go:59--61,115}). The reference client sidesteps the
+trap by ignoring \texttt{completing\allowbreak BlockHash} entirely, reading only
+\texttt{rootHash} and \texttt{completing\allowbreak BlockHeight}
+(\textsf{zcash\_client\_backend}, \texttt{src/\allowbreak sync.rs:247--253}).
 Zaino constructs the field as the block hash's
 \texttt{bytes\_in\_display\_order()}
 (\texttt{zaino-state/src/}\allowbreak\texttt{indexer.rs:854--861}),
