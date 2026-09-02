@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as tmp:
     landing = (out / "index.html").read_text()
     assert landing.count('href="complete/"') == 2
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
-    assert "Every volume in a single document" in landing
+    assert "Foundations, deployed protocol, and frontier designs" in landing
     assert landing.index('<h3 class="grp">Frontier</h3>') < landing.index(
         '<h3 class="grp">Complete edition</h3>')
     assert (out / "pdf" / "arboretum-complete.pdf").is_file()

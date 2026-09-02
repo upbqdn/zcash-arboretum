@@ -46,10 +46,11 @@ OMNIBUS_INTRO = r"""\phantomsection
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
 \markboth{Introduction}{}
-This complete edition gathers every numbered volume of \emph{The Zcash
-Arboretum} and its \emph{How Halo~2 Proves} companion into one document.  It
-adds no new protocol claims: each part is the same non-normative text published
-separately, and the protocol specification and ZIPs remain authoritative.
+\emph{The Zcash Arboretum} is a non-normative guide to the mathematics,
+cryptography, and engineering of the Zcash protocol.  It covers the
+foundations of Halo~2 and Orchard, deployed consensus and wallet protocols,
+and designs being explored beyond them.  The protocol specification and ZIPs
+remain authoritative.
 
 The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
 Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
@@ -312,7 +313,7 @@ def omnibus(srcdir=ROOT, out=None):
     parts = ["\n".join(macro_free),
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
-             "\\large The complete series in one volume}",
+             "\\large Foundations, deployed protocol, and frontier designs}",
              ("\\author{}\n\\date{}" if srcdir == WEBDIR
               else "\\author{m@rek.onl}\n\\date{}"),
              "\\newcounter{arbvolume}\n"
@@ -395,7 +396,7 @@ def landing(outdir):
 <div class="label"><span class="acc">all volumes</span>
 <span class="plaque">complete</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
-<p class="sub">Every volume in a single document</p>
+<p class="sub">Foundations, deployed protocol, and frontier designs</p>
 <div class="links"><a href="complete/">Web</a>
 <a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
