@@ -345,6 +345,9 @@ def omnibus(srcdir=ROOT, out=None):
                      "\\tableofcontents"):
             body = body.replace(drop + "\n", "").replace(drop, "")
         body = re.sub(r"(\\clearpage\s*)+", "\n", body, count=2)
+        if srcdir == WEBDIR:
+            body = body.replace("\\begin{abstract}", "").replace(
+                "\\end{abstract}", "")
         body = re.sub(
             r"(\\(?:label|ref|eqref|pageref|autoref|cref|Cref)\{)([^}]+)\}",
             lambda m: m.group(1) + ",".join(

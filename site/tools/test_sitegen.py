@@ -39,6 +39,24 @@ with tempfile.TemporaryDirectory() as tmp:
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" in complete_tex
 
+    webdir = out / "web"
+    webdir.mkdir()
+    (webdir / "math-guide.tex").write_text(r"""\documentclass{article}
+\begin{document}
+\begin{abstract}
+Volume summary.
+\end{abstract}
+\section{First section}
+\end{document}
+""")
+    web_omnibus = out / "web-complete.tex"
+    with patch.object(sitegen, "WEBDIR", webdir):
+        sitegen.omnibus(webdir, web_omnibus)
+    web_tex = web_omnibus.read_text()
+    assert "\\begin{abstract}" not in web_tex
+    assert web_tex.index("Volume summary.") < web_tex.index(
+        "\\section{First section}")
+
     page = out / "math-guide" / "index.html"
     page.parent.mkdir()
     page.write_text(
