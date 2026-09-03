@@ -538,9 +538,9 @@ source.
 The interface-stability goal above is why the deployed-stack volumes
 remain accurate under Crosslink and why this volume cites rather than
 re-derives them. Anchor semantics and reorg behaviour of the commitment
-tree are those of the \emph{Ironwood Guide} (\S``Proof of ownership of
-\emph{some} valid note: the commitment tree'', in particular ``Anchor
-choice as the tree grows''); what a wallet counts as confirmed is the
+tree are those of the \emph{Ironwood Guide} (\S``Resting: the note in the
+commitment tree'', in particular ``Anchor choice, reorgs, and the anonymity
+set''); what a wallet counts as confirmed is the
 \emph{Wallet Guide}'s ZIP-315 \texttt{ConfirmationsPolicy} and expiry
 treatment (\S``Transaction construction'' and \S``Broadcast, expiry, and
 the transaction lifecycle''), whose trusted/untrusted depths are exactly
@@ -1073,8 +1073,8 @@ consensus provides finality; the constant is a node policy, which is
 precisely the gap Crosslink addresses.
 %% TODO: reconcile with the Ironwood Guide's anchor caveat, which cites
 %% ``anchoring at least 100 blocks deep (Zcash's reorg limit)''
-%% (\emph{Ironwood Guide}, \S``Proof of ownership of \emph{some} valid
-%% note: the commitment tree''); the 100-block figure is zcashd lineage,
+%% (\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree''); the
+%% 100-block figure is zcashd lineage,
 %% the 1000-block constant is Zebra's. State both or neither, with crate
 %% cites, after checking zcashd.
 
@@ -1124,7 +1124,7 @@ handled (the height-bounded validity of ZIP-203; \emph{Wallet Guide},
 \S``Expiry (ZIP-203)''), but missing anchors break the argument, because
 a transaction invalid for a missing anchor can become valid later
 (anchors are the tree roots developed in the \emph{Ironwood Guide},
-\S``Proof of ownership of \emph{some} valid note: the commitment tree'').
+\S``Resting: the note in the commitment tree'').
 %% RESOLVED 2026-07-15: read arXiv:2010.10447v1 (2020-10-20;
 %% accountability + light clients). Its LC-block reference to the
 %% last-final BFT block with a monotonicity condition anticipates the
@@ -1544,8 +1544,8 @@ heuristic depths (\emph{Wallet Guide}, \S``Confirmations, trust, and
 spendability'') and recover from rollbacks by truncate-and-rescan
 (\emph{Wallet Guide}, \S``Reorganisations: truncate and rescan''); an
 Orchard anchor is only as settled as the chain suffix beneath it
-(\emph{Ironwood Guide}, \S``Proof of ownership of \emph{some} valid note:
-the commitment tree''); and the coin-weighted vote fixes its electorate at
+(\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree''); and
+the coin-weighted vote fixes its electorate at
 a snapshot height that nothing today prevents from reorganising
 (\emph{Voting Guide}, \S``The snapshot roots: posted, never verified'').
 Crosslink~2 is the construction intended to replace those heuristics with
@@ -2076,8 +2076,7 @@ rollback (\texttt{construction.md}:497--499). This is precisely the
 service today's applications lack: wallets repair rollbacks after the
 fact by truncate-and-rescan (\emph{Wallet Guide}, \S``Reorganisations:
 truncate and rescan''), and anchor validity tracks the unfinalized chain
-(\emph{Ironwood Guide}, \S``Proof of ownership of \emph{some} valid note:
-the commitment tree'').
+(\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree'').
 
 \begin{lemma}[Local fin-depth]\label{lem:xl-fin-depth}
 In any execution of Crosslink~2, for any node $i$ honest at time $t$,
@@ -2575,8 +2574,8 @@ delegations were considered and deferred to future versions, prioritizing
 time-to-market (ibid.). The 2025-10/11 design predates NU6.3's pool
 terminology: read ``the Orchard pool'' there as the Orchard-protocol
 shielded pool --- since NU6.3, the Ironwood pool. That pool is the one this
-series constructs in the \emph{Ironwood Guide} (\S``Representation of a
-note: notes and note commitments''); nothing below alters its note
+series constructs in the \emph{Ironwood Guide} (\S``The note and its
+commitment''); nothing below alters its note
 machinery.
 
 \begin{definition}[Staking position, roster, stake weight, active set]
@@ -2643,7 +2642,7 @@ staking-action field carrying four abstract actions
 Value flows must balance per the Zcash protocol specification's chain
 value pool accounting (\S4.17); the Orchard side of that balance is the
 value-commitment machinery of the \emph{Ironwood Guide} (\S``Conservation
-of value: value commitments and the binding signature''). The draft
+without disclosure: value commitments and the binding signature''). The draft
 consensus rules, verbatim from the implementation book
 (\texttt{book/src/design/nutshell.md} at \texttt{6d02a1b8}):
 
@@ -3464,8 +3463,8 @@ consensus splits'' (\texttt{zebra} @ \texttt{9f3166b9},
 The lesson for prose about pre-Crosslink ``de facto finality'': the
 rollback depth is node policy, not consensus, and it currently differs by
 a factor of ten between upstream and the very fork implementing
-Crosslink. The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Proof of
-ownership of \emph{some} valid note: the commitment tree'') states the
+Crosslink. The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Resting:
+the note in the commitment tree'') states the
 same policy-not-limit framing, and the \emph{Consensus Guide} owns the
 full three-way divergence register --- specification, retired
 \textsf{zcashd}, deployed \textsf{zebra} --- in \S``Reorg rails,
@@ -3487,8 +3486,8 @@ non-contextual new block rules (tfl-book \texttt{construction.md}:267,
 701--703). The Orchard anchor rule is therefore inherited as-is: a spend
 may reference the treestate of \emph{any} main-chain block from Orchard
 activation onward, with no sliding window (\emph{Ironwood Guide},
-\S``Proof of ownership of \emph{some} valid note: the commitment tree'',
-paragraph ``Anchor choice as the tree grows''; mainnet floor 1{,}687{,}104)
+\S``Resting: the note in the commitment tree'', paragraph ``Anchor choice,
+reorgs, and the anonymity set''; mainnet floor 1{,}687{,}104)
 --- where ``main chain'' now means the $\mathsf{localba}$ history. No
 source restricts spend anchors to the finalized prefix: not the tfl-book,
 not the SL~book, not the implementation (grep over
@@ -4359,8 +4358,8 @@ black-box PoW chain: the \emph{Wallet Guide} documents the ZIP-315
 \texttt{ConfirmationsPolicy} with trusted depth $3$ and untrusted depth
 $10$ (\S``Transaction construction'', Definition ``Confirmations
 policy''), and the \emph{Ironwood Guide} records the 100-block reorg
-horizon governing anchor robustness (\S``Proof of ownership of
-\emph{some} valid note: the commitment tree''). Crosslink would add a
+horizon governing anchor robustness (\S``Resting: the note in the commitment
+tree''). Crosslink would add a
 protocol-level notion beneath both: finality status is the sole
 ``height-eventual'' ledger state it introduces --- computable for height
 $H$ only from a later attesting block, with the guarantee that if the

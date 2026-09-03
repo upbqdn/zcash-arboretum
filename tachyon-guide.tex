@@ -360,9 +360,8 @@ An Orchard wallet reconstructs its state from the public chain. To detect its
 notes it trial-decrypts every published Action from its birthday height
 onward, and to keep its authentication paths current it ingests every
 published commitment --- its own and everyone else's --- into a pruned local
-tree (the \emph{Ironwood Guide}, \S``Transmission and detection of a note:
-encryption, trial decryption, and synchronisation'' and \S``Proof of
-ownership of \emph{some} valid note: the commitment tree''; the deployed
+tree (the \emph{Ironwood Guide}, \S``Delivery: the note reaches its owner'' and
+\S``Resting: the note in the commitment tree''; the deployed
 mechanism is librustzcash's \textsf{shardtree}). Both costs scale with global
 chain traffic, not with the wallet's own activity. Tachyon inverts the
 relationship: the wallet holds a \emph{proof} of its own spendability ---
@@ -474,8 +473,8 @@ bin except where noted.
 which Action pays a wallet, so detection is exhaustive: the wallet
 trial-decrypts every Orchard output from its birthday height, and
 restore-from-seed replays that scan over the entire chain since the birthday
-(\emph{Ironwood Guide}, \S``Transmission and detection of a note: encryption,
-trial decryption, and synchronisation''). Under Tachyon the wallet never
+(\emph{Ironwood Guide}, \S``Delivery: the note reaches its owner''). Under
+Tachyon the wallet never
 scans. Detection and delivery move to the payment channel
 (\S\ref{sec:tachyon-payments}), and the absence-tracking that
 synchronisation actually requires is delegated to a service that works only
@@ -503,8 +502,8 @@ not project figures.
 \paragraph{Per-note witness maintenance.} Today the wallet appends every
 published $\cmx$ to a pruned local shard tree, marks the positions of its own
 notes, stores a checkpoint per block, and rebuilds each authentication path
-on demand from retained subtree roots (\emph{Ironwood Guide}, \S``Proof of
-ownership of \emph{some} valid note: the commitment tree''; the design of
+on demand from retained subtree roots (\emph{Ironwood Guide}, \S``Resting: the
+note in the commitment tree''; the design of
 librustzcash's \textsf{shardtree}). Tachyon has no note commitment tree.
 Pool state is a hash chain (\S\ref{sec:tachyon-validators}); membership of
 the note's creation is proven once, when \texttt{SpendableInit} checks
@@ -578,8 +577,8 @@ data-availability or incentive design exists (\S\ref{sec:tachyon-open-da}).
 
 Removing detection-by-trial-decryption reopens the question the deployed
 protocol answers with in-band secret distribution (\emph{Ironwood Guide},
-\S``Transmission and detection of a note: encryption, trial decryption, and
-synchronisation''): how does the recipient learn of the note? The project's
+\S``Delivery: the note reaches its owner''): how does the recipient learn of
+the note? The project's
 answer changed in May 2026. We present both stages and date every statement;
 all quotations are verbatim from the cited artifacts.
 
@@ -810,7 +809,7 @@ $\mathsf{pk}$, a wrong $\cmsym$, and inclusion fails.
 The Orchard contrast: the root $\mathsf{sk}$, the $\mathsf{PRFexpand}$
 construction, the $\ask \to \aksym$ derivation with the same sign
 normalization, and RedPallas re-randomization survive (the \emph{Ironwood
-Guide}, \S``Keys: capabilities for spending and for viewing''; tag bytes
+Guide}, \S``The recipient: keys and addresses''; tag bytes
 differ, $\mathtt{0x06}$/$\mathtt{0x07}$/$\mathtt{0x08}$ against
 $\mathtt{0x21}$/$\mathtt{0x22}$), while $\rivk$, $\fvk = (\aksym, \nksym,
 \rivk)$, $\ivk$, $\dk$, $\ovk$, the FF1-AES256 diversifier $d$, $\gd$, and
@@ -849,14 +848,14 @@ epoch $e+1$, as its tachygrams (book, \texttt{src/notes.md} @
 The Orchard contrast: an Orchard note is a 5-tuple
 $(\mathsf{addr} = (d, \pkd), v, \rho, \psi, \rcm)$ under a perfectly
 hiding Sinsemilla $\NoteCommit$, with $v \in [0, 2^{64})$ (the
-\emph{Ironwood Guide}, \S``Representation of a note: notes and note
-commitments'') and load-bearing zero-value dummies (\emph{Ironwood Guide},
+\emph{Ironwood Guide}, \S``The note and its commitment'') and load-bearing
+zero-value dummies (\emph{Ironwood Guide},
 \S``The Action statement, formally''); Tachyon drops the address and
 $\rho$ entirely --- ``no diversifier, no rho, no unique value for faerie
 gold defense'' since ``the nullifier construction doesn't require global
 uniqueness'' (\texttt{crates/tachyon/src/note.rs}) --- so where Orchard
 chains $\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}}$ (\emph{Ironwood
-Guide}, \S``Prevention of double-spending: nullifiers''), $\psi$ reuse
+Guide}, \S``The nullifier, and the loop back to minting''), $\psi$ reuse
 here harms only the owner (\S\ref{sec:tachyon-dbu-nf}).
 
 \paragraph{Classification.} \emph{Designed but unspecified}, and the
@@ -922,7 +921,7 @@ The Orchard contrast: Orchard derives \emph{one} nullifier per note,
 $\nfsym = \Extract\bigl([F_{\nksym}(\rho) + \psi]\,\mathcal{G}^{\nfsym} +
 \cmsym\bigr)$ --- a Poseidon PRF plus a curve point --- checked against the
 global, ever-growing nullifier set (the \emph{Ironwood Guide},
-\S``Prevention of double-spending: nullifiers''); Tachyon replaces it with
+\S``The nullifier, and the loop back to minting''); Tachyon replaces it with
 a per-epoch sequence, pure Poseidon with no curve point and no
 $\Extract$, checked only over the two-epoch window of
 \S\ref{sec:tachyon-validators}.
@@ -1122,8 +1121,8 @@ shape as any other and is eligible for further aggregation.
 
 The Orchard contrast: Orchard proves membership on every spend via a
 32-layer Sinsemilla Merkle path against a per-block tree anchor (the
-\emph{Ironwood Guide}, \S``Proof of ownership of \emph{some} valid note: the
-commitment tree''); the no-tree, proven-once replacement is stated at
+\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree''); the
+no-tree, proven-once replacement is stated at
 \S\ref{sec:tachyon-removes}.
 
 \paragraph{Classification.} \emph{Designed but unspecified} throughout:
@@ -1281,13 +1280,13 @@ signature uses \texttt{reddsa::orchard::Binding}, hardcoding $\mathcal{R}$
 
 The Orchard contrast: the value machinery is identical by construction ---
 same Pedersen $\cvsym$, same $\mathsf{bvk}$ equation, literally the same
-generators (the \emph{Ironwood Guide}, \S``Conservation of value: value
-commitments and the binding signature'') --- while the randomizer differs
+generators (the \emph{Ironwood Guide}, \S``Conservation without disclosure:
+value commitments and the binding signature'') --- while the randomizer differs
 in kind: Orchard draws $\alpha$ uniformly at random per Action with no
-planner/custody split (\emph{Ironwood Guide}, \S``Authorisation of the
-spend: RedPallas''), and every Orchard Action is a paired
+planner/custody split (\emph{Ironwood Guide}, \S``Spend authorisation:
+RedPallas re-randomisation''), and every Orchard Action is a paired
 spend-plus-output carrying one \textsf{SpendAuthSig} (\emph{Ironwood
-Guide}, \S``A single shielded payment, end to end''; \S``What a node
+Guide}, \S``One Action, one payment: the walkthrough''; \S``What a node
 verifies, without ever observing the note'').
 
 \paragraph{Classification.} This is the \emph{specified}-as-code side of
@@ -1348,8 +1347,10 @@ bundle and from a bundle with no actions and zero balance
 
 The Orchard contrast: the construction mirrors the ZIP-244
 personalized-BLAKE2b pattern of \texttt{ZTxIdOrchardHash} (the
-\emph{Ironwood Guide}, \S``Conservation of value: value commitments and the
-binding signature'', paragraph ``The transaction digest (ZIP-244)''); the
+\emph{Ironwood Guide}, \S``Conservation without disclosure: value commitments
+and the binding signature'', subsection ``What the signatures sign: the
+ZIP-244 digest and its v6 form'');
+the
 novelty is that the entire stamp rides \texttt{auth\_digest}, keeping
 \texttt{txid} invariant under aggregation.
 
@@ -2240,7 +2241,7 @@ not.
 \label{sec:tachyon-pq-intersection}
 
 The post-quantum analysis of this series (the \emph{Ironwood Guide},
-\S``Post-quantum security of the Orchard protocol'') reaches one headline
+\S``The horizon: quantum adversaries and recoverability'') reaches one headline
 conclusion about deployed Orchard: exactly one quantum
 threat is retroactive. Note encryption is the canonical
 harvest-now-decrypt-later target --- every

@@ -599,3 +599,50 @@ failures; 32 coverage repairs, 49 flags rejected with reasons. Swapped
 in gate-clean: 120 pp (grew from 91 by carrying full proofs;
 subject-driven, no length targets), 0 overfull, 0 unresolved. The
 architecture's eight planned figures remain a logged follow-up pass.
+
+## Fresh whole-corpus audit (2026-09-03)
+
+This pass restarted from the 15 published source volumes and treated the
+earlier claim-ledger work as evidence to recheck, not as a substitute for a
+fresh gate.  Time-sensitive protocol statements were differentially checked
+against current primary trees: `zips` `dd1667ff` (2026-09-01),
+`librustzcash` `bb1ca12`, `orchard` `be4f659`, and `zebra` `0881709`.
+Pinned historical and frontier claims remain explicitly pinned.
+
+Two substantive drift defects were found and corrected.  ZIP-258 now records
+both activation heights and minimum network protocol version 170160, so the
+claim that those fields were still undetermined was removed.  ZIP-318 is now a
+Draft wallet specification rather than a Reserved stub; the Ironwood volume
+now states its canonical denominations and residual, transaction shapes,
+anchor/expiry grids, scheduling, consent, and optional network-privacy rules.
+A separate integration defect affected prose citations after the Ironwood
+rewrite: dependent volumes still named headings from the replaced edition.
+Those citations were retargeted to the exact current citable surface.
+
+Three independent closing checks passed:
+
+1. **Source and claim invariants.**  All 15 volumes contain one abstract;
+   1,697 labels and 2,658 local references resolve without duplicates or
+   missing targets.  The generated complete edition contains the same 1,697
+   prefixed labels and 2,661 resolving references.  A separate title-level
+   check found 1,972 citable headings and verified all 272 cross-volume prose
+   citations.  Every explicit ZIP status assertion was checked against the
+   current ZIP headers.  All 31 retained numerical verification programs
+   passed, including exact recomputation of all 250 cells in each of the two
+   consensus tables.
+2. **PDF gate.**  Tectonic rebuilt all 15 standalone volumes and the complete
+   edition.  All 16 logs are free of errors, undefined references, duplicate
+   destinations, missing glyphs, and overfull boxes.  Text extraction found no
+   unresolved `??` markers; all fonts in all 16 PDFs are embedded, subset, and
+   Unicode-mapped.
+3. **Web gate.**  The site-generator regression suite passed.  It produced 16
+   web sources with no residual TikZ or PDF-only font preambles; every
+   generated label and reference resolves.  The generated-site controls,
+   complete-edition structure, theorem/proof postprocessing, local MathJax,
+   theme selector, landing links, and feedback links all passed their
+   assertions.
+
+Result: no remaining published-corpus correctness defect was found by the
+closing gates.  Literal TODO/FIXME text that remains in the rendered volumes is
+quoted evidence of known incompleteness in upstream drafts or implementations,
+not unfinished Arboretum prose.

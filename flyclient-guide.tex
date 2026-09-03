@@ -228,13 +228,13 @@ local copy is \texttt{.wip/flyclient-drafts/eprint-2019-226.pdf}.}
 
 This volume assumes the \emph{Ironwood Guide} for everything inside a block
 --- notes, commitments, anchors, the NU5 transaction format --- and cites its
-treatment of the note-commitment tree (\S``Proof of ownership of \emph{some}
-valid note: the commitment tree'') rather than re-deriving Merkle mechanics;
+treatment of the note-commitment tree (\S``Resting: the note in the commitment
+tree'') rather than re-deriving Merkle mechanics;
 the general theory of commitments and collision resistance is the
 \emph{Crypto Guide}'s (\S``Commitment schemes''). The \emph{Sync Guide} owns
 the deployed light-client layer whose central trust assumption --- the
 node/proxy combination ``is trusted to provide a correct view of the current
-best chain state'' (ZIP~307, \S``Security Model'') --- is precisely the
+best chain state'' (ZIP~307, \S``The stated security model'') --- is precisely the
 assumption a FlyClient bridge would discharge; this volume owns that
 cross-reference. Toward the
 frontier volumes the relationship is converse: the \emph{Tachyon Guide}
@@ -1376,7 +1376,7 @@ against the field widths), with \texttt{hashChainHistoryRoot} changing
 ``only through the added node fields'' and
 \texttt{hashBlockCommitments} otherwise unaffected. That trio is the
 one this series' Ironwood volume already cites at its turnstile
-(\emph{Ironwood Guide}, \S``Migration and the turnstile''). ZIP-258 remains
+(\emph{Ironwood Guide}, \S``The turnstile and migration''). ZIP-258 remains
 Draft as a document, but these rules and fields are active consensus and are
 implemented by Zebra; the ZIP proposes that \textsf{zcashd} will not
 implement NU6.3.

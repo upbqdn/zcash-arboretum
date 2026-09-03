@@ -142,8 +142,8 @@ flags the divergence.
 \section{Compact blocks (ZIP-307)}\label{sec:sync-compact}
 
 A wallet that trusts no server detects its notes by trial-decrypting every
-shielded output on the chain (\emph{Ironwood Guide}, \S``Transmission and
-detection of a note: encryption, trial decryption, and synchronisation'').
+shielded output on the chain (\emph{Ironwood Guide}, \S``Delivery: the note
+reaches its owner'').
 That obligation costs twice: one key agreement of computation per output, and
 the bandwidth of downloading every output. ZIP~307 (\emph{Light Client
 Protocol for Payment Detection}) attacks the bandwidth half. A \emph{compact
@@ -457,8 +457,8 @@ giving $580$ bytes (\textsf{zcash\_note\_encryption}~0.4.1,
 ``contain the contents and opening of the note commitment, which is all of
 the data needed to spend the note and to verify that the note is spendable''
 (ZIP~307, ``Output Compression''). The \emph{Ironwood Guide} constructs
-compact decryption for Orchard in \S``Transmission and detection of a note:
-encryption, trial decryption, and synchronisation''; we do not repeat the
+compact decryption for Orchard in \S``Delivery: the note reaches its owner'';
+we do not repeat the
 construction, and record here only the deployed mechanics and the integrity
 argument.
 
@@ -494,7 +494,7 @@ the note commitment from the decrypted plaintext and compares against the
 on-chain $\mathsf{cmu}$, itself authenticated by the binding signature over
 the transaction (ZIP~307, ``Output Compression''). Condition~(iii) is the
 deployed strengthening beyond the tag: it defeats a mauled ephemeral key
-(\emph{Ironwood Guide}, \S``Transmission and detection of a note'').
+(\emph{Ironwood Guide}, \S``Delivery: the note reaches its owner'').
 
 \paragraph{Lead byte and the ZIP-212 grace period.} The lead byte is
 $\mathtt{0x01}$ pre-Canopy and $\mathtt{0x02}$ under ZIP-212; deployed code
@@ -547,9 +547,9 @@ where $\mathrm{offset}(tx)$ counts the outputs of earlier transactions in
 the block (\texttt{PositionTracker::}\allowbreak%
 \texttt{\{sapling,orchard\}\_note\_position}). The
 shardtree that consumes these marks is constructed in the \emph{Ironwood
-Guide}, \S``Proof of ownership of \emph{some} valid note: the commitment
-tree''; the observation that a light wallet reads positions directly off the
-block appears in \S``Transmission and detection of a note''.
+Guide}, \S``Resting: the note in the commitment tree''; the observation that a
+light wallet reads positions directly off the
+block appears in \S``Delivery: the note reaches its owner''.
 
 Positions are load-bearing, not merely convenient: the
 \texttt{TreeSizeUnknown} doc-comment records that without the tree size it
@@ -673,8 +673,8 @@ note witnesses'') --- describes the pre-shardtree design. The deployed
 replacement is the position-marked shardtree fed by \texttt{GetSubtreeRoots}
 (RPC added in \textsf{lightwallet-protocol} v0.3.5;
 \textsf{zcash\_client\_backend}, \texttt{src/sync.rs}, lines~80--86), whose
-mechanics the \emph{Ironwood Guide} constructs in \S``Proof of ownership of
-\emph{some} valid note: the commitment tree''.
+mechanics the \emph{Ironwood Guide} constructs in \S``Resting: the note in the
+commitment tree''.
 
 \subsection{Server inclusion semantics and successor surface}%
 \label{sec:sync-compact-servers}
@@ -814,8 +814,8 @@ Per our conventions, we flag rather than resolve the following.
 \section{The light-client service}\label{sec:sync-service}
 
 A light wallet holds keys and no chain. The \emph{Ironwood Guide}
-(\S``Transmission and detection of a note: encryption, trial decryption, and
-synchronisation'') establishes what synchronisation consumes: every compact
+(\S``Delivery: the note reaches its owner'') establishes what synchronisation
+consumes: every compact
 shielded output on the chain, for trial decryption; every nullifier, for
 spentness; the note commitment tree's frontier and subtree roots, for
 witness assembly; and, for the few transactions that prove to be the
@@ -952,8 +952,7 @@ ciphertext prefix covers the compact note plaintext --- the contents and
 opening of the note commitment. Truncation discards the AEAD tag;
 integrity of the decrypted prefix is instead checked by recomputing the
 note commitment, as the \emph{Ironwood Guide} constructs in
-\S``Transmission and detection of a note: encryption, trial decryption,
-and synchronisation''.
+\S``Delivery: the note reaches its owner''.
 \end{definition}
 
 \begin{definition}[Compact Orchard action, deployed proto]
@@ -1217,8 +1216,8 @@ looping along \texttt{Sapling.SkipHash} when a reply carries no
 \texttt{getblockchaininfo}'s tip height (\textsf{lightwalletd},
 \texttt{frontend/service.go:307--401}). The frontier is what seeds the
 wallet's shard tree below its birthday, so that witness assembly never
-replays the chain's prefix (\emph{Ironwood Guide}, \S``Proof of ownership
-of \emph{some} valid note: the commitment tree''). Zaino resolves
+replays the chain's prefix (\emph{Ironwood Guide}, \S``Resting: the note in the
+commitment tree''). Zaino resolves
 hash-or-height, reports the BIP70 network name, and returns a seventh
 field \texttt{ironwoodTree} (hex, empty when absent) that exists only in
 Zaino's and librustzcash's proto forks (\S\ref{sec:sync-authority});
@@ -1257,8 +1256,8 @@ convention from \texttt{CompactBlock.hash}
 \texttt{frontend/service.go:832--907}). These roots are exactly the
 retained internal nodes from which the wallet's shard tree assembles
 authentication paths without replaying every commitment (\emph{Ironwood
-Guide}, \S``Proof of ownership of \emph{some} valid note: the commitment
-tree''). Zaino converts \texttt{startIndex} and \texttt{maxEntries} to
+Guide}, \S``Resting: the note in the commitment tree''). Zaino converts
+\texttt{startIndex} and \texttt{maxEntries} to
 \texttt{u16} and returns \texttt{InvalidArgument} when either exceeds
 \texttt{u16} range, where lightwalletd forwards the full \texttt{uint32}
 --- bounded by design, since a depth-32 tree has at most $2^{16}$
@@ -1753,9 +1752,9 @@ commitment from the decrypted compact plaintext and compares it with the
 transmitted commitment, trusting the transaction assembler for integrity
 (ZIP~307 \S``Compact Stream Format''). The cryptography of trial decryption
 --- key agreement, KDF, the $52$-byte compact note plaintext, the commitment
-recomputation --- is the \emph{Ironwood Guide}'s material (\S``Transmission
-and detection of a note: encryption, trial decryption, and
-synchronisation''); this volume treats it as a black box mapping a (compact
+recomputation --- is the \emph{Ironwood Guide}'s material (\S``Delivery: the
+note reaches its owner''); this volume treats it as a black box mapping a
+(compact
 output, incoming viewing key) pair to a note or $\bot$.
 
 \paragraph{The deployed wire format.} The format in production has evolved
@@ -2143,8 +2142,7 @@ be batched --- and \texttt{D::batch\_kdf} derives all symmetric keys in one
 pass before per-output trial decryption of the $52$-byte compact ciphertext
 (\textsf{zcash\_note\_encryption}, \texttt{src/batch.rs:42--85}); the
 underlying primitives are again the \emph{Ironwood Guide}'s
-(\S``Transmission and detection of a note: encryption, trial decryption,
-and synchronisation'').
+(\S``Delivery: the note reaches its owner'').
 
 \paragraph{The second pass.} The scanner then reads the prior block
 metadata and the wallet's unspent-nullifier set
@@ -2291,8 +2289,7 @@ durable anchors exempt from checkpoint pruning
 \texttt{src/data\_api/ll/wallet.rs:597--720,1537};
 \texttt{src/data\_api.rs:159,166,173}). This is the boundary of the present
 volume: shard-tree structure, witness derivation, and anchor selection are
-the \emph{Ironwood Guide}'s material (\S``Proof of ownership of \emph{some}
-valid note: the commitment tree'').
+the \emph{Ironwood Guide}'s material (\S``Resting: the note in the commitment tree'').
 
 \paragraph{Completing the found notes' shards.} After the tree update,
 \texttt{scan\_complete} marks the scanned range \texttt{Scanned} in the
@@ -2467,8 +2464,8 @@ a recent anchor. The construction of that path --- the depth-$32$ tree cut
 at half depth into height-$16$ shards under a height-$16$ cap, the wallet
 hashing its own shard from scanned leaves and taking every other shard as
 a single downloaded $32$-byte root --- is the \emph{Ironwood Guide}'s
-material (\S``Proof of ownership of \emph{some} valid note: the
-commitment tree'', paragraph ``Derivation of the authentication path'').
+material (\S``Resting: the note in the commitment tree'', subsection
+``The authentication path from public data'').
 This section supplies what that construction presumes: the RPCs that
 deliver tree states and shard roots, their derivation inside the
 validator, and the client discipline --- frontier-seeded scanning,
@@ -2802,8 +2799,8 @@ GRPC call'': $\mathsf{SAPLING\_SHARD\_HEIGHT} =
 \mathsf{ORCHARD\_SHARD\_HEIGHT} = 16$, half the tree depth of each pool
 (\texttt{src/data\_api.rs:155--166}). The geometry --- height-$16$
 shards of $2^{16}$ leaves under the $16$-level cap, at most $2^{16}$
-shards --- is the \emph{Ironwood Guide}'s construction (\S``Proof of
-ownership of \emph{some} valid note: the commitment tree''); the
+shards --- is the \emph{Ironwood Guide}'s construction (\S``Resting: the note
+in the commitment tree''); the
 deployed constants realise it exactly (\textsf{shardtree},
 \texttt{src/lib.rs:111--129};
 \textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1446--1447}).
@@ -3089,8 +3086,8 @@ the precise failure
 mode of an unready witness
 (\textsf{shardtree}, \texttt{src/lib.rs:1236--1362};
 \texttt{src/error.rs:124--136}). The mathematics of the fold is the
-\emph{Ironwood Guide}'s (\S``Proof of ownership of \emph{some} valid
-note: the commitment tree''); what this volume adds is the deployed
+\emph{Ironwood Guide}'s (\S``Resting: the note in the commitment tree''); what
+this volume adds is the deployed
 readiness condition under which it cannot fail.
 
 \paragraph{Spendability.} That condition is enforced in SQL. Writing
@@ -3159,8 +3156,8 @@ chain'' and ``Per-note witness maintenance'').
 
 A light client outsources block storage and filtering to a server it does
 not trust with its keys, then reconstructs its own state by trial
-decryption on the device (\emph{Ironwood Guide}, \S``Transmission and
-detection of a note: encryption, trial decryption, and synchronisation'').
+decryption on the device (\emph{Ironwood Guide}, \S``Delivery: the note reaches
+its owner'').
 The keys never travel; the \emph{requests} do. This section inventories
 what the deployed server-side observer learns from those requests: the
 stated threat model, the baseline that genuinely holds, the leaks in the
@@ -3226,9 +3223,9 @@ keys remain on the device: trial decryption of compact outputs is performed
 client-side by \texttt{scan\_block} over locally cached
 \texttt{CompactBlock}s (\textsf{zcash\_client\_backend},
 \texttt{src/scanning.rs}), by the mechanism of the \emph{Ironwood Guide},
-\S``Transmission and detection of a note: encryption, trial decryption, and
-synchronisation''; witness maintenance over the resulting positions is that
-of \S``Proof of ownership of \emph{some} valid note: the commitment tree''.
+\S``Delivery: the note reaches its owner''; witness maintenance over the
+resulting positions is that
+of \S``Resting: the note in the commitment tree''.
 Nullifier matching against the \texttt{CompactSpend} and
 \texttt{CompactOrchardAction} nullifier fields is likewise local.
 

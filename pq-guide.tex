@@ -153,8 +153,8 @@ purchase when the assumption falls to a quantum adversary --- and, since
 the falls are not simultaneous in their \emph{effects}, in what order
 the damage arrives. The treatment is an inventory and a synthesis, not a
 re-derivation: the deep analysis of the Orchard core is the
-\emph{Ironwood Guide}'s (\S``Post-quantum security of the Orchard
-protocol''), the cryptographic definitions are the \emph{Crypto
+\emph{Ironwood Guide}'s (\S``The horizon: quantum adversaries and
+recoverability''), the cryptographic definitions are the \emph{Crypto
 Guide}'s, and this volume constructs only what no lower volume owns ---
 the cross-layer inventory, the quantum-mining analysis, and the
 migration arithmetic.
@@ -328,7 +328,7 @@ security exponent halves; parameters absorb it & survives \\
 ``prosp.'' = prospective (requires future validator acceptance;
 switch-off before a CRQC is a complete mitigation, with the residues of
 Section~\ref{sec:pq-2005}). Orchard-core rows: \emph{Ironwood Guide},
-\S``Post-quantum security of the Orchard protocol''.}
+\S``The horizon: quantum adversaries and recoverability''.}
 \label{tab:pq-inventory}
 \end{table}
 
@@ -343,8 +343,8 @@ recipient's own trial-decryption loop over the whole recorded chain ---
 amounts, memos, and the complete receiving history of that address,
 forever. The full anatomy, and the two structural limits --- the
 attack is keyed by the address, and it confers viewing rather than
-spending --- are the \emph{Ironwood Guide}'s (\S``The retroactive
-break: harvest now, decrypt later against note encryption''). Three
+spending --- are the \emph{Ironwood Guide}'s (\S``The retroactive break:
+harvest now, decrypt later''). Three
 extensions belong to the cross-layer frame:
 
 \begin{itemize}[leftmargin=*]
@@ -358,7 +358,7 @@ Ironwood's, whose recoverability machinery deliberately excludes
 privacy (Section~\ref{sec:pq-2005}).
 \item \emph{Where the address is already public, so is the history.}
 Shielded coinbase outputs must decrypt under the all-zero outgoing
-viewing key (\emph{Ironwood Guide}, \S``How value enters the pool''),
+viewing key (\emph{Ironwood Guide}, \S``The doors: shielding, coinbase, migration''),
 so their contents were never confidential; and ZIP-213 itself advises
 miners who rely on the ``post-quantum privacy'' of an address to use a
 coinbase-specific one --- the ZIP's only pre-2005 use of the phrase.
@@ -367,7 +367,7 @@ recorded chain leaks nothing to an unbounded adversary: value
 commitments are perfectly hiding, the spend-auth randomiser masks
 $\ask$ information-theoretically, and proof transcripts are
 statistically simulatable (\emph{Ironwood Guide},
-\S``Prospective breaks: the discrete-logarithm integrity stack'',
+\S``Prospective breaks: the discrete-log integrity stack'',
 closing paragraph; the underlying theorems are the \emph{Crypto
 Guide}'s and \emph{Halo 2 Guide}'s). The retroactive channel is
 address-shaped, exactly.
@@ -609,7 +609,7 @@ strategy and its unfinished edges both.
 
 The deployed answer to all of this is one Proposed ZIP, and the
 \emph{Ironwood Guide} anatomises its mechanism (\S``ZIP-2005: quantum
-recoverability of Ironwood notes'') --- the $\mathtt{0x0B}$-tagged
+recoverability'') --- the $\mathtt{0x0B}$-tagged
 hashed derivation that makes each Ironwood note's commitment
 \emph{conditionally} post-quantum-binding, the $\mathsf{qsk}$ path for
 non-seed keys, the non-normative Recovery Statement, and the QROM

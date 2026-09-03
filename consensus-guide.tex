@@ -166,8 +166,8 @@ Two distinct attacks are both called ``double-spending'', and this
 volume treats exactly one of them. Spending the same note twice
 \emph{within} one chain is impossible in Zcash by construction: each
 spend reveals a nullifier, and a block that repeats a nullifier is
-invalid (\emph{Ironwood Guide}, \S``Prevention of double-spending:
-nullifiers''). What consensus must prevent is the chain-level attack:
+invalid (\emph{Ironwood Guide}, \S``The nullifier, and the loop back to
+minting''). What consensus must prevent is the chain-level attack:
 paying a merchant on the chain everyone sees, then replacing that chain
 wholesale with another in which the payment never happened. No
 zero-knowledge proof (\emph{Crypto Guide}, \S``Interactive proofs, zero

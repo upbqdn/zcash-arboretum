@@ -388,12 +388,12 @@ crate at commit \texttt{3792daa95e} wherever we rely on it.
 \paragraph{Spend-authorisation custody (specified).} The product ZIP 312
 promises is signatures ``indistinguishable from RedPallas Orchard Spend
 Authorization Signatures''. The single-party object being imitated is
-settled in the \emph{Ironwood Guide}: \S``Authorisation of the spend:
-RedPallas'' constructs $\rsk := \ask + \alpha$ and
+settled in the \emph{Ironwood Guide}: \S``Spend authorisation: RedPallas
+re-randomisation'' constructs $\rsk := \ask + \alpha$ and
 $\rk := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}} =
 [\rsk]\,G^{\mathsf{SpendAuth}}$, with $\mathsf{GenRandom}$
 hashing $80$ uniform bytes through $H^{\circledast}$, and \S``RedPallas
-unforgeability and re-randomisation'' proves EUF-CMA from discrete log in
+unforgeability'' proves EUF-CMA from discrete log in
 the random-oracle model. Per the layering rule we cite both and re-prove
 neither; this volume's work begins where the single signer ends, at
 splitting $\ask$ into shares no signing coalition ever
@@ -518,7 +518,7 @@ indistinguishability is precisely what makes the scheme deployable under
 Zcash's RedDSA validators: the consensus rules never learn that a threshold
 ceremony occurred. The deployment surfaces this volume targets are
 spend-authorisation custody over RedPallas (the \emph{Ironwood Guide},
-\S``Authorisation of the spend: RedPallas''), custody of the ZIP-2005
+\S``Spend authorisation: RedPallas re-randomisation''), custody of the ZIP-2005
 quantum spending key (whose ``Usage with FROST'' section constrains the key
 generation), and Crosslink finalizer keys (the \emph{Crosslink Guide},
 \S``Finalizer keys'').
@@ -950,7 +950,7 @@ against ePrint 2020/852:
   challenge equal RedDSA's $\mathsf{H}^{\circledast}$ --- the precise
   sense in which the standardised protocol plugs into the
   spend-authorisation verifier of the \emph{Ironwood Guide},
-  \S``Authorisation of the spend: RedPallas''.
+  \S``Spend authorisation: RedPallas re-randomisation''.
 \item \emph{Security claim.} The RFC claims EUF-CMA per BCKMTZ, citing
   both the original paper and BCKMTZ --- i.e., the deployed claim rests
   on the OMDL/ROM analysis, not the paper's DL-based theorem for the
@@ -1076,10 +1076,10 @@ al.\ (PKC 2016, \S3), whose oracle answers queries of the form
 $(m, \alpha)$ --- message and adversary-chosen randomizer together.
 
 The construction and its single-party security are settled in the
-\emph{Ironwood Guide}: \S``Authorisation of the spend: RedPallas'' builds
+\emph{Ironwood Guide}: \S``Spend authorisation: RedPallas re-randomisation'' builds
 $\rsk := \ask + \alpha$ and
 $\rk := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$, and
-\S``RedPallas unforgeability and re-randomisation'' proves EUF-CMA under
+\S``RedPallas unforgeability'' proves EUF-CMA under
 DL in the ROM \emph{including} adversary-chosen $\alpha$, by key-prefixed
 forking with $\ask = \rsk^* - \alpha^*$. Per the layering
 rule we cite those results and do not re-prove them.
@@ -1407,8 +1407,8 @@ $\mathsf{RedDSA.RandomizePublic}$, $\mathsf{RedDSA.Sign}$, and
 $\mathsf{RedDSA.Validate}$ --- while its Requirements defer the
 formal notion to the protocol specification's SURK-CMA definition. The
 distribution-matching argument does connect to a proved statement: the
-\emph{Ironwood Guide}'s \S``RedPallas unforgeability and
-re-randomisation'' shows honest uniform re-randomisations are
+\emph{Ironwood Guide}'s \S``RedPallas unforgeability'' shows honest uniform
+re-randomisations are
 distributed as fresh Schnorr keys. What no source supplies is a
 threshold-specific unlinkability theorem. Bin: the mechanism is
 \emph{specified} (ZIP 312, Draft); its unlinkability guarantee rests on
@@ -1554,7 +1554,7 @@ signer flow in \S\ref{sec:fr-rerand-gap}; steps 1--4 move to the
 Coordinator-as-builder, who draws the randomizer, proves the Action
 statement with $\alpha$ as auxiliary input, and publishes $\rk$
 --- the circuit and consensus rules are untouched, per the
-\emph{Ironwood Guide}, \S``Authorisation of the spend: RedPallas''. Bin:
+\emph{Ironwood Guide}, \S``Spend authorisation: RedPallas re-randomisation''. Bin:
 \emph{specified} (ZIP 312, Draft), with key generation explicitly out of
 the ZIP's scope; DKG-based key generation for Zcash remains
 \emph{designed but unspecified} (implemented in \texttt{frost-core},
@@ -1815,8 +1815,8 @@ solves; the \emph{Wallet Guide}, \S``Partially created transactions
 FROST is the Signer role (\emph{Wallet Guide}, \S``Signing''): to sign an
 Orchard spend the action's re-randomisation scalar $\alpha$ must be
 present, the local-key path computes $\rsk := \ask + \alpha$ ---
-the re-randomisation of the \emph{Ironwood Guide}, \S``Authorisation of
-the spend: RedPallas'' --- and checks
+the re-randomisation of the \emph{Ironwood Guide}, \S``Spend authorisation:
+RedPallas re-randomisation'' --- and checks
 $\mathsf{VerificationKey}(\rsk) = \rk$, and the
 \emph{external} path, \texttt{apply\_orchard\_signature}, accepts a
 signature if and only if it verifies under the action's $\rk$ over the

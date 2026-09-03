@@ -2829,9 +2829,10 @@ git tree at \texttt{bef8a27} (a 0.14.0 development tree predating the
 release, cited for the circuit and cross-address work it carries),
 \texttt{librustzcash} at commit \texttt{e30517e4}, and
 \texttt{protocol.tex} and the ZIPs at \texttt{zips} commit
-\texttt{69610984}. Forward-looking claims carry one of three epistemic
-bins: \emph{specified}, \emph{designed but unspecified}, or \emph{open
-problem}.
+\texttt{69610984}. The later deployment and migration status of ZIPs~258
+and~318 is rechecked against \texttt{zips} commit \texttt{dd1667ff}
+(2026-09-01). Forward-looking claims carry one of three epistemic bins:
+\emph{specified}, \emph{designed but unspecified}, or \emph{open problem}.
 
 \subsection{The doors: shielding, coinbase, migration}
 \label{sec:pools-doors}
@@ -2922,22 +2923,17 @@ of the turnstile, whose rules \S\ref{sec:turnstile} states.
 \subsection{The v6 transaction and the Ironwood component}
 \label{sec:pools-v6}
 
-% numbers: brief c5-6 (branch id 0x37A5165B; activation heights cited
-%   by pointer to validator constants, never as numbers)
+% numbers: ZIP-258 (branch id 0x37A5165B; minimum protocol version 170160)
 The upgrade has a concrete identity. NU6.3 carries consensus branch
-identifier $\mathtt{0x37A5165B}$; its activation heights are fixed by
-the deployed validator --- constants in
+identifier $\mathtt{0x37A5165B}$; ZIP-258 now records both networks'
+activation heights and sets minimum network protocol version $170160$ on
+both. The deployed validator fixes the same values in
 \texttt{zebra-chain/src/parameters/\allowbreak constants.rs}, with
 \texttt{librustzcash} hardcoding the same values in
-\texttt{zcash\_protocol/src/\allowbreak consensus.rs} --- while the
-ZIP-258 draft still lists its Mainnet height as to-be-determined:
-implementations ahead of their specification, a state of affairs this
-volume flags rather than resolves. (The draft's minimum network
-protocol version, \texttt{MIN\_NETWORK\_PROTOCOL\_VERSION}, is
-likewise still to-be-determined on both networks,
-\texttt{zip-0258.md:72--74}; the numbers land when ZIP-258 leaves
-Draft.) From activation onward, ZIP-258 expects Zebra to be the
-network's sole full-validator implementation.
+\texttt{zcash\_protocol/src/\allowbreak consensus.rs}. ZIP-258 remains
+Draft, but these deployment parameters are no longer
+to-be-determined. From activation onward, the ZIP expects Zebra to be
+the network's sole full-validator implementation.
 
 % numbers: brief c5-12 (V6_TX_VERSION = 6; version group 0xD884B698;
 %   bit 2 of flagsOrchard = enableCrossAddress; 820 bytes per Action)
@@ -3342,24 +3338,29 @@ remain at balance zero --- or its spending key
 wallet whose Orchard balance has reached zero can never see it become
 nonzero again (ZIP-326; ZIP-258).
 
-% numbers: brief c6-11 (eleven-line stub; created 2026-06-16)
-What wallets still lack is a migration playbook, and here the volume
-records an \emph{open problem}. ZIP-318 (``Orchard to Ironwood
-Migration'') is an eleven-line Reserved stub (owners Schell Carl
-Scivally and Pacu Gindre; created 2026-06-16; discussion
-\texttt{zcash/zips\#1315}). Everything consensus-level about migration
-is already specified in ZIP-229 and ZIP-258; what ZIP-318 is expected
-to own --- batching, scheduling, and amount-disclosure guidance in the
-style of the Sprout-to-Sapling migration (ZIP-308), mitigating the
-public crossing amounts of \S\ref{sec:turnstile-migration} --- exists
-nowhere as text.
-% TODO (source, c6-12): when ZIP-318 is published, absorb its wallet
-%   mechanics into this subsection and reclassify the open problem.
-% TODO (source, c6-12): ZIP-317 fee accounting across two
-%   Orchard-protocol bundles is described as "updated" by ZIP-258 ---
-%   confirm the ZIP's logical-action counting matches librustzcash's
-%   separate per-bundle padding (zcash_client_backend
-%   fees/common.rs) before citing either.
+\subsection{Scheduled Orchard-to-Ironwood migration (ZIP-318)}
+\label{sec:turnstile-scheduled}
+
+ZIP-318 now supplies the wallet playbook that the consensus rules leave
+open. Its Draft recommends decomposing value into canonical denominations
+of the form $m\,10^k$ ZEC, where $m \in \{1,2,5\}$, from $0.01$ through
+$10{,}000$ ZEC, leaving any sub-$0.01$ ZEC residual unmigrated.
+For mobile wallets, preparation transactions SHOULD contain exactly $16$
+Orchard Actions.
+Each scheduled migration transaction then has one Orchard spend padded to
+two Actions, one unpadded Ironwood output, no transparent inputs or outputs,
+and the canonical fee (ZIP-318, ``Creating Migration Transactions'').
+
+The Draft also coordinates timing so that individual wallets do not choose
+distinctive anchors and expiry heights. It provisionally draws anchors from
+a shared $144$-block boundary grid, with a recency-weighted truncated
+distribution, and places expiry heights on a $34{,}560$-block grid displaced
+by $69{,}120$ blocks (ZIP-318, ``Anchor Heights'' and ``Expiry Heights'').
+Wallets schedule and randomise broadcasts, offer network-layer privacy
+options, and obtain user consent before beginning. These wallet rules reduce the
+information disclosed by the public crossing amounts of
+\S\ref{sec:turnstile-migration}; ZIP-229 and ZIP-258 remain the
+consensus-level authority for the crossing itself.
 
 The upgrade is now fully on the table, and
 Table~\ref{tab:nu63-delta} collects it: one row per change, each with

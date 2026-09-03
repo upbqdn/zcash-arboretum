@@ -143,8 +143,8 @@ The \emph{Ironwood Guide} constructs every Orchard key --- $\ask$, $\nksym$,
 $\rivk$, the full viewing key, $\ivk$, $\dk$, $\ovk$, and the diversified
 addresses --- from a single $32$-byte spending key $\mathsf{sk}$, which it
 treats as ``simply a uniform $256$-bit string'', deferring its origin to
-ZIP-32 (\S``Keys: capabilities for spending and for viewing'' there,
-Definition ``Orchard key hierarchy''). This section supplies that origin. A
+ZIP-32 (\S``The recipient: keys and addresses'' there). This section supplies
+that origin. A
 deployed wallet does not draw an independent $\mathsf{sk}$ per account: it
 draws one \emph{seed} and derives every account's $\mathsf{sk}$ from it
 deterministically, so that a single backup recovers every key the wallet
@@ -394,8 +394,8 @@ we find no Orchard use (ZIP-32, ``Sapling key path'';
 \subsection{From the account key to addresses: the layer already built}\label{sec:zip32-fvk}
 
 Everything below $\mathsf{sk}_{\mathrm{acct}}$ is the hierarchy the
-\emph{Ironwood Guide} constructs in ``Keys: capabilities for spending and
-for viewing'' (Definition ``Orchard key hierarchy''), and we do not
+\emph{Ironwood Guide} constructs in ``The recipient: keys and addresses'', and
+we do not
 re-derive it: $\ask$, $\nksym$, $\rivk$ from $\mathsf{PRFexpand}$ lead
 bytes $\mathtt{0x06}$, $\mathtt{0x07}$, $\mathtt{0x08}$ with the
 $\mathrm{ToScalar}$/$\mathrm{ToBase}$ reductions and their bias analysis;
@@ -480,7 +480,7 @@ derive from $\rivk^{\mathsf{int}}$. The two scopes are therefore two
 disjoint families of diversified addresses under one spend authority ---
 and since $\ivk^{\mathsf{int}} \ne \ivk$, a note addressed under the
 internal scope does not trial-decrypt under the external $\ivk$
-(\emph{Ironwood Guide}, ``Transmission and detection of a note''), which is
+(\emph{Ironwood Guide}, ``Delivery: the note reaches its owner''), which is
 precisely the separation a wallet wants when it hands its external incoming
 viewing key to a payment processor. Note that the internal FVK is
 \emph{computable from} the external FVK --- the derivation consumes only
@@ -608,7 +608,7 @@ $\Pr[\ask = 0] < 2^{258} \cdot 2^{-512} = 2^{-254}$.
 For $\ivk$, the two memberships separately. \emph{Zero}: conditioned on
 the Sinsemilla hash not returning $\bot$, the commitment point is the hash
 point plus $[\rivk]\,H_D$ --- the blinding term of the \emph{Ironwood
-Guide}'s ``Sinsemilla commitment and short commitment'' --- uniform on the
+Guide}'s ``Sinsemilla: hash, commitment, and short forms'' --- uniform on the
 $p_{\Vesta}$-element Pallas group by perfect hiding, $\rivk$ being uniform
 up to the $O(2^{-258})$ $\mathrm{ToScalar}$ bias. The extractor sends only
 the identity to $0$, because $y^2 = 0^3 + 5$ has no solution in
@@ -848,7 +848,7 @@ $\mathtt{0xD0}$ & $c$ (chain code) & $\mathsf{ser}(pk)$ &
 \caption{Lead-byte registry of $\mathsf{PRFexpand}$ messages. Point and
 field arguments are encoded with $\mathrm{I2LEOSP}_{256}$; $\rho$ is the
 $32$-byte nullifier of the Action's spent note (\emph{Ironwood Guide},
-``Transmission and detection of a note''). Rows
+``Delivery: the note reaches its owner''). Rows
 $\mathtt{0x04}$--$\mathtt{0x09}$ are constructed in the \emph{Ironwood
 Guide} and carry the Orchard meanings of $\mathtt{0x04}$/$\mathtt{0x05}$;
 Sapling reuses both bytes, without the $\rho$ suffix and with the outputs
@@ -873,8 +873,8 @@ is several protocols at once: transparent, Sapling, and Orchard receivers
 coexist, each with its own format, so a recipient wants to hand a sender
 \emph{one} string from which the sender's wallet picks the best receiver
 both sides support; ZIP-316 solves this above the protocols with the
-\emph{unified} container encodings. The \emph{Ironwood Guide} (``Keys:
-capabilities for spending and for viewing'') already constructs the
+\emph{unified} container encodings. The \emph{Ironwood Guide} (``The recipient:
+keys and addresses'') already constructs the
 Orchard-side machinery --- the key tiers, the FF1-AES256 diversifier map
 $d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$, the
 diversified base
@@ -941,8 +941,8 @@ against observed ones (ZIP-32, \emph{Specification: Wallet seeds}).
 
 A diversified address multiplies addresses without multiplying keys: one
 incoming viewing key $\ivk$, one diversifier key $\dk$, and one $88$-bit
-\emph{diversifier} $d$ per address. The \emph{Ironwood Guide} (``Keys:
-capabilities for spending and for viewing'') constructs the map and its
+\emph{diversifier} $d$ per address. The \emph{Ironwood Guide} (``The recipient:
+keys and addresses'') constructs the map and its
 design rationale --- a keyed permutation of the index space, rather than a
 hash or a random draw; the wallet layer fixes the index discipline that
 ZIP-32 shares between Sapling and Orchard.
@@ -1051,7 +1051,7 @@ $2^{88}$ payment addresses (protocol specification \S5.4.1.6; ZIP-32,
 
 The totality of the Orchard hash --- and why it removes Sapling's
 try-the-next-index rejection loop --- is discussed in the \emph{Ironwood
-Guide} (``Keys: capabilities for spending and for viewing''). The residual
+Guide} (``The recipient: keys and addresses''). The residual
 Sapling failure rate of $\tfrac12$ per index is not a curiosity: it
 resurfaces when a single index must serve several protocols at once
 (\S\ref{sec:addresses-ua-from-uivk}).
@@ -1571,7 +1571,7 @@ outgoing viewing keys, which ZIP-316 specifies separately.
 
 Namely, ZIP-316 refines which $\ovk$ a sender uses for its outgoing
 ciphertexts (the $C_{\mathrm{out}}$ construction of the \emph{Ironwood
-Guide}, ``Transmission and detection of a note''): the Sender determines a
+Guide}, ``Delivery: the note reaches its owner''): the Sender determines a
 sending account --- preferably from the wallet API, else when all inputs
 belong to a single account --- and a \emph{preferred sending protocol},
 the most preferred receiver type among the funds being sent, and SHOULD
@@ -1840,8 +1840,8 @@ and the script --- $1$ script-length byte plus the $25$-byte P2PKH script
 
 \paragraph{Why logical actions, and why these constants.} A na\"ive
 schedule would charge per input plus per output. But an Orchard Action
-spends one note \emph{and} creates one (the \emph{Ironwood Guide}, ``A
-single shielded payment, end to end''), and Orchard bundles are padded to a
+spends one note \emph{and} creates one (the \emph{Ironwood Guide}, ``One
+Action, one payment: the walkthrough''), and Orchard bundles are padded to a
 minimum shape (\S\ref{sec:fees-padding}); charging inputs and outputs
 separately would penalise exactly that forced padding. Logical actions
 count an Action once and, via the $\max$ in each contribution, do not
@@ -2246,8 +2246,8 @@ window, taking every note while the running sum is below the target plus
 the single note that crosses it (\textsf{zcash\_client\_sqlite},
 \texttt{wallet/common.rs}). The candidate notes themselves are the product
 of the synchronisation described in the \emph{Ironwood Guide}
-(``Transmission and detection of a note: encryption, trial decryption, and
-synchronisation''); this volume takes that spendable set as given.
+(``Delivery: the note reaches its owner''); this volume takes that spendable
+set as given.
 
 \paragraph{ZIP-320 (TEX) transactions.} A payment to a transparent-source
 (TEX) address builds two transactions: the first funds an ephemeral
@@ -2378,8 +2378,8 @@ no wallet, so it computes no fees for construction) (ZIP-317,
 
 \section{Transaction construction}\label{sec:pipeline}
 
-The synchronisation procedure of the \emph{Ironwood Guide} (\S~``Transmission
-and detection of a note: encryption, trial decryption, and synchronisation'')
+The synchronisation procedure of the \emph{Ironwood Guide} (\S~``Delivery: the
+note reaches its owner'')
 leaves a wallet holding a set of unspent notes, each with a value, a position,
 and an authentication path available on demand. This section documents how the
 deployed wallet layer turns that state, together with a payment request, into
@@ -2461,10 +2461,9 @@ the ``mempool height'' and, with $c$ the confirmation depth and
 ``checkpointed'' meaning present in the pool's shard tree, the highest
 checkpoint at least $c$ blocks below the target, minimised across Sapling
 and Orchard so a single height anchors both bundles. Anchor semantics and
-witness derivation are those of the \emph{Ironwood Guide} (\S~``Proof of
-ownership of \emph{some} valid note: the commitment tree'', in particular
-``Anchor choice
-as the tree grows'', which already develops the ZIP-315 $3$/$10$ defaults);
+witness derivation are those of the \emph{Ironwood Guide} (\S~``Resting: the
+note in the commitment tree'', in particular ``Anchor choice, reorgs, and the
+anonymity set'', which already develops the ZIP-315 $3$/$10$ defaults);
 here we record only what the pipeline feeds in.
 
 \begin{definition}[Confirmations policy]\label{def:confpolicy}
@@ -2768,8 +2767,8 @@ Only
 \emph{transparent} outputs of prior steps may be spent by later steps:
 shielded chaining is impossible, because a note's position in the global
 commitment tree --- and hence its
-witness (the \emph{Ironwood Guide}, \S~``Proof of ownership of \emph{some}
-valid note: the commitment tree'') --- is unknown before the note is mined.
+witness (the \emph{Ironwood Guide}, \S~``Resting: the note in the commitment
+tree'') --- is unknown before the note is mined.
 Each ephemeral output must be consumed by a later step exactly once, else
 \texttt{EphemeralOutputLeftUnspent}. All transactions are created first and
 then stored together, so a failure cannot leave a partially transmitted
@@ -2784,8 +2783,8 @@ same height (\texttt{wallet.rs},
 \texttt{build\_}\allowbreak\texttt{proposed\_}\allowbreak%
 \texttt{transaction}). The mechanics
 are those of the
-\emph{Ironwood Guide} (\S~``Proof of ownership of \emph{some} valid note: the
-commitment tree'') and are not repeated here.
+\emph{Ironwood Guide} (\S~``Resting: the note in the commitment tree'') and are
+not repeated here.
 
 \paragraph{Builder configuration.} The \textsf{zcash\_primitives} builder is
 constructed with \texttt{BuildConfig::}\allowbreak\texttt{Standard} carrying
@@ -2832,7 +2831,7 @@ since external and internal notes sign under different keys; but a
 \emph{single} Orchard spend-authorising key
 (\texttt{SpendAuthorizingKey}), because Orchard internal and external
 addresses share $\ask$ (the \emph{Ironwood Guide},
-\S~``Keys: capabilities for spending and for viewing''). Ironwood spends use
+\S~``The recipient: keys and addresses''). Ironwood spends use
 that same Orchard full-viewing and spend-authorizing key, but enter the
 separate Ironwood builder and commitment tree; current output and change
 routing is summarized in the current-head extension above. All randomness for
@@ -2853,7 +2852,7 @@ outputs get \emph{no} $\ovk$ at all (\texttt{internal\_ovk = None})
 $C_{\mathrm{out}}$ is therefore unrecoverable by \emph{any} outgoing viewing
 key; the wallet finds its change through the internal-scope $\ivk$ during
 scanning (trial decryption per the \emph{Ironwood Guide},
-\S~``Transmission and detection of a note\dots''). This matches the
+\S~``Delivery: the note reaches its owner''). This matches the
 \texttt{OvkPolicy::Sender} rustdoc but contradicts descriptions elsewhere of
 change ``encrypted to the internal OVK''; the \texttt{None} is deliberate.
 Policy \texttt{OvkPolicy::Custom} supplies both keys explicitly; policy
@@ -2921,9 +2920,10 @@ giving $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$
 own $\nfsym_{\mathrm{old}}$, and its $\mathsf{rseed}$ is freshly sampled by
 \texttt{Note::new}. The cryptographic roles of $\rcv$, $\alpha$, and
 $\mathsf{rseed}$ (with its derived $\psi$, $\rcm$, $\mathsf{esk}$) are those
-of the \emph{Ironwood Guide} (\S~``Conservation of value\dots'' for
-$\cvsym$/$\rcv$; \S~``Authorisation of the spend: RedPallas'' for
-$\aksym$/$\alpha$/$\rk$; \S~``Transmission and detection of a note\dots''
+of the \emph{Ironwood Guide} (\S~``Conservation without disclosure: value
+commitments and the binding signature'' for
+$\cvsym$/$\rcv$; \S~``Spend authorisation: RedPallas re-randomisation'' for
+$\aksym$/$\alpha$/$\rk$; \S~``Delivery: the note reaches its owner''
 for the $\mathsf{rseed}$ derivations).
 
 \paragraph{Sapling.} Under \texttt{BundleType::DEFAULT} in
@@ -2992,12 +2992,14 @@ ZIP-244 sighash,
 (\texttt{builder.rs}, \texttt{build\_internal};
 \texttt{zcash\_primitives/src/transaction/sighash.rs}); the digest
 tree itself is constructed in the \emph{Ironwood Guide}
-(\S~``Conservation of value\dots'', ``The transaction digest (ZIP-244)'')
+(\S~``Conservation without disclosure: value commitments and the binding
+signature'', subsection ``What the signatures sign: the ZIP-244 digest and
+its v6 form'')
 and not repeated. For each Orchard-protocol action (in either the Orchard or
 Ironwood pool), with
 $\rsk = \ask + \alpha$ and $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$
 in the notation of the \emph{Ironwood Guide}
-(\S~``Authorisation of the spend: RedPallas''),
+(\S~``Spend authorisation: RedPallas re-randomisation''),
 \[
 \mathsf{spendAuthSig} := \mathrm{Sign}_{\rsk}(\mathsf{sighash}).
 \]
@@ -3071,7 +3073,7 @@ application remains responsible for broadcast and for reporting the result.
 The complete privacy and scheduling rules, and the boundary between these
 released backend pieces and an end-user wallet flow, are in the
 \emph{Ironwood Guide}, \S~``Scheduled Orchard-to-Ironwood migration
-(ZIP-318).''
+(ZIP-318)''.
 
 \begin{remark}[Source-line baseline versus current builders]%
 \label{rem:crate-versions}
@@ -4332,8 +4334,8 @@ $\mathsf{branchid} = \mathrm{LE}_{32}(\mathrm{CONSENSUS\_BRANCH\_ID})$, the
 $4$-byte little-endian consensus branch id, and an absent pool hashes the
 empty string under its own personalisation (ZIP-244, \emph{TxId Digest};
 \textsf{zcash\_primitives}, \texttt{src/transaction/txid.rs}). The
-\emph{Ironwood Guide} assembles this tree in full (``The transaction digest
-(ZIP-244)'', within its binding-signature section); we do not re-derive it.
+\emph{Ironwood Guide} assembles this tree in full (``What the signatures sign:
+the ZIP-244 digest and its v6 form''); we do not re-derive it.
 Two consequences matter for the lifecycle. First, the tree is computed over
 \emph{effecting} data only: changing the transaction's consensus effect changes
 the identifier, while allowed recomputation of excluded attestations such as
@@ -4629,8 +4631,8 @@ and fed back via \texttt{WalletWrite::set\_transaction\_status} or
 polling is not optional even for a shielded wallet's own history: fully
 transparent transactions, and transactions containing neither shielded
 inputs nor shielded outputs belonging to the wallet, are invisible to the
-compact-block trial decryption of the \emph{Ironwood Guide} (``Transmission
-and detection of a note''), so scanning alone can never confirm their fate
+compact-block trial decryption of the \emph{Ironwood Guide} (``Delivery: the
+note reaches its owner''), so scanning alone can never confirm their fate
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs}).
 
 The wire encoding of a status reply hides a protobuf quirk. The
@@ -4772,7 +4774,7 @@ from the \emph{spendable} set is not the same as forgetting them. The query
 $\texttt{get\_nullifiers}(\texttt{NullifierQuery::Unspent})$ deliberately
 over-selects: a note spent in an unexpired-but-unmined transaction still
 contributes its nullifier, so that scanning (the \emph{Ironwood Guide},
-``Transmission and detection of a note'') detects the spend if the
+``Delivery: the note reaches its owner'') detects the spend if the
 transaction is later mined; a note's nullifier leaves the watch set only
 once the spending transaction is mined or can never expire
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/common.rs}).
@@ -4918,8 +4920,8 @@ shielded note as spendable only when all of the following hold
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/common.rs}): the note's
 transaction is in a \emph{scanned} block (\texttt{t.block} non-null); its
 nullifier and commitment-tree position are known and the containing shard
-is fully scanned (witness data exists --- the \emph{Ironwood Guide}, ``Proof
-of ownership of \emph{some} valid note: the commitment tree''); its mined
+is fully scanned (witness data exists --- the \emph{Ironwood Guide}, ``Resting:
+the note in the commitment tree''); its mined
 height is at or below the anchor height;
 $\texttt{confirmations\_until\_spendable} = 0$ under the policy; and it is
 not excluded by the spent-notes clause --- spent in a mined or unexpired
