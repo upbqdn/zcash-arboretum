@@ -155,6 +155,7 @@ MathJax.startup.promise.then(function () {
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
 PROOF_MATH_END_RE = re.compile(
     r'(<math\b(?:(?!</math>)[\s\S])*?</math>)([.!?])(?=\s*∎</p>)')
+UNEXPANDED_CREF_RE = re.compile(r"\\[Cc]ref[A-Za-z]*")
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
                       "\\author{", "\\date{",
@@ -557,6 +558,9 @@ document.querySelector('details.arb-search').addEventListener('toggle',
         n = 0
         for page in vdir.glob("*.html"):
             t = page.read_text()
+            if match := UNEXPANDED_CREF_RE.search(t):
+                raise RuntimeError(
+                    f"{page}: unexpanded cross-reference macro {match.group()}")
             t2 = re.sub(r'(<head[^>]*>)',
                         lambda m: m.group(1) + THEME_INIT, t, count=1)
             t2 = t2.replace('href="../arboretum.css"',

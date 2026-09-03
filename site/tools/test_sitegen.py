@@ -105,6 +105,15 @@ Volume summary.
     assert (out / "mathjax" / "tex-chtml.js").is_file()
     assert (out / "@mathjax" / "mathjax-stix2-font" / "chtml.js").is_file()
 
+    page.write_text(page.read_text().replace(
+        "Done.", r"Done \crefpairconjunction."))
+    try:
+        sitegen.postprocess(out)
+    except RuntimeError as error:
+        assert r"\crefpairconjunction" in str(error)
+    else:
+        raise AssertionError("unexpanded cross-reference macro was accepted")
+
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
 assert ':root[data-theme="warm"]' in css
 assert ':root[data-theme="dark"]' in css

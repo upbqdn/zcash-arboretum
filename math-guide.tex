@@ -1064,7 +1064,8 @@ algorithm computes it in \(O(\log n)\) division steps
 way---associativity, commutativity, distributivity, identities, negatives,
 and now inverses---have been stated concretely, for the integers and their
 congruence classes alone. They are instances of patterns that pervade
-mathematics; \cref{sec:groups,sec:ringsfields} isolate those patterns, give
+mathematics; Sections~\ref{sec:groups} and~\ref{sec:ringsfields} isolate
+those patterns, give
 them their standard names, and re-read \(\Z/n\Z\) in their light. Nothing
 proved there revises anything proved here.
 
@@ -1334,7 +1335,8 @@ Proposition~\ref{intmod:prop:congequiv}, and the classes number
 exactly \(n\) (the least nonnegative residues,
 Definition~\ref{intmod:def:residueclass}). The invertible classes form the
 abelian group \((\Z/n\Z)^\times\) of order \(\varphi(n)\) under
-multiplication (\Cref{intmod:thm:unitiff,groups:prop-unitgroup}). When
+multiplication (Theorem~\ref{intmod:thm:unitiff} and
+Proposition~\ref{groups:prop-unitgroup}). When
 \(n = p\) is prime, every nonzero class is a unit
 (Example~\ref{intmod:exa:totient}), so \((\Z/p\Z)^\times\) has order
 \(p - 1\)---this is Example~\ref{groups:exa-field-mult} specialised to
@@ -5871,10 +5873,12 @@ course; the study happens here. And the proof of
 Theorem~\ref{finitefields:thm:primepower} borrowed, against a promissory
 note, exactly two facts about vector spaces: that a space with a finite
 spanning set has a basis, and that coordinates with respect to a basis
-are unique. Both are proved below
-(\cref{linalg:def-basis,linalg:thm-dimension}), by arguments using
-nothing from the theory of finite fields, so the note is honoured without
-circularity. Throughout, \(F\) denotes an arbitrary field with identities
+are unique. The first is proved in
+Theorem~\ref{linalg:thm-dimension}; the second follows from linear
+independence, as recorded in Definition~\ref{linalg:def-basis}. These
+arguments use nothing from the theory of finite fields, so the note is
+honoured without circularity. Throughout, \(F\) denotes an arbitrary
+field with identities
 \(0\) and \(1\); the field axioms of
 Definition~\ref{ringsfields:def-field} are used freely and without
 citation.
