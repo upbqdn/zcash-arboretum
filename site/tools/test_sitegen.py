@@ -61,7 +61,13 @@ Volume summary.
     page.parent.mkdir()
     page.write_text(
         '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
-        '<body><main class="ltx_page_content"><div class="ltx_proof"><p>'
+        '<body><main class="ltx_page_content">'
+        '<div id="Thmtheorem1" class="ltx_theorem ltx_theorem_proposition">'
+        '<h6 class="ltx_title ltx_runin ltx_title_theorem">'
+        '<span class="ltx_tag ltx_tag_theorem">Proposition 1.1</span> '
+        '(<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
+        '</h6><div class="ltx_para"><p>A result.</p></div></div>'
+        '<div class="ltx_proof"><p>'
         'Given <math display="inline" alttext="S"><mi>S</mi></math>, thus '
         '<math display="inline" alttext="x=1"><mi>x</mi></math>.\n∎'
         '</p><p>Done.\n∎</p></div></main>'
@@ -93,6 +99,11 @@ Volume summary.
     assert "linebreaks: { inline: true" in html
     assert "replace(/%\\s+/g, '')" in html
     assert 'src="../mathjax/tex-chtml.js"' in html
+    assert ('<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
+            '<a class="arb-permalink" href="#Thmtheorem1" '
+            'aria-label="Permalink to this item" '
+            'title="Permalink">#</a></h6>') in html
+    assert html.count('class="arb-permalink"') == 1
     assert ('<span class="arb-proof-end"><math display="inline" '
             'alttext="x=1"><mi>x</mi></math>.</span> '
             '<span class="arb-qed">□</span>') in html
@@ -118,6 +129,7 @@ css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
 assert ':root[data-theme="warm"]' in css
 assert ':root[data-theme="dark"]' in css
 assert ':root[data-theme="midnight"]' in css
+assert '.ltx_theorem .arb-permalink {' in css
 assert 'a[rel="next"] { margin-left: 0; align-self: flex-end; }' in css
 assert 'mjx-container.arb-math-scroll' in css
 assert (sitegen.ROOT / "site" / "mathjax" / "tex-chtml.js").is_file()

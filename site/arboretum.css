@@ -367,6 +367,24 @@ h3.ltx_title_subsection, .ltx_title_subsection {
   margin: 1.1rem 0;
 }
 .ltx_theorem .ltx_title { font-family: inherit; }
+.ltx_theorem .arb-permalink {
+  margin-left: .35em;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .78em;
+  font-style: normal;
+  font-weight: 400;
+  text-decoration: none;
+}
+.ltx_theorem .arb-permalink:hover {
+  color: var(--conifer);
+  text-decoration: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ltx_theorem .arb-permalink { opacity: 0; }
+  .ltx_theorem:hover .arb-permalink,
+  .ltx_theorem .arb-permalink:focus-visible { opacity: 1; }
+}
 .ltx_proof { display: flow-root; margin: 1rem 0 1rem .2rem; padding-left: .9rem;
              border-left: 1px solid var(--leafline); }
 .arb-proof-end { white-space: nowrap; }
@@ -625,7 +643,9 @@ h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
 
 /* print: the sheet alone */
 @media print {
-  .arb-bar, .ltx_page_navbar, .ltx_page_footer { display: none !important; }
+  .arb-bar, .arb-permalink, .ltx_page_navbar, .ltx_page_footer {
+    display: none !important;
+  }
   body, .ltx_page_main {
     background: #fff; color: #000;
     box-shadow: none; border: 0; max-width: none; margin: 0;

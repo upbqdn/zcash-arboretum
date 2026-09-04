@@ -155,6 +155,10 @@ MathJax.startup.promise.then(function () {
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
 PROOF_MATH_END_RE = re.compile(
     r'(<math\b(?:(?!</math>)[\s\S])*?</math>)([.!?])(?=\s*∎</p>)')
+THEOREM_TITLE_RE = re.compile(
+    r'(<div\b(?=[^>]*\bid="([^"]+)")'
+    r'(?=[^>]*\bclass="[^"]*\bltx_theorem\b[^"]*")[^>]*>\s*'
+    r'<h6\b[^>]*>)(.*?)(</h6>)', re.S)
 UNEXPANDED_CREF_RE = re.compile(r"\\[Cc]ref[A-Za-z]*")
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
@@ -575,6 +579,12 @@ document.querySelector('details.arb-search').addEventListener('toggle',
                 t2 = t2.replace('class="ltx_page_content"',
                                 'class="ltx_page_content" data-pagefind-body',
                                 1)
+            t2 = THEOREM_TITLE_RE.sub(
+                lambda m: (f'{m.group(1)}{m.group(3)}'
+                           f'<a class="arb-permalink" href="#{m.group(2)}" '
+                           f'aria-label="Permalink to this item" '
+                           f'title="Permalink">#</a>'
+                           f'{m.group(4)}'), t2)
             t2 = re.sub(
                 r'Generated\s+on [^<]+ by '
                 r'(<a [^>]*class="ltx_LaTeXML_logo"[\s\S]*?</a>)',
