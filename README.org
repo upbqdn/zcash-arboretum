@@ -65,10 +65,11 @@ in Web and PDF formats.
 
 * Parked research
 
-The repository retains the *Voting Guide* (=voting-guide.tex=), *Tachyon Guide*
-(=tachyon-guide.tex=), and *PQ Guide* (=pq-guide.tex=), with their compiled
-PDFs. They are research snapshots outside the Arboretum and are not published
-on its website or included in its concordance or complete edition.
+The =parked/= directory retains the *Voting Guide* (=parked/voting-guide.tex=),
+*Tachyon Guide* (=parked/tachyon-guide.tex=), and *PQ Guide*
+(=parked/pq-guide.tex=), with their compiled PDFs. They are research snapshots
+outside the Arboretum and are not published on its website or included in its
+concordance or complete edition.
 
 * Website
 

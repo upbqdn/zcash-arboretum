@@ -11,7 +11,8 @@ import sitegen  # noqa: E402
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide")
 MERGED = "halo2-intuition-guide"
-assert all((sitegen.ROOT / f"{vol}.tex").is_file() for vol in PARKED)
+assert all((sitegen.ROOT / "parked" / f"{vol}.tex").is_file()
+           for vol in PARKED)
 assert set(PARKED).isdisjoint(sitegen.VOLUMES)
 assert MERGED not in sitegen.VOLUMES
 assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
@@ -55,9 +56,8 @@ with tempfile.TemporaryDirectory() as tmp:
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
     assert "\\section{Worked example: one computation," in complete_tex
-    for vol in PARKED:
-        title, subtitle = sitegen.vol_title(vol)
-        assert f"\\part{{{title}: {subtitle}}}" not in complete_tex
+    for title in ("PQ Guide", "Tachyon Guide", "Voting Guide"):
+        assert f"\\part{{{title}:" not in complete_tex
 
     webdir = out / "web"
     webdir.mkdir()

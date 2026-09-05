@@ -14,11 +14,13 @@ jobs:
       - name: Build every volume
         run: |
           set -e
-          for f in *-guide.tex; do
+          for f in *-guide.tex parked/*-guide.tex; do
             echo "=== $f ==="
             tectonic -Z shell-escape "$f"
           done
       - uses: actions/upload-artifact@v4
         with:
           name: pdfs
-          path: "*.pdf"
+          path: |
+            *.pdf
+            parked/*.pdf

@@ -629,9 +629,10 @@ reserved as the sentinel/unset value and is rejected by the non-zero gate in
 vote-sdk `cb915f5`, `x/vote/types/keys.go:48` `const MaxProposals = 15` ("bit 0
 reserved as a sentinel ... leaving bits 1-15 usable"), enforced at
 `x/vote/types/msgs.go:42-43`. The Voting Guide states 15 correctly
-(`voting-guide.tex:835-840`) but does not flag this README-vs-circuit
+(`parked/voting-guide.tex:835-840`) but does not flag this README-vs-circuit
 self-contradiction, and its claim that the quantization gap "is the only
-spec-versus-code disagreement this volume records" (`voting-guide.tex:332,741`)
+spec-versus-code disagreement this volume records"
+(`parked/voting-guide.tex:332,741`)
 overlooks this second one — a guide gap to fix alongside filing this defect.
 
 Observed at voting-circuits `4c39abd` (`src/delegation/README.md:300`;
