@@ -16,6 +16,8 @@ assert set(PARKED).isdisjoint(sitegen.VOLUMES)
 assert MERGED not in sitegen.VOLUMES
 assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
 assert not (sitegen.ROOT / f"{MERGED}.pdf").exists()
+assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
+            if vol == "flyclient-guide") == ("Frontier", "design-stage")
 
 
 with tempfile.TemporaryDirectory() as tmp:

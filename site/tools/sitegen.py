@@ -32,7 +32,7 @@ VOLUME_META = [
     ("ironwood-guide", "Deployed protocol", "deployed"),
     ("wallet-guide", "Deployed protocol", "deployed"),
     ("sync-guide", "Deployed protocol", "deployed"),
-    ("flyclient-guide", "Deployed protocol", "deployed"),
+    ("flyclient-guide", "Frontier", "design-stage"),
     ("zsa-guide", "Frontier", "frontier"),
     ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
@@ -46,14 +46,14 @@ OMNIBUS_INTRO = r"""\phantomsection
 \emph{The Zcash Arboretum} is a non-normative guide to the mathematics,
 cryptography, and engineering of the Zcash protocol.  It covers the
 foundations of Halo~2 and Orchard, deployed consensus and wallet protocols,
-and designs being explored beyond them.  The protocol specification and ZIPs
-remain authoritative.
+and designs being explored beyond them.  The protocol specification,
+applicable ZIPs, and consensus rules remain authoritative.
 
 The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
 Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
-\emph{Wallet}, \emph{Sync}, and \emph{FlyClient} Guides explain the deployed
-system and its boundaries.  The remaining parts examine shielded assets,
-trailing finality, and threshold authorization.
+\emph{Wallet}, and \emph{Sync} Guides explain the deployed system and its
+boundaries.  The remaining parts examine the unbuilt FlyClient bridge,
+shielded assets, trailing finality, and threshold authorization.
 
 Three reading paths cover most uses.  For prerequisites, begin with the first
 three parts; readers new to proof systems may start with the worked example
@@ -200,6 +200,20 @@ def render():
         pics = list(TIKZ_RE.finditer(text))
         if not pics:
             continue
+        labels = []
+        if any("\\ref{" in pic.group(0) for pic in pics):
+            with tempfile.TemporaryDirectory() as td:
+                subprocess.run([
+                    "tectonic", "-Z", "shell-escape", "--keep-intermediates",
+                    "--outdir", td, str(ROOT / f"{vol}.tex"),
+                ], cwd=ROOT, check=True, capture_output=True)
+                aux = (Path(td) / f"{vol}.aux").read_text()
+                labels = [
+                    "\\expandafter\\def\\csname r@" + key
+                    + "\\endcsname{{" + value + "}{}{}{Doc-Start}{}}"
+                    for key, value in re.findall(
+                        r"^\\newlabel\{([^}]+)\}\{\{([^}]*)\}", aux, re.M)
+                ]
         pre_lines = [
             ln for ln in preamble_of(text).splitlines()
             if not any(ln.lstrip().startswith(d) for d in DROP_IN_STANDALONE)
@@ -215,7 +229,8 @@ def render():
                         if ln.lstrip().startswith(DEF_STARTS)]
             doc = "\n".join(
                 ["\\documentclass[tikz,border=2pt]{standalone}"]
-                + pre_lines + ["\\begin{document}"] + defs
+                + pre_lines + ["\\begin{document}", "\\pagestyle{empty}"]
+                + labels + defs
                 + [m.group(0), "\\end{document}"])
             # the standalone compiles in a temp dir, so the volume's
             # repo-relative font path must become absolute
@@ -409,10 +424,10 @@ def landing(outdir):
 <div class="arb-heading"><h1>The Zcash Arboretum</h1>
 {THEME_PICKER}</div>
 <hr class="stem">
-<p class="tag">Documentation of the Zcash protocol &mdash; the deployed
-core and the protocols growing on top of it. Non-normative: where these volumes and the
-<a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>
-disagree, the specification is correct.</p>
+<p class="tag">Non-normative documentation of the deployed Zcash protocol
+and designs being built on top of it. The
+<a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
+applicable ZIPs, and consensus rules remain authoritative.</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{

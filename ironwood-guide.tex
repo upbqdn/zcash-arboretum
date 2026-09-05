@@ -126,7 +126,7 @@
 \begin{abstract}
 This volume constructs the Zcash Orchard shielded-payment protocol as
 carried by its current value pool, Ironwood. The presentation follows
-one unit of value through its lifecycle: a recipient prepares keys and
+value through its lifecycle: a recipient prepares keys and
 an address, a note is minted and delivered, it rests in the commitment
 tree, it is spent --- retiring its nullifier, balancing its value
 commitment, authorised by its re-randomised signature --- change
@@ -137,9 +137,9 @@ statement every shielded transfer proves; the volume then descends to
 the circuit beneath the statement, pays the deferred security debts in
 end-to-end reductions, and closes with the proof-system lineage and
 the quantum horizon. It assumes the \emph{Math Guide}, the
-\emph{Crypto Guide}, and the \emph{Halo 2 Guide}, and is non-normative
-throughout: the protocol specification and the ZIPs remain
-authoritative.
+\emph{Crypto Guide}, the \emph{Halo 2 Guide}, and the
+\emph{Consensus Guide}, and is non-normative throughout: the protocol
+specification and the ZIPs remain authoritative.
 \end{abstract}
 \clearpage
 \tableofcontents
@@ -211,7 +211,7 @@ prevention of double-spending, conservation of total supply --- while
 disclosing none of them. Four requirements must hold simultaneously:
 
 \begin{enumerate}[leftmargin=*, label=\textbf{(R\arabic*)}]
-\item represent a unit of value so that its owner, its value, and its
+\item represent value so that its owner, its amount, and its
   very existence stay hidden, yet the owner can later prove
   possession --- solved by notes and note commitments
   (\S\ref{sec:mint});
@@ -234,7 +234,7 @@ proves that the assembled protocol meets all four.
 % brief c0-4 (method + roadmap; "three circuit versions" stated here)
 A protocol this dense can be presented from its symbols or from the
 problems it solves; we take the second way, and give it a narrative
-spine. The volume follows one unit of value through the system --- a
+spine. The volume follows value through the system --- a
 recipient prepares to be paid, a note is minted and delivered, it
 rests in the commitment tree, it is spent, change returns, and at the
 end of its shielded life value exits back across the pool boundary,
@@ -483,8 +483,9 @@ are $\GroupHash$ outputs (\S\ref{sec:toolbox-grouphash}), and its short
 form returns an $\Extract$ed coordinate (\S\ref{sec:toolbox-encodings}).
 
 \begin{construction}[Sinsemilla]\label{def:sinsemilla}
-Fix a prime-order group $\G$ (Orchard: $\Ep(\F_{p_{\Pallas}})$) and a
-chunk width $k$ ($k = 10$ in Orchard). From the domain separator $D$,
+Fix a prime-order group $\G$ (Orchard: $\Ep(\F_{p_{\Pallas}})$), a
+chunk width $k = 10$, and a maximum chunk count $c = 253$. From the
+domain separator $D$,
 derive the $2^k + 1$ Sinsemilla generators:
 \begin{align*}
 Q(D) &:= \GroupHash^{\G}(\mathtt{z.cash:SinsemillaQ},\, D) \in \G, \\
@@ -493,8 +494,9 @@ P[m] &:= \GroupHash^{\G}(\mathtt{z.cash:SinsemillaS},\,
 \end{align*}
 The point $Q(D)$ is the domain-dependent starting accumulator; the $2^k$
 points $P[0], \dots, P[2^k - 1]$ form a fixed table indexed by a $k$-bit
-chunk value, shared across all Sinsemilla domains. For a message $M$
-split into $k$-bit chunks $m_1, \dots, m_\ell$ (so each
+chunk value, shared across all Sinsemilla domains. For a message $M$ of
+at most $kc=2530$ bits, split into $k$-bit chunks
+$m_1, \dots, m_\ell$ with $\ell \le c$ (so each
 $m_i \in \{0, \dots, 2^k - 1\}$ indexes the table),
 \[
 \Sinsemilla_D(M) := \Acc_\ell, \quad \Acc_0 := Q(D), \quad
@@ -526,7 +528,7 @@ is constructed, proved once in \S\ref{sec:security}.
 The \emph{Sinsemilla commitment} adds a hiding term to the hash:
 \[
 \mathsf{SinsemillaCommit}_r(D, M) :=
-  \Sinsemilla_{D \,\|\, \texttt{-M}}(M) \dotplus [r]\, H_D \;\in\; \G,
+  \Sinsemilla_{D \,\|\, \texttt{-M}}(M) + [r]\, H_D \;\in\; \G,
 \]
 where $r \in \F_{p_{\Vesta}}$ is the commitment randomness (trapdoor;
 the Pasta cycle identifies $\F_{p_{\Vesta}}$ with the scalar field of
@@ -571,7 +573,8 @@ completely. This is the same division of roles the independent base $H$
 supports in a Pedersen commitment (the \emph{Crypto Guide}, \S ``The
 Pedersen commitment'').
 
-The commitment is therefore \emph{perfectly hiding} and
+For independent uniform $r$, the commitment primitive is therefore
+\emph{perfectly hiding} and
 \emph{computationally binding} (the \emph{Crypto Guide}, \S ``Hiding and
 binding'') --- the two properties \S\ref{sec:mint} requires of
 $\NoteCommit$. Indeed the note commitment $\NoteCommit_{\rcm}(\cdot)$ is
@@ -627,12 +630,13 @@ secrets}\label{sec:keys-spend}
 
 \begin{definition}[Spending key]\label{def:sk}
 The root secret of the Orchard key hierarchy is a $32$-byte
-\emph{spending key} $\mathsf{sk}$, chosen uniformly at random when the
-owner creates the account. In a deployed wallet it typically derives
-from a seed phrase via ZIP-32 hierarchical-deterministic derivation, but
-for this volume's purposes it is simply a uniform $256$-bit string,
-$\mathsf{sk} \in \{0,1\}^{256}$. Every other key is a deterministic
-function of $\mathsf{sk}$.
+\emph{spending key} $\mathsf{sk}$. Key generation repeatedly samples a
+candidate uniformly from $\{0,1\}^{256}$ and rejects it if it derives
+$\ask=0$, or if either the external or internal $\CommitIvk$ output is
+$0$ or $\bot$. In a deployed wallet the candidate typically derives
+from a seed phrase via ZIP-32 hierarchical-deterministic derivation.
+Every other key is a deterministic function of an accepted
+$\mathsf{sk}$.
 \end{definition}
 
 Deriving sub-secrets from one root requires a pseudorandom function. A
@@ -657,7 +661,8 @@ and keyed BLAKE2'') --- with the fixed $16$-byte personalisation string
 $\texttt{``Zcash\_ExpandSeed''}$ and input $\mathsf{sk} \,\|\, t$. The
 protocol obtains its PRF not from BLAKE2b's native keyed mode but as
 \emph{personalised, unkeyed} BLAKE2b over the concatenation
-$\mathsf{sk} \,\|\, t$: a PRF of $t$ whenever $\mathsf{sk}$ is secret.
+$\mathsf{sk} \,\|\, t$: it is required to behave as a PRF of $t$ for a
+secret uniform $\mathsf{sk}$.
 The secret $\mathsf{sk}$ acts as the PRF key, and the leading bytes of
 $t$ are a domain-separation tag identifying which sub-secret the call
 produces; we write the key as a subscript,
@@ -682,10 +687,11 @@ $\sum_{i=0}^{63} x_i\,256^{i} \in \{0, \dots, 2^{512}-1\}$.
 %   O(2^254/2^512) = O(2^-258)
 The width is deliberate. Because the value being reduced is $512$ bits
 wide while each modulus is just over $2^{254}$ (of bit length $255$),
-the modular reduction is statistically indistinguishable from uniform on
+the modular reduction is statistically close to uniform on
 the target set: the modular bias is $O(2^{254}/2^{512}) = O(2^{-258})$,
-negligible. And the distinct tag bytes $\mathtt{0x06}$, $\mathtt{0x07}$,
-$\mathtt{0x08}$ below make the three derived outputs independent.
+negligible. Under the PRF assumption, the distinct tag bytes
+$\mathtt{0x06}$, $\mathtt{0x07}$, $\mathtt{0x08}$ below computationally
+domain-separate the three derived outputs.
 
 \begin{construction}[Spend-side secrets and the spend validating key]%
 \label{def:keys-spend}
@@ -743,9 +749,11 @@ R &:= \mathsf{PRFexpand}\bigl(K,\ \mathtt{0x82} \,\|\,
   \bigr) \in \{0,1\}^{512}, \\
 (\dk, \ovk) &:= \bigl(R_{[0\,..\,256)},\ R_{[256\,..\,512)}\bigr),
 \end{align*}
-the \emph{incoming viewing key} $\ivk$ (a base-field scalar), the
-\emph{diversifier key} $\dk$, and the \emph{outgoing viewing key}
-$\ovk$. Here $\CommitIvk$ is the named $\ShortCommit$ instance of
+the incoming-viewing scalar $\ivk$, the \emph{diversifier key} $\dk$,
+and the \emph{outgoing viewing key} $\ovk$. In protocol terminology the
+full \emph{incoming viewing key} is the pair $(\dk,\ivk)$: $\ivk$ alone
+performs trial decryption, while $\dk$ is additionally needed to derive
+diversified addresses. Here $\CommitIvk$ is the named $\ShortCommit$ instance of
 \S\ref{sec:toolbox}; $\mathrm{LE}_{256}$ is the $256$-bit little-endian
 bit encoding of \S\ref{sec:toolbox}, giving $K$ the type
 $\mathsf{PRFexpand}$ requires of its key; $\Extract(\aksym)$ is the
@@ -961,21 +969,23 @@ one-way: the bundling edges ($\aksym,\nksym,\rivk$ into the tuple $\fvk$;
 $d$ into the address) invert by projection, and the FF1 edge is a keyed
 permutation the $\dk$ holder inverts --- the tiers are separated by the
 one-way steps $\mathsf{sk}\to(\ask,\nksym,\rivk)$, $\ask\to\aksym$,
-$\fvk\to(\ivk,\dk,\ovk)$, and $\ivk\to\pkd$. The $\dk$ and
+$\fvk\to(\ivk,\dk,\ovk)$, and $\ivk\to\pkd$. The pair $(\dk,\ivk)$ is
+the incoming viewing key. The $\dk$ and
 $\ovk$ keys are the two halves of one $\mathsf{PRFexpand}_{\rivk}$ output (tag
 $\mathtt{0x82}$, input $\aksym\|\nksym$); they play different roles and land
 in different tiers --- $\ovk$ is the \emph{outgoing} viewing key, grouped with
-the \emph{incoming} viewing key $\ivk$ as the IN/OUT viewing tier, whereas
+the incoming-viewing scalar $\ivk$ as the IN/OUT viewing tier, whereas
 $\dk$ is the \emph{diversifier} key, which sits in the address layer because
 it generates diversified addresses. Concretely $d$ is the format-preserving
 encryption $\mathsf{FF1\text{-}AES256}$ of a chosen index $d_{\mathrm{plain}}$
 under the key $\dk$ (the dashed edge marks $\dk$ entering as the cipher key),
 and $\pkd=[\ivk]\,\gd$, so the address binds both keys.
-\emph{Every node is secret key material except the chosen index
-$d_{\mathrm{plain}}$, the diversifier $d$, and the diversified address
-(unshaded) --- the address $(d,\pkd)$, and with it $d$, is the only value
-the protocol ever publishes} (shading marks tier membership, not secrecy) ---
-in particular the viewing keys $\fvk$, $\ivk$, $\ovk$ are \emph{secret:}
+\emph{The shaded nodes are wallet-held rather than on-chain values; the
+exception within them is $\aksym$, a public validation key ordinarily
+kept inside the full viewing key. The chosen index $d_{\mathrm{plain}}$
+is not secret, while the diversified address $(d,\pkd)$ is the value
+given to payers} (shading marks tier membership, not secrecy) ---
+in particular the viewing keys $\fvk$, $(\dk,\ivk)$, $\ovk$ are \emph{secret:}
 ``viewing'' names what they let the holder do, not that the protocol
 publishes them. Each dashed
 tier holds a strictly weaker capability than the one above, so a holder may
@@ -988,22 +998,24 @@ match Constructions~\ref{def:keys-spend}--\ref{def:keys-addr}.}
 \item \emph{Spend} --- $\mathsf{sk}$ / $\ask$. Whoever holds $\ask$ can
 authorise spends; it sits at the top and nothing below it can recover
 it.
-\item \emph{See everything} --- $\fvk$ (hence $\ivk$, $\ovk$). Detects
+\item \emph{See everything} --- $\fvk$ (hence $(\dk,\ivk)$ and $\ovk$). Detects
 incoming notes (via $\ivk$, which recovers $\pkd$) and views outgoing
 notes (via $\ovk$), but cannot spend, because deriving $\fvk$ from
 $\mathsf{sk}$ is one-way.
-\item \emph{Detect incoming} --- $\ivk$ alone. Sufficient to recognise
+\item \emph{Detect incoming} --- the scalar $\ivk$ alone. Sufficient to
+recognise
 notes addressed to the holder and scan the chain, nothing more --- the
 key suitable for an always-online wallet server.
 \item \emph{Receive} --- a diversified address $(d, \pkd)$. A public
-handle anyone can pay; one $\ivk$ generates $2^{88}$ mutually unlinkable
+handle anyone can pay; one incoming viewing key $(\dk,\ivk)$ generates
+$2^{88}$ mutually unlinkable
 addresses --- one per diversifier index
 (Construction~\ref{def:keys-addr}), practically inexhaustible --- all
 spendable by the same key.
 \end{itemize}
 
 Of these, only the diversified address is \emph{public}. The viewing
-keys $\fvk$, $\ivk$, $\ovk$ are \emph{secret} key material ---
+keys $\fvk$, $(\dk,\ivk)$, $\ovk$ are \emph{secret} key material ---
 ``viewing'' names what they let the holder \emph{do} (see transactions),
 not that one may publish them. Disclosing a viewing key confers the
 corresponding visibility on the recipient --- every payment to and from
@@ -1011,7 +1023,7 @@ the wallet for $\fvk$, incoming payments only for $\ivk$, outgoing only
 for $\ovk$ --- so the owner shares one only deliberately (with an
 auditor, say) and otherwise guards it like any other secret. The ladder
 is useful precisely because these capabilities are \emph{separable}: one
-can delegate ``see incoming'' ($\ivk$) without delegating ``see
+can delegate ``scan incoming'' (the scalar $\ivk$) without delegating ``see
 everything'' ($\fvk$), and neither confers the ability to spend.
 
 Two questions of motivation that the bare formulas do not answer.
@@ -1027,14 +1039,16 @@ recomputation works for any hash: the membership check of
 \S\ref{sec:action} recomputes the unblinded Sinsemilla Merkle-node
 hash $\mathsf{MerkleCRH}^{\mathsf{Orchard}}$ (\S\ref{sec:tree}), and
 Sapling even proved its BLAKE2s-based $\mathsf{CRH}^{\mathsf{ivk}}$
-in-circuit. What the trapdoor $\rivk$ adds is \emph{hiding}: the blinded
-$\ShortCommit$ is perfectly hiding (\S\ref{sec:toolbox}), so $\ivk$ ---
-and hence every public $\pkd = [\ivk]\,\gd$ --- reveals nothing about
-$\aksym$ and $\nksym$, whereas the unblinded Sinsemilla hash is only
-collision-resistant (Theorem~\ref{thm:sinsemilla-cr}) with no
-one-wayness claim. Hiding is what keeps the IN/OUT tier strictly below
-FULL VIEW: an $\ivk$ holder, such as an always-online wallet server,
-cannot extract $\nksym$ or $\aksym$.
+in-circuit. What the trapdoor $\rivk$ adds is \emph{hiding}: for
+independent uniform $\rivk$, the blinded $\ShortCommit$ is perfectly
+hiding (\S\ref{sec:toolbox}). In the deployed hierarchy, however,
+$\rivk$ also keys the $\mathsf{PRFexpand}$ call that derives $\dk$ and
+$\ovk$; when those outputs are exposed, hiding relies on a joint
+assumption about that derivation and Pallas scalar multiplication, not
+on perfect hiding alone. Under that assumption, $\ivk$ and public
+$\pkd=[\ivk]\,\gd$ hide $\aksym$ and $\nksym$. This keeps the IN/OUT
+tier below FULL VIEW: an $\ivk$ holder cannot extract $\nksym$ or
+$\aksym$.
 \emph{Why is $\nksym$ separate from $\ask$?} So that the owner can
 delegate the capability to compute nullifiers --- which a viewing key
 needs to determine which of the holder's notes are already spent
@@ -1070,7 +1084,7 @@ the chain receives is only a \emph{hiding commitment} to it.
 \subsection{The note and its commitment}\label{sec:mint-note}
 
 \begin{definition}[Orchard note]\label{def:note}
-An \emph{Orchard note} --- the private object representing one unit of
+An \emph{Orchard note} --- the private object representing an amount of
 value --- is a tuple
 \[
 \mathbf{n} := (\mathsf{addr},\, v,\, \rho,\, \psi,\, \rcm),
@@ -1107,10 +1121,14 @@ commitment will come to rest (\S\ref{sec:tree}) consumes a field
 element, not a curve point.
 \end{construction}
 
-The commitment is \emph{perfectly hiding} --- the chain learns nothing
-about $\mathsf{addr}$, $v$, $\rho$, $\psi$ from $\cmsym$ --- and
-\emph{computationally binding} --- the sender cannot later claim the
-commitment was to a different note. These are precisely the two
+The primitive is perfectly hiding for an independent uniform trapdoor.
+In an actual note, $\rcm$ is derived from $\mathsf{rseed}$ by
+$\mathsf{PRFexpand}$, so hiding is computational (with negligible
+reduction bias) under the PRF assumption: the chain learns no feasible
+information about $\mathsf{addr}$, $v$, $\rho$, or $\psi$ from
+$\cmsym$. The commitment is also \emph{computationally binding} --- the
+sender cannot later claim the commitment was to a different note. These
+are the two
 properties of a commitment scheme from the \emph{Crypto Guide},
 \S~``Hiding and binding'', and \S\ref{sec:toolbox-sinsemilla}
 established both for the Sinsemilla commitment. The scheme is Sinsemilla
@@ -1232,8 +1250,9 @@ belong to \S\ref{sec:pq-zip2005} (ZIP-2005).
 \label{sec:mint-leadbytes}
 
 Which lead bytes a note plaintext may carry depends on the value pool
-and the block height --- the lead byte is consensus-visible format
-versioning, not a free choice.
+and the block height --- the lead byte is a consensus-constrained format
+version, ordinarily encrypted inside the note plaintext, not a free
+choice.
 
 \begin{definition}[Allowed lead bytes, pool-parameterised]%
 \label{def:iw-leadbytes}
@@ -1354,7 +1373,8 @@ K_{\mathrm{enc}} := \mathsf{KDF}(\mathsf{s},\ \mathsf{epk}),
 \]
 with $\mathsf{epk}$ the \emph{ephemeral public key}. She then seals the
 plaintext under an AEAD --- authenticated encryption with associated
-data, instantiated by ChaCha20-Poly1305 (the \emph{Crypto Guide},
+data, instantiated by ChaCha20-Poly1305 with the fixed all-zero $96$-bit
+nonce and empty associated data (the \emph{Crypto Guide},
 \S ``The ChaCha20-Poly1305 AEAD''); we write
 $\mathsf{Enc}_K/\mathsf{Dec}_K$ for its encryption and decryption under
 the key $K$:
@@ -1374,14 +1394,16 @@ can reach the same shared secret from his side as
 [\ivk]\,\mathsf{epk} \;=\; [\ivk][\mathsf{esk}]\,\gd
 \;=\; [\mathsf{esk}]\,\pkd \;=\; \mathsf{s},
 \]
-so, beside the sender (who knows $\mathsf{esk}$), exactly the holder of
-$\ivk$ can recover $K_{\mathrm{enc}}$ from the published pair
+so, beside the sender (who knows $\mathsf{esk}$), a party that can recover
+the Diffie--Hellman secret --- in particular the holder of $\ivk$ ---
+can recover $K_{\mathrm{enc}}$ from the published pair
 $(\mathsf{epk}, C_{\mathrm{enc}})$.
 
 \subsection{The outgoing ciphertext}\label{sec:delivery-out}
 
-One ciphertext serves the recipient; a second serves the sender's own
-books. The pair $(\pkd, \mathsf{esk})$ is sealed under the
+One ciphertext serves the recipient; a second can serve the sender's
+own books. When an outgoing viewing key is supplied, the pair
+$(\pkd, \mathsf{esk})$ is sealed under the
 \emph{outgoing cipher key},
 \[
 \mathsf{ock} := \mathrm{BLAKE2b\text{-}256}\bigl(
@@ -1399,7 +1421,10 @@ ciphertext $C_{\mathrm{out}}$ carries $(\pkd, \mathsf{esk})$ so that the
 $\mathsf{s} = [\mathsf{esk}]\,\pkd$ and read the note as well. Because
 $\mathsf{ock}$ binds the Action's own $\cvsym^{\mathsf{net}}$, $\cmx$,
 and $\mathsf{epk}$, a $C_{\mathrm{out}}$ cannot be transplanted onto
-another Action.
+another Action without detection under the hash and AEAD assumptions.
+The protocol also permits $\ovk=\bot$; in that case the sender chooses a
+random $\mathsf{ock}$ and random outgoing plaintext, deliberately making
+$C_{\mathrm{out}}$ unrecoverable by an outgoing viewing key.
 
 The Action publishes
 \[
@@ -1437,8 +1462,9 @@ committed on chain,
 \[
 \Extract\bigl(\NoteCommit_{\rcm}(\ldots)\bigr) = \cmx.
 \]
-Only when both hold does he accept. A sender can therefore never make
-Bob accept a note inconsistent with the commitment.
+Only when both hold does he accept. Under commitment binding and AEAD
+integrity, a sender cannot feasibly make Bob accept a note inconsistent
+with the commitment.
 
 The re-derivation fixes an order. Because the
 lead-byte-$\mathtt{0x03}$ trapdoor $\rcm$ depends on $\gd$, $\pkd$, and
@@ -1486,8 +1512,9 @@ is checked below (ZIP-307; \texttt{zcash\_client\_backend}
 \texttt{proto/compact\_formats.proto}).
 
 The wallet records each note that opens \emph{with its leaf position}
---- the index at which its $\cmx$ was appended, read directly off the
-block --- and that position is precisely what the commitment tree
+--- the index at which its $\cmx$ was appended, derived arithmetically
+from the tree size at the block boundary and the commitments' order ---
+and that position is precisely what the commitment tree
 consumes: the wallet marks the position in its shard tree and can then
 build the note's authentication path on demand, by root-only assembly,
 without replaying every commitment (\S\ref{sec:tree} constructs the
@@ -1700,15 +1727,20 @@ each spend nor retains the whole tree. As it scans the chain
 (\S\ref{sec:delivery}) it appends every published $\cmx$ --- its own
 and everyone else's --- but keeps only what a future path needs: the
 nodes from each of its own notes up to the root, the complete-subtree
-roots flanking those paths, and one checkpoint per block; the rest it
-prunes. This is the design of the \texttt{shardtree} crate
+roots flanking those paths, and checkpoints at represented block
+boundaries; blocks that append no commitment need not create a distinct
+tree checkpoint. The ordinary recent set is bounded (currently $100$),
+while explicitly retained durable anchors --- currently selected every
+$288$ blocks after activation --- are exempt from that pruning. This is
+the design of the \texttt{shardtree} crate
 (\texttt{shardtree/src/\allowbreak store.rs}) that
 \texttt{zcash\_client\_backend} drives. The wallet marks its note's
 position the moment trial decryption succeeds; a \emph{checkpoint}
-stores merely the position of that block's last leaf --- equivalently
-the leaf count $n$, the size that fixes the block's anchor --- and the
-anchor itself is recomputed from the retained nodes on demand, never
-stored. To produce the path for a spend against a chosen block, the
+stores a tree state (empty or the position of the last leaf) together
+with the set of marks removed since the preceding checkpoint. The
+anchor itself is recomputed from the retained nodes on demand rather
+than stored in the checkpoint. To produce the path for a spend against a
+chosen block, the
 wallet descends its retained tree to the marked leaf and, on the way
 back to the root, reads off each sibling subtree's root: a complete
 subtree contributes its stored root, a subtree lying wholly beyond the
@@ -1768,10 +1800,10 @@ the full $32$-level path.
 \end{example}
 
 The $2^{16}$ throughout bounds the cap's \emph{capacity} --- $2^{32}$
-leaves over $2^{16}$ per shard --- not Alice's traffic. She fetches one
-root per shard that actually exists, $\lceil n / 2^{16} \rceil$ of them
-at leaf count $n$: a few hundred at present tree sizes, growing by one
-every $2^{16}$ outputs. The whole history above her shard thus arrives
+leaves over $2^{16}$ per shard --- not Alice's traffic. At leaf count
+$n$, the service exposes one root for each completed shard,
+$\lfloor n / 2^{16} \rfloor$ in all; the current partial shard is
+reconstructed from its leaves. The whole history above her shard thus arrives
 as a few kilobytes of roots in place of millions of leaves. And she
 performs the fold locally, never asking a server for one particular
 note's path --- which would reveal which note is hers; the finished
@@ -1945,16 +1977,20 @@ assumption (the \emph{Orchard Book}, \texttt{design/nullifiers.md}).
 \item \emph{Forward consistency (Faerie resistance)}: a freshly created
 note takes as its uniqueness seed the nullifier of the note spent
 alongside it, $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$; since the
-network already guarantees nullifiers are unique, this forces every
-note's $\rho$ to be globally unique, closing an attack from earlier
+network rejects duplicate nullifiers within each pool, this forces
+accepted notes' $\rho$ values to be unique within that pool. Equality
+across pools is not checked and is instead cryptographically
+infeasible, as is any accidental cross-pool nullifier collision. This
+closes an attack from earlier
 designs in which forged notes could be made to share a nullifier.
 \end{itemize}
 
 The last item closes the loop opened at minting: the $\rho$ that
 \S\ref{sec:mint} could only type as a base-field element fixed at note
 creation now acquires its provenance. Every note is born from a spend,
-and inherits as $\rho$ the nullifier that spend reveals --- a globally
-unique value by the very double-spend rule this section establishes.
+and inherits as $\rho$ the nullifier that spend reveals --- unique among
+accepted nullifiers in its pool by the double-spend rule this section
+establishes.
 
 \begin{proposition}[Nullifier uniqueness]\label{thm:nf-unique}
 Each note determines exactly one nullifier, and any efficient adversary
@@ -2063,7 +2099,7 @@ logarithm''). The signature scheme is RedPallas, constructed in
 $R^{\mathsf{Orchard}}$ --- the value-commitment randomness base,
 distinct from the spend-authorisation base $G^{\mathsf{SpendAuth}}$. A
 single signature over the whole transaction (concretely, over the
-ZIP-244 \emph{sighash} of \S\ref{sec:spend-sighash}) additionally binds
+ZIP-244 \emph{signature digest} of \S\ref{sec:spend-sighash}) additionally binds
 all its Actions together, so that no one can remove or transplant any
 of them.
 
@@ -2078,27 +2114,31 @@ $V^{\mathsf{Orchard}}, R^{\mathsf{Orchard}}$ (ZIP-229). The Ironwood
 component's conservation is thus this subsection verbatim, run over the
 Ironwood Actions' $\cvsym^{\mathsf{net}}$ values.
 
-\subsection{What the signatures sign: the ZIP-244 digest and its v6
+\subsection{What the signatures sign: ZIP-244 digests and their v6
 form}\label{sec:spend-sighash}
 
-The message both Orchard signatures sign --- the \emph{sighash} --- is
-not the raw transaction but a non-malleable digest of it, which ZIP-244
-assembles as a tree of personalised $\mathrm{BLAKE2b\text{-}256}$
-hashes, one node per transaction component. Its root is
+The message both Orchard signatures sign is ZIP-244's
+\emph{signature digest}, not the raw transaction. ZIP-244 first defines
+the closely related transaction-identifier digest as a tree of
+personalised $\mathrm{BLAKE2b\text{-}256}$ hashes, one node per
+transaction component. Its root is
 \[
-\mathsf{sighash} := \mathrm{BLAKE2b\text{-}256}\bigl(
+\mathsf{txidDigest} := \mathrm{BLAKE2b\text{-}256}\bigl(
 \texttt{ZcashTxHash\_} \,\|\, \mathsf{branchid},\
 d_{\mathrm{hdr}} \,\|\, d_{\mathrm{trans}} \,\|\, d_{\mathrm{Sap}}
 \,\|\, d_{\mathrm{Orch}}\bigr),
 \]
 where $\mathsf{branchid}$ is the $4$-byte identifier of the active
-network upgrade --- so a signature is valid only on the fork it was
-made for --- and each $d_\bullet$ is a personalised digest of one
-component's data, an absent component hashing the empty string. A
-purely shielded Orchard payment leaves the transparent and Sapling
-branches empty, and then the $\mathsf{sighash}$ coincides with the
-transaction identifier (txid) itself, the hash by which the chain names
-the transaction (ZIP-244).
+network upgrade and each $d_\bullet$ is a personalised digest of one
+component's data, an absent component hashing the empty string. The
+signature digest has the same root and shielded children but replaces
+$d_{\mathrm{trans}}$ with a $d_{\mathrm{transSig}}$ that commits to the
+applicable transparent input and sighash flags. For a coinbase
+transaction or a transaction without transparent inputs, the two
+transparent children coincide, so the signature digest equals
+$\mathsf{txidDigest}$; otherwise they need not. Orchard
+spend-authorisation and binding signatures sign the signature digest
+(ZIP-244).
 
 % compute/spend_quantities.py:
 %   C_enc partition: [0:52] compact, [52:564] memo, [564:] tail
@@ -2128,16 +2168,17 @@ declared balance, and the $\mathsf{anchor}$ of \S\ref{sec:tree}.
 
 Folding in every Action's $\nfsym$, $\cmx$, $\cvsym^{\mathsf{net}}$,
 $\rk$ and ciphertexts beside the shared $\mathsf{flagsOrchard}$,
-balance and $\mathsf{anchor}$, the $\mathsf{sighash}$ pins the exact
+balance and $\mathsf{anchor}$, these child digests pin the exact
 bundle: no Action can be transplanted into another transaction nor any
-field altered without breaking it (ZIP-244). The spend-authorisation
-signature of \S\ref{sec:spend-auth} under each $\rk$ and the binding
-signature under $\mathsf{bvk}$ both sign this single value.
+field altered without changing the digest (ZIP-244). The
+spend-authorisation signature of \S\ref{sec:spend-auth} under each $\rk$
+and the binding signature under $\mathsf{bvk}$ both sign the signature
+digest.
 
 \paragraph{The v6 form.} From NU6.3 the tree gains an Ironwood branch
 (Figure~\ref{fig:sighash-tree}):
 \[
-\mathsf{sighash} := \mathrm{BLAKE2b\text{-}256}\bigl(
+\mathsf{txidDigest} := \mathrm{BLAKE2b\text{-}256}\bigl(
 \texttt{ZcashTxHash\_} \,\|\, \mathsf{branchid},\
 d_{\mathrm{hdr}} \,\|\, d_{\mathrm{trans}} \,\|\, d_{\mathrm{Sap}}
 \,\|\, d_{\mathrm{Orch}} \,\|\, d_{\mathrm{Irw}}\bigr),
@@ -2169,7 +2210,7 @@ component hashes the empty string under its personalisation (ZIP-229).
 ]
 % ===== root =====
 \node[hashbox, fill=tierfull!16, draw=tierfull!80] (root) at (2.6, 0)
-  {$\mathsf{sighash}$ --- v6 txid tree\\[-1pt]
+  {$\mathsf{txidDigest}$ --- v6 txid tree\\[-1pt]
    {\scriptsize\ttfamily ZcashTxHash\_}\,%
    {\scriptsize$\|\;\mathsf{branchid}$}};
 % ===== unexpanded branches =====
@@ -2231,7 +2272,8 @@ component hashes the empty string under its personalisation (ZIP-229).
   to[out=-120,in=-15] ([yshift=-2mm]auth.east);
 \end{tikzpicture}%
 }
-\caption{The v6 sighash as a tree of personalised BLAKE2b-256 nodes
+\caption{The v6 transaction-identifier digest as a tree of personalised
+BLAKE2b-256 nodes
 (ZIP-244; ZIP-229), with the Orchard and Ironwood branches expanded.
 Each node is one BLAKE2b-256 call whose personalisation
 (\texttt{typewriter}, right-aligned) separates its domain; the three
@@ -2303,7 +2345,7 @@ $\F_{p_{\Vesta}}$ (reduction bias $O(2^{254}/2^{640}) = O(2^{-386})$)
 \;\in\; \Ep(\F_{p_{\Pallas}}).
 \]
 The spender publishes the \emph{randomised} validating key $\rk$, not
-the real $\aksym$, and signs the sighash with $\rsk$.
+the real $\aksym$, and signs the signature digest with $\rsk$.
 
 Unlinkability is retained alongside authority. Because $\alpha$ is
 fresh per spend, the key $\rk$ is uniformly random and unlinkable
@@ -2365,7 +2407,8 @@ the checks of Definition~\ref{def:action} below.)
 
 \begin{enumerate}[leftmargin=*]
 \item \textbf{Bob hands Alice an address.} Bob derives a diversified
-address $(d, \pkd)$ from his $\ivk$ (Construction~\ref{def:keys-addr},
+address $(d, \pkd)$ from his incoming viewing key $(\dk,\ivk)$
+(Construction~\ref{def:keys-addr},
 \S\ref{sec:keys}) and gives it to Alice. It reveals nothing and is
 unlinkable to his other addresses.
 
@@ -2399,7 +2442,7 @@ $\mathbf{n}_{\mathrm{new}}$ to Bob (\S\ref{sec:delivery}), attaches a
 \emph{spend-authorisation signature} (SpendAuthSig) under $\rk$
 (\S\ref{sec:spend-auth}), and signs the bundle with the binding
 signature under $\mathsf{bvk}$ (\S\ref{sec:spend-value}), which proves
-balance. Both signatures sign the ZIP-244 sighash
+balance. Both signatures sign the ZIP-244 signature digest
 (\S\ref{sec:spend-sighash}), welding the Action into this transaction.
 
 \item \textbf{The network verifies.} Consensus checks that it
@@ -2424,10 +2467,12 @@ in a further note, subject from NU6.3 to the routing rule constructed
 in \S\ref{sec:turnstile}.
 
 After the payment, the chain has gained one nullifier and one
-commitment; an observer learns that \emph{an} Orchard payment occurred
-and nothing else --- not sender, recipient, or amount. The claim rests
-on the proof's zero knowledge and the composition of every piece of
-the journey; \S\ref{sec:security} states and proves it.
+commitment. Its cryptographic contents do not reveal sender, recipient,
+or hidden amount, but the transaction still exposes its action count,
+bundle structure, timing, fees, transparent components, and any public
+pool balance. The privacy claim rests on the proof's zero knowledge and
+the composition of every piece of the journey;
+\S\ref{sec:security} states its scope.
 
 \subsection{What a node verifies, without ever observing the note}
 \label{sec:action-verify}
@@ -2456,6 +2501,8 @@ in v5 transactions before NU6.3) are likewise bundle-level fields
 Using only the public fields $(\mathsf{anchor}, \cvsym^{\mathsf{net}},
 \nfsym_{\mathrm{old}}, \rk, \cmx)$ of each Action, the node checks:
 \begin{itemize}[leftmargin=*]
+\item each encoded field element and curve point parses canonically, and
+the randomised validating key $\rk$ is not the identity;
 \item the bundle's \emph{Halo 2 proof} of the Action statement
 (\S\ref{sec:action-stmt}) --- this forces each spent note of nonzero
 witnessed value to be a genuine tree leaf (a zero-value \emph{dummy}
@@ -2825,7 +2872,7 @@ The volume's deployed-behaviour citations are pinned to a fixed
 baseline, stated here once: the released crate \texttt{orchard}~0.15.0
 (the version \texttt{librustzcash} pins; the Ironwood note-format,
 note-encryption, and v6-digest work ships in it), the \texttt{orchard}
-git tree at \texttt{bef8a27} (a 0.14.0 development tree predating the
+git tree at \texttt{bef8a27} (a post-0.14.0 development tree predating the
 release, cited for the circuit and cross-address work it carries),
 \texttt{librustzcash} at commit \texttt{e30517e4}, and
 \texttt{protocol.tex} and the ZIPs at \texttt{zips} commit
@@ -2997,7 +3044,7 @@ quantum-recoverable note plaintext format --- lead byte $\mathtt{0x03}$
 with the hashed trapdoor of Definition~\ref{def:iw-derive}
 (\S\ref{sec:mint}) --- no Orchard-pool output note does, and this is
 ``the only note-level distinction between the two pools''. At the
-digest level, the v6 sighash tree gains an Ironwood branch mirroring
+digest level, the v6 transaction-digest tree gains an Ironwood branch mirroring
 the Orchard one, already constructed alongside the spend's signatures
 (Figure~\ref{fig:sighash-tree}, \S\ref{sec:spend-sighash}). Everything
 NU6.3 changes is collected, one row per change with its owning
@@ -3156,10 +3203,12 @@ form check A3 already uses --- $v_{\mathrm{old}} \cdot (\mathsf{root}
 custom gate (the rows just cited from
 Definition~\ref{def:iw-action}'s implementation).
 % numbers: brief c5-33 (nine-element historical instance encoding)
-The addition also costs history nothing: the historical nine-element
-instance encoding is \emph{commitment-identical} when $\delta = 0$, so
-pre-NU6.3 proofs and verifying keys are untouched by A10 (crate
-\texttt{orchard} at \texttt{bef8a27}, \texttt{src/circuit.rs}).
+For $\delta=0$, the added coordinate preserves the commitment to the
+historical nine-element instance column, which supports compatibility
+with existing instance data. The changed circuit nevertheless has its
+own verifying key; A10 does not leave pre-NU6.3 proofs or verifying keys
+unchanged (crate \texttt{orchard} at \texttt{bef8a27},
+\texttt{src/circuit.rs}).
 
 % numbers: brief c5-34 (bits 0b001 / 0b010 / 0b100; canonical flags
 %   0b0000_0011 Orchard, 0b0000_0111 Ironwood)
@@ -3280,8 +3329,10 @@ outputs are also paid --- and absorbs that value into an
 Ironwood component with $v_{\mathrm{balance}}^{\mathsf{Ironwood}} <
 0$. Both balancing fields are cleartext: the turnstile \emph{reveals
 the amounts crossing between pools in every transaction}, exactly as
-ZIP-229's privacy analysis states, and no per-transaction or aggregate
-cap on migration is specified anywhere.
+ZIP-229's privacy analysis states. Consensus specifies no
+migration-specific cap; ordinary transaction and $\mathsf{MAX\_MONEY}$
+bounds still apply, and ZIP-318's wallet policy recommends migration
+outputs no larger than $10{,}000$ ZEC.
 
 % numbers: brief c6-6 (tree capacity 2^32; 3 history-tree fields)
 The remaining Ironwood consensus rules are this volume's Orchard rules
@@ -3294,8 +3345,7 @@ Orchard twin (\S\ref{sec:tree-pools}). Beyond the trees, the ZIP-221
 history whose root every block header commits to --- gains three
 Ironwood fields, the pool's earliest root, latest root, and
 transaction count, aggregated exactly like the Orchard trio (ZIP-221;
-the \emph{FlyClient Guide}, \S``NU5: the commitment becomes one of
-two'').
+ZIP-244; ZIP-258, \S``ZIP 221 changes'').
 
 \subsection{Change and wallet posture}\label{sec:turnstile-wallet}
 
@@ -3321,7 +3371,8 @@ the seal's third rule: change never asks new value to enter the pool.
 
 Scanning closes down symmetrically (ZIP-326). External Orchard
 receivers scan from the wallet birthday (\S\ref{sec:delivery-sync})
-only up to NU6.3 activation --- past it, compliant wallets no longer
+through the block immediately before NU6.3 activation --- from the
+activation block onward, compliant wallets no longer
 pay external Orchard receivers. Internal Orchard receivers scan until
 the wallet observes a \emph{zero} Orchard balance after activation ---
 change may still trickle back under the routing rule above. Ironwood
@@ -3548,9 +3599,10 @@ instance of this same circuit; a bundle's Actions are proved together
 in the one aggregate proof a node checks from the public inputs alone
 (\S\ref{sec:action-verify}); and batch verification --- the deferred
 linear multi-scalar multiplications merged across proofs (the
-\emph{Halo 2 Guide}, \S``Accumulation and the Halo trick'') --- lets
-a node verify many proofs at amortised cost approaching a single
-verification. The machinery the journey met one stage at a time is,
+\emph{Halo 2 Guide}, \S``Accumulation and the Halo trick'') ---
+amortises the shared multi-scalar-multiplication work across many
+proofs, while retaining proof-specific logarithmic work. The machinery
+the journey met one stage at a time is,
 beneath it all, a single two-thousand-row table whose satisfiability
 is the payment's validity.
 
@@ -3596,28 +3648,43 @@ assumptions that Theorem~\ref{thm:orchard-e2e}(iv) adds.
 
 \begin{proposition}[Sinsemilla collisions are discrete-log relations]
 \label{prop:sins-cr}
-A collision $M \ne M'$ with $\Sinsemilla_D(M) = \Sinsemilla_D(M')$
-yields an explicit non-trivial discrete-log relation among the
-random-oracle-derived generators $Q(D), P[0], \dots, P[2^k - 1]$ of
-Construction~\ref{def:sinsemilla}; so does an $x$-coordinate
-collision $\mathsf{ShortHash}_D(M) = \mathsf{ShortHash}_D(M')$, and,
-with the blinding base $H_D$ joining the generator set, a collision in
-$\ShortCommit$ or in the extracted commitment $\cmx$. Consequently
+For distinct equal-length input bitstrings $M\ne M'$, a collision
+$\Sinsemilla_D(M)=\Sinsemilla_D(M')$ yields an explicit non-trivial
+discrete-log relation among the random-oracle-derived generators
+$Q(D),P[0],\dots,P[2^k-1]$ of Construction~\ref{def:sinsemilla}; so does
+an $x$-coordinate collision $\mathsf{ShortHash}_D(M)=
+\mathsf{ShortHash}_D(M')$, and, with the blinding base $H_D$ joining the
+generator set, two distinct fixed-length openings of $\ShortCommit$ or
+of the extracted commitment $\cmx$. Consequently
 Theorem~\ref{thm:sinsemilla-cr} holds --- for fixed-length inputs,
 $\Sinsemilla_D$ is collision-resistant assuming DL on $\G$ --- and the
-short forms of Definition~\ref{def:sinsemilla-commit} inherit it.
+fixed-length short forms of Definition~\ref{def:sinsemilla-commit}
+inherit it.
 \end{proposition}
 
 \begin{proof}[Sketch]
-Suppose first that both messages have the same chunk count $\ell$ and
-that no incomplete-addition exception occurs. Unfolding the update rule
-of Construction~\ref{def:sinsemilla},
+Equal bit length ensures that padding produces distinct chunk vectors of
+the same chunk count $\ell\le253$. Suppose first that no
+incomplete-addition exception occurs. Unfolding the update rule of
+Construction~\ref{def:sinsemilla},
 \begin{equation}\label{eq:sins-unfold}
 \Sinsemilla_D(M) \;=\; [2^{\ell}]\, Q(D) \;+\;
 \sum_{i=1}^{\ell} \bigl[2^{\ell - i}\bigr]\, P[m_i].
 \end{equation}
-A collision therefore gives $\sum_i [2^{\ell-i}]\,(P[m_i] - P[m'_i]) =
-\mathcal{O}$ with $m_i \ne m'_i$ for at least one $i$: a non-trivial
+A repeated chunk value uses the same table generator, so collect its
+coefficient. For $0\le j<2^k$, let
+\[
+\chi_j(m):=\sum_{i=1}^{\ell}2^{\ell-i}\,[m_i=j]
+ \pmod {p_{\Vesta}}.
+\]
+The vector $\chi(m)$ is injective: before reduction, the binary digits
+of its $j$th coordinate mark exactly the positions at which $m_i=j$,
+and the bound $\ell\le253$ prevents wraparound modulo
+$p_{\Vesta}$. A collision therefore gives
+\[
+\sum_{j=0}^{2^k-1}[\chi_j(m)-\chi_j(m')]P[j]=\mathcal O.
+\]
+Because $m\ne m'$ implies $\chi(m)\ne\chi(m')$, this is a non-trivial
 linear relation over $\F_{p_{\Vesta}}$ on the table generators. Since
 hash-to-curve modelled as a random oracle samples the generators
 independently (\S\ref{sec:toolbox-grouphash}), finding such a relation
@@ -3637,14 +3704,15 @@ $\Sinsemilla_D(M) = \pm \Sinsemilla_D(M')$. The $+$ case is the point
 collision just treated; in the $-$ case, moving everything to one side
 of equation~\eqref{eq:sins-unfold} gives
 \[
-[2^{\ell + 1}]\, Q(D) + \sum_{i=1}^{\ell}
-\bigl[2^{\ell - i}\bigr]\,\bigl(P[m_i] + P[m'_i]\bigr) = \mathcal{O},
+[2^{\ell + 1}]\, Q(D) + \sum_{j=0}^{2^k-1}
+[\chi_j(m)+\chi_j(m')]\,P[j] = \mathcal{O},
 \]
 whose $Q(D)$-coefficient $2^{\ell + 1}$ is non-zero modulo
 $p_{\Vesta}$: a non-trivial relation whether or not any chunk differs.
-The same one extra term extends the argument to the blinded forms ---
-adding further independent bases, $H_D$ for $\ShortCommit$ and the
-extracted $\cmx$, leaves the relation non-trivial. Finally, the
+For the blinded forms, subtracting two openings adds
+$[r-r']H_D$ to the $+$ relation (and $[r+r']H_D$ to the $-$ relation);
+the nonzero message coefficient vector or the nonzero $Q(D)$
+coefficient keeps the relation non-trivial. Finally, the
 incomplete-addition exceptions ---
 inputs on which some $\dotplus$ is undefined --- are equalities between
 accumulator points, themselves non-trivial discrete-log relations among
@@ -3902,15 +3970,15 @@ A1--A10; in particular, any Action whose witnessed $v_{\mathrm{old}}$
 is non-zero must spend a genuine leaf of the commitment tree
 (zero-value dummy spends, admitted by A3's gate, are accepted by
 design);
-\item cause two Actions to share a nullifier without spending the same
-note twice;
+\item cause two accepted Actions in the same pool and chain history to
+share a nullifier without spending the same note twice;
 \item cause a bundle's declared transparent balance
 $v_{\mathrm{balance}}^{\mathsf{Orchard}}$ to differ from its true net
 value flow $\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i})$ --- in
 particular, to exceed it, which would create value
 (Proposition~\ref{prop:balance-sound});
-\item link a published Action to any specific recipient or value
-beyond what is explicit in the public inputs.
+\item use the Action's cryptographic fields to link it to any specific
+recipient or hidden value beyond what is explicit in the public data.
 \end{enumerate}
 \end{theorem}
 
@@ -3923,15 +3991,18 @@ the disclosure clause over them all. The first three reduce,
 informally, to DL on the Pasta curves in the random-oracle model ---
 Pallas for the application-level reductions, Vesta for the IPA
 extraction. For the fourth, the zero knowledge of the SNARK transcript
-is \emph{statistical}: given the perfectly-hiding Pedersen and
-Sinsemilla blinders and the random-oracle programming, it does not
-rest on DL. Full unlinkability of an Action, however, additionally
+is \emph{statistical} and does not depend on application-commitment
+hiding or on DL. Full cryptographic unlinkability of an Action, however,
+additionally
 rests on the DDH assumption on Pallas, the PRF security of Poseidon
 (\S\ref{sec:spend-nullifier}), and the KDF/AEAD securing the note
 ciphertext (\S\ref{sec:delivery}), and is therefore computational ---
 the typical asymmetry of the discrete-log SNARK family: soundness is
 computational (a cheating prover is bounded, never impossible), while
-the zero knowledge of the transcript is information-theoretic. The
+the zero knowledge of the transcript is information-theoretic. This is
+not a claim that the whole transaction hides its public balance,
+component and Action counts, transparent data, timing, address reuse,
+voluntary disclosures, or wallet/network metadata. The
 journey's debts are paid; \S\ref{sec:lineage} sets these proofs in
 their history.
 
@@ -3965,8 +4036,9 @@ transitional design: the prover was slow, and the circuit hashed with
 SHA-256 --- a bit-oriented hash whose boolean operations are
 non-native to arithmetic constraints, hence costly in-circuit.
 Decisively, a flaw in BCTV14 discovered in 2018 would have allowed
-undetected counterfeiting; the pool was deprecated, and shielded
-Sprout value was migrated to later pools.
+undetected counterfeiting; the pool was deprecated, and users were
+enabled and encouraged to migrate shielded Sprout value to later pools.
+Residual Sprout value may remain.
 
 \subsection{Sapling (2018--present)}
 \label{sec:lineage-sapling}
@@ -3983,15 +4055,16 @@ structural limitations remained. Groth16 still requires a per-circuit
 trusted setup --- the 2018 Sapling MPC, whose universal first phase
 was the Powers of Tau ceremony with many participants --- and no known
 elliptic-curve cycle extends BLS12-381 (the \emph{Halo 2 Guide},
-\S``The necessity of a cycle of curves''), so the proving system
+\S``A cycle of curves for efficient native recursion''), so the proving system
 admits no efficient recursion.
 
 \subsection{Orchard and the Pasta cycle (2022--present)}
 \label{sec:lineage-orchard}
 
 % numbers: brief c4-29 (2022, NU5)
-Orchard, activated by NU5 in 2022 and running unchanged in the
-Ironwood pool from NU6.3, replaced the Sapling stack with the Halo 2 /
+Orchard, activated by NU5 in 2022 and carried into the Ironwood pool
+from NU6.3 with a new note format, Action circuit, and verifying key,
+replaced the Sapling stack with the Halo 2 /
 Pasta stack this volume has used throughout. Four choices are
 principal.
 \begin{itemize}[leftmargin=*]
@@ -4017,8 +4090,9 @@ SNARK, recursion-ready'' was the target, and the designers engineered
 the Pasta cycle to fit it.
 
 % numbers: brief c4-31 (three circuit versions; orchard 0.15.0)
-The stack has since carried one correction and one split, and neither
-touched its cryptography. The Action circuit exists in three versions
+The stack has since carried one correction and one split. Its primitive
+suite and Halo 2/Pasta proving stack remain, while the Action circuit
+exists in three versions
 --- NU5's original, the NU6.2 emergency correction (ZIP-257, Final),
 and the NU6.3 Ironwood circuit with the cross-address input
 (\S\ref{sec:turnstile-cross}) --- named \texttt{InsecurePreNu6\_2},
@@ -4122,18 +4196,14 @@ completely.
 
 % numbers: brief c6-15 (exactly one retroactive break on the Orchard
 %   assumption surface)
-Classified along this axis, the Orchard protocol --- both its pools
---- has exactly one retroactive break: harvest-now-decrypt-later
-against the note encryption (\S\ref{sec:pq-hndl}). Everything else on
-its assumption surface is prospective --- the discrete-log integrity
+Within the generic discrete-log channels catalogued by ZIP-2005,
+Orchard --- in both pools --- has one identified retroactive break:
+harvest-now-decrypt-later against the note encryption
+(\S\ref{sec:pq-hndl}). The other cryptographic breaks considered here
+are prospective --- the discrete-log integrity
 stack of \S\ref{sec:pq-integrity} --- or faces only generic speedups
 --- the symmetric primitives of \S\ref{sec:pq-grover}. The section is
-organised accordingly, and its scope is the Orchard core seen from
-inside: the same reversibility axis applied across every layer of
-Zcash --- the transparent stack, proof of work, the frontier
-protocols, and the migration arithmetic --- is the \emph{PQ Guide}'s
-subject. That volume is a lateral companion; nothing below depends on
-it.
+organised accordingly, and its scope is the Orchard core seen from inside.
 
 \begin{remark}[Method]\label{rem:pq-bins}
 Every forward-looking claim below sits in one of the three epistemic
@@ -4147,7 +4217,8 @@ implementation and specification, as throughout the volume.
 %   orchard bef8a27e = v0.14.0, 2026-06-16; released orchard 0.15.0)
 The ground truth is pinned: \texttt{protocol.tex} and the ZIPs at
 \texttt{zips} commit \texttt{69610984} (2026-07-09); crate
-\texttt{orchard} at git commit \texttt{bef8a27e} (v0.14.0, 2026-06-16)
+\texttt{orchard} at git commit \texttt{bef8a27e}
+($0.14.0\text{-}18\text{-}g\mathtt{bef8a27}$, 2026-06-16)
 for circuit claims; the released \texttt{orchard}~0.15.0 --- the
 \texttt{librustzcash} pin --- for the lead-byte-$\mathtt{0x03}$ note
 path. Each artefact cited below was verified at these pins.
@@ -4186,9 +4257,10 @@ not a spending one (the ladder of \S\ref{sec:keys-ladder}): no spend
 authority is conferred, and $\ask$ is not exposed --- its exposure is
 a prospective matter, taken up in \S\ref{sec:pq-integrity}. Second,
 the attack is keyed by the address: without $(d, \pkd)$ the adversary
-has neither the base $\gd$ nor the target $\pkd$, and the recorded
-chain reveals nothing further even to an unbounded adversary
-(\S\ref{sec:pq-integrity} completes this claim). ZIP-2005 records the
+has neither the base $\gd$ nor the target $\pkd$, and no known efficient
+generic discrete-log attack recovers this channel from the ciphertext
+alone. This statement excludes public metadata and auxiliary
+information about the recipient. ZIP-2005 records the
 same boundary: the exposure requires ``both the ciphertext \dots{} and
 the receiver address''.
 
@@ -4222,11 +4294,11 @@ unrepairable.
 \subsection{Prospective breaks: the discrete-log integrity stack}
 \label{sec:pq-integrity}
 
-The security reductions of \S\ref{sec:security} each run equally well
-in reverse: the assumption a CRQC falsifies is exactly the one the
-corresponding proof consumes, so the prospective-break inventory reads
-directly off that section's reduction list. We take its four entries
-in construction order.
+Shor's algorithm invalidates the group assumptions used by the security
+reductions of \S\ref{sec:security}; it does not turn those reductions
+into attacks automatically. The prospective-break inventory below
+therefore gives a separate concrete attack or consequence for each
+affected construction.
 
 \emph{Sinsemilla binding.} Collision resistance reduces to the
 discrete-log relation problem among the $\GroupHash$-derived
@@ -4247,9 +4319,11 @@ the bases $V^{\mathsf{Orchard}}$ and $R^{\mathsf{Orchard}}$
 (Definition~\ref{def:cv}, Proposition~\ref{thm:balance}), and the
 binding signature is Schnorr under DL in the random-oracle model.
 Knowledge of $\log_{V^{\mathsf{Orchard}}} R^{\mathsf{Orchard}}$
-reopens any recorded or fresh $\cvsym$ to any value and yields a
-$\mathsf{bsk}$ for any target $\mathsf{bvk}$: silent inflation, again
-turnstile-bounded (crate \texttt{orchard}, \texttt{src/value.rs}).
+reopens any recorded or fresh $\cvsym$ to any value. A CRQC can
+separately solve the discrete logarithm of a target $\mathsf{bvk}$ to
+obtain its $\mathsf{bsk}$ and forge the binding signature: silent
+inflation, again turnstile-bounded (crate \texttt{orchard},
+\texttt{src/value.rs}).
 
 \emph{Spend authorisation.} RedPallas unforgeability is DL in the
 random-oracle model (Proposition~\ref{thm:redpallas-euf}). One
@@ -4261,11 +4335,12 @@ completes arbitrary theft (crate \texttt{orchard},
 \emph{Proof soundness.} The Action SNARK is knowledge-sound under DL
 on Vesta with Fiat--Shamir in the random-oracle model
 (\S\ref{sec:sec-compose}; crate \texttt{halo2\_proofs},
-\texttt{src/poly/commitment.rs}). A CRQC forges accepting proofs of
-false Action statements --- minting from nothing, spending any
-commitment on chain --- indistinguishable from honest proofs. This is
-the single most concentrated failure point: every other item's
-exploitation route runs through it.
+\texttt{src/poly/commitment.rs}). A CRQC breaks the discrete-log
+binding/extractability assumption of the IPA polynomial commitment,
+invalidating the stated knowledge-soundness reduction. That permits
+commitment equivocation; a universal method for forging every false
+Action statement does not follow from the reduction alone and requires
+an attack on the full proof protocol.
 
 None of the four is retroactive, and the reason deserves spelling out.
 Each attack must place a forged object --- a proof, a signature, a
@@ -4281,20 +4356,16 @@ repaired afterwards. Second, honest funds inside a disabled pool need
 some other way out --- which is precisely the problem ZIP-2005 exists
 to solve (\S\ref{sec:pq-zip2005}).
 
-The mitigation is complete in a second sense: the recorded chain does
-not leak, even quantumly, the material the integrity attacks would
-need. The value commitment is perfectly hiding, so recorded $\cvsym$
-values reveal nothing about amounts even to an unbounded adversary
-(\S\ref{sec:spend-value}); the randomiser $\alpha$ is uniform, so
-recorded $\rk$ values and signatures carry information-theoretically
-no linkage to $\aksym$ or $\ask$ (\S\ref{sec:sec-redpallas}); proof
+Recorded $\cvsym$ values are perfectly hiding for uniform independent
+value-commitment randomness; the randomiser $\alpha$
+information-theoretically masks the validating key; and proof
 transcripts are statistically simulatable without the witness
-(\S\ref{sec:halo-zk}); and nullifiers are keyed by $\nksym$, which
-never appears on chain (\S\ref{sec:spend-nullifier}). A quantum
-adversary who does not know a recipient's address consequently learns
-nothing from the recorded chain --- ZIP-2005 reaches the same
-conclusion --- and the sole retroactive channel is the address-keyed
-decryption of \S\ref{sec:pq-hndl}.
+(\S\ref{sec:halo-zk}). Nullifiers additionally rely on the secret
+$\nksym$ and Poseidon PRF security for unlinkability. Thus no known
+efficient generic discrete-log attack extracts these secrets merely
+from the recorded cryptographic fields without the receiver address.
+This deliberately narrower claim excludes public transaction metadata,
+side information, and failures of the symmetric assumptions.
 
 \subsection{Primitives facing only generic speedups}
 \label{sec:pq-grover}
@@ -4304,7 +4375,8 @@ BLAKE2b serves $\mathsf{PRFexpand}$ and with it every key and
 note-randomness derivation (Definition~\ref{def:prfexpand},
 \S\ref{sec:keys}; Definition~\ref{def:iw-derive}), the KDF and the
 outgoing cipher key (\S\ref{sec:delivery}), the RedPallas challenge
-hash, and the ZIP-244 sighash (\S\ref{sec:spend-sighash}); the ZIP-32
+hash, and the ZIP-244 transaction/signature digests
+(\S\ref{sec:spend-sighash}); the ZIP-32
 (Final) Orchard key tree is hardened-only, built entirely from these
 derivations, with no elliptic-curve operation anywhere on the
 derivation path (crate \texttt{orchard}, \texttt{src/zip32.rs}).
@@ -4330,8 +4402,10 @@ One caveat attaches to Poseidon: its PRF security is a cryptanalytic
 heuristic with no standard-problem reduction, classically and
 quantumly alike (the \emph{Crypto Guide},
 \S``Arithmetisation-friendly hashing: Poseidon''). A quantum adversary
-gains no identified structural advantage, and since $\nksym$ stays off
-chain, recorded nullifiers remain unlinkable either way.
+gains no identified structural advantage. Recorded-nullifier
+unlinkability nevertheless depends on Poseidon behaving as the required
+PRF; keeping $\nksym$ off chain does not preserve that claim if the PRF
+assumption itself fails.
 
 The survey's load-bearing consequence: the symmetric backbone survives
 a discrete-log break intact. A seed holder can still prove, by
@@ -4380,9 +4454,9 @@ same commitment point is a collision-type event in the oracle ---
 generically hard, with no group structure for Shor to exploit, in the
 sense Theorem~\ref{thm:iw-qrom} makes precise. The \emph{composite} of
 the derivation and $\NoteCommit$ is therefore post-quantum binding ---
-\emph{provided a verifier checks the derivation}. Neither
-$\NoteCommit$ nor the deployed Action circuit changed, and the circuit
-checks only the commitment, never the derivation; the binding claim is
+\emph{provided a verifier checks the derivation}. No deployed Action
+constraint checks that derivation: the circuit checks the commitment,
+not the derivation that produced its trapdoor. The binding claim is
 conditional on that future check, which is exactly the Recovery
 Statement's job.
 
@@ -4459,9 +4533,9 @@ becomes $O(q^3/N)$.
 % compute/pq_bounds.py:
 %   log2(N) = log2(p_Vesta) = 254.0000
 %   q = 2^60; log2(q^3/N) = -74.0; log2(q^2/N) = -134.0
-Evaluated, the bounds are comfortable. At $q \ll 2^{60}$ queries the
-worst-case bound is about $2^{-74}$, and the practically achievable
-bound stays near the classical $q^2/N \approx 2^{-134}$: saturating
+Evaluated at $q=2^{60}$ queries, the cubic term is about $2^{-74}$ and
+the quadratic comparison is about $2^{-134}$; for $q\ll2^{60}$ both
+bounds are correspondingly smaller. Saturating
 the cubic bound needs the memory-infeasible BHT-style algorithm of
 \S\ref{sec:pq-grover}.
 
@@ -4482,12 +4556,14 @@ arrive at any time.
 
 The bins of Remark~\ref{rem:pq-bins}, applied:
 \begin{itemize}[leftmargin=*]
-\item \emph{Specified.} The lead-byte-$\mathtt{0x03}$ derivation, the
-$\mathsf{qsk}$/$\mathsf{qk}$ key path, and the consensus rules sealing
-the Orchard pool (\S\ref{sec:turnstile-seal}) are pinned at ZIP rigour
---- ZIP-2005 (Proposed), ZIP-229 and ZIP-258 (Draft), all at zips
-commit \texttt{69610984} --- and are enforced from NU6.3 activation:
-every Ironwood output is a recoverable note.
+\item \emph{Specified and deployed.} The lead-byte-$\mathtt{0x03}$
+derivation and the consensus rules sealing the Orchard pool
+(\S\ref{sec:turnstile-seal}) are enforced from NU6.3 activation, so
+every Ironwood output uses the recoverable note format (ZIP-229;
+ZIP-258).
+\item \emph{Specified but undeployed.} ZIP-2005 (Proposed) specifies the
+$\mathsf{qsk}$/$\mathsf{qk}$ key path, but it is not a consensus rule or
+an enforced part of NU6.3.
 \item \emph{Designed but unspecified.} The Recovery Protocol itself.
 ZIP-2005 presents the Recovery Statement in outline and states that
 its details are ``subject to change''; a specification would still
@@ -4536,11 +4612,12 @@ horizon, with ML-KEM and ML-DSA under test (CoinDesk, 2026-05-08),
 correspond to no ZIP, no draft, and no repository artefact at the pins
 of Remark~\ref{rem:pq-bins}; ZIP-2005 itself disclaims making the
 protocol secure against quantum adversaries. The record supports a
-narrower and better claim. On the day the assumptions fall, the
-recorded chain stays sealed to anyone without an address, the pools
-close before the first forgery is accepted --- conditional on the
-schedule that remains an open problem --- and every Ironwood note
-walks out of the wreckage provably owned. The value survives its
-owner's adversaries; that is where the journey of this volume ends.
+narrower claim. Without a receiver address there is no known efficient
+generic discrete-log route to recorded note plaintexts, and closing the
+affected pools before the first forgery would prevent later acceptance
+of those forgeries. Ironwood's note format is designed to support a
+future proof of ownership, but the recovery protocol and switch-off
+schedule remain unspecified. That is where the journey of this volume
+ends.
 
 \end{document}

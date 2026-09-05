@@ -124,9 +124,10 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the Orchard protocol of the \emph{Ironwood Guide}, this volume of
-\emph{The Zcash Arboretum} documents the
-deployed wallet layer above it: hierarchical key derivation (ZIP-32),
+Assuming the cryptographic primitives of the \emph{Crypto Guide} and the
+Orchard protocol of the \emph{Ironwood Guide}, this volume of \emph{The Zcash
+Arboretum} documents the deployed wallet layer above them: hierarchical key
+derivation (ZIP-32),
 diversified and unified addresses (ZIP-316), the conventional fee (ZIP-317),
 the transaction-construction pipeline of \textsf{librustzcash}, partially
 created transactions (PCZT), the transaction lifecycle from broadcast through
@@ -475,11 +476,12 @@ a different lead byte. Its consequences: $\aksym$ and $\nksym$ are
 unchanged (the protocol specification notes
 $\aksym^{\mathsf{int}} = \aksym$ and $\nksym^{\mathsf{int}} = \nksym$,
 \S4.2.3), so spend authorisation and nullifier derivation are common to
-both scopes, while $\ivk$, $\dk$, and $\ovk$ all separate because they
-derive from $\rivk^{\mathsf{int}}$. The two scopes are therefore two
-disjoint families of diversified addresses under one spend authority ---
-and since $\ivk^{\mathsf{int}} \ne \ivk$, a note addressed under the
-internal scope does not trial-decrypt under the external $\ivk$
+both scopes, while $\ivk$, $\dk$, and $\ovk$ are re-derived from
+$\rivk^{\mathsf{int}}$. The construction does not explicitly enforce that
+the two scopes' derived keys or addresses differ; equality would be a
+negligible cryptographic collision, not an impossible case. Except with that
+negligible probability, a note addressed under the internal scope does not
+trial-decrypt under the external $\ivk$
 (\emph{Ironwood Guide}, ``Delivery: the note reaches its owner''), which is
 precisely the separation a wallet wants when it hands its external incoming
 viewing key to a payment processor. Note that the internal FVK is
@@ -590,7 +592,8 @@ random $32$-byte $\mathsf{sk}$ then fails the conditions of
 Definition~\ref{def:zip32-validity} with probabilities
 \[
 \Pr[\ask = 0] \;<\; 2^{-254}, \qquad
-\Pr\bigl[\ivk \in \{0, \bot\}\bigr] \;\le\; 307/p_{\Vesta} \;<\; 2^{-245}
+\Pr\bigl[\ivk \in \{0, \bot\}\bigr] \;<\; 307\mathbin{\cdot}2^{-254}
+\;<\; 2^{-245}
 \quad \text{(per scope)},
 \]
 and is invalid with probability below $2^{-244}$.
@@ -609,11 +612,13 @@ For $\ivk$, the two memberships separately. \emph{Zero}: conditioned on
 the Sinsemilla hash not returning $\bot$, the commitment point is the hash
 point plus $[\rivk]\,H_D$ --- the blinding term of the \emph{Ironwood
 Guide}'s ``Sinsemilla: hash, commitment, and short forms'' --- uniform on the
-$p_{\Vesta}$-element Pallas group by perfect hiding, $\rivk$ being uniform
-up to the $O(2^{-258})$ $\mathrm{ToScalar}$ bias. The extractor sends only
+$p_{\Vesta}$-element Pallas group when the blinding scalar is uniform. Here
+$\rivk$ is the $\mathrm{ToScalar}$ image of a uniform $512$-bit string, so
+the probability of any particular scalar is at most
+$\lceil 2^{512}/p_{\Vesta}\rceil/2^{512} < 2^{-254}$. The extractor sends only
 the identity to $0$, because $y^2 = 0^3 + 5$ has no solution in
 $\F_{p_{\Pallas}}$ --- $5$ is a non-square there (protocol specification
-\S5.4.9.7, note) --- so $\Pr[\ivk = 0] \le 1/p_{\Vesta} < 2^{-254}$.
+\S5.4.9.7, note) --- so $\Pr[\ivk = 0] < 2^{-254}$.
 \emph{Bottom}: the $\bot$ output arises only inside the Sinsemilla hash,
 since the blinding addition is complete (\S5.4.8.4). On the $510$-bit
 $\CommitIvk$ message --- two $255$-bit field encodings,
@@ -622,8 +627,8 @@ $2 \cdot 51 = 102$ incomplete additions (\S5.4.1.9). Each fails only when
 one operand is the identity or shares the other's $x$-coordinate --- at
 most $3$ of the $p_{\Vesta}$ group elements --- so, with each accumulator
 modelled as uniform, the union bound gives
-$\Pr[\bot] \le 306/p_{\Vesta} < 2^{9} \cdot 2^{-254} = 2^{-245}$, and per
-scope $\Pr[\ivk \in \{0, \bot\}] \le 307/p_{\Vesta}$. The internal scope
+$\Pr[\bot] \le 306/p_{\Vesta} < 306 \cdot 2^{-254}$, and per scope
+$\Pr[\ivk \in \{0, \bot\}] < 307 \cdot 2^{-254} < 2^{-245}$. The internal scope
 repeats the argument with the independent $\rivk^{\mathsf{int}}$ (the
 $\mathtt{0x83}$ expansion). In total,
 $\Pr[\mathsf{sk}\ \text{invalid}] < (1 + 2 \cdot 307) \cdot 2^{-254} <
@@ -891,8 +896,8 @@ Active and is what the deployed stack implements; Revision~1 was withdrawn;
 Revision~2 is a Draft (ZIP-316, \emph{Revisions}). This volume documents
 Revision~0 and states Revision~2 in \S\ref{sec:addresses-r2}, classified
 \emph{specified, not deployed}; its reference implementation is
-\textsf{librustzcash} PR~\#2199, absent from both the baseline and current
-\texttt{91f448b5} crates.
+\textsf{librustzcash} PR~\#2199, absent from both the baseline and the
+2026-08-30 \texttt{91f448b5} snapshot.
 Deployed-behaviour claims below are verified against \textsf{librustzcash}
 commit \texttt{e30517e4} --- the volume's baseline
 (\S\ref{sec:zip321-crate}) --- and the crates-io releases
@@ -1224,10 +1229,11 @@ items in \emph{ascending} typecode order, of
 \]
 where $\mathrm{compactSize}$ is Bitcoin's variable-length integer
 encoding --- one byte for values below $253$, otherwise a marker byte
-followed by the value in $2$, $4$, or $8$ little-endian bytes --- and
-typecode and length values MUST be at most $\mathtt{0x02000000}$
-(the deployed bound is \texttt{MAX\_COMPACT\_SIZE} in
-\textsf{zcash\_encoding}, \texttt{src/lib.rs}). A transparent receiver is
+followed by the value in $2$, $4$, or $8$ little-endian bytes. The deployed
+decoder additionally rejects typecode or length values above
+$\mathtt{0x02000000}$ (\texttt{MAX\_COMPACT\_SIZE} in
+\textsf{zcash\_encoding}, \texttt{src/lib.rs}); ZIP-316 does not state that
+implementation limit as a normative container rule. A transparent receiver is
 the bare $20$-byte hash --- the P2PKH validating-key hash or the P2SH
 script hash --- excluding the two version bytes of the base58check raw
 encoding (ZIP-316, \emph{Encoding of Unified Addresses}).
@@ -1684,7 +1690,7 @@ generation rather than advancing (\textsf{zcash\_keys},
 
 \begin{remark}[Index $0$ and cross-wallet recovery]\label{rem:index0}
 Diversifier index $0$ fails to yield a valid Sapling diversifier with
-probability $\tfrac12$, so a wallet requiring a Sapling receiver often
+probability approximately $\tfrac12$, so a wallet requiring a Sapling receiver often
 issues its first UA at a higher index --- yet some wallets always generate
 a transparent P2PKH address at index $0$. All Zcash wallets MUST therefore
 assume there may be transparent funds at diversifier index $0$ of each
@@ -1751,8 +1757,9 @@ Revision~2-amended text; we flag the divergence rather than resolve it.
 
 \section{Fees (ZIP-317)}\label{sec:fees}
 
-Every transaction pays a fee, and the fee is public: it is the transparent
-value the transaction leaves unclaimed. For a shielded protocol this
+For an ordinary wallet-created transaction, any fee is public: it is the
+transparent value the transaction leaves unclaimed. Consensus also permits a
+zero fee, and coinbase transactions do not pay one. For a shielded protocol this
 publicity imposes two requirements that an ordinary fee market does not. The
 fee must be \emph{computable from public transaction fields alone} --- a fee
 that depended on private data (which notes were spent, what change was
@@ -1867,7 +1874,7 @@ fee that predated ZIP-313 (which had lowered it to $1{,}000$).
 \]
 Ironwood-pool Actions use the same Action structure as Orchard, so they are
 counted identically (ZIP-317, Revision~1). Revision~2 (Draft; ZIP-231
-memo bundles, dependent on the unmerged ZIP~248 transaction format) adds
+memo bundles, dependent on the Draft, undeployed ZIP~248 transaction format) adds
 \begin{align*}
 \mathit{contribution}_{\mathrm{Memos}} &=
   \max(0,\ \mathit{nMemoChunks} - \mathit{free\_memo\_chunks}),\\
@@ -1916,9 +1923,11 @@ transfers, as the baseline's pre-NU6.3 bundles do
 (\texttt{Flags::ENABLED}); Remark~\ref{rem:orchard-padding-future} states
 the sum rule that replaces it when the flags disable them.
 \end{itemize}
-Consequently any nonempty Sapling or Orchard bundle contributes at least
-two logical actions, and a one-input, one-output payment within a single
-shielded pool pays exactly the $10{,}000$-zatoshi minimum.
+Consequently, under the default bundle types used by the wallet, any nonempty
+Sapling or Orchard bundle contributes at least two logical actions, and a
+one-input, one-output payment within a single shielded pool pays exactly the
+$10{,}000$-zatoshi minimum. The low-level builders also expose unpadded bundle
+types, for which that two-action conclusion need not hold.
 
 The builder wires the padded counts into the fee call: the method
 \texttt{get\_fee} of the transaction builder passes the raw count of
@@ -2060,9 +2069,10 @@ whose sole variant \texttt{Zip317} delegates to
 \texttt{Zip317FeeRule}, which exposes \texttt{marginal\_fee()} and
 \texttt{grace\_actions()} to the change strategies
 (\textsf{zcash\_client\_backend}, \texttt{fees.rs},
-\texttt{fees/standard.rs}, \texttt{fees/zip317.rs}). There is no deployed
-alternative: paying the conventional fee is the only strategy the stack
-offers.
+\texttt{fees/standard.rs}, \texttt{fees/zip317.rs}). This is the standard,
+default surface. A fixed-fee rule and its
+\texttt{SingleOutputChangeStrategy} are also available behind the
+\texttt{non-standard-fees} feature (\texttt{fees/fixed.rs}).
 
 \subsection{Change and dust under the fee rule}\label{sec:fees-change}
 
@@ -2395,12 +2405,15 @@ per step, each proved and signed, all stored together via
 and submission to the network remains the caller's responsibility. The split
 places every decision that requires judgement --- which notes to spend, what
 fee to pay, where change goes --- into an inspectable value computed before
-any key is touched; execution is then deterministic given the plan.
+any key is touched. Execution follows that plan mechanically, but it is not
+byte-for-byte deterministic: proofs, signatures, note randomness, and
+ciphertexts use fresh randomness (including \texttt{OsRng}), so repeated
+execution can produce different transactions and txids.
 
 \paragraph{Current-head extension.}
-The detailed source trace below was established at the volume baseline
-\texttt{e30517e4}; current \textsf{librustzcash} \texttt{91f448b5} preserves
-that pipeline and extends every pool-indexed step to Ironwood. A proposal now
+Both the volume baseline \texttt{e30517e4} and the 2026-09-03
+\textsf{librustzcash} snapshot \texttt{5e770a91} support Ironwood in this
+pipeline. A proposal
 carries separate Ironwood inputs, anchor, witnesses, and padding. After NU6.3,
 an ordinary payment to an Orchard-protocol receiver targets Ironwood; Orchard
 change from an Orchard spend stays in Orchard through
@@ -2409,9 +2422,9 @@ same-receiver spend. Conventional Ironwood bundles retain default padding,
 while a canonical ZIP-318 crossing uses an unpadded one-Action Ironwood bundle,
 the shared rolling expiry, and the separately selected anchor bucket. The
 builder then constructs, proves, signs, and records the Ironwood bundle beside
-the Orchard bundle using the same Orchard spend authority. Pool lists below
-that name only Sapling and Orchard describe the pinned pre-Ironwood snapshot;
-the invariants and role ordering apply unchanged to the added pool.
+the Orchard bundle using the same Orchard spend authority. Some backend paths
+still require pool-specific handling, so Ironwood support is stated explicitly
+below rather than inferred from Orchard support.
 
 \subsection{The proposal}\label{sec:pipeline-proposal}
 
@@ -2562,8 +2575,8 @@ one note that crosses it
 
 \paragraph{ZIP-320 (TEX) payments.} A TEX address demands transparent funds
 whose provenance is a single ephemeral transparent address, so the selector
-builds \emph{two} steps (\texttt{input\_selection.rs:}\allowbreak%
-\texttt{580--629, 974--1051}; ZIP~320 \S~``Design considerations for
+builds \emph{two} steps (\texttt{input\_selection.rs}, TEX proposal
+construction; ZIP~320 \S~``Design considerations for
 Senders''). It sizes the
 second step first: probing \texttt{compute\_balance} over the TEX outputs with a
 zero-valued ephemeral
@@ -2666,8 +2679,8 @@ pool, subject after NU6.3 activation to the turnstile override of
 \paragraph{Balance computation.} Routine
 \texttt{single\_pool\_output\_balance} (\texttt{fees/common.rs})
 proceeds as follows. Let $\mathsf{in}$ be the sum of transparent, Sapling,
-and Orchard inputs (including any ephemeral input) and $\mathsf{out}$ the
-corresponding sum of outputs; let $\mathsf{fee}_0$ be the ZIP-317 fee with
+Orchard, and Ironwood inputs (including any ephemeral input) and
+$\mathsf{out}$ the corresponding sum of outputs; let $\mathsf{fee}_0$ be the ZIP-317 fee with
 zero change outputs. If $\mathsf{in} < \mathsf{out} + \mathsf{fee}_0$, fail
 with $\mathsf{required} = \mathsf{out} + \mathsf{fee}_0$ (this is the value
 the greedy loop feeds back into note selection). If equality holds
@@ -2776,8 +2789,9 @@ multi-step plan.
 
 \paragraph{Anchors and witnesses per step.} For each pool a step involves,
 the anchor is the shard-tree root at the proposal's anchor-height checkpoint
-(\texttt{root\_at\_checkpoint\_id}), or the empty-tree anchor if the pool has
-outputs but no inputs; each selected note's Merkle path is computed with
+(\texttt{root\_at\_checkpoint\_id}), including for a pool with outputs but no
+inputs. Using a recent real anchor in that case makes an output-only bundle
+indistinguishable from one containing real spends. Each selected note's Merkle path is computed with
 \texttt{witness\_at\_}\allowbreak\texttt{checkpoint\_id\_caching} at that
 same height (\texttt{wallet.rs},
 \texttt{build\_}\allowbreak\texttt{proposed\_}\allowbreak%
@@ -2841,7 +2855,7 @@ the build is drawn from \texttt{OsRng}.
 Under the default \texttt{OvkPolicy::Sender}, external outputs are encrypted
 with the $\ovk$ selected by
 \texttt{UnifiedFullViewingKey::select\_ovk} over the input sources --- the
-Orchard $\ovk$ if any Orchard input is spent, else the Sapling $\ovk$, else
+Orchard $\ovk$ if any Orchard \emph{or Ironwood} input is spent, else the Sapling $\ovk$, else
 the external-scope $\ovk$ derived from the transparent account key per
 ZIP-316 --- while wallet-internal change
 outputs get \emph{no} $\ovk$ at all (\texttt{internal\_ovk = None})
@@ -2862,21 +2876,18 @@ its own external outputs.
 
 \subsection{Padding, dummies, and shuffling}\label{sec:pipeline-padding}
 
-The deployed bundle builders are \textsf{orchard}~0.15.0 and
-\textsf{sapling-crypto}~0.7.0, per \textsf{librustzcash}'s
-\texttt{Cargo.lock} (workspace \texttt{Cargo.toml:66,69}); the line
-references below are to the \textsf{orchard}~0.12.0 /
-\textsf{sapling-crypto}~0.6.0 sources the section was written against,
-whose padding logic 0.15.0 preserves under the deployed
-cross-address-enabled flags: the requested-action count stays $\max(s, o)$
-(floored at $2$ below), rising to $s + o$ only once NU6.3 forces
-cross-address transfers off (\S\ref{sec:pczt-v2}).
+The deployed bundle builders at the volume baseline are
+\textsf{orchard}~0.15.0 and \textsf{sapling-crypto}~0.7.0, per
+\textsf{librustzcash}'s \texttt{Cargo.lock}. Their current builder APIs give
+the padding rules below. In Orchard the requested-action count is
+$\max(s,o)$ under cross-address-enabled flags and $s+o$ when NU6.3 requires
+cross-address transfers to be disabled (\S\ref{sec:pczt-v2}).
 
 \paragraph{Orchard.} The wallet's bundles use \texttt{BundleType::DEFAULT}:
 flags \texttt{ENABLED} (spends and outputs both enabled) and
 \texttt{bundle\_required = false}
-(\textsf{orchard}~0.12.0 \texttt{src/builder.rs:58--61},
-\texttt{src/bundle.rs:85--88}). With $s$ requested spends and $o$ requested
+(\textsf{orchard}~0.15.0, \texttt{src/builder.rs} and
+\texttt{src/bundle.rs}). With $s$ requested spends and $o$ requested
 outputs, the action count is
 \[
 n_{\mathrm{act}}(s, o) \;=\;
@@ -2886,7 +2897,7 @@ n_{\mathrm{act}}(s, o) \;=\;
 \end{cases}
 \]
 the floor being $\mathsf{MIN\_ACTIONS} = 2$
-(\texttt{src/builder.rs:36, 75--107}). The spend list is extended to
+(\texttt{src/builder.rs}, \texttt{num\_actions}). The spend list is extended to
 $n_{\mathrm{act}}$ with dummy spends and the output list with dummy outputs;
 the two indexed lists are then shuffled \emph{independently} and zipped
 pairwise into Actions, so the spend--output pairing within an action is
@@ -2896,14 +2907,12 @@ output's post-shuffle action index (\texttt{src/builder.rs},
 
 \paragraph{Orchard dummies.} A dummy spend (protocol specification
 \S~4.8.3, ``Dummy Notes (Orchard)'';
-\textsf{orchard}~0.12.0 \texttt{src/note.rs:208--224},
-\texttt{src/tree.rs:116--124}, \texttt{src/note/}\allowbreak%
-\texttt{nullifier.rs:33--35},
-\texttt{src/builder.rs:262--286}) is built from a freshly random
+\textsf{orchard}~0.15.0, \texttt{src/note.rs}, \texttt{src/tree.rs},
+\texttt{src/note/nullifier.rs}, and \texttt{src/builder.rs}) is built from a freshly random
 \texttt{SpendingKey}, its full viewing key's address at index $0$ (external
 scope), and a zero-valued note whose $\rho$ is
 $\Extract$ of a random Pallas point
-(\texttt{Rho::from\_nf\_old(Nullifier::dummy)}), with a dummy Merkle path of
+(\texttt{Rho::from\_nf\_old(}\allowbreak\texttt{Nullifier::dummy)}), with a dummy Merkle path of
 a random \texttt{u32} position and $32$ random $\F_{p_{\Pallas}}$ siblings.
 Anchor consistency is skipped for zero-valued notes
 (\texttt{has\_matching\_anchor} returns true), which is exactly what lets a
@@ -2913,10 +2922,10 @@ a freshly random address, with no $\ovk$ and an all-zero memo.
 \paragraph{Per-action randomness.} At \texttt{ActionInfo} construction, the
 value-commitment trapdoor $\rcv$ is sampled uniformly from the Pallas scalar
 field --- one per action, padding actions included
-(\texttt{src/builder.rs:426--432}; \texttt{src/value.rs:300--302}). When the
+(\texttt{src/builder.rs}; \texttt{src/value.rs}). When the
 action is built, the spend-auth randomiser $\alpha$ is sampled per spend,
 giving $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$
-(\texttt{src/builder.rs:293--310}); the output note's $\rho$ is the action's
+(\texttt{src/builder.rs}); the output note's $\rho$ is the action's
 own $\nfsym_{\mathrm{old}}$, and its $\mathsf{rseed}$ is freshly sampled by
 \texttt{Note::new}. The cryptographic roles of $\rcv$, $\alpha$, and
 $\mathsf{rseed}$ (with its derived $\psi$, $\rcm$, $\mathsf{esk}$) are those
@@ -2927,7 +2936,7 @@ $\aksym$/$\alpha$/$\rk$; \S~``Delivery: the note reaches its owner''
 for the $\mathsf{rseed}$ derivations).
 
 \paragraph{Sapling.} Under \texttt{BundleType::DEFAULT} in
-\textsf{sapling-crypto}~0.6.0 (\texttt{src/builder.rs:39--44, 72--115}), a
+\textsf{sapling-crypto}~0.7.0 (\texttt{src/builder.rs}), a
 non-empty bundle pads outputs to $\max(o, 2)$ but never pads spends
 ($\mathit{num\_spends} = s$ when $s > 0$, else $0$; the $\max(s, 1)$ floor
 applies only with \texttt{bundle\_required} set), so an output-only bundle
@@ -2940,7 +2949,7 @@ independently shuffled, and the positions recorded in
 its own $\rcv$ and $\alpha$ (uniform in the Jubjub scalar field) and each
 output its own $\rcv$; the binding-signature key is
 $\mathsf{bsk} = \sum \rcv_{\mathrm{spend}} - \sum \rcv_{\mathrm{output}}$
-(\texttt{src/builder.rs:236, 262--268, 420, 752--760}).
+(\texttt{src/builder.rs}).
 
 \subsection{Build order and signatures}\label{sec:pipeline-build}
 
@@ -2993,8 +3002,8 @@ ZIP-244 sighash,
 \texttt{zcash\_primitives/src/transaction/sighash.rs}); the digest
 tree itself is constructed in the \emph{Ironwood Guide}
 (\S~``Conservation without disclosure: value commitments and the binding
-signature'', subsection ``What the signatures sign: the ZIP-244 digest and
-its v6 form'')
+signature'', subsection ``What the signatures sign: ZIP-244 digests and
+their v6 form'')
 and not repeated. For each Orchard-protocol action (in either the Orchard or
 Ironwood pool), with
 $\rsk = \ask + \alpha$ and $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$
@@ -3008,21 +3017,18 @@ $\mathsf{bsk} = \bigl(\sum_{\text{actions}} \rcv\bigr)$ converted via
 \texttt{into\_bsk}, and the builder asserts consistency with
 $\mathsf{bvk} = \sum \cvsym^{\mathsf{net}} -
 \mathsf{ValueCommit}(\rcv = 0,\, \mathsf{value\_balance})$
-(\textsf{orchard}~0.12.0 \texttt{src/builder.rs}, bundle finisher). In
+(\textsf{orchard}~0.15.0, \texttt{src/builder.rs}, bundle finisher). In
 \texttt{Bundle::prepare}, the binding signature
 $\mathrm{Sign}_{\mathsf{bsk}}(\mathsf{sighash})$ is created and every dummy
 spend is signed immediately with its stored random $\ask$ randomised by that
 action's $\alpha$; \texttt{Bundle::sign} then signs every action whose
 $\aksym$ matches the given authorising key, and \texttt{finalize} fails with
 \texttt{MissingSignatures} if any action remains unsigned
-(\texttt{src/builder.rs:984--1026}).
+(\texttt{src/builder.rs}).
 
 \begin{remark}[Proving-key cache]\label{rem:pk-rebuild}
-At the pinned source-line baseline, the Orchard proving key was reconstructed
-inside every \texttt{Builder::build} call by
-\texttt{orchard::circuit::ProvingKey::build()} (\textsf{orchard}~0.12.0,
-\texttt{src/circuit.rs:787--793}). Current \textsf{librustzcash}
-\texttt{91f448b5} derives the Orchard/Ironwood circuit version once and reuses
+The 2026-08-30 \textsf{librustzcash} snapshot \texttt{91f448b5} derives the
+Orchard/Ironwood circuit version once and reuses
 a process-wide cached proving key under \texttt{std}; the no-\texttt{std}
 fallback builds it once for that transaction. The Sapling provers remain
 arguments, typically a \texttt{LocalTxProver}.
@@ -3032,10 +3038,13 @@ arguments, typically a \texttt{LocalTxProver}.
 
 The wallet immediately decrypts its own shielded outputs to record sent-note
 data: Orchard outputs via
-\texttt{decrypt\_output\_}\allowbreak\texttt{with\_key} under the
-internal-scope $\ivk$, Sapling via
+\texttt{decrypt\_output\_}\allowbreak\texttt{with\_key}, trying the
+internal-scope $\ivk$ and then the external-scope $\ivk$ (same-address
+post-NU6.3 Orchard change can be external-scoped); Ironwood outputs under the
+internal Orchard $\ivk$; and Sapling via
 \texttt{try\_sapling\_}\allowbreak\texttt{note\_decryption}
-likewise, using \texttt{BundleMetadata} and \texttt{SaplingMetadata} to map
+under its internal $\ivk$. It uses the Orchard/Ironwood
+\texttt{BundleMetadata} and \texttt{SaplingMetadata} to map
 each requested output to its post-shuffle position
 (\texttt{wallet.rs}, \texttt{create\_proposed\_transaction}). Transparent
 outputs are \emph{not}
@@ -3045,11 +3054,10 @@ added transparent output. The fee recorded for each sent transaction is
 taken from the proposal's balance, not recomputed from the built transaction
 (\texttt{wallet.rs}, \texttt{StepResult}).
 
-\paragraph{The PCZT path.} A partially-constructed-transaction path
-parallels the signing path:
+\paragraph{The PCZT path.} PCZT construction parallels the signing path:
 \texttt{build\_for\_}\allowbreak\texttt{pczt} produces the
 \texttt{PcztParts}, and the Creator, IO-Finalizer, and Updater roles attach
-ZIP-32 derivation paths (Orchard and Sapling
+ZIP-32 derivation paths (Orchard, Ironwood, and Sapling
 $m/32'/\allowbreak\mathit{coin}'/\allowbreak\mathit{account}'$;
 transparent BIP-44
 $m/44'/\allowbreak\mathit{coin}'/\allowbreak\mathit{account}'/%
@@ -3064,7 +3072,7 @@ the proposal metadata under the proprietary fields
 \texttt{build\_for\_pczt}).
 
 \paragraph{Orchard-to-Ironwood pool migration.}
-The current \textsf{librustzcash} head (\texttt{91f448b5}) also contains the
+The \textsf{librustzcash} snapshot \texttt{91f448b5} also contains the
 released \textsf{zcash\_pool\_migration}~0.1.0 engine and
 \textsf{zcash\_client\_sqlite}~0.22.0 store.  The engine plans denominations,
 builds and signs the migration transactions as PCZTs, schedules them by block
@@ -3075,16 +3083,14 @@ released backend pieces and an end-user wallet flow, are in the
 \emph{Ironwood Guide}, \S~``Scheduled Orchard-to-Ironwood migration
 (ZIP-318)''.
 
-\begin{remark}[Source-line baseline versus current builders]%
+\begin{remark}[Builder-version currentness]%
 \label{rem:crate-versions}
-The line-by-line derivation above was written against
-\textsf{orchard}~0.12.0, but the volume baseline actually pins
-\textsf{orchard}~0.15.0.  That release includes the NU6.3 bundle versions,
+The volume baseline pins \textsf{orchard}~0.15.0. That release includes the NU6.3 bundle versions,
 cross-address restriction, explicit change-output handling, and
 version-specific proving keys described in \S\ref{sec:pczt-v2}; those features
-are deployed, not design-stage.  As a currentness check, the standalone
-\textsf{orchard} head \texttt{38bd2274} is release 0.15.5, while the current
-\textsf{librustzcash} lockfile at \texttt{91f448b5} resolves 0.15.3.  Neither
+are deployed, not design-stage. As of 2026-09-05, standalone
+\textsf{orchard} head \texttt{be4f6594} remains release 0.15.5, while the
+\textsf{librustzcash} lockfile at \texttt{5e770a91} resolves 0.15.3. Neither
 changes the padding construction derived above.
 \end{remark}
 
@@ -3104,14 +3110,20 @@ transaction creation needs to perform its step, and that holds the
 accumulated proofs and signatures while the set is still incomplete ---
 signers can be fully offline (ZIP-374, Abstract). The ZIP is Status Draft,
 Revision~0, owned by Jack Grigg, created 2024-12-09 (ZIP-374, header);
-The ZIP fixes the v1 reference encoding to \textsf{pczt}~0.7.0.  The current
-\textsf{librustzcash} head \texttt{91f448b5} ships
+The ZIP fixes the v1 reference encoding to \textsf{pczt}~0.7.0. The
+2026-08-30 \textsf{librustzcash} snapshot \texttt{91f448b5} ships
 \textsf{pczt}~0.9.3: release 0.8.0 added the v2 encoding and Ironwood support,
 and 0.9.0 made the convenience serializer emit the minimum encoding version
 that can represent the logical PCZT (\textsf{pczt},
-\texttt{CHANGELOG.md}; \S\ref{sec:pczt-v2}).  Thus the role semantics below
-describe the current released surface; references to 0.7.0 identify only the
-ZIP's byte-exact v1 baseline.
+\texttt{CHANGELOG.md}; \S\ref{sec:pczt-v2}). Thus the role semantics below
+describe release 0.9.3; references to 0.7.0 identify only the ZIP's byte-exact
+v1 baseline. At current \textsf{librustzcash} head \texttt{5e770a91}
+(2026-09-03), the crate version is still 0.9.3, but unreleased changes make
+the default transparent Signer and Spend Finalizer accept only
+\texttt{SIGHASH\_ALL} after checking input and signature consistency; explicit
+policy overrides permit other sighash types (\textsf{pczt} and
+\textsf{zcash\_transparent} \texttt{CHANGELOG.md}, Unreleased). Those changes
+are not attributed to the released role descriptions below.
 
 The Motivation section of the ZIP names four problems the format solves:
 (i)~offline and hardware signers that cannot compute Halo~2 or Groth16
@@ -3164,8 +3176,8 @@ to perform a specific step on a PCZT (ZIP-374, Roles; \textsf{pczt},
 \begin{description}
 \item[Creator (a single entity).] Initializes the global fields and the
   empty per-protocol bundles.
-\item[Constructor.] Adds transparent inputs and outputs, shielded spends
-  and outputs, and Orchard actions.
+\item[Constructor.] Adds transparent inputs and outputs, Sapling spends and
+  outputs, and Orchard or Ironwood actions.
 \item[IO Finalizer (anyone).] Declares the input/output set complete,
   computes the binding-signature keys, and signs dummy spends
   (\S\ref{sec:pczt-iofin}).
@@ -3188,8 +3200,10 @@ of inspecting a PCZT'' and checking its internal consistency on behalf of
 another entity that lacks the capacity to do so itself --- for example a
 hardware signer (ZIP-374, Roles). The checks such a
 verifier runs are the per-action verification equations of
-Construction~\ref{def:pczt-verify}, exposed on the protocol crates'
-types rather than in the \textsf{pczt} crate's \texttt{verifier} module.
+Construction~\ref{def:pczt-verify}. Release \textsf{pczt}~0.9.3 exposes a
+public \texttt{roles::verifier} module whose \texttt{Verifier} gives access
+to the protocol-specific verification surfaces; the underlying equations
+are implemented by the protocol crates.
 
 The lifecycle is not a fixed pipeline. Proofs and signatures slot in
 asynchronously: proof creation needs no spending key material, and for v5
@@ -3479,9 +3493,9 @@ Sapling bundle $\{$spends, outputs, \texttt{value\_sum}, \texttt{anchor},
 \paragraph{A minimal PCZT, byte by byte.} The smallest PCZT the Creator can
 emit makes the positional encoding concrete. Instantiating the Creator for
 NU6.2 (branch \texttt{0x5437F330}), expiry height $10{,}000{,}000$, coin type
-$133$, and building with no spends or outputs yields the $32$-byte
-version-$2$ stream below --- the encoding the workspace crate's
-\texttt{serialize} emits (computed by script against the \textsf{pczt}
+$133$, and building with no spends or outputs then serializing explicitly
+with \texttt{v2::Pczt::serialize} yields the $32$-byte version-$2$ stream
+below (computed by script against the \textsf{pczt}
 crate; every byte is assertion-checked):
 
 \begin{center}
@@ -3512,9 +3526,7 @@ stream to $31$ bytes, shifting every later field: the encoding is positional,
 which is precisely why fields cannot be inserted within a version
 (cross-checked by script: single-field variants differ exactly at the
 annotated offsets). Absence is one \texttt{0x00} byte: the version-$2$ format
-(what \texttt{Pczt::serialize} always emits --- the latest version; v1
-output requires \texttt{v1::Pczt::serialize}; \textsf{pczt}
-\texttt{src/lib.rs}) wraps each of
+wraps each of
 the transparent, Sapling, Orchard, and Ironwood bundles in an
 \texttt{Option} that collapses when the bundle is empty, so the entire
 bundle machinery of Construction~\ref{def:pczt-encoding} above costs four
@@ -3523,6 +3535,13 @@ bytes until a first spend or output materialises. And the initial
 modifiable bits --- transparent inputs (bit $0$) and outputs (bit $1$) ---
 plus ZIP-374's Zcash-specific shielded-modifiable bit $7$, per
 Definition~\ref{def:pczt-txmod}.
+
+The convenience \texttt{Pczt::serialize} does not always emit v2: since
+release 0.9.0 it chooses the minimum encoding version that can represent the
+logical PCZT. This empty NU6.2 example is representable in v1 and therefore
+needs the explicit v2 serializer to produce the table above; explicit v1
+output uses \texttt{v1::Pczt::serialize} (\textsf{pczt},
+\texttt{src/lib.rs}).
 
 Extensibility is deliberately narrow. New fields cannot be added within
 an existing PCZT version, because the Postcard encoding is positional;
@@ -3541,17 +3560,19 @@ $\mathrm{serialize}(\mathrm{parse}(\mathrm{serialize}(p))) =
 
 The deployed Creator,
 \texttt{Creator::new(consensus\_branch\_id, expiry\_height, coin\_type,
-sapling\_anchor, orchard\_anchor)}, defaults to the v5 transaction format
---- $\texttt{tx\_version} = 5$
-(\texttt{V5\_TX\_VERSION}), $\texttt{version\_group\_id} =
-\mathtt{0x26A7270A}$ (\texttt{V5\_VERSION\_GROUP\_ID});
-\textsf{zcash\_protocol}, \texttt{src/constants.rs} --- with initial
+sapling\_anchor, orchard\_anchor)}, selects the transaction format from the
+consensus branch: NU5 through NU6.2 use v5
+($\texttt{version\_group\_id}=\mathtt{0x26A7270A}$), while NU6.3 uses v6.
+It starts with
 $\texttt{tx\_modifiable} = \mathtt{0b1000\_0011}$ (bits $0$, $1$, $7$
 set), Orchard $\texttt{flags} = \mathtt{0b0000\_0011}$ (spends and
-outputs enabled), and empty bundles with Sapling
+outputs enabled), and empty transparent, Sapling, Orchard, and Ironwood
+bundles, with Sapling
 $\texttt{value\_sum} = 0$ and Orchard $\texttt{value\_sum} = (0,
-\mathrm{false})$; builder options \texttt{with\_fallback\_lock\_time} and
-\texttt{with\_orchard\_flags} adjust the defaults (\textsf{pczt},
+\mathrm{false})$. The Ironwood anchor starts absent and may be supplied with
+\texttt{with\_ironwood\_anchor} for v6; its flags enable spends, outputs,
+and cross-address transfers. Builder options also set fallback lock time and
+per-pool flags (\textsf{pczt},
 \texttt{src/roles/creator/mod.rs}). The Orchard initialization is
 non-negative zero, matching the v2 draft's canonical empty
 \texttt{OrchardBundle} and \texttt{EMPTY\_ORCHARD}
@@ -3619,19 +3640,17 @@ Once the input/output set is complete, the IO Finalizer freezes it. The
 deployed role fails with \texttt{NoSpends}/\texttt{NoOutputs} if the
 transaction would have no spends or no outputs; if there are shielded
 spends or outputs it clears \texttt{tx\_modifiable} bits $0$, $1$, and
-$7$. It computes the ZIP-244 \emph{shielded sighash}
+$7$. It computes the transaction-version-aware \emph{shielded sighash}
 \[
-\mathit{sighash} := \mathrm{v5\_signature\_hash}(\mathit{tx\_data},\
+\mathit{sighash} := \mathrm{signature\_hash}(\mathit{tx\_data},\
 \texttt{SignableInput::Shielded},\ \mathit{txid\_parts}),
 \]
 where $\mathit{tx\_data}$ is the \emph{effects-only} transaction data
 reconstructed from the PCZT --- proofs and signatures do not affect the
 sighash --- and $\mathit{txid\_parts} =
-\mathit{tx\_data}.\mathrm{digest}(\texttt{TxIdDigester})$; only
-$(\texttt{tx\_version}, \texttt{version\_group\_id}) = (5,
-\mathtt{0x26A7270A})$ is supported. The digest algorithm itself is the
-ZIP-244 construction of the \emph{Ironwood Guide} (the transaction
-digest). It then calls the per-pool
+\mathit{tx\_data}.\mathrm{digest}(\texttt{TxIdDigester})$. The helper
+supports the v5/ZIP-244 and v6 transaction digests. It then calls the
+Sapling, Orchard, and Ironwood per-pool
 \texttt{finalize\_io(sighash, OsRng)} (\textsf{pczt},
 \texttt{src/roles/io\_finalizer/mod.rs}).
 
@@ -3676,7 +3695,8 @@ against $\mathsf{bvk} = (\sum_{\text{spends}} \cvsym -
 \texttt{i64} (\texttt{InvalidValueSum} if it does not fit); dummy spends
 are then signed with their \texttt{dummy\_ask}, which is taken and
 cleared (\textsf{sapling-crypto}, \texttt{src/pczt/io\_finalizer.rs};
-the workspace pins version 0.7, same algorithm).
+the workspace pins version 0.7, same algorithm). Ironwood uses the Orchard
+analogue on its separate bundle and anchor.
 \end{construction}
 
 \begin{remark}[Why a dedicated role]\label{rem:pczt-iofin-rationale}
@@ -3700,12 +3720,14 @@ Orchard \texttt{ActionUpdater} exposes, per action, the setters
 \texttt{set\_spend\_proprietary} on the spend half, and on the output
 half the setters \texttt{set\_output\_zip32\_derivation},
 \texttt{set\_output\_user\_address}, and
-\texttt{set\_output\_proprietary} (with Sapling and transparent
-analogues). In PCZT v1 anchors are fixed at creation, so the
-deployed
-Updater cannot set anchors or witnesses --- those come from the
-Constructor (\textsf{pczt}, \texttt{src/roles/updater/mod.rs} and
-\texttt{orchard.rs}; \textsf{orchard}, \texttt{src/pczt/updater.rs}).
+\texttt{set\_output\_proprietary} (with Sapling, Ironwood, and transparent
+analogues). Release 0.9.3 also exposes setters for Sapling, Orchard, and
+Ironwood anchors and spend witnesses. Anchor updates are restricted to the
+v6 format under NU6.3, must precede the relevant proof, and may fill an absent
+anchor or repeat the same one but may not replace a different present anchor.
+Witnesses likewise must be attached before the corresponding proof
+(\textsf{pczt}, \texttt{src/roles/updater/mod.rs} and \texttt{orchard.rs};
+\textsf{orchard}, \texttt{src/pczt/updater.rs}).
 
 \subsection{Signing}\label{sec:pczt-sign}
 
@@ -3717,13 +3739,14 @@ shielded sighash of \S\ref{sec:pczt-iofin} \emph{once}, cached across
 signatures. Its methods are \texttt{shielded\_sighash()} and
 \texttt{transparent\_sighash(index)} --- the latter
 \[
-\mathrm{v5\_signature\_hash}(\mathit{tx\_data},\
+\mathrm{signature\_hash}(\mathit{tx\_data},\
 \texttt{SignableInput::Transparent}(\text{input } i),\
 \mathit{txid\_parts})
 \]
 under the input's declared \texttt{sighash\_type} --- the signing
-methods \texttt{sign\_transparent}, \texttt{sign\_sapling}, and
-\texttt{sign\_orchard}, their \texttt{append\_}/\texttt{apply\_}
+methods \texttt{sign\_transparent}, \texttt{sign\_sapling},
+\texttt{sign\_orchard}, and \texttt{sign\_ironwood}, and their
+\texttt{append\_}/\texttt{apply\_}
 variants for externally produced signatures (a hardware device), and
 \texttt{finish()}. To sign an Orchard
 spend, \texttt{alpha} must be present; with the wallet's $\ask$:
@@ -3739,7 +3762,8 @@ spend, \texttt{alpha} must be present; with the wallet's $\ask$:
 \]
 The external path \texttt{apply\_orchard\_signature} accepts a signature
 iff it verifies under the action's $\rk$ over the shielded sighash
-(\texttt{InvalidExternalSignature} otherwise). After any shielded
+(\texttt{InvalidExternalSignature} otherwise); the Ironwood path applies
+the same RedPallas checks to its separate action bundle. After any shielded
 signature all three modifiable bits are cleared; after a transparent
 signature the bits are updated per its sighash type as
 Definition~\ref{def:pczt-txmod} specifies (\textsf{pczt},
@@ -3750,8 +3774,8 @@ Definition~\ref{def:pczt-txmod} specifies (\textsf{pczt},
 All shielded signatures behave as committing to the whole transaction ---
 there is no shielded \texttt{SIGHASH\_ANYONECANPAY} --- which is why
 every Signer clears every modifiable bit (ZIP-374, Global,
-\texttt{tx\_modifiable}). Before signing an Orchard spend, the deployed
-Signer calls \texttt{verify\_nullifier} (Construction
+\texttt{tx\_modifiable}). Before signing an Orchard or Ironwood spend, the
+deployed Signer calls \texttt{verify\_nullifier} (Construction
 \ref{def:pczt-verify}) and treats
 \texttt{Missing\{Recipient,Value,Rho,RandomSeed\}} as acceptable ---
 those fields may legitimately have been redacted for this signer --- but
@@ -3797,7 +3821,8 @@ algorithm; RedJubjub/RedPallas signatures; and a source of randomness ---
 no proving circuitry (\textsf{pczt}, \texttt{src/roles/signer/mod.rs},
 module doc). For dependency-constrained environments a
 \texttt{low\_level\_signer::Signer} variant (not feature-gated) exposes
-\texttt{sign\_orchard\_with}/\texttt{sign\_sapling\_with}/%
+\texttt{sign\_ironwood\_with}/\texttt{sign\_orchard\_with}/%
+\texttt{sign\_sapling\_with}/%
 \texttt{sign\_transparent\_with} closures over the parsed bundles plus
 \texttt{tx\_modifiable} (\textsf{pczt},
 \texttt{src/roles/low\_level\_signer/mod.rs}).
@@ -3811,11 +3836,13 @@ the action's \texttt{rcv} and the bundle anchor; delegating proving
 therefore reveals note private data, but not spending authority (ZIP-374,
 Prover). The deployed role (\textsf{pczt} feature \texttt{prover}) offers
 \texttt{requires\_sapling\_proofs} (any Sapling spend or output missing
-its \texttt{zkproof}) and \texttt{requires\_orchard\_proof} (actions
-non-empty and the bundle \texttt{zkproof} \texttt{None}), letting a
+its \texttt{zkproof}), \texttt{requires\_orchard\_proof}, and
+\texttt{requires\_ironwood\_proof} (actions non-empty and the corresponding
+bundle \texttt{zkproof} \texttt{None}), letting a
 wallet skip downloading the Sapling parameters when they are unneeded;
 \texttt{create\_orchard\_proof(pk)} parses the bundle and calls the
-\textsf{orchard} crate's \texttt{Bundle::create\_proof} (\textsf{pczt},
+\textsf{orchard} crate's \texttt{Bundle::create\_proof};
+\texttt{create\_ironwood\_proof(pk)} does the same for Ironwood (\textsf{pczt},
 \texttt{src/roles/prover/mod.rs} and \texttt{orchard.rs}).
 
 \begin{construction}[Orchard proof creation from a PCZT]%
@@ -3839,6 +3866,8 @@ creates a \emph{single} Halo~2 proof over all actions, stored as the
 bundle's \texttt{zkproof}. The proof commits to the anchor and the flags
 as public inputs; the statement proved is the Action relation of the
 \emph{Ironwood Guide} (\textsf{orchard}, \texttt{src/pczt/prover.rs}).
+The Ironwood path applies the same construction with its separate anchor and
+V3 note-plaintext version.
 \end{construction}
 
 Because v5 signatures commit to the anchor but not to proofs, and proofs
@@ -3874,7 +3903,9 @@ its own global''. The rules (\textsf{pczt},
   \texttt{bsk} is set (the IO Finalizer has run), action counts and
   \texttt{value\_sum} must match; otherwise a strict prefix extension
   appends the extra actions \emph{only if} the shorter side's global has
-  Shielded Modifiable set --- else FAIL. Anchors must be equal, and the
+  Shielded Modifiable set --- else FAIL. Anchors follow the optional-field
+  rule: an absent anchor may merge with a present one, while two present
+  anchors must be equal. The
   per-action required fields ($\cvsym^{\mathsf{net}}$, \texttt{nullifier},
   $\rk$, $\cmx$, \texttt{ephemeral\_key}, \texttt{enc\_ciphertext},
   \texttt{out\_ciphertext}) must be equal.
@@ -3940,9 +3971,11 @@ The Spend Finalizer constructs each transparent input's
   \]
   then
   \[
-  \texttt{script\_sig} := \mathrm{PUSH}(\mathit{sig} \,\|\,
-  \mathit{sighash\_type}) \,\|\, \mathrm{PUSH}(\mathit{pubkey}).
+  \texttt{script\_sig} := \mathrm{PUSH}(\mathit{sig}) \,\|\,
+  \mathrm{PUSH}(\mathit{pubkey}),
   \]
+  where the \texttt{partial\_signatures} value $\mathit{sig}$ already
+  consists of the DER signature followed by its sighash-type byte.
 \item \emph{P2SH-P2MS} ($m$-of-$n$ multisig):
   \[
   \texttt{script\_sig} := \texttt{OP\_0} \,\|\,
@@ -3996,10 +4029,10 @@ fails, though the ZIP has it take the height lock.
 The Transaction Extractor (\textsf{pczt} feature \texttt{tx-extractor})
 checks transaction-version support and lock-time compatibility, then
 extracts the per-pool bundles, requiring every \texttt{script\_sig},
-every Sapling \texttt{zkproof} and \texttt{spend\_auth\_sig}, the Orchard
-bundle \texttt{zkproof} of canonical length for its action count, every
-Orchard \texttt{spend\_auth\_sig}, and each non-empty bundle's anchor and
-\texttt{bsk}; it rejects the identity $\rk$ and an invalid
+every Sapling \texttt{zkproof} and \texttt{spend\_auth\_sig}, each
+Orchard and Ironwood bundle's \texttt{zkproof} of canonical length for its
+action count, every Orchard-protocol \texttt{spend\_auth\_sig}, and each
+non-empty bundle's anchor and \texttt{bsk}; it rejects the identity $\rk$ and an invalid
 \texttt{ephemeral\_key} (\textsf{pczt},
 \texttt{src/roles/tx\_extractor/mod.rs}).
 
@@ -4037,8 +4070,9 @@ proofs and signatures --- ``so that an invalid transaction is detected
 before it is broadcast'' (ZIP-374, Transaction Extractor). Sapling proof
 verification requires caller-provided
 \texttt{SpendVerifyingKey}/\texttt{OutputVerifyingKey} (error
-\texttt{SaplingRequired} if absent but needed); the Orchard verifying key
-is generated on the fly if not provided via \texttt{with\_orchard}
+\texttt{SaplingRequired} if absent but needed); the Orchard verifying key,
+shared by Orchard and Ironwood proof verification, is generated on the fly
+if not provided via \texttt{with\_orchard}
 (\textsf{pczt}, \texttt{src/roles/tx\_extractor/mod.rs}).
 
 \subsection{The deployed wallet pipeline}\label{sec:pczt-pipeline}
@@ -4061,15 +4095,16 @@ that:
 \item stores the proposal metadata $\{\mathit{from\_account},
   \mathit{target\_height}\}$, postcard-encoded, under the Global
   proprietary key \texttt{zcash\_client\_backend:proposal\_info};
-\item stores a reduced recipient enum --- \texttt{External} ($0$),
-  \texttt{EphemeralTransparent} ($1$), or \texttt{InternalAccount}
-  ($2$), the latter two carrying the receiving account ---
+\item stores a reduced recipient enum --- \texttt{External},
+  \texttt{EphemeralTransparent}, \texttt{InternalShielded}, or
+  \texttt{InternalTransparent}, the latter three carrying the receiving
+  account ---
   under the per-output proprietary key
   \texttt{zcash\_client\_backend:output\_info} on each shielded and
   transparent output;
 \item sets \texttt{user\_address} on external outputs; and
-\item attaches derivation paths: to Orchard spends and non-dummy Sapling
-  spends the fully hardened
+\item attaches derivation paths: to Orchard and Ironwood spends and
+  non-dummy Sapling spends the fully hardened
   $[\,32', \mathit{coin\_type}', \mathit{account}'\,]$ under the
   account's seed fingerprint, and to transparent inputs the BIP-44 path
   $[\,44 \mathbin{|} H,\ \mathit{coin\_type} \mathbin{|} H,\
@@ -4085,8 +4120,9 @@ The return path is
 sapling\_vk, orchard\_vk)}: it runs the Spend Finalizer, reads back the
 proprietary proposal and output metadata --- failing if
 \texttt{proposal\_info} is missing, so the PCZT must have come from
-\texttt{create\_pczt\_from\_proposal} --- reconstructs each output's note
-from the PCZT's explicit \texttt{recipient}/\texttt{value}/\texttt{rseed}
+\texttt{create\_pczt\_from\_proposal} --- reconstructs Sapling and Orchard
+output notes from the PCZT's explicit
+\texttt{recipient}/\texttt{value}/\texttt{rseed}
 fields (outputs whose recipient is absent are dummies; outputs whose note
 fields were redacted are treated as deliberately unrecoverable and
 skipped), runs the Transaction Extractor, recovers memos via
@@ -4100,13 +4136,20 @@ The \texttt{sapling\_vk} argument is optional so callers can first check
 Sapling parameters (\textsf{zcash\_client\_backend},
 \texttt{src/data\_api/wallet.rs}).
 
+The same backend return path does not yet reconstruct or store Ironwood
+sent-output metadata: the generic Transaction Extractor extracts and verifies
+the Ironwood bundle, but the subsequent output collection covers only
+Orchard, Sapling, and transparent outputs. This is a deployed backend gap,
+not a limitation of the PCZT format or extractor (same source file,
+\texttt{extract\_and\_store\_transaction\_from\_pczt}).
+
 \paragraph{Feature gating.} The \textsf{pczt} crate is
 \texttt{no\_std} (alloc-based). The Creator, Verifier, Updater, Redactor,
 Combiner, and low-level Signer are always available; \texttt{io-finalizer},
 \texttt{prover}, \texttt{signer}, \texttt{spend-finalizer}, and
 \texttt{tx-extractor} are cargo features; per-pool support is gated by
 the \texttt{transparent}, \texttt{sapling}, and \texttt{orchard}
-features; and \texttt{zcp-builder} enables
+features (Ironwood uses the Orchard feature); and \texttt{zcp-builder} enables
 \texttt{Creator::}\allowbreak\texttt{build\_from\_}\allowbreak%
 \texttt{parts} from the
 \textsf{zcash\_primitives}
@@ -4170,12 +4213,12 @@ and released in \textsf{pczt}~0.8.0 on 2026-07-23 (the v2 module with
 \texttt{ironwood} slot, \texttt{note\_version}, and optional anchors).
 The current 0.9.3 logical model retains these fields.
 
-For \texttt{tx\_version} $6$, anchors and witnesses become deferrable:
-signatures commit to neither, an Updater may set or replace an anchor
-before proving --- replacing an anchor MUST clear the bundle's proofs,
-which commit to it as a circuit public input --- and witnesses must root
-to the anchor whenever both are present, checked by the Updater and the
-Prover. This enables re-anchoring fully signed transactions with the txid
+For \texttt{tx\_version} $6$, ZIP-374 makes anchors and witnesses
+deferrable: signatures commit to neither, and the ZIP permits an Updater to
+set or replace an anchor before proving --- replacing an anchor MUST clear
+the bundle's proofs, which commit to it as a circuit public input --- while
+witnesses must root to the anchor whenever both are present. In the specified
+design this enables re-anchoring fully signed transactions with the txid
 unchanged, and spending \emph{unmined} Orchard-protocol notes: an Orchard
 nullifier depends only on note data, with $\rho$ fixed by the creating
 action rather than by tree position --- impossible for Sapling even under
@@ -4183,6 +4226,17 @@ v6, because Sapling nullifiers depend on the note's position. An
 all-zeroes anchor sentinel was rejected in favour of \texttt{Option}
 because $0$ is a valid Pallas base element (ZIP-374, Anchors and
 pre-authorization; Rationale, ``Optional anchors in PCZT v2'').
+
+Release \textsf{pczt}~0.9.3 implements the deferred case but not anchor
+replacement: \texttt{set\_sapling\_}\allowbreak\texttt{anchor},
+\texttt{set\_orchard\_}\allowbreak\texttt{anchor}, and
+\texttt{set\_ironwood\_}\allowbreak\texttt{anchor} may fill
+an absent anchor (or repeat the same value) under v6/NU6.3 before proofs, but
+return \texttt{ConflictingAnchor} for a different present anchor and
+\texttt{ProofAlreadyPresent} instead of clearing a proof. Thus the released
+Updater supports anchoring after signing, but not the ZIP's fully signed
+re-anchoring operation (\textsf{pczt},
+\texttt{src/roles/updater/mod.rs}).
 
 From NU6.3, Orchard-pool actions must be created with cross-address
 transfers disabled --- bundle flag bit $2$, \texttt{enableCrossAddress},
@@ -4334,8 +4388,8 @@ $\mathsf{branchid} = \mathrm{LE}_{32}(\mathrm{CONSENSUS\_BRANCH\_ID})$, the
 $4$-byte little-endian consensus branch id, and an absent pool hashes the
 empty string under its own personalisation (ZIP-244, \emph{TxId Digest};
 \textsf{zcash\_primitives}, \texttt{src/transaction/txid.rs}). The
-\emph{Ironwood Guide} assembles this tree in full (``What the signatures sign:
-the ZIP-244 digest and its v6 form''); we do not re-derive it.
+\emph{Ironwood Guide} assembles this tree in full (``What the signatures
+sign: ZIP-244 digests and their v6 form''); we do not re-derive it.
 Two consequences matter for the lifecycle. First, the tree is computed over
 \emph{effecting} data only: changing the transaction's consensus effect changes
 the identifier, while allowed recomputation of excluded attestations such as
@@ -4406,7 +4460,7 @@ transaction itself: txid, expiry height read from
 \texttt{tx.expiry\_height()}, raw bytes, fee, target height, and
 $\mathtt{min\_observed\_height} := \text{target height}$
 (Table~\ref{tab:tx-table}). Second, it marks every spent input as spent ---
-Sapling and Orchard nullifiers into the
+Sapling, Orchard, and Ironwood nullifiers into their respective
 \texttt{*\_received\_}\allowbreak\texttt{note\_spends} tables,
 transparent outpoints into
 \texttt{transparent\_}\allowbreak\texttt{received\_}\allowbreak%
@@ -4556,19 +4610,22 @@ anywhere in the mempool component. A transaction with a single block of
 remaining life is therefore accepted and relayed by Zebra but refused by
 \textsf{zcashd}.
 
-\paragraph{Expiry never straddles a network upgrade.} The \textsf{zcashd}
-node clamps a new transaction's $\mathsf{nExpiryHeight}$ to one less than the
-next network-upgrade activation height (\textsf{zcashd},
-\texttt{src/main.cpp}), so a transaction never straddles an upgrade
-boundary. The \textsf{librustzcash} parser \emph{relies} on this invariant
-when parsing
-transactions it holds in unmined form: since ``a transaction can't be mined
-across a network upgrade boundary, \ldots{} the expiry height must be in
-the same epoch'', an unmined transaction with nonzero expiry is parsed
-under $\texttt{BranchId::for\_height}(\mathsf{nExpiryHeight})$; an unmined
-v4 transaction with expiry $0$ carries no epoch hint at all and cannot be
-parsed until mined (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs},
-\texttt{parse\_tx}).
+\paragraph{Expiry at a network upgrade.} The \textsf{zcashd} wallet clamps a
+new transaction's $\mathsf{nExpiryHeight}$ to one less than the next
+network-upgrade activation height (\textsf{zcashd}, \texttt{src/main.cpp}).
+The general \textsf{librustzcash} Builder does not: absent an override, it
+sets expiry to target height plus
+$\mathsf{DEFAULT\_TX\_EXPIRY\_DELTA}=40$, which can cross an activation.
+Such a transaction is nevertheless bound to the branch and transaction
+format for which it was built and cannot be mined under incompatible
+post-upgrade rules. The SQLite parser's unmined-transaction path assumes the
+expiry height lies in the same epoch and uses
+$\texttt{BranchId::for\_height}(\mathsf{nExpiryHeight})$ when no mined height
+is available; callers constructing pre-v5 transactions must therefore avoid
+a cross-activation expiry. An unmined v4 transaction with expiry $0$ carries
+no epoch hint at all and cannot be parsed until mined
+(\textsf{zcash\_primitives}, \texttt{transaction/builder.rs};
+\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs}, \texttt{parse\_tx}).
 
 \subsection{Tracking a pending transaction}\label{sec:lifecycle-tracking}
 
@@ -4887,32 +4944,30 @@ status, not from the shielding transaction's own mined height
 
 \begin{remark}[Deployed shielding rule vs.\ the ZIP-315 text]
 \label{rem:lifecycle-shielding-divergence}
-The ZIP-315 text requires both that the shielding transaction have at
-least the trusted confirmation count \emph{and} that its transparent
-inputs have at least $c_{\mathrm{untr}} - c_{\mathrm{tr}}$ confirmations.
-The deployed rule of Definition~\ref{def:lifecycle-cus} tests only the
-input heights against the trusted/untrusted thresholds and imposes no
-separate requirement on the shielding transaction's own confirmations.
-The two rules do not coincide. Count confirmations as in
-Definition~\ref{def:lifecycle-cus}, write $h_s$ for the maximum input
-height and $h_m \ge h_s$ for the height at which the shielding
-transaction was mined, and let $d := h_m - h_s$. The ZIP composite
-admits the output at target heights
-$H \ge h_s + \max(c_{\mathrm{untr}} - c_{\mathrm{tr}},\,
-c_{\mathrm{tr}} + d)$, the deployed rule (inputs untrusted) at
-$H \ge h_s + c_{\mathrm{untr}}$; the thresholds agree only at
-$d = c_{\mathrm{untr}} - c_{\mathrm{tr}}$. Below that point --- the
-common case of a promptly mined shielding transaction --- the deployed
-rule is strictly stricter: at the default policy with $d = 1$, the ZIP
-releases the output at $H = h_s + 7$ while the code waits until
-$h_s + 10$. Above it, the deployed rule is strictly laxer: with $d = 9$
-the code releases at $h_s + 10$, when the shielding transaction has a
-single confirmation, while the ZIP waits until $h_s + 12$. The deployed
-trusted-input branch ($H \ge h_s + c_{\mathrm{tr}}$) and the
-unknown-$h_s$ fallback have no ZIP counterpart at all. The deployed rule
-is thus implementation policy diverging from the (Draft) ZIP text ---
-conservative precisely when the shielding transaction confirms within
-$c_{\mathrm{untr}} - c_{\mathrm{tr}}$ blocks of its inputs.
+ZIP-315 is internally inconsistent here. Its formal ``Shielded TXOs''
+bullet requires the source UTXOs to have at least
+$c_{\mathrm{untr}}-c_{\mathrm{tr}}$ confirmations and the shielding
+transaction at least $c_{\mathrm{tr}}$; its later ``Transparent UTXOs''
+paragraph instead requires the source transaction to have the full
+$c_{\mathrm{untr}}$ confirmations, again alongside
+$c_{\mathrm{tr}}$ for the shielding transaction. Write $h_s$ for the
+maximum source-input height, $h_m\ge h_s$ for the shielding transaction's
+mined height, and $d:=h_m-h_s$. The two ZIP passages respectively imply
+\[
+H \ge h_s + \max(c_{\mathrm{untr}}-c_{\mathrm{tr}},\,
+c_{\mathrm{tr}}+d)
+\quad\text{and}\quad
+H \ge h_s + \max(c_{\mathrm{untr}},\,c_{\mathrm{tr}}+d).
+\]
+The deployed rule of Definition~\ref{def:lifecycle-cus} instead tests only
+the source-input height, giving $H\ge h_s+c_{\mathrm{untr}}$ for untrusted
+inputs, with no separate shielding-transaction check. At the defaults and
+$d=1$, the formal bullet gives $h_s+7$, while both the later prose and code
+give $h_s+10$; for sufficiently large $d$, the code becomes laxer than both
+ZIP readings. The deployed trusted-input branch
+($H\ge h_s+c_{\mathrm{tr}}$) and unknown-$h_s$ fallback likewise have no
+direct ZIP counterpart. There is therefore no single unambiguous ZIP
+threshold against which to label the implementation stricter or laxer.
 \end{remark}
 
 \paragraph{The full spendability gate.} Deployed note selection admits a
@@ -4948,13 +5003,18 @@ and \texttt{propose\_transfer} uses the trusted count,
 $\mathrm{minConf} = c_{\mathrm{tr}}$ (default $3$); the target height that
 \texttt{create\_proposed\_transactions} hands to \texttt{Builder::new} is
 the proposal's \texttt{min\_target\_height()}.
-The anchor depth therefore \emph{equals} the trusted confirmation
-count --- a fixed depth for all transactions, so anchor choice does not
-leak whether the notes being spent were trusted, the property ZIP-315's
-anchor-selection recommendation secures. The exact heights differ by one,
-however: ZIP-315 measures from the chain head, recommending the final
-treestate of block $\mathrm{chainTip} - 3$, whereas the deployed anchor
-sits at $H - c_{\mathrm{tr}} = \mathrm{chainTip} - 2$, one block shallower. The tree and anchor mechanics themselves are the
+The anchor is therefore \emph{at least} the trusted confirmation count
+deep under the wallet's target-height convention. It equals that depth only
+when every relevant tree has a checkpoint exactly at
+$H-c_{\mathrm{tr}}$; checkpoint gaps and the cross-pool minimum can make it
+older. This fixed upper bound on anchor height avoids leaking whether the
+notes being spent were trusted, the property ZIP-315's anchor-selection
+recommendation secures. ZIP-315 phrases its recommendation relative to the
+chain head: its nominal block $\mathrm{chainTip}-c_{\mathrm{tr}}$ is one
+older than the wallet's newest permitted bound
+$H-c_{\mathrm{tr}}=\mathrm{chainTip}-(c_{\mathrm{tr}}-1)$, but actual
+checkpoint selection can make the deployed anchor older, so it is not
+unconditionally one block shallower. The tree and anchor mechanics themselves are the
 \emph{Ironwood Guide}'s (its commitment-tree section); the wallet-layer
 content is only this choice of depth.
 
@@ -4999,10 +5059,13 @@ The truncation target is constrained by checkpoint availability:
 requested one that has a note-commitment-tree checkpoint in \emph{every}
 tree containing data, and errors with \texttt{RequestedRewindInvalid} ---
 carrying the safe rewind height, the maximum over trees of their minimum
-checkpoint heights --- if none exists. The bound
-$\mathtt{PRUNING\_DEPTH} = 100$ is the maximum number of blocks the wallet
-is allowed to rewind, consistent with the bound in \textsf{zcashd}; the
-variant \texttt{truncate\_to\_chain\_state} additionally permits precise
+checkpoint heights --- if none exists. The constant
+$\mathtt{PRUNING\_DEPTH}=100$ controls an inclusive checkpoint window: the
+code computes its pruning floor as
+$\mathsf{tip}-(\mathtt{PRUNING\_DEPTH}-1)$, a $99$-block height delta when
+checkpoints are contiguous. It should therefore not be read as an exact
+$100$-block rewind depth. The variant
+\texttt{truncate\_to\_chain\_state} additionally permits precise
 truncation from provided \texttt{ChainState} frontiers even when the
 target checkpoint was pruned
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs},
@@ -5023,7 +5086,8 @@ target checkpoint was pruned
   transaction reverts to the pending state of
   \S\ref{sec:lifecycle-tracking} and will either be re-observed as mined
   or expire;
-\item truncates both shard trees to the checkpoint at $h$ (tree and anchor
+\item truncates all populated shielded shard trees --- Sapling, Orchard, and
+  Ironwood --- to the checkpoint at $h$ (tree and anchor
   mechanics: the \emph{Ironwood Guide}, its commitment-tree section);
 \item deletes blocks above $h$ and stale \texttt{tx\_locator\_map} entries.
 \end{itemize}
@@ -5034,14 +5098,14 @@ longer mined --- which the spendability gate of
 \S\ref{sec:lifecycle-spend} already guarantees, since an un-mined
 transaction has no scanned block and no qualifying mined height.
 
-\paragraph{Terminal states.} Every wallet-created transaction thus ends in
-exactly one of three states: \emph{mined} with enough confirmations that
-truncation can no longer reach it ($\mathtt{PRUNING\_DEPTH} = 100$ blocks);
-\emph{expired unmined}, its inputs released
+\paragraph{Long-run states.} A wallet-created transaction may become
+\emph{mined} and old enough to fall below the retained checkpoint window;
+it may become \emph{expired unmined}, with its inputs released
 (\S\ref{sec:lifecycle-funds}) and its record retained
 (Table~\ref{tab:tx-table}) with the user notified per ZIP-203; or, for the
 expiry-$0$ transactions a caller must explicitly request via
-\texttt{with\_expiry\_height}, \emph{pending}, with polling ending at the
+\texttt{with\_expiry\_height}, it may remain \emph{pending} indefinitely,
+with polling ending at the
 first confirmed-unmined reply (\S\ref{sec:lifecycle-tracking}) and any
 rebroadcast falling on the embedding wallet
 (Remark~\ref{rem:lifecycle-rebroadcast}).
@@ -5501,9 +5565,10 @@ network and assigns an output pool
 \item a TEX address maps to the transparent pool of the \emph{second} step
   of a two-step proposal (below), its payment re-wrapped with no memo;
 \item a Sapling address maps to the Sapling pool;
-\item a Unified Address maps to Orchard if it has an Orchard receiver and
-  Orchard is supported; else to Sapling if it has a Sapling receiver and
-  Sapling is supported; else to its transparent receiver; else the selection
+\item a Unified Address with a supported Orchard receiver maps to Orchard
+  before NU6.3 and to Ironwood from NU6.3 onward (the Ironwood bundle delivers
+  to the same Orchard-protocol receiver); otherwise it maps to Sapling if a
+  supported Sapling receiver is present, then to its transparent receiver, or
   fails (\texttt{GreedyInputSelectorError::UnsupportedAddress}).
 \end{itemize}
 The selector then chooses spendable shielded notes to at least the required
@@ -5528,8 +5593,10 @@ one step is rejected
 
 \paragraph{Step validation.} Constructor \texttt{Step::from\_parts} enforces
 that the keys of $\mathrm{payment\_pools}$ exactly match the request's
-payment indices, that each selected pool satisfies
-\texttt{recipient\_address()}\allowbreak\texttt{.can\_receive\_as(pool)},
+payment indices, and that each selected pool satisfies
+\texttt{recipient\_address()}\allowbreak\texttt{.can\_receive\_as(pool)};
+an Ironwood assignment is also accepted when the recipient can receive as
+Orchard, because the pools share the receiver protocol. It further checks
 that every payment has an amount, and the balance equation
 \begin{equation}\label{eq:zip321-balance}
 v^{\mathrm{in}}_{\mathrm{transparent}}

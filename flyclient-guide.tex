@@ -124,35 +124,38 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the deployed chain and header rules of the \emph{Ironwood Guide} and
-the light-client layer of the \emph{Sync Guide}, this volume of \emph{The
+Assuming the commitment foundations of the \emph{Crypto Guide}, the deployed
+chain-selection rules of the \emph{Consensus Guide}, the block structures of
+the \emph{Ironwood Guide}, and the light-client layer of the
+\emph{Sync Guide}, this volume of \emph{The
 Zcash Arboretum} documents succinct chain verification for Zcash: the
 FlyClient protocol as its paper constructs it, the ZIP-221 chain-history
-commitment that every Zcash block header has carried since Heartwood, and the
+commitment that every post-activation Zcash block header has carried since
+Heartwood, and the
 distance between the two. The commitment is consensus-critical and
-universally maintained; no deployed light client consumes it. Claims about
-the deployed tree cite the ZIPs and the implementations; claims about the
-sampling protocol carry the paper's own model assumptions, and its printed
-defects are registered rather than silently repaired; the bridge between the
-two is classified plainly as unbuilt.
+required in valid post-activation headers; none of the light-client
+implementations examined here consumes it. Claims about the deployed tree
+cite the ZIPs and the implementations; claims about the sampling protocol
+carry the paper's own model assumptions, and its printed defects are
+registered rather than silently repaired; the bridge between the two is
+classified plainly as unbuilt.
 \end{abstract}
 \clearpage
 \tableofcontents
 \clearpage
 %% FlyClient Guide, section "Scope, sources, and the deployment boundary":
 %% volume opener --- the two objects (paper protocol, deployed commitment),
-%% the pinned source ladder, the three-bin rule by reference, the companion
+%% the pinned source ladder, the three-bin classification, the companion
 %% volumes, and the boundary statement. Labels sec:fc-scope, sec:fc-sources,
-%% sec:fc-siblings, sec:fc-boundary, tab:fc-sources. Register per
-%% tachyon-guide/frost-guide openers; 80 cols.
+%% sec:fc-siblings, sec:fc-boundary, tab:fc-sources; 80 cols.
 %%
-%% Sources (all verified firsthand 2026-07-19):
+%% Sources (all verified firsthand; current-status checks refreshed 2026-09-05):
 %%   - B. Buenz, L. Kiffer, L. Luu, M. Zamani, "FlyClient: Super-Light
 %%     Clients for Cryptocurrencies", IACR ePrint 2019/226, revision of
 %%     2020-08-20 (31 pp.); published at IEEE S&P 2020. Local copy
 %%     .wip/flyclient-drafts/eprint-2019-226.pdf (fetched via the Internet
 %%     Archive; eprint.iacr.org gated by anti-bot challenge on 2026-07-19).
-%%   - ZIP 221 (zips @ 69610984, 2026-07-09), ZIP 244 (same checkout).
+%%   - ZIP 221 and ZIP 244 (zips @ e753a6a3, 2026-09-03).
 %%   - zcash_history 0.5.0 (crates.io, pinned by zebra Cargo.lock:7097).
 %%   - zebra @ de14bef05 (2026-07-17); zcashd @ 16ac74376 (2025-10-03).
 \section{Scope, sources, and the deployment boundary}\label{sec:fc-scope}
@@ -166,34 +169,34 @@ carries over the entire chain before it (B\"unz--Kiffer--Luu--Zamani,
 range --- an append-friendly Merkle tree --- and the protocol's claim is
 quantitative: a client holding only the genesis block can accept the head of
 an $n$-block chain after downloading $O(\lambda \log_{1/c}(n) \log_2(n) + L)$
-data rather than $n$ headers, where $c$ bounds the adversary's mining power
-relative to the honest network's and $L$ is the fork length below which the
-adversary is unconstrained --- so the client checks the last $L$ headers in
-full.
+data rather than $n$ headers, where $c$ bounds the validly mined fraction of
+an adversarial fork and $L$ is the fork length below which the adversary is
+unconstrained --- so the client checks the last $L$ headers in full. Identifying
+$c$ directly with a mining-power ratio requires a particular constant-difficulty
+interpretation; the paper does not derive it from Zcash's retarget rule.
 
 This volume documents two objects and the distance between them. The first is
 the protocol of the paper: model, commitment, sampling distribution, security
 theorem, and the proof structure behind it
 (\S\ref{sec:fc-problem}--\S\ref{sec:fc-protocol}). The second is the
 consensus structure Zcash actually deployed for it: ZIP-221's chain-history
-tree, a difficulty-MMR variant whose root every Zcash block header has
-committed to since the Heartwood upgrade, extended at NU5 by ZIP-244's
-authorising-data commitment (\S\ref{sec:fc-zip221}--\S\ref{sec:fc-code}).
+tree, a difficulty-MMR variant incorporated into every header after the
+Heartwood activation block, extended at NU5 by ZIP-244's authorising-data
+commitment (\S\ref{sec:fc-zip221}--\S\ref{sec:fc-code}).
 The distance is the volume's third subject
-(\S\ref{sec:fc-gap}): Zcash ships the server half of FlyClient in every
-block and validates it in every full node, yet no deployed wallet, SDK, or
-light-client server exposes or consumes it; deployed light clients instead
+(\S\ref{sec:fc-gap}): Zcash commits to FlyClient's tree substrate in every
+post-activation block and validates it in every full node, yet no deployed
+wallet, SDK, or light-client server exposes or consumes a proof; deployed light clients instead
 trust their server for chain state outright (\emph{Sync Guide},
 \S``Architecture and authority'').
 
 \subsection{Sources and pinning}\label{sec:fc-sources}
 
 Table~\ref{tab:fc-sources} pins the artefacts this volume treats as ground
-truth. Two rigor conventions from the sibling volumes apply. Deployed
-behaviour cites crate, file, and line against the pinned commits; the
-classification of design-stage material follows the three-bin rule of the
-\emph{Tachyon Guide} (\S``Scope, sources, and method''): \emph{specified},
-\emph{designed but unspecified}, or \emph{open problem}. The FlyClient paper
+truth. Two rigor conventions apply. Deployed behaviour cites crate, file, and
+line against the pinned commits; design-stage claims are classified as
+\emph{specified}, \emph{designed but unspecified}, or an \emph{open problem}.
+The FlyClient paper
 itself is treated as a primary source with registered defects: the revision
 of record contains internal inconsistencies (a sign typo in a difficulty
 bound, a vestigial pseudocode return, conflicting evaluation constants) that
@@ -209,18 +212,17 @@ Artefact & Pin & Rigor \\
 \midrule
 FlyClient paper & ePrint 2019/226, rev.\ 2020-08-20 & peer-reviewed;
 errata registered \\
-ZIP 221, ZIP 244 & \textsf{zips} @ \texttt{69610984} (2026-07-09) & merged,
+ZIP 221, ZIP 244 & \textsf{zips} @ \texttt{e753a6a3} (2026-09-03) & merged,
 deployed consensus \\
 \textsf{zcash\_history} & 0.5.0 (crates.io) & deployed (Zebra dependency) \\
 \textsf{zebra} & @ \texttt{de14bef05} (2026-07-17) & deployed validator \\
 \textsf{zcashd} & @ \texttt{16ac74376} (2025-10-03) & historical
 validator (retired) \\
 \textsf{lightwalletd}, \textsf{Zaino}, \textsf{librustzcash} &
-repo greps, 2026-07-19 & negative results (\S\ref{sec:fc-gap}) \\
+current-branch greps, 2026-09-05 & negative results (\S\ref{sec:fc-gap}) \\
 \bottomrule
 \end{tabular}
-\caption{Primary sources, pinned. Verification date 2026-07-19. The paper's
-local copy is \texttt{.wip/flyclient-drafts/eprint-2019-226.pdf}.}
+\caption{Primary sources, pinned. Status rechecked 2026-09-05.}
 \label{tab:fc-sources}
 \end{table}
 
@@ -236,13 +238,7 @@ the deployed light-client layer whose central trust assumption --- the
 node/proxy combination ``is trusted to provide a correct view of the current
 best chain state'' (ZIP~307, \S``The stated security model'') --- is precisely the
 assumption a FlyClient bridge would discharge; this volume owns that
-cross-reference. Toward the
-frontier volumes the relationship is converse: the \emph{Tachyon Guide}
-records a draft amendment to ZIP-221 among its peripheral ZIPs, and the
-\emph{Crosslink Guide}'s finality layer would change what ``the best chain''
-means for any weight-sampling client; both interactions are taken up in
-\S\ref{sec:fc-gap}, and per the sibling-ownership convention the later
-volume owns the analysis.
+cross-reference.
 
 \subsection{The deployment boundary, stated at the outset}
 \label{sec:fc-boundary}
@@ -252,13 +248,15 @@ itself draws sharply.
 
 \begin{itemize}[leftmargin=1.4em]
 \item \emph{Deployed and consensus-critical.} The ZIP-221 chain-history
-tree: maintained by every validator, its root committed in every block
-header since Heartwood (mainnet height 903{,}000) and folded into
+tree: maintained by Zebra (and historically by zcashd), its
+root committed in every block
+header after Heartwood's activation block (whose mainnet height is
+903{,}000 and whose field is the mandated zero sentinel) and folded into
 \texttt{hashBlockCommitments} since NU5 (mainnet height 1{,}687{,}104),
-validated on every block connect by \textsf{zebra} and, until its
+validated on every block connect by Zebra and, until its
 retirement, \textsf{zcashd}
 (\S\ref{sec:fc-zip221}--\S\ref{sec:fc-code}).
-\item \emph{Specified but consumed by no one.} The same tree as a
+\item \emph{Specified but consumed by no checked light client.} The same tree as a
 light-client instrument: ZIP-221's stated motivation is FlyClient, and the
 metadata its nodes carry exists for difficulty-weighted sampling; no
 deployed RPC serves an MMR proof and no deployed client requests one
@@ -383,12 +381,15 @@ SPV and FlyClient sizes give $496{,}094/416 \approx 1{,}193\times$
 \label{tab:fc-sizes}
 \end{table}
 
-One reading habit matters for every number above and below: the paper's
-parameter $c$ is the ratio of adversarial to \emph{honest} mining power, not
-the adversary's share of the total. An adversary at $c = 0.9$ controls
-$c/(1+c) \approx 47.3\%$ of the network; the headline $c = 1/2$ rows of
-Table~\ref{tab:fc-sizes} describe an adversary with a third of total power
-(\S7.1, p.~20).
+One reading habit matters for every number above and below. Formally, $c$
+bounds the valid-work fraction of a long adversarial fork. In its evaluation,
+the paper instantiates that parameter as a bound on adversarial mining power
+relative to \emph{honest} mining power, not as a share of the total. Under
+that evaluation convention, $c = 0.9$ corresponds to
+$c/(1+c) \approx 47.3\%$ of total power, and the headline $c = 1/2$ rows of
+Table~\ref{tab:fc-sizes} correspond to one third of total power (\S7.1,
+p.~20). The reduction between these readings is exactly the model gap
+discussed in Remark~\ref{rem:fc-c-meaning}.
 
 %% FlyClient Guide, section "Merkle mountain ranges": the paper's MMR
 %% (recursive single-rooted form), append, the prefix-extension trick,
@@ -530,8 +531,8 @@ the first $k-1$ leaves is a value the verifier can now compare against the
 root stored in the sampled header. The two corollaries the protocol leans
 on follow directly (p.~31): the MMR is position-binding for prefixes
 (Corollary~3: the path commits $x_1, \dots, x_k$ as the blocks of a chain
-that is a prefix of the head's), and any change to any block changes every
-later root (Corollary~4) --- so an adversary that forks the chain can reuse
+that is a prefix of the head's), and, absent a hash collision, any change to
+a block changes every later root (Corollary~4) --- so an adversary that forks the chain can reuse
 no honest block from after its fork point, since the honest MMR roots
 inside those blocks would betray the substitution.
 
@@ -543,8 +544,8 @@ Algorithm~2, and Theorem~7 all require it to return the reconstructed root,
 and is called with its arguments in a different order than it declares.
 The intended behaviour is unambiguous from Theorem~7's proof --- initialise
 with the first left sibling encountered, fold $r \leftarrow H(y \,\|\, r)$
-over the remaining left siblings bottom-up, return $r$ --- and every
-implementation below behaves so. Registered in
+over the remaining left siblings bottom-up, and return $r$. No deployed
+implementation examined below exposes this proof operation. Registered in
 Remark~\ref{rem:fc-errata}.
 \end{remark}
 
@@ -565,7 +566,9 @@ sampled header; the sampled header's proof of work is valid.
 The paper is not consistent about names: \S2 calls the root recorded in
 $B_i$ ``$M_i$'', Definition~5 and Lemma~4 call the root inside the head
 $B_n$ ``$M_{n-1}$'', and Algorithms~1--2 speak of a chain of $n+1$ blocks
-whose head commits ``the first $n$ blocks''. Every variant expresses the
+whose head commits ``the first $n$ blocks''. Algorithm~6 says it reconstructs
+the root over $k-1$ blocks, while Theorem~7 calls the same result $r_k$.
+Every variant expresses the
 same invariant --- \emph{a block's header commits to all blocks strictly
 before it} --- and this volume uses that sentence, not any one of the
 indexings. ZIP-221 will shift the convention once more (the root in block
@@ -588,21 +591,22 @@ enriching every MMR node with aggregate metadata.
 but such that each node contains additional data. Every node can be written
 as $\{h, w, t, D_{\mathrm{start}}, D_{\mathrm{next}}, n, \mathrm{data}\}$,
 where $h$ is a $\lambda$-bit hash output, $w$ is an integer total
-difficulty, $t$ is a timestamp, $D$ is a difficulty target, $n$ is the size
-of the subtree rooted at the node, and data is an arbitrary string. In a
-leaf, $n = 1$ and $t$ is the time it took to mine the block;
-$w, D_{\mathrm{start}}$ are the block's difficulty target and
-$D_{\mathrm{next}}$ the next block's target under the difficulty-adjustment
-function. Each non-leaf node is
+difficulty, $t$ is elapsed mining time, $D$ is the per-block difficulty
+level, $n$ is the size of the subtree rooted at the node, and data is an
+arbitrary string. In a leaf, $n = 1$, $t$ is the block timestamp minus its
+predecessor's timestamp, and $w = D_{\mathrm{start}}$ is the block's
+difficulty level; $D_{\mathrm{next}}$ is the next block's level under the
+difficulty-adjustment function. Each non-leaf node is
 $\{H(lc, rc),\ lc.w + rc.w,\ lc.t + rc.t,\ lc.D_{\mathrm{start}},\
 rc.D_{\mathrm{next}},\ lc.n + rc.n,\ \bot\}$ for children $lc, rc$.}
 \medskip
 
-Aggregation is thus fixed once per field: weights and times sum, targets
+Aggregation is thus fixed once per field: weights and times sum, difficulty
+levels
 propagate from the boundary children, counts add. The verifier recomputes
 every parent along a sampled path from its children and checks, per level:
 that $lc.D_{\mathrm{next}} = rc.D_{\mathrm{start}}$ (adjacent subtrees
-agree on the target across their boundary); that nodes below the epoch
+agree on the difficulty across their boundary); that nodes below the epoch
 level $\log_2 m$ carry exactly their epoch's difficulty; that nodes
 spanning a transition computed $D_{\mathrm{next}}$ by the adjustment rule;
 and that a node's aggregate $(w, t)$ is \emph{feasible} --- some legal
@@ -623,11 +627,18 @@ its own summation gives $\tau^{-(n-k)/2}$ --- a sign typo, verified against
 the PDF at high resolution, under which the printed bound would be
 negative; the summation form is authoritative (Remark~\ref{rem:fc-errata}).
 
-\subsection{Invalid transitions never help}\label{sec:fc-lemma4}
+The paper calls $t$ a timestamp before defining it as an elapsed time, and
+calls $D$ a target although its weight equations treat larger $D$ as harder
+and add $D$ into total work. The restatement above follows the equations;
+using the proof-of-work target $T$ of \S\ref{sec:fc-model} directly would
+reverse that ordering.
+
+\subsection{The paper's transition-rewriting lemma}
+\label{sec:fc-lemma4}
 
 The transition checks would be pointless if an adversary could profit from
-difficulty rules the verifier fails to sample. The paper closes this with a
-rewriting argument.
+difficulty rules the verifier fails to sample. The paper addresses this with
+a rewriting argument.
 
 \medskip
 \noindent\textbf{Lemma 4} (ePrint 2019/226, p.~19). \emph{Let $\Adv$ be an
@@ -650,15 +661,16 @@ replaces the difficulty transitions inside that whole subtree with valid
 ones consistent with the parent's aggregate fields --- possible precisely
 because the parent's own $(w, t, D_{\mathrm{start}}, D_{\mathrm{next}}, n)$
 pass the feasibility checks --- and the blocks inside need no valid proof
-of work at all. Invalid transitions therefore buy nothing: the adversary
-might as well have used valid transitions and mined more invalid blocks,
-which is exactly the adversary the sampling analysis already counts.
+of work at all. This is the paper's reason for claiming that invalid
+transitions buy nothing: the adversary might as well have used valid
+transitions and mined more invalid blocks, which is exactly the adversary the
+sampling analysis already counts.
 
 \begin{remark}[Errata register for the revision of record]
 \label{rem:fc-errata}
 The ePrint revision of 2020-08-20 --- the version this volume pins ---
-contains the following printed defects, all verified against the PDF and
-none affecting the results: (i) the sign typo in the difficulty-MMR lower
+contains the following printed defects, all verified against the PDF:
+(i) the sign typo in the difficulty-MMR lower
 bound (\S\ref{sec:fc-diffmmr}); (ii) the \textsf{Get\_Root} pseudocode's
 undefined index, vestigial boolean return, and call-signature mismatch
 (Remark~\ref{rem:fc-get-root}); (iii) two near-duplicate evaluation
@@ -678,11 +690,28 @@ $\lambda$ each carry two or more meanings across sections); (ix)
 Table~1's $1{,}275\times$ improvement entry, which its own SPV and
 FlyClient sizes contradict ($496{,}094/416 \approx 1{,}193\times$; the
 printed ratio matches a FlyClient size of ${\sim}389$~KB) while the
-other three entries recompute correctly. The
+other three entries recompute correctly; and (x) Theorem~2 prints
+$c\in(0,1]$, although its logarithms and density are undefined at $c=1$;
+the operative domain is $0<c<1$; (xi) Definition~7 calls $t$ a timestamp
+and $D$ a target even though its leaf rule makes $t$ an elapsed time and its
+weight equations use $D$ as a difficulty level; (xii) the backbone discussion
+says persistence yields one chain at all honest nodes, whereas it yields a
+common stable prefix; and (xiii) Assumption~2's printed clause says a
+$c$ fraction of a fork's weight ``is honest'', while the surrounding analysis
+uses $c$ as an upper bound on the adversary's validly mined work
+(Remark~\ref{rem:fc-c-meaning}); and (xiv) Lemma~1's proof switches without
+definition from $(\mu,L)$ in its statement to $((1-\delta),n)$ and never
+justifies replacing the stopping-time count by a Poisson variable. Under
+independent Poisson block clocks that count is negative binomial, and the
+Poisson Chernoff expression printed as the lemma's bound is not a valid upper
+bound for that stopping-time law in general; the valid clock-model bound is
+derived immediately after the lemma below. The
 acknowledgements record that CCS reviewers found ``Bahack style attacks
 and problems with the security proof in a previous version'' --- the
 variable-difficulty machinery of \S\ref{sec:fc-diffmmr} is post-review
-repair work, which explains some of the visible seams.
+repair work, which explains some of the visible seams. These discrepancies
+are therefore part of the boundary of the paper's stated result, not assumed
+harmless here.
 \end{remark}
 
 %% FlyClient Guide, section "The FlyClient protocol": backbone model,
@@ -712,7 +741,8 @@ $\tau = 4$, $m = 2016$, $f = 0.03$). The clamp is not a tuning detail: it
 is what makes the difficulty-raising attack of \S\ref{sec:fc-raising}
 survivable, and every feasibility check of \S\ref{sec:fc-diffmmr} is an
 image of it. Backbone parameters are chosen so persistence and liveness
-hold, so a single chain is held by all honest full nodes.
+hold. Persistence gives honest full nodes a common stable prefix; it does
+not require their current tips to be identical.
 
 The adversary is \emph{rushing} (each round it sees all honest
 messages before choosing its own), mines with at most a $\mu$ fraction
@@ -740,15 +770,17 @@ The printed clause ``a $c$ fraction \dots{} is honest'' is loose; the
 meaning used throughout the paper's own analysis is a cap on the
 adversary: in any fork of length at least $L$, at most a $c$ fraction of
 the fork's difficulty weight can be validly mined, so a fork matching the
-honest chain's weight is at least a $(1-c)$ fraction fake. Separately, $c$
-is the ratio of adversarial to \emph{honest} mining power --- an adversary
-at $c = 0.9$ holds $c/(1+c) \approx 47.3\%$ of the network's total
-(\S7.1, p.~20). Short forks are deliberately outside the assumption: for
+honest chain's weight is at least a $(1-c)$ fraction fake. In the evaluation,
+the paper additionally uses $c$ as a bound on adversarial mining power
+relative to honest mining power; that identification is not part of
+Assumption~2. Under the evaluation convention, $c = 0.9$ corresponds to
+$c/(1+c) \approx 47.3\%$ of total power (\S7.1, p.~20). Short forks are
+deliberately outside the assumption: for
 small $L$ the variance of mining lets any adversary win occasionally,
 which is why $L$ trailing blocks are always checked in full. Connecting
 $(c, L)$ formally to the backbone parameters $(\mu, \gamma, s, \dots)$ is
 conjectured possible and left open by the paper; the constant-difficulty
-case is the one bridge actually proved:
+case is the one bridge the paper attempts to prove:
 \end{remark}
 
 \noindent\textbf{Lemma 1} (ePrint 2019/226, p.~8). \emph{In the
@@ -759,11 +791,33 @@ at most $\mu$ times the honest adoption rate. Then for $c > \mu$,}
 \Pr[X \ge c L] \;\le\; e^{L(c-\mu)} \cdot (c/\mu)^{-cL}.
 \]
 
-The proof is a Chernoff bound on a dominating Poisson variable with mean
-$\mu L$, optimised at $t = \ln(c/\mu)$; Corollary~1 then picks, for every
-$\mu$ and $L = \Theta(\lambda)$, a $c < 1$ making the right-hand side
-$2^{-\lambda}$ --- so at constant difficulty the $(c, L)$-assumption is a
-theorem, not an axiom.
+The displayed expression is the Chernoff bound for a Poisson variable of mean
+$\mu L$, but the paper does not establish the domination it needs: its proof
+calls that Poisson variable an accurate upper-bound model and then changes
+$(\mu,L)$ to undefined variables $((1-\delta),n)$. Under the usual independent
+Poisson block-clock model, the experiment stated in the lemma has a different
+law, and the printed expression is not a valid bound for that law in general.
+At the upper-bound rates $1$ and $\mu$ for the honest and adversarial clocks,
+respectively, the number $X$ of adversarial blocks found before the $L$th
+honest block is negative binomial, with moment-generating function
+\[
+  \E[e^{tX}]
+  = \left(\frac{1}{1+\mu-\mu e^t}\right)^L .
+\]
+Markov's inequality, optimised at
+$e^t=c(1+\mu)/(\mu(1+c))$ for $c>\mu$, gives the valid bound
+\[
+  \Pr[X\ge cL]
+  \le
+  \left[
+    \left(\frac{1+c}{1+\mu}\right)^{1+c}
+    \left(\frac{\mu}{c}\right)^c
+  \right]^L .
+\]
+Its base is below $1$ when $c>\mu$, so it still gives exponential decay and
+recovers the qualitative constant-difficulty bridge for this explicit clock
+model when $L=\Theta(\lambda)$. It does not repair the paper's unproved bridge
+from the full variable-difficulty backbone parameters to Assumption~2.
 
 \subsection{What security means here}\label{sec:fc-defs}
 
@@ -811,11 +865,11 @@ accepted, membership of an old block is one MMR inclusion proof against
 the head's root, and membership of a transaction is one ordinary SPV
 Merkle proof inside that block --- roughly $1.5$~KB on Ethereum
 parameters against ${\sim}15$~KB for superblock NIPoPoW (\S1, p.~4).
-Second, the unstable tip is harmless: even a maliciously chosen head
-cannot commit to invalid blocks or omit stable ones --- its MMR must
-contain every stable block of the honest chain, or sampling exposes it
---- so the client may run the protocol against the freshest head and
-still learns the stable prefix correctly; it stores one recent
+Second, the protocol need not wait for a stable head. Except with its
+soundness error, an accepted competing head cannot omit the client's stored
+stable prefix, and sampling rejects an MMR containing invalid blocks when a
+sample exposes one. Thus the client may run the protocol against the freshest
+head and still recover the stable prefix; it stores one recent
 \emph{stable} block between executions (\S4.2, pp.~11--12).
 
 \subsection{From uniform sampling to the optimal distribution}
@@ -837,8 +891,8 @@ chain is honestly valid (\S5.1, p.~12).
 guaranteed, the verifier can binary-search the first height at which two
 provers disagree --- $\log n$ adaptive queries --- and then sample $k$
 blocks past the fork point. This works but is multi-round and adaptive,
-so it cannot be made non-interactive by Fiat--Shamir; FlyClient needs a
-one-shot, public-coin protocol (\S5.2, p.~13).
+so it does not have the one-shot public-coin form that the paper later
+compiles using Fiat--Shamir (\S5.2, p.~13).
 
 \paragraph{Dyadic suffixes get the right shape.} The one-shot fix
 oversamples the tip: for every $j \in [0, \log n)$, sample $k$ blocks
@@ -898,7 +952,8 @@ probability $1$.
 
 \medskip
 \noindent\textbf{Theorem 2} (Optimal sampling distribution; ePrint
-2019/226, p.~16). \emph{Given that the last $\delta = c^k$ fraction of
+2019/226, p.~16). \emph{For $0<c<1$, given that the last
+$\delta = c^k$ fraction of
 the chain contains only valid blocks and the adversary can create at most
 a $c$ fraction of valid blocks after the fork point, the sampling
 distribution with PDF $g(x) = 1/((x-1)\ln\delta)$ maximises the
@@ -931,15 +986,15 @@ $\Theta(\lambda \log(n) \log_{1/c}(n) + L)$.}
 \medskip
 
 Unlike the superblock protocols, whose succinctness degrades to full SPV
-under adversarial influence, this bound holds against \emph{all}
-adversaries.
+under adversarial influence, this bound holds against every adversary
+satisfying the theorem's $(c,L)$ assumption.
 
 \subsection{Removing the verifier}\label{sec:fc-fs}
 
 The protocol is public-coin --- the verifier contributes only randomness
---- and one-shot, so Fiat--Shamir applies: the sampling randomness is
-derived by hashing the head of the chain with an ordinary secure hash
-(the paper suggests SHA-3), and a verifier of the transcript checks the
+--- and one-shot. The paper applies Fiat--Shamir in the random-oracle model:
+sampling randomness is derived by hashing the head of the chain with an
+ordinary secure hash (the paper suggests SHA-3), and a verifier checks the
 derivation along with the samples (\S6.2, p.~19). Grinding is priced in
 proof-of-work: a cheating prover obtains fresh randomness only by
 re-mining the head, and the assumption bounds its total puzzle budget by
@@ -949,10 +1004,9 @@ whenever the interactive soundness satisfies
 p_m \;<\; \frac{2^{-\lambda}}{c \cdot n}.
 \]
 Two deployment properties fall out (\S8.1, p.~21). Proofs are
-\emph{transferable}: anyone can relay a proof without recomputation. And
-for a given chain the proof is \emph{unique} --- the randomness is a
-function of the head --- so one party can compute the proof for the
-entire network.
+\emph{transferable}: anyone can relay a proof without recomputation. For a
+given head the sampled positions are deterministic; with a canonical proof
+encoding, one party can therefore compute a proof for the entire network.
 
 \subsection{The theorem, and staying synchronised}\label{sec:fc-theorem}
 
@@ -966,19 +1020,22 @@ Definition~3 with all but negligible probability. The protocol is
 succinct with proof size $O(L + \lambda \log_{1/c}(n) \log_2(n))$.}
 \medskip
 
-The proof is the composition of everything above, in five steps:
+The paper's proof sketch composes five steps:
 Assumption~2 speaks only of retargeting-respecting adversaries, and
-Lemma~4 (\S\ref{sec:fc-lemma4}) converts every other adversary into one
-at no loss; Merkle soundness plus the prefix-extension corollaries make
-the MMR position- and weight-binding, so sampled answers are pinned to
+Lemma~4 (\S\ref{sec:fc-lemma4}) claims to convert every other adversary into one
+with only negligible loss in success probability; Merkle soundness plus
+the prefix-extension corollaries make
+the MMR position- and weight-binding, so sampled answers are intended to be pinned to
 one chain; Theorem~2 with Corollary~2's parameters makes evasion of
-sampling negligible; Fiat--Shamir is secure for one-round public-coin
-protocols in the random-oracle model; and the transcript --- $L$ suffix
+sampling negligible; the paper's random-oracle grinding argument replaces
+the verifier's public coins by a hash of the head; and the transcript --- $L$ suffix
 blocks plus $O(\lambda \log_{1/c} n)$ sampled blocks, each with a
-$\log_2(n)$-hash path --- has the stated size.
+$\log_2(n)$-hash path --- has the stated size. Remark~\ref{rem:fc-errata}
+records why this volume treats the theorem as the paper's conditional claim
+rather than as an independently completed proof.
 
-A synchronised client also stays synchronised cheaply. Theorem~3
-(Subchain proofs, \S8.2, p.~22): a client that accepted a chain of length
+A synchronised client is also intended to stay synchronised cheaply. The
+paper's Theorem~3 (Subchain proofs, \S8.2, p.~22) states that a client that accepted a chain of length
 $n$, later handed a proof for the extension from $n$ to $n'$ together
 with one MMR proof that its block $n$ lies in block $n'$'s commitment,
 accepts nothing it would not have accepted from a full $n'$-proof --- a
@@ -1037,11 +1094,11 @@ corrupted leaves (\S8.4, pp.~23--24).
 %% sec:fc-hashing, sec:fc-heartwood, sec:fc-deltas, tab:fc-fields,
 %% rem:fc-zip-defects, rem:fc-branchid, rem:fc-zip-caveat. Sources:
 %% zip-0221.rst (843 lines, read in full), zip-0250.rst, zip-0252.rst,
-%% zip-0258.md, all @ zips 69610984; notes c-zips.md. The 11-leaf example
+%% zip-0258.md, all @ zips e753a6a3; notes c-zips.md. The 11-leaf example
 %% and all node-size ranges re-verified by script 2026-07-19.
 \section{ZIP-221: the deployed chain-history tree}\label{sec:fc-zip221}
 
-Zcash deployed the server half of FlyClient as consensus. ZIP-221 ---
+Zcash deployed FlyClient's commitment substrate as consensus. ZIP-221 ---
 title ``FlyClient --- Consensus-Layer Changes'', Status Final, deployed
 with the Heartwood upgrade --- replaces the block header's Sapling
 treestate commitment with a commitment to the root of a Merkle mountain
@@ -1080,8 +1137,8 @@ Sapling root now surfaces one block later than it did pre-Heartwood, and
 accepts it because anchoring on the most recent treestate ``is already
 unsafe in reorgs''. Second, the tree \emph{resets at every network
 upgrade}: the preceding-upgrade height $x$ is the last activation height
-strictly below $n$, so the block at an activation height $A$ carries the
-completed previous epoch's root, and the very next block $A+1$ already
+strictly below $n$, so each later upgrade's activation block $A$ carries
+the completed previous epoch's root, and the very next block $A+1$ already
 commits to the new epoch's single-leaf tree over $B_A$. Every consensus branch thus owns a
 self-contained tree --- which composes with the personalisation scheme
 below into cross-branch domain separation --- and any future Zcash
@@ -1173,14 +1230,22 @@ inherit left \\
 inherit right \\
 14 & \texttt{nOrchardTxCount} & count of transactions with non-empty
 \texttt{vActionsOrchard} & sum \\
+\addlinespace
+15 & \texttt{hashEarliestIronwoodRoot} & final Ironwood treestate root &
+inherit left \\
+16 & \texttt{hashLatestIronwoodRoot} & final Ironwood treestate root &
+inherit right \\
+17 & \texttt{nIronwoodTxCount} & count of transactions with non-empty
+\texttt{vActionsIronwood} & sum \\
 \bottomrule
 \end{tabular}
 \caption{The ZIP-221 node field vector, in serialisation order. Fields
 1--11 are the V1 vector (Heartwood onward); fields 12--14 join at NU5 and
-are omitted before it. Hash fields are \texttt{char[32]}, timestamps and
-target bits \texttt{uint32}, work \texttt{uint256}, heights and counts
-CompactSize integers. The seven FlyClient-requirement fields are 2--5 and
-8--10. Sources: ZIP~221, \S``Tree Node specification''; ZIP~252.}
+are omitted before it; fields 15--17 join at NU6.3 and are omitted before
+it. Hash fields are \texttt{char[32]}, timestamps and target bits
+\texttt{uint32}, work \texttt{uint256}, heights and counts CompactSize
+integers. The seven FlyClient-requirement fields are 2--5 and 8--10.
+Sources: ZIP~221, \S``Tree Node specification''; ZIP~252; ZIP~258.}
 \label{tab:fc-fields}
 \end{table}
 
@@ -1264,7 +1329,8 @@ genesis-rooted, with a one-block commitment delay
 the paper: the seven FlyClient fields realise the paper's
 $(w, t, D_{\mathrm{start}}, D_{\mathrm{next}}, n)$ payload --- with both
 ends of each pair carried explicitly rather than one derived --- and the
-Sapling/Orchard fields have no paper counterpart. Hashing is
+pool-specific note-commitment roots and transaction counts have no paper
+counterpart. Hashing is
 personalised, branch-separated BLAKE2b-256 over full child
 serialisations, where the paper hashes bare child values with an
 unspecified generic $H$. The root reaches the header through an existing
@@ -1318,29 +1384,31 @@ nobody has closed the gap in either direction since.
 %% hashBlockCommitments, V2/V3 fields, activation constants. Labels
 %% sec:fc-nu5, sec:fc-authdata, sec:fc-blockcommitments,
 %% sec:fc-activations, tab:fc-activations. Sources: zip-0244.rst (read in
-%% full), zip-0221.rst, zip-0252.rst, zip-0258.md @ zips 69610984; notes
+%% full), zip-0221.rst, zip-0252.rst, zip-0258.md @ zips e753a6a3; notes
 %% c-zips.md.
 \section{NU5: the commitment becomes one of two}\label{sec:fc-nu5}
 
 \subsection{Why an authorising-data root exists}\label{sec:fc-authdata}
 
 NU5's ZIP-244 made transaction identifiers non-malleable by excluding
-witness data --- proofs and signatures --- from the txid digest. The
-repair creates a gap: \texttt{hashMerkleRoot}, now built over
-non-malleable txids, no longer commits to the whole serialised
-transaction. ZIP-244 fills it with a parallel commitment: each
-transaction's \emph{authorising data commitment} digests exactly the
-excluded material (transparent input scripts; Sapling proofs and
-signatures; Orchard proofs, spend-authorisation signatures, and binding
-signature) under fixed BLAKE2b-256 personalisations, gathered by an outer
-per-branch digest, with pre-v5 transactions assigned the placeholder of 32
-\texttt{0xFF} bytes; and
-\texttt{hashAuthDataRoot} is the root of a padded binary Merkle tree
+authorising data from the txid digest. The change creates a gap:
+\texttt{hashMerkleRoot}, now built over non-malleable txids, no longer
+commits to the whole serialised transaction. ZIP-244 fills it with a parallel
+commitment. For version 5, each transaction's \emph{authorising data
+commitment} digests the excluded material (transparent input scripts;
+Sapling proofs and signatures; Orchard proofs, spend-authorisation
+signatures, and binding signature) under fixed BLAKE2b-256 personalisations,
+gathered by an outer per-branch digest. ZIP-229 extends the version 6 auth
+digest with an Ironwood component and moves the Sapling, Orchard, and
+Ironwood anchors from effecting data into their corresponding authorising
+digests. Pre-v5 transactions are assigned a placeholder of 32
+\texttt{0xFF} bytes. The \texttt{hashAuthDataRoot} is the root of a padded
+binary Merkle tree
 (personalisation \texttt{ZcashAuthDatHash}, null leaves
 \texttt{[0u8;32]}) over those commitments, in insertion order identical
 to the txid tree, so one path position names the same transaction in
-both trees. The pair (txid tree, auth tree) restores full commitment to
-every byte a block carries.
+both trees. The pair (txid tree, auth tree) restores commitment to the
+transaction effects and their authorising data.
 
 \subsection{\texttt{hashBlockCommitments}}\label{sec:fc-blockcommitments}
 
@@ -1579,21 +1647,22 @@ records that NU5-aware clients read and zero-pad into 244-byte buffers.
 
 \subsection{Divergence register}\label{sec:fc-divergences}
 
-The two validators agreed on every consensus-relevant byte for as long
-as both ran; the register below records where they differ in structure,
-and one place they would have differed in consensus had both crossed
-the NU6.3 boundary unchanged.
+No ZIP-221 commitment divergence is known from the period when Zebra and
+zcashd both ran. The register below records where the two implementations
+differ in structure, and one place they
+would have differed in consensus had both crossed the NU6.3 boundary
+unchanged.
 
 \begin{itemize}[leftmargin=1.4em]
 \item \emph{Version skew at NU6.3.} zcashd's 0.4.0 dispatch sends every
 post-Canopy branch ID to V2 nodes, while Zebra selects V3 (Ironwood
 fields) for NU6.3 --- as the code stands, the two would compute
 divergent \texttt{hashChainHistoryRoot} values from the activation block
-onward. ZIP-258 resolves the tension by fiat rather than by code:
-zcashd ``will not implement'' NU6.3, and Zebra is expected to be the
-sole full validator (\S\ref{sec:fc-nu5}); the skew is a documented
-retirement, not a live consensus bug --- but the code alone does not
-say so.
+onward. ZIP-258 resolves the tension by deployment scope rather than by
+changing zcashd: the ZIP says zcashd ``will not implement'' NU6.3, while
+Zebra implements V3 (\S\ref{sec:fc-nu5}). The skew is a
+documented retirement boundary, not a live consensus disagreement among the
+current implementations --- but the zcashd code alone does not say so.
 \item \emph{Epoch retention.} Zebra destroys a superseded epoch's tree
 (tip-only, single-record persistence); zcashd retained every epoch's
 full array, because its rollback path could reopen them. Two
@@ -1622,21 +1691,21 @@ equivalent arm.
 %% the light-client stack's non-consumption, what is missing, ecosystem
 %% beyond Zcash, frontier interactions, closing. Labels sec:fc-gap,
 %% sec:fc-who, sec:fc-lightstack, sec:fc-missing, sec:fc-elsewhere,
-%% sec:fc-frontier, sec:fc-closing, rem:fc-inversion. Sources: local greps
+%% sec:fc-closing, rem:fc-inversion. Sources: local greps
 %% of lightwalletd, zaino, librustzcash, zcash-android-wallet-sdk
-%% (2026-07-19, all negative); zebra + zcashd RPC surfaces; web sources
-%% marked as such inline (ECC blog posts, arXiv 2604.26736, AFT 2021);
+%% (rechecked 2026-09-05, all negative); Zebra and zcashd RPC
+%% surfaces; web sources
+%% marked as such inline (arXiv 2604.26736, AFT 2021);
 %% notes e-deployment.md.
 \section{The deployment gap}\label{sec:fc-gap}
 
 \subsection{Who computes the root, who verifies it}\label{sec:fc-who}
 
-Every Zcash block since Heartwood carries a correct chain-history
-commitment, because two classes of software maintain the tree. Consensus
-validators compute and check it: Zebra in the state service and, until
-its retirement, zcashd in \texttt{ConnectBlock} (\S\ref{sec:fc-code}).
-Miners publish it without
-computing it: both nodes' \texttt{getblocktemplate} hand the miner a
+Every valid Zcash block after the Heartwood activation block carries a correct
+chain-history commitment. Consensus validators compute and check it: Zebra
+in its state service and, until its retirement, zcashd in
+\texttt{ConnectBlock} (\S\ref{sec:fc-code}). Template-consuming miners need
+not compute it: both nodes' \texttt{getblocktemplate} hand the miner a
 \texttt{defaultroots} object containing \texttt{chainhistoryroot} (and,
 from NU5, \texttt{authdataroot} and \texttt{blockcommitmentshash}), so
 template consumers hash what the node computed --- the state-service
@@ -1649,16 +1718,15 @@ accidentally set to always be the NU5 value''
 (\texttt{src/miner.cpp:462--466}).
 
 Verification, meanwhile, is purely \emph{reconstructive}: a validator
-maintains the tree itself and compares 32-byte roots. Nobody, in
-any deployed software, verifies an MMR \emph{proof} --- the operation
-the structure exists to serve. The RPC surface tells the same story
+maintains the tree itself and compares 32-byte roots. None of the checked
+deployed components verifies an MMR \emph{proof} --- the operation the
+structure exists to serve. The RPC surface tells the same story
 from the read side: zcashd's \texttt{getblock} exposes
-\texttt{chainhistoryroot} per block, while Zebra --- the maintained
-node --- never emits the root for an existing block at all; its
-\texttt{getblock} code carries the literal comment
+\texttt{chainhistoryroot} per block, while Zebra's \texttt{getblock} omits
+the root for queried blocks. Its code carries the literal comment
 ``\texttt{chainhistoryroot} would be here. Undocumented. TODO: decide
 if we want to support it'' (\textsf{zebra-rpc},
-\texttt{src/methods.rs:3971}), and no RPC in either node serves MMR
+\texttt{src/methods.rs:3971}), and no checked RPC in either node serves MMR
 nodes or assembled proofs.
 
 \subsection{The light-client stack consumes none of it}
@@ -1669,15 +1737,14 @@ never updated toward it: ZIP-307 does not reference ZIP-221 once, and
 its security model is the one the \emph{Sync Guide} documents at length
 --- the node/proxy combination ``is trusted to provide a correct view
 of the current best chain state''. The negative results are uniform
-across the stack (all greps 2026-07-19): \textsf{lightwalletd} contains
+across the stack (rechecked 2026-09-05): \textsf{lightwalletd} contains
 no FlyClient, chain-history, or MMR code and serves no related
 endpoint; \textsf{Zaino} ships the same gRPC protocol and touches the
 field only to pass it through --- serialising the header's
 \texttt{hashBlockCommitments} bytes, and carrying a comment on its header
 type, ``Optional fields may be added for: \texttt{hashLightClientRoot}
 (FlyClient proofs)\ldots'', a capability anticipated, not implemented;
-neither
-\textsf{zcash\_client\_backend} nor \textsf{zcash\_client\_sqlite} nor
+Neither \textsf{zcash\_client\_backend} nor \textsf{zcash\_client\_sqlite} nor
 \textsf{zcash\_primitives} depends on \textsf{zcash\_history}; the
 Android SDK has no trace. What the wallet stack does instead is exactly
 the \emph{Sync Guide}'s subject: hash-chain continuity
@@ -1687,9 +1754,9 @@ implemented: currently only \texttt{prevHash} is checked'', and a grep
 of the wallet backend for Equihash or difficulty code returns nothing.
 
 The consequence deserves plain statement: a Zcash FlyClient would not
-be ``SPV, but smaller''. Deployed Zcash wallets perform no
-proof-of-work verification whatsoever, so a FlyClient verifier would be
-the \emph{first} PoW verification the wallet stack has ever done ---
+be ``SPV, but smaller''. The checked deployed wallet stack performs no
+proof-of-work verification, so a FlyClient verifier would add that missing
+verification layer ---
 and the seven metadata fields ZIP-221 carries for it, plus the
 shielded-transaction counts added specifically so light clients could
 detect withholding (\S\ref{sec:fc-fields}), have waited six years
@@ -1703,8 +1770,8 @@ without a single consumer.
 access to the full node array. Zebra persists peaks only
 (\S\ref{sec:fc-zebra}); zcashd persists everything a prover needs
 (\S\ref{sec:fc-zcashd}) but exposes none of it and is being retired.
-\item \emph{Serving endpoints.} No RPC or gRPC anywhere serves an MMR
-node, an inclusion path, or an assembled proof --- the entire wire
+\item \emph{Serving endpoints.} No RPC or gRPC in the checked node and
+light-client implementations serves an MMR node, an inclusion path, or an assembled proof --- the entire wire
 surface remains to be designed and specified.
 \item \emph{The sampling client.} No implementation of the verifier
 loop --- weight-proportional sampling under $g$, per-sample checks,
@@ -1718,89 +1785,60 @@ Zcash's own rapidly-adjusting difficulty rule requires
 (Remark~\ref{rem:fc-zip-caveat}); and the marriage of FlyClient header
 verification with ZIP-307 scanning, which replaces the header-chain
 trust but not the compact-block detection channel.
-\item \emph{Practicality data.} The one end-to-end datapoint is
+\item \emph{Practicality data.} The one located published end-to-end datapoint is
 academic and recent (web-sourced: Perazzo--Capecchi, ``Catching the
-Fly'', arXiv 2604.26736, April 2026): the first working Zcash FlyClient
-prover, built on a zebrad fork with four added RPCs and a
+Fly'', arXiv 2604.26736, April 2026): what its authors describe as the
+first practical Zcash FlyClient prover, built on a zebrad fork with four added RPCs and a
 ${\sim}10$-hour database backfill to recover the node array Zebra
 discards; proofs of ${\sim}1.2$~MiB at three million blocks
-(${\sim}320$~KiB with their distillation), with Equihash's 1{,}344-byte
-solutions dominating per-sampled-header cost. The numbers say mobile
-plausibility and on-chain-verifier marginality --- and that the
-retrofit cost of Zebra's peaks-only economy is real but bounded.
+(${\sim}320$~KiB in their simulated distilled variant, which requires
+consensus changes), with Equihash's 1{,}344-byte
+solutions dominating per-sampled-header cost. The numbers suggest mobile
+plausibility and poor suitability for an on-chain verifier --- and show that the
+retrofit cost of Zebra's peaks-only economy is real but bounded. Their
+analysis substitutes an assumed adversarial work budget for the paper's
+$(c,L)$ bound; it does not derive that budget from Zcash's retarget rule,
+so it does not close the original model gap.
 \end{itemize}
 
 \begin{remark}[An inversion of readiness]\label{rem:fc-inversion}
-The deployment gap has a neat summary: the node that has the prover's
-data (zcashd, full per-epoch node arrays in LevelDB) has no future, and
-the node that has the future (Zebra) has no data. Neither has an
-interface. Meanwhile consensus keeps paying the feature's maintenance
+The deployment gap has a neat summary: the retired node that has the prover's
+data (zcashd, full per-epoch node arrays in LevelDB) is outside the current
+upgrade path, while
+Zebra persists only peaks. Neither has a proof interface. Meanwhile consensus
+keeps paying the feature's maintenance
 cost --- the NU6.3 upgrade extends the node vector a second time
-(\S\ref{sec:fc-nu5}), Zebra already implements it, and still nothing
-reads the tree.
+(\S\ref{sec:fc-nu5}), Zebra already implements it, and still no deployed
+consumer reads a proof from the tree.
 \end{remark}
 
-\subsection{Elsewhere: velvet paths and inspired bridges}
+\subsection{Related work: velvet deployments}
 \label{sec:fc-elsewhere}
 
-Context from beyond Zcash, all web-sourced. ECC's Heartwood
-announcements framed ZIP-221 as ``Flyclient support'' enabling
-interoperability --- capability language, with no client deliverable
-then or since; a 2021 community-forum thread asking about FlyClient
-implementation drew no answers. The follow-up literature validated
-Zcash's deployment choice from an unexpected angle: superlight clients
-deployed by \emph{velvet} fork --- the uncontentious path the paper
-itself proposed (ePrint 2019/226, \S8.3, p.~23) --- admit \emph{chain-sewing}
-attacks, in which portions of independent forks are stitched into a
-proof (Kiayias--Polydouri--Zindros, AFT 2021); Zcash's hard-fork
-deployment forecloses the class, a point the 2026 prover paper makes
-explicitly. No published attack on FlyClient's sampling under its
-stated model was found; the critical literature attacks velvet
-deployments and the realism of the adversary model, not the
-distribution. The nearest production relative is
-FlyClient-\emph{inspired} rather than FlyClient: Harmony's Horizon
-bridge design checkpoints MMR roots for an on-chain client --- the
-roots are final by supermajority vote of a fixed validator committee,
-a Byzantine-fault-tolerant (BFT) protocol safe while fewer than a
-third of the committee misbehaves arbitrarily, not by probabilistic
-PoW sampling. Claims that
-Grin or Beam ``use FlyClient'' conflate carrying MMR roots in headers
-(which Mimblewimble chains do natively --- the paper's own observation)
-with running a sampling verifier, for which no evidence surfaced.
-
-\subsection{Relation to the frontier}\label{sec:fc-frontier}
-
-Two frontier designs of this series touch the tree, and per the
-sibling-ownership convention this volume owns both pointers. The
-\emph{Tachyon Guide} records a draft amendment to ZIP-221 among
-Tachyon's peripheral ZIPs --- unmerged, ``still under discussion and
-nothing has been decided yet'' in the designers' words --- so the
-aggregation layer of a Tachyon-era chain may yet become another node
-field, exactly as Orchard and Ironwood did. The \emph{Crosslink Guide}
-changes the meaning of the quantity FlyClient proves: a FlyClient
-transcript establishes cumulative \emph{proof-of-work weight}, while
-Crosslink's trailing finality layer makes a prefix of the chain final
-by BFT assertion --- under such a hybrid, a weight-sampling proof of
-the unfinalized suffix and a certificate for the finalized prefix are
-different objects with different trust bases, and no analysis of their
-composition exists in either direction. Neither interaction is more
-than noted here; both are open in exactly the sense of
-\S\ref{sec:fc-missing}'s specification bullet.
+The paper proposes a \emph{velvet fork} as an alternative deployment path
+(ePrint 2019/226, \S8.3, p.~23). Later work shows that this path can admit
+\emph{chain-sewing} attacks, which splice portions of independent forks into
+one proof (Nemoz--Zamyatin, IACR ePrint 2021/782). Zcash instead activated
+ZIP-221 by network upgrade, so that velvet-fork-specific attack does not
+apply; the 2026 prover paper makes the same distinction.
 
 \subsection{Closing the boundary}\label{sec:fc-closing}
 
 The volume's three-bin summary, restated with everything above behind
 it. \emph{Specified and deployed}: the chain-history tree --- epoch
-scoped, metadata-rich, branch-separated --- maintained by every
-validator and committed in every header for six years, with conformance
-test vectors and two independent implementations that agree byte for
-byte. \emph{Designed but unspecified for Zcash}: the FlyClient protocol
-itself, proved secure in a model that Zcash's difficulty rule is not
-known to satisfy --- the ZIP says so, the paper says so, and nothing
-published since closes the question. \emph{Open}: the bridge --- data
+scoped, metadata-rich, branch-separated --- maintained by Zebra, formerly
+maintained by zcashd, and committed in each post-activation header for six
+years, with conformance test vectors; no divergence between the two
+pre-NU6.3 implementations is known.
+\emph{Designed but unspecified for Zcash}: the FlyClient protocol
+itself, with the paper's conditional security theorem in a model that
+Zcash's difficulty rule is not known to satisfy --- the ZIP says so, the
+paper says so, and the 2026
+prototype assumes rather than derives its adversarial work budget.
+\emph{Open}: the bridge --- data
 availability, wire format, epoch composition, the sampling client, and
-the security analysis --- of which only an academic prototype exists,
-on a fork, six years after the consensus layer shipped its half. The
+the security analysis --- of which only an academic prototype is documented,
+on a fork, six years after the consensus layer shipped its substrate. The
 chain has kept its side of an agreement whose other party has yet to
 arrive.
 

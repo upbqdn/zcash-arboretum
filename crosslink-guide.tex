@@ -124,13 +124,16 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the Orchard protocol of the \emph{Ironwood Guide} and the wallet layer
-of the \emph{Wallet Guide}, this volume of \emph{The Zcash Arboretum}
-documents Crosslink, the trailing-finality construction targeted at Zcash:
-the ebb-and-flow model and what its theorems actually prove, the construction
-as the Trailing Finality Layer book specifies it, stake and delegation as far
-as any source pins them down, and the wallet-visible contract two ledgers
-create. The design is in motion and its sources disagree --- the
+Assuming the best-chain consensus model of the \emph{Consensus Guide}, the
+header-chain commitment interface of the \emph{FlyClient Guide}, the Orchard
+protocol of the \emph{Ironwood Guide}, the signature foundations of the
+\emph{Crypto Guide}, and the wallet layer of the \emph{Wallet Guide}, this
+volume of \emph{The Zcash Arboretum} documents Crosslink, the trailing-finality
+construction targeted at Zcash: the ebb-and-flow model and what its theorems
+actually prove, the construction as the Trailing Finality Layer book specifies
+it, stake and delegation as far as any source pins them down, and the
+wallet-visible contract two ledgers create.
+The design is in motion and its sources disagree --- the
 implementation drops mechanisms the book calls central, and the
 machine-checked model formalises a neighbouring rule set --- so every claim
 carries its classification, every divergence is stated rather than resolved,
@@ -167,19 +170,23 @@ forced to conclude that the chain $\mathsf{ch}_i^t$ must include the
 information needed to calculate $\mathsf{LOG}_{\mathrm{fin}}$''
 (tfl-book @ \texttt{fe6e1d6}, \texttt{notes-on-snap-and-chat.md} lines
 73--107). No successor paper covering Crosslink itself has appeared
-(arXiv listing checked 2026-07-15).
+(arXiv and IACR ePrint searches checked 2026-09-05).
 
-Nothing about Crosslink is deployed on any Zcash network and nothing is
-consensus-specified: the ZIP repository at \texttt{6961098} (2026-07-09)
-contains no Crosslink, TFL, or NU8 ZIP or draft, and the implementers'
-own ZIP draft is a Google document that ``will enter the formal ZIP
-process as the prototype approaches maturity'' (grep of zcash/zips @
-\texttt{6961098}; zebra-crosslink @ \texttt{6d02a1b},
-\texttt{book/src/design.md} line~7). This volume is therefore a
-design-stage volume in the sense the \emph{Tachyon Guide} established
-(\S``Scope, sources, and method''): it fixes the current state of a
-moving design against commit-pinned sources, classifies every claim by
-rigor, and asserts nothing normatively. The design corpus splits three
+No Crosslink consensus change is activated on Zcash Mainnet or public
+Testnet, although the separate feature net runs prototype code. Nothing is
+consensus-specified: the official ZIP repository at \texttt{e753a6a}
+(2026-09-03) contains no Crosslink or TFL ZIP and no ZIP specifying NU8.
+Two public
+pre-editor drafts did appear in the Shielded Labs ZIP fork at commit
+\texttt{7cdceca} (2026-05-27), but are absent from that fork's current
+\texttt{main} and from the official repository; they are not normative.
+The earlier implementation book says its own draft was a Google document
+that would enter the formal process ``as the prototype approaches
+maturity'' (zebra-crosslink @ \texttt{6d02a1b},
+\texttt{book/src/design.md} line~7). This is therefore a design-stage
+volume: it fixes a moving design against commit-pinned sources, classifies
+every claim by rigor, and asserts nothing normatively.
+The design corpus splits three
 ways --- a construction book that has been static since 2024-12-13, an
 implementation whose design has since moved past the book in documented
 ways, and a machine-checked model of one narrow slice --- and the first
@@ -217,30 +224,24 @@ deployed code: Zebra bounds its best non-finalized chain at
 $\texttt{MAX\_BLOCK\_REORG\_HEIGHT} = 1000$ blocks, and its own comment
 concedes that ``deeper reorganisations are outside Zebra's rollback
 window. This is a local-only node policy; it is not part of consensus''
-(zebra @ \texttt{9f3166b},
+(zebra @ \texttt{d1fd7ad},
 \texttt{zebra-chain/src/parameters/constants.rs} lines 20--30) --- the
 standing admission that today's Zcash has no consensus-level finality at
 any depth.
-%% NOTE (updated 2026-07-15): Crypto51 lists ZEC at 21 GH/s, 1-hour 51%
-%% cost ~$34,271, NiceHash-able 1% --- the classic >100%-rentable claim
-%% no longer holds. Pool concentration is historical: ViaBTC exceeded 51%
-%% in Sept 2023 (Blockworks 2023-09-21), but by mid-2026 shares are ~32%
-%% ViaBTC / ~29% Foundry / ~16% F2Pool, no pool above one half. Frame
-%% both as historical; re-verify before print.
 
 \subsection{The three bins, and a proved tag}\label{sec:xl-bins}
 
 Design-stage prose invites the failure mode the deployed-protocol
 volumes never face: text that reads as specification but rests on a
-draft. Following the series convention and the \emph{Tachyon Guide}
-(\S``The three-bin method''), every claim in this volume is exactly one
-of \emph{specified} (a pinned artifact at specification rigor fixes it;
-we cite file and commit), \emph{designed but unspecified} (an informal
+draft. Following the series convention, every claim in this volume is exactly
+one of \emph{specified} (a precise, pinned artifact fixes it; we state whether
+that artifact is a specification, model, or prototype code),
+\emph{designed but unspecified} (an informal
 source describes a concrete mechanism no specification fixes; we cite
 source and date), or an \emph{open problem} (no source resolves it;
-where the designers acknowledge the gap, we quote them). Crosslink adds
-a dimension Tachyon lacked: parts of its corpus carry actual proofs. We
-therefore additionally tag a claim \emph{proved} when a peer-reviewed
+where the designers acknowledge the gap, we quote them). Some parts of
+Crosslink's corpus carry actual proofs, so we additionally tag a claim
+\emph{proved} when a peer-reviewed
 theorem or a machine-checked artifact establishes it, always together
 with the scope at which it was established.
 
@@ -251,12 +252,13 @@ follows. Proved: the NTT2020 theorems for ebb-and-flow and Snap-and-Chat
 (\S\ref{sec:xl-sources}). Specified (pinned, verifiable artifacts only):
 the Quint \texttt{isValid} model itself and the quoted prototype and
 Zebra constants. Designed but unspecified: the Crosslink~2 construction
-rules and the two Assured Finality safety theorems, with book-level
-prose proofs --- one of which is textually defective
-(\S\ref{sec:xl-sources}), leaving that theorem effectively unproven ---
-plus the zebra-crosslink staking and tokenomics design, the BFT
-subprotocol instantiation (tenderlink), active-set selection, slashing,
-and the implementation's no-Stalled-Mode variant. Open: precise liveness bounds and the dependence on $L$,
+rules and the two Assured Finality safety theorems. One published proof
+text is defective, but the construction chapter contains enough premises
+to complete the intended argument (\S\ref{sec:xl-safety-theorems}). This
+bin also contains the staking and tokenomics design, the BFT subprotocol
+instantiation (Tenderlink), active-set selection, user-activated slashing,
+and the implementation's no-Stalled-Mode variant. Open: precise liveness
+bounds and the dependence on $L$,
 completion of the $\mathsf{LOG}_{\mathrm{ba}}$ safety development,
 production values of $\sigma$ and $L$, and NU8 inclusion and dates
 (classification synthesized from the sources cited throughout this
@@ -264,9 +266,9 @@ section).
 
 \subsection{The source landscape}\label{sec:xl-sources}
 
-Table~\ref{tab:xl-sources} lists the sources, pinned. All repository
-facts were verified firsthand at the stated commits; web sources were
-fetched 2026-07-15.
+Table~\ref{tab:xl-sources} lists the sources, pinned. All repository facts
+were verified firsthand at the stated commits; web sources were last
+checked 2026-09-05.
 
 \begin{table}[htbp]
 \centering
@@ -284,35 +286,44 @@ crosslink-spec (Informal Systems)
 quint-crosslink (zmanian)
   & empty upstream (zero refs)  & nothing to examine \\
 zebra-crosslink (Shielded Labs/Eiger)
-  & \texttt{6d02a1b}, 2026-04-21 & prototype + own design book \\
+  & \texttt{6d02a1b}, 2026-04-21 & historical prototype + design book \\
+crosslink\_monolith (Shielded Labs)
+  & \texttt{807b995}, 2026-08-13 & active feature-net prototype \\
 zcash/zips
-  & \texttt{6961098}, 2026-07-09 & zero Crosslink/NU8 ZIPs \\
+  & \texttt{e753a6a}, 2026-09-03 & no Crosslink or NU8-scoping ZIP \\
 zcash/zebra
-  & \texttt{9f3166b}             & deployed $\Pi_{\mathrm{bc}}$ facts \\
+  & \texttt{d1fd7ad}, 2026-09-04 & deployed $\Pi_{\mathrm{bc}}$ facts \\
 crosslink-protocol-guide
   & \texttt{b77d845}, 2026-03-26 & secondary; visual tour \\
+simtfl (zcash)
+  & \texttt{a1641c8}, 2023-12-07 & simulator; no protocol results \\
 Shielded Labs web/forum/Arborist
-  & fetched 2026-07-15           & status only, dated \\
+  & checked 2026-09-05           & status only, dated \\
 \bottomrule
 \end{tabular}
-\caption{Primary Crosslink sources, pinned. Verification date
-2026-07-15.}
+\caption{Crosslink source inventory, pinned. Verification date
+2026-09-05.}
 \label{tab:xl-sources}
 \end{table}
 
-\paragraph{Current-head boundary (2026-08-30).} The four Crosslink design
+\paragraph{Current-head boundary (2026-09-05).} The four earlier design
 repositories were rechecked: \textsf{tfl-book} remains at
 \texttt{fe6e1d6}, \textsf{crosslink-spec} at \texttt{8edc3e9},
 \textsf{zebra-crosslink} at \texttt{6d02a1b}, and
-\textsf{crosslink-protocol-guide} at \texttt{b77d845}. Current upstream
-\textsf{zips} \texttt{ad30e59} still contains no Crosslink or NU8 ZIP. The
-repository-backed design and classification below therefore remain current;
-web-sourced rollout statements retain their explicit 2026-07-15 access date.
+\textsf{crosslink-protocol-guide} at \texttt{b77d845}. Active prototype
+development has moved to \textsf{crosslink\_monolith}, whose current tag
+\texttt{v13} is commit \texttt{807b995} (2026-08-13). Official
+\textsf{zips} \texttt{e753a6a} still contains no Crosslink ZIP or ZIP
+specifying NU8.
+The source distinctions below are therefore load-bearing: the 2026-04-21
+fork describes a historical snapshot, while \texttt{v13} records current
+prototype behaviour and is explicitly neither production-ready nor the
+code proposed for upstream integration.
 
 \paragraph{The TFL book.} The construction source of record is the ECC
 Trailing Finality Layer book, an mdBook formerly deployed at
 \url{https://electric-coin-company.github.io/tfl-book/} (404 since at
-least 2026-07-15, following the repository's transfer to
+least 2026-07-15 and rechecked 2026-09-05, following the repository's transfer to
 \texttt{github.com/daira/tfl-book}) and now rendered at
 \url{https://daira.github.io/tfl-book/}; the local clone
 %% full hash: fe6e1d6f403f62da46c64e8f5a7db3cb188ffae2
@@ -344,20 +355,22 @@ that marker still written in Snap-and-Chat/Crosslink-1 notation ---
 including the sanitization machinery Crosslink~2 exists to remove
 (\texttt{security-analysis.md} lines 5--50, 54, 139--150). Two further
 defects are findings of this volume, developed in the security-analysis
-section: the proof text under ``Safety Theorem: Final Agreement of
+section. The proof text under ``Safety Theorem: Final Agreement of
 $\Pi_{\mathrm{bft}}$ implies Assured Finality'' is a verbatim duplicate
 of the Prefix Agreement proof and never uses Final Agreement
-(\texttt{security-analysis.md} lines 87--91 vs 73--77), and the book
-itself concedes that ``some rules, e.g.\ the Linearity rule, only
+(\texttt{security-analysis.md} lines 87--91 vs 73--77). This is a source
+erratum, not an unresolved theorem: the construction chapter's own sketch
+at line~592 supplies the intended route, and
+Theorem~\ref{thm:xl-safety-final} below completes it. The book also
+concedes that ``some rules, e.g.\ the Linearity rule, only
 contribute heuristically to security in the analysis so far'', with the
 $\mathsf{LOG}_{\mathrm{ba}}$ development trailing off mid-sentence
 (\texttt{security-analysis.md} lines 275--281, 257).
-%% RE-VERIFIED 2026-07-15: upstream HEAD unchanged (fe6e1d6f, repo now at
-%% github.com/daira/tfl-book; rendered at daira.github.io/tfl-book) and
-%% the rendered Final Agreement theorem still carries the Prefix
-%% Agreement proof. Decision still pending: reconstruct the intended
-%% proof (via the Final Agreement/Linearity sketch at
-%% construction.md:592) or only report the defect.
+
+The book-referenced \textsf{simtfl} repository remains at
+\texttt{a1641c8} (2023-12-07). Its README describes an experimental
+simulator whose demo is only an example of message passing; it contains no
+published Crosslink experiment or security result (checked 2026-09-05).
 
 \paragraph{The machine-checked model.} The repository
 \texttt{crosslink-spec} (Informal Systems) is pinned at
@@ -394,19 +407,11 @@ side (\texttt{validity.md} lines 173--176, 132--137, 244--247, 270--278,
 433--440 vs tfl-book \texttt{construction.md} lines 573, 611--618,
 113--193). The second Quint repository, quint-crosslink (remote
 zmanian/quint-crosslink), is empty upstream as well as locally ---
-\texttt{git ls-remote} returns zero refs (checked 2026-07-15); there is
+\texttt{git ls-remote} returns zero refs (checked 2026-09-05); there is
 nothing to examine.
-%% RESOLVED 2026-07-15: the add_pow genesis-hash collision is confined
-%% to the root --- the first add_pow in every trace mints {hash 1,
-%% parent 1}; later hashes are unique. prefix_inv cannot be spuriously
-%% satisfied (non-root hashes are unique; descent from the universal
-%% root is vacuous), so the model-checking result stands; but
-%% sigmaConfirmed(genesis, ., 1) can be witnessed by the phantom block,
-%% so coverage at the verification scope differs slightly from the
-%% intended semantics. Report as a model artifact, not a soundness gap.
 
-\paragraph{The implementation and its fork of the book.} The prototype
-is zebra-crosslink, Shielded Labs' fork of Zebra built together with
+\paragraph{The historical implementation fork.} The April 2026 prototype
+snapshot is zebra-crosslink, Shielded Labs' fork of Zebra built with
 %% full hash: 6d02a1b80f896d08f923e39b2505f0565efb5787
 Eiger; the local clone HEAD is \texttt{6d02a1b}, dated 2026-04-21, the
 merge of PR \#282. It ships its own mdBook whose
@@ -450,7 +455,32 @@ the sources diverge --- the post proposes five-day epochs, the chapter a
 one-day staking day plus an approximately six-day locked phase
 (\texttt{book/src/design/nutshell.md} lines 13--133;
 \url{https://shieldedlabs.net/crosslink-updated-staking-design/},
-accessed 2026-07-15).
+accessed 2026-09-05).
+
+\paragraph{The active feature-net prototype.} Development subsequently
+moved into Shielded Labs' \textsf{crosslink\_monolith}; tag \texttt{v13}
+is commit \texttt{807b995} (2026-08-13). Its README says the repository
+exists to prove ideas, is not production-ready, and is not the code that
+would be proposed upstream. It nevertheless changes the observable
+prototype substantially: staking bonds now have create, begin-unbonding,
+withdraw, and retarget state transitions; the transaction builder accounts
+for bond creation and withdrawal in value balance; Tenderlink limits the
+active roster to its first 100 finalizers; and a staking period is 150 blocks with a
+70-block action window and a two-period slash-analysis window
+(\path{librustzcash/zcash_primitives/src/transaction/mod.rs};
+\path{tenderlink/src/lib.rs};
+\path{zebra-crosslink/zebra-state/src/service/check/delegation.rs}).
+Five feature-net heights are temporary exceptions to the action window
+(\path{zebra-crosslink/zebra-consensus/src/transaction.rs}:936--978).
+Version~13 also
+contains user-configured and executable-shipped hard-fork schedules that
+terminate selected finalizer keys and burn bonds delegated to them during the
+preceding 300 blocks. This is user-activated, socially selected slashing,
+not automatic evidence-based slashing
+(\path{zebra-crosslink/zebra-chain/src/parameters/hardfork.rs};
+\path{zebra-crosslink/zebra-state/src/service/finalized_state/zebra_db/slashing.rs}).
+These are \emph{specified} prototype
+facts, not proposed consensus rules.
 
 \paragraph{Secondary sources.} The community ``A Visual Tour of Zcash
 Crosslink'' (crosslink-protocol-guide @ \texttt{b77d845}, 2026-03-26,
@@ -460,7 +490,7 @@ exist --- draft ZIP 218 (``25-second Block Target Spacing'', created
 2026-03-13) cites Crosslink as complementary, and
 draft-ecc-onchain-accountable-voting cites the TFL book's Assured
 Finality definition --- but neither specifies any part of Crosslink
-(zips @ \texttt{6961098}, \texttt{zip-0218.md} lines 77, 742).
+(zips @ \texttt{e753a6a}, \texttt{zip-0218.md} lines 77, 742).
 
 \subsection{Status: milestones, testnets, and the absence of
 dates}\label{sec:xl-status}
@@ -473,8 +503,8 @@ Tech Debt, Final Refactoring'' (2026-04-15). The Productionization Phase
 is stated as Q2~2026 -- Q2~2027, in progress, described as deploying
 Crosslink on a testnet, iterating, ``and, if there is consensus,
 integrating it into the Zcash protocol''; no NU8 or mainnet activation
-date is given anywhere on it (shieldedlabs.net/roadmap/, accessed
-2026-07-15).
+date is given anywhere on it (\url{https://shieldedlabs.net/roadmap/}, checked
+2026-09-05).
 
 Deployment practice runs ahead of specification. FeatureNet, a series of
 incentivized testnets announced 2026-04-02, launched Season~1 on
@@ -482,47 +512,39 @@ incentivized testnets announced 2026-04-02, launched Season~1 on
 allocated across seasons (Season~1: 25~ZEC, split 40\% miners / 40\%
 stakers / 20\% Dev Fund), and the announcement states that ``any
 decision to activate Crosslink on mainnet will follow Zcash's existing
-governance process'' (forum.zcashcommunity.com t/55210, accessed
-2026-07-15). As of the 2026-06-25 Arborist call, two FeatureNet
-workshops had completed, ``using the current stalled network to
-strengthen tooling, improve diagnostics, and better handle rollback and
-fork scenarios rather than simply resetting the network''; Workshop~3
-was tentatively set for 2026-07-23, and the team was ``prototyping a
-user-driven slashing tool, drafting ZIPs for the Proof-of-Stake
-subsystem, and implementing protocol improvements''
-(zechub.substack.com, published 2026-06-27, accessed 2026-07-15).
-%% RESOLVED 2026-07-15: primary source --- Shielded Labs in forum
-%% t/55210 (2026-06-27): ``the experience hasn't been smooth with BFT
-%% finality stalled and participants ending up on different chains''; a
-%% user-led forking tool was targeted for mid-July to get finality
-%% unstalled. The June-2026 stall was an unplanned BFT finality failure,
-%% not a deliberate exercise; the stalled network was then retained as a
-%% diagnostic environment (zechub, 2026-06-27).
+governance process''
+(\url{https://forum.zcashcommunity.com/t/crosslink-incentivized-feature-net/55210},
+checked
+2026-09-05). Season~1 experienced stalled BFT finality and divergent
+chains; organizers selected a canonical block for rewards on 2026-07-03.
+By the 2026-09-03 workshop notes, the feature net had successfully tested
+the user-activated slashing mechanism intended to resolve BFT stalls, and
+regular resets plus a separate nightly network were planned. These are
+test observations, not mainnet deployment evidence (same forum thread,
+posts 72, 83, and 86).
 
 On dates this volume is deliberately silent, because the primary sources
 are. The community ``NU8 Decision Framework'' thread (opened 2026-02-11)
 records that no governance framework or dates exist for
 consensus-change inclusion, while crediting execution: ``Shielded Labs
 has executed well. Milestones 1 through 4 landed on or ahead of
-schedule'' (forum.zcashcommunity.com t/54670, accessed 2026-07-15). A
-secondary analyst report claims NU8 ``may be activated as early as Q4
-2026''; we found no primary statement supporting it and do not repeat it
-as fact (messari.io, unverified secondary).
+schedule''
+(\url{https://forum.zcashcommunity.com/t/nu8-decision-framework/54670},
+checked 2026-09-05).
 
-\subsection{Which document is normative for what}\label{sec:xl-normative}
+\subsection{Which source governs each claim}\label{sec:xl-normative}
 
 Throughout this volume, ``Crosslink~2'' means the construction as
 published in the TFL book at \texttt{fe6e1d6}: its model, rules, and
-safety-theorem statements are the referent of every unqualified claim,
-and the book is normative for the construction --- while its security
-analysis is only partly updated to the construction it accompanies, as
-recorded above. ``The zebra-crosslink design'' means the implementation
-design at \texttt{6d02a1b}: its book is normative for what Shielded Labs
-is building, including where that contradicts the TFL book (Stalled
-Mode, the outer signature); where the two conflict we present both and
-tag the divergence explicitly, since the book has been static since
-2024-12-13 while the implementation design has moved. The Quint model is
-normative for nothing; it is evidence, at its stated scope, that one
+safety-theorem statements are the referent of every unqualified claim;
+the book is the construction source of record, not a consensus
+specification. ``The zebra-crosslink design'' means the historical design
+at \texttt{6d02a1b}, including where it contradicts the TFL book (Stalled
+Mode and the outer signature). ``The current prototype'' means
+\textsf{crosslink\_monolith} \texttt{v13}; it supersedes implementation
+facts, but its own README disclaims production and upstream status. Where
+the sources conflict we present each with its date and bin. The Quint model
+is normative for nothing; it is evidence, at its stated scope, that one
 slice of the design is coherent, and a source of recorded discrepancies.
 Design goals frame both documents but bind neither: the TFL book targets
 expected time-to-finality below 30 minutes, cost-of-attack for a 1-hour
@@ -547,22 +569,7 @@ the transaction lifecycle''), whose trusted/untrusted depths are exactly
 the policy layer a finality layer would let wallets strengthen. The
 header-chain commitment a finality certificate would sit beside, and its
 unbuilt light-client bridge, are the \emph{FlyClient Guide}'s
-(\S``Relation to the frontier''), which owns the composition pointer in
-the converse direction. The
-\emph{Tachyon Guide} already records the institutional relationship
-between the two frontier efforts --- formally independent, with no
-interaction analysis in either direction (\S``Relation to Crosslink and
-the upgrade environment''); this volume owns the converse
-cross-reference.
-%% RESOLVED 2026-07-15: the caveat is in the \emph{Ironwood Guide}, not
-%% the Voting Guide --- ironwood-guide.tex:1016-1018 (\S``Proof of
-%% ownership of \emph{some} valid note: the commitment tree'', ``Anchor
-%% choice as the tree grows''): ``anchoring at least $100$ blocks deep
-%% (Zcash's reorg limit) avoids this entirely''. Drop the Voting Guide
-%% cross-reference; the reconciliation with Zebra's 1000-block
-%% MAX_BLOCK_REORG_HEIGHT (a local-only policy, not consensus) and the
-%% cross-volume erratum flag already live in
-%% \S\ref{sec:xl-node-interface}.
+(\S``The deployment gap''); this volume owns their one-way composition.
 
 \section{The ebb-and-flow model}\label{sec:xl-model}
 
@@ -582,16 +589,11 @@ best-chain protocol $\Pi_{\mathrm{bc}}$ remains a black box, per this
 volume's scope rule: we record what the model assumes of it (chain
 structure, confirmation by depth, header validity), never its internals.
 
-\paragraph{Sources.} The primary text is arXiv:2009.04987v3 (accessed
-2026-07-15). The Trailing Finality Layer book (\texttt{tfl-book} @
+\paragraph{Sources.} The primary text is arXiv:2009.04987v3 (checked
+2026-09-05). The Trailing Finality Layer book (\texttt{tfl-book} @
 \texttt{fe6e1d6f}) cites the IACR ePrint mirror 2020/1091 by page number;
 every passage the book quotes was verified identical in arXiv v3, and we
 cite section, definition, and theorem numbers of v3 rather than pages.
-%% PARTIAL (2026-07-15): ePrint 2020/1091 last revised 2021-02-08, four
-%% days after arXiv v3; both marked S&P 2021, so v3 numbering and the
-%% book's ePrint pages refer to the same full version (the appendices
-%% with the proofs exist only there). Remaining: check the IEEE
-%% camera-ready's theorem numbering only if it is ever cited directly.
 The Shielded Labs/Eiger book (\texttt{zebra-crosslink} @ \texttt{6d02a1b8},
 2026-04-21) carries the Crosslink~2 construction and security analysis as
 \texttt{cl2-construction.md} and
@@ -602,12 +604,12 @@ lines (14 in the construction copy, 6 in the security-analysis copy) and
 no other change, none touching
 the [NTT2020] references, the ebb-and-flow discussion, Prefix Agreement, or
 Assured Finality --- the model presentation is textually unchanged between
-the two books (diff run 2026-07-15), so we cite the \texttt{tfl-book}
+the two books (diff rechecked 2026-09-05), so we cite the \texttt{tfl-book}
 chapter files throughout. The community
 \texttt{crosslink-protocol-guide} (@ \texttt{b77d8456}) contains no
 occurrence of ``ebb'' at all and is not a source for this section (grep,
-2026-07-15). The ZIPs repository (@ \texttt{69610984}) contains no
-Crosslink or NU8 trailing-finality draft; its only mentions are ZIP~218
+2026-09-05). The official ZIP repository (@ \texttt{e753a6a3}) contains no
+Crosslink or trailing-finality draft; its only Crosslink mentions are ZIP~218
 citing ``mechanisms such as Crosslink'' in the context of faster block
 times, and \texttt{draft-ecc-onchain-accountable-voting} citing the
 book's Assured Finality definition (\S\ref{sec:xl-counterparts}).
@@ -619,15 +621,11 @@ model the paper's theorems are settled scholarship, and we cite them by
 number. Claims about Crosslink itself remain design-stage and carry the
 series' three bins (\emph{specified}, \emph{designed but unspecified},
 \emph{open problem}); no normative Crosslink artifact exists (no draft ZIP
-in \texttt{zips} @ \texttt{69610984}), so nothing in this section reaches
+in \texttt{zips} @ \texttt{e753a6a3}), so nothing in this section reaches
 the specified bin except pinned source code. Where the book disputes the
 adequacy of the paper's model, the sources disagree about the model, not
 about what the paper proves within it; we record such disputes as findings
 with both citations.
-%% TODO: editorial decision pending --- this draft bins P1-liveness of
-%% snap-and-chat as ``proved, in the single-transition GST model'' with the
-%% book's adequacy caveat visible (Remark~\ref{rem:xl-gst-critique});
-%% the alternative is to downgrade it outright.
 \end{remark}
 
 \begin{remark}[Terminology]\label{rem:xl-model-terms}
@@ -677,7 +675,7 @@ Pass and Shi, ``The sleepy model of consensus'' (ASIACRYPT 2017);
 reference [17] is Gilbert and Lynch's CAP theorem exposition (SIGACT News
 33(2), 2002); reference [18] is Lewis-Pye and Roughgarden, ``Resource
 Pools and the CAP Theorem'' (arXiv:2006.10698; v1 2020-06-18; no journal
-note on the abstract page, accessed 2026-07-15), which the book cites as
+note on the abstract page, checked 2026-09-05), which the book cites as
 [LR2020] (\texttt{tfl-book} @ \texttt{fe6e1d6f},
 \texttt{the-arguments-for-bounded-availability\allowbreak
 -and-finality-overrides.md}).
@@ -821,8 +819,8 @@ $\mathsf{LOG}_2$, respectively.
 A $(\beta_1, \beta_2)$-secure ebb-and-flow protocol is a flexible protocol
 $(\Pi_{\mathrm{da}}, \Pi_{\mathrm{fin}})$ outputting an available ledger
 $\mathsf{LOG}_{\mathrm{da}}$ and a finalized ledger
-$\mathsf{LOG}_{\mathrm{fin}}$, such that, for security parameter
-$\sigma := T_{\mathrm{confirm}}$:
+$\mathsf{LOG}_{\mathrm{fin}}$, such that, for security parameter $\sigma$
+and confirmation-time function $T_{\mathrm{confirm}}$:
 \begin{enumerate}
 \item \emph{P1 (Finality):} under
   $(\mathcal{A}_1(\beta_1), \mathcal{Z}_1)$, the ledger
@@ -838,7 +836,7 @@ $\sigma := T_{\mathrm{confirm}}$:
   $\mathsf{LOG}_{\mathrm{fin},i}^t$ is a prefix of
   $\mathsf{LOG}_{\mathrm{da},i}^t$.
 \end{enumerate}
-Here $\negl(\cdot)$ decays faster than all polynomials: for all $c > 0$
+Here $\negl(\cdot)$ decays faster than every inverse polynomial: for all $c > 0$
 there exists $\sigma_0$ such that $\negl(\sigma) < \sigma^{-c}$ for all
 $\sigma > \sigma_0$.
 \end{definition}
@@ -854,14 +852,6 @@ worst-case adversary-environments as
 $(\mathcal{A}_1^*, \mathcal{Z}_1) := (\mathcal{A}_1(1/3), \mathcal{Z}_1)$
 and
 $(\mathcal{A}_2^*, \mathcal{Z}_2) := (\mathcal{A}_2(1/2), \mathcal{Z}_2)$.''
-%% RESOLVED 2026-07-15: [NTT2020] SIII-A corrupts ``(up to) f'' nodes
-%% with f = beta*n, and Lemma 1 (quorum intersection, from [CS2020,
-%% Lemma 14]) requires strictly fewer than n/3 non-honest voters; the
-%% worst-case notation A1*(1/3) is the boundary family with strictness
-%% carried by ``up to'' and by the underlying lemmas. Quote the
-%% resilience constants as sharp suprema (secure for beta1 < 1/3,
-%% beta2 < 1/2), matching the book's explicitly strict one-third bound
-%% (construction.md:138-141).
 
 \paragraph{Relation to flexible BFT.} Ebb-and-flow goes beyond the
 flexible BFT of Malkhi, Nayak, and Ren ([NTT2020] reference [20]) in two
@@ -936,8 +926,8 @@ Theorem~\ref{thm:xl-sac-security} carries over.
 The protocol $\Pi_{\mathrm{sac}}$ is a $(1/3, 1/2)$-secure ebb-and-flow
 protocol. (Proved under the static-corruption, synchronized-slot, PKI plus
 random-oracle model of \S\ref{sec:xl-execution}: P1 under
-$(\mathcal{A}_1^*(1/3), \mathcal{Z}_1)$, P2 under
-$(\mathcal{A}_2^*(1/2), \mathcal{Z}_2)$, Prefix by construction; Appendix
+$(\mathcal{A}_1^*, \mathcal{Z}_1)$, P2 under
+$(\mathcal{A}_2^*, \mathcal{Z}_2)$, Prefix by construction; Appendix
 D proves the same with HotStuff in place of Streamlet.)
 \end{theorem}
 
@@ -1066,17 +1056,11 @@ non-finalized chain by \texttt{MAX\_BLOCK\_REORG\_HEIGHT} ($1000$ blocks),
 whose documentation states ``This is a local-only node policy; it is not
 part of consensus. The window is sized as a defence-in-depth measure
 against sustained consensus splits''; Zebra finalizes its oldest blocks
-once the chain grows past this height (\texttt{zebra} @ \texttt{9f3166b9},
+once the chain grows past this height (\texttt{zebra} @ \texttt{d1fd7adf},
 \texttt{zebra-chain/src/parameters/constants.rs:20--30},
 \texttt{zebra-state/src/constants.rs:16--19}). Nothing in today's Zcash
 consensus provides finality; the constant is a node policy, which is
 precisely the gap Crosslink addresses.
-%% TODO: reconcile with the Ironwood Guide's anchor caveat, which cites
-%% ``anchoring at least 100 blocks deep (Zcash's reorg limit)''
-%% (\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree''); the
-%% 100-block figure is zcashd lineage,
-%% the 1000-block constant is Zebra's. State both or neither, with crate
-%% cites, after checking zcashd.
 
 \subsection{Findings: where the book amends the paper}
 \label{sec:xl-book-findings}
@@ -1125,14 +1109,6 @@ handled (the height-bounded validity of ZIP-203; \emph{Wallet Guide},
 a transaction invalid for a missing anchor can become valid later
 (anchors are the tree roots developed in the \emph{Ironwood Guide},
 \S``Resting: the note in the commitment tree'').
-%% RESOLVED 2026-07-15: read arXiv:2010.10447v1 (2020-10-20;
-%% accountability + light clients). Its LC-block reference to the
-%% last-final BFT block with a monotonicity condition anticipates the
-%% Extension rule, but only as light-client metadata; sanitization-based
-%% extraction is kept and chain validity never depends on the finalized
-%% ledger (its own footnote 2 concedes conflicts with future prefixes).
-%% Both findings stand; note the LC-reference similarity when discussing
-%% the Extension rule's lineage. No NTT erratum found.
 
 \paragraph{Spending finalized outputs.} In snap-and-chat, transactions in
 $\mathsf{ch}_i^t$ must be able to spend outputs of finalized transactions
@@ -1220,7 +1196,7 @@ hazard-freeness'').
 
 Classification: the bounded-availability argument, Stalled Mode, and
 finality overrides are \emph{designed but unspecified} --- book prose with
-no draft ZIP (\texttt{zips} @ \texttt{69610984}). The governance shape of
+no draft ZIP (\texttt{zips} @ \texttt{e753a6a3}). The governance shape of
 finality overrides in particular has no normative text.
 
 \subsection{Crosslink 2's counterpart properties}
@@ -1348,14 +1324,13 @@ finalization point, ``we have also not proven that so far''
 availability analogue is an \emph{open problem} in the book's own
 accounting; its safety counterparts
 (Theorem~\ref{thm:xl-assured-either}) are \emph{designed but
-unspecified}, proved in book prose only for the Prefix Agreement half (the
-Final Agreement proof is defective, \S\ref{sec:xl-sources}) and fixed by no
-normative artifact.
+unspecified}. The published Prefix Agreement proof is complete; the
+published Final Agreement proof text is defective, but
+\S\ref{sec:xl-safety-theorems} supplies the missing argument. Neither has
+peer review, machine checking, or normative force.
 The Assured Finality definition already circulates beyond the book: the
 ZIPs repository's \texttt{draft-ecc-onchain-accountable-voting} cites it
-(\texttt{zips} @ \texttt{69610984}, line 169; the draft's placement in
-the voting landscape is documented in the \emph{Voting Guide},
-\S``Lineage'').
+(\texttt{zips} @ \texttt{e753a6a}, line 169).
 
 \subsection{Context: Gasper, Casper FFG, and the successor line}
 \label{sec:xl-model-context}
@@ -1388,30 +1363,20 @@ under dynamic participation. Their resolution, \emph{accountability
 gadgets}, checkpoints a longest-chain protocol using any BFT protocol as
 a black box (``The Availability-Accountability Dilemma and its Resolution
 via Accountability Gadgets'', arXiv:2105.06075; latest v3 2022-05-18;
-accessed 2026-07-15). We record it here for attribution and for the
+checked 2026-09-05). We record it here for attribution and for the
 outlook; whether Crosslink's design draws on it is a question for the
 design-lineage section, not this one.
 
-\paragraph{Deployment status.} As verified on 2026-07-15, Crosslink is
-implementation-stage, not consensus-stage: Shielded Labs completed
-Crosslink Milestone 5 on 2026-04-15 and pivoted to long-running
-``seasonal'' FeatureNets; an incentivized FeatureNet paying real ZEC
-rewards had run for roughly six weeks as of the 2026-05-28 Arborist call;
-hardening is slated for 2026, followed by productionization (ZIP
-finalization and security audits), with mainnet inclusion pending
-community approval. Sources, all accessed 2026-07-15:
-\begin{itemize}[leftmargin=*]\small
-\item \url{https://zechub.substack.com/p/arborist-call-zcash-protocol-updates-ad8}
-  (2026-05-28);
-\item \url{https://zechub.substack.com/p/arborist-call-zcash-protocol-updates-330}
-  (2026-04-30);
-\item
-  \url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706};
-\item \url{https://shieldedlabs.net/crosslink-roadmap-q1-2025/}.
-\end{itemize}
-The sibling volume's view of the upgrade landscape is the
-\emph{Tachyon Guide}, \S``Relation to Crosslink and the upgrade
-environment''.
+\paragraph{Deployment status.} As verified on 2026-09-05, Crosslink is
+implementation-stage, not consensus-stage. Shielded Labs completed
+Milestone~5 on 2026-04-15 and now marks the Q2~2026--Q2~2027
+productionization phase ``In Progress''. Its incentivized feature net has
+run prototype seasons, encountered stalled BFT finality and divergent
+chains, and by 2026-09-03 had tested the user-activated slashing recovery.
+No official ZIP or Mainnet activation is fixed
+(\url{https://shieldedlabs.net/roadmap/};
+\url{https://forum.zcashcommunity.com/t/crosslink-incentivized-feature-net/55210},
+posts 72 and 86).
 
 \subsection{Machine-checked status}\label{sec:xl-machine-checked}
 
@@ -1477,18 +1442,12 @@ the current BFT tip), an abstraction not present as such in the book
 (\texttt{crosslink-spec} @ \texttt{8edc3e94}, \texttt{validity.md} lines
 131--176; \texttt{tfl-book} @ \texttt{fe6e1d6f},
 \texttt{construction.md}, Linearity rule).
-%% TODO: resolve with the spec authors which semantics is intended for
-%% Crosslink 2 (strict ancestor vs preceq; tip-pinned proposals) before
-%% citing the Quint model as confirming the book.
 
 The repository \texttt{quint-crosslink}
 (\texttt{github.com/zmanian/quint-crosslink}) contains no commits locally,
 and \texttt{git ls-remote} against the upstream returns no refs --- the
-repository is empty upstream as well (checked 2026-07-15). The Quint
+repository is empty upstream as well (checked 2026-09-05). The Quint
 ground truth is \texttt{crosslink-spec} in its entirety.
-%% TODO: search the informalsystems and ShieldedLabs organizations for
-%% further Quint models before finalizing the ``what is machine-checked''
-%% claim.
 
 \paragraph{Classification.} The Quint artifact itself is
 \emph{specified} in the only sense available before a protocol
@@ -1511,19 +1470,14 @@ anything (tfl-book @ \texttt{fe6e1d6}, \texttt{src/terminology.md}:11--13,
 45). The two-ledger shape --- a conservative finalized ledger beside an
 available one --- descends from the ebb-and-flow paradigm of Neu, Tas, and
 Tse, ``Ebb-and-Flow Protocols: A Resolution of the Availability-Finality
-Dilemma'' (arXiv 2009.04987, v3 of 2021-02-04; IEEE S\&P 2021; accessed
-2026-07-15).
+Dilemma'' (arXiv 2009.04987, v3 of 2021-02-04; IEEE S\&P 2021; checked
+2026-09-05).
 
 The current version of the construction is \emph{Crosslink~2}: the book's
 construction chapter defines it as such, and version-history entry 0.2.0
 records the update of both the construction and its security analysis from
 Crosslink~1 (\texttt{construction.md}:1--3;
 \texttt{src/design/crosslink.md}:3; \texttt{src/version-history.md}).
-%% TODO: the rendered tfl-book site --- now at daira.github.io/tfl-book
-%% after the repository's transfer to github.com/daira/tfl-book; the ECC
-%% github.io URL 404s (2026-07-15) --- still shows "v0.1.0" in page
-%% titles while the repository version history says 0.2.0; flag when
-%% citing the rendered site rather than the repository.
 Throughout this section, a citation of the form \texttt{construction.md}:$n$
 means \texttt{src/design/crosslink/construction.md} in the ECC Trailing
 Finality Layer book at commit \texttt{fe6e1d6}; other files of that
@@ -1545,18 +1499,27 @@ spendability'') and recover from rollbacks by truncate-and-rescan
 (\emph{Wallet Guide}, \S``Reorganisations: truncate and rescan''); an
 Orchard anchor is only as settled as the chain suffix beneath it
 (\emph{Ironwood Guide}, \S``Resting: the note in the commitment tree''); and
-the coin-weighted vote fixes its electorate at
-a snapshot height that nothing today prevents from reorganising
-(\emph{Voting Guide}, \S``The snapshot roots: posted, never verified'').
-Crosslink~2 is the construction intended to replace those heuristics with
-a protocol property.
+Zally's coin-weighted vote pins its electorate to off-chain roots for a
+Zcash snapshot that is not consensus-final today. The vote chain stores
+the coordinator's roots verbatim, and the circuit explicitly does not
+authenticate their provenance (\texttt{vote-sdk/api/snapshot.go}:44--66;
+\texttt{vote-sdk/x/vote/keeper/msg\_server.go}:36--138;
+\texttt{voting-circuits/\allowbreak src/\allowbreak delegation/\allowbreak
+README.md}, ``Public Input Provenance'';
+\texttt{valargroup/\allowbreak vote-sdk} @ \texttt{cb915f51} and
+\texttt{valargroup/\allowbreak voting-circuits} @ \texttt{4c39abd5}).
+Crosslink~2
+would replace the rollback heuristics with a
+protocol property; it would not remove Zally's independent provenance
+assumption.
 
 \paragraph{Classification.} Every rule in this section is \emph{designed
-but unspecified}: the book is the only source at design rigor, and no
-Crosslink or trailing-finality ZIP exists --- as of zips @
-\texttt{6961098} (2026-07-09) the sole mention in the ZIP corpus is a
-citation footnote in ZIP~218 (``25-second Block Target Spacing'', Status:
-Draft, created 2026-03-13). Two artifact classes attach \emph{specified}
+but unspecified}: the book is the construction source of record, and no
+Crosslink or trailing-finality ZIP exists. As of zips @
+\texttt{e753a6a} (2026-09-03), the corpus mentions Crosslink only in a
+citation footnote in draft ZIP~218 (``25-second Block Target Spacing'')
+and in the accountable-voting draft's citation of Assured Finality.
+Neither specifies Crosslink. Two artifact classes attach \emph{specified}
 status, in the pre-spec sense of verifiable pinned sources, to fragments
 of the material: a machine-checked Quint model of one validity check
 (\S\ref{sec:xl-quint}) and prototype code (\S\ref{sec:xl-divergences}) ---
@@ -1644,11 +1607,17 @@ bc-valid-chain $H$, $\mathsf{score}(H \lceil^{1}_{\mathrm{bc}}) <
 Honest nodes choose a highest-scoring valid chain as their best chain,
 with any tie-breaking rule. Headers commit to blocks, and header validity
 is necessary but not sufficient for block validity
-(\texttt{construction.md}:245--290, 255--257). The model also fixes a
+(\texttt{construction.md}:245--290, 255--257). The model also fixes an
+abstract
 predicate $\mathsf{iscoinbaseonlyblock} : \text{bc-block} \to
 \mathrm{boolean}$, true iff the block has exactly one transaction and that
 transaction is a coinbase transaction --- one that only distributes newly
-issued funds and has no inputs (\texttt{construction.md}:269--271).
+issued funds and has no inputs (\texttt{construction.md}:269--271). The
+last gloss is the book's abstraction, not the deployed Zcash definition:
+a Zcash coinbase transaction has one null-prevout transparent input and
+collects miner subsidy plus transaction fees (Zcash Protocol Specification,
+\S``Coinbase Transactions''). Later uses of the predicate refer only to the
+book's abstract one-transaction block class.
 
 The two chain-quality properties the analysis consumes are stated as
 unconditional properties of executions; the probabilistic reasoning that
@@ -1687,9 +1656,6 @@ proves that the notarization rule was satisfied by ballots cast for $P$,
 and the proposer's outer signature on $(P, \mathsf{proof}_P)$ is valid. A
 bft-proposal's parent reference hashes the \emph{entire} parent bft-block:
 proposal, proof, and outer signature (\texttt{construction.md}:156--161).
-%% TODO: book-internal TODO at construction.md:168 --- check the use of
-%% the unique honestly-submitted block per epoch in the liveness analysis;
-%% the outer signature is what makes that uniqueness enforceable.
 
 A voting unit is cast \emph{non-honestly} iff it is cast other than by its
 holder (for example after key compromise), it is double-cast for distinct
@@ -1880,8 +1846,6 @@ eliminates the Snap-and-Chat/Crosslink~1 ``sanitization'' step entirely.
 The rule is relative to the parent bft-block's snapshot even when that
 parent is not yet final in the current context
 (\texttt{construction.md}:587--609).
-%% TODO: book-internal TODO at construction.md:608 --- desideratum on PoS
-%% leader selection (PoSAT suggested); record if the book resolves it.
 
 The rule deliberately permits keeping the \emph{same} snapshot as the
 parent. The allowance is required to preserve liveness of
@@ -1987,8 +1951,6 @@ predicate $\operatorname{is\text{-}stalled\text{-}block} :
 prose notion (``blocks not yet finalized at time $t$'') and the objective
 per-block notion differ in corner cases just after a reorg
 (\texttt{construction.md}:695--699).
-%% TODO: pick one canonical finality-gap definition for this guide and
-%% flag the post-reorg corner case where the two notions differ.
 
 Two cautions. First, a bc-block producer is only constrained to produce
 stalled blocks while its view of the finalization point is not advancing;
@@ -2118,10 +2080,6 @@ and Prefix Agreement. An open book TODO offers the alternative of
 strengthening the Last Final Snapshot rule to
 $\mathsf{snapshot}(\mathsf{LF}(H)) \preceq_{\mathrm{bc}} H
 \lceil^{\sigma}_{\mathrm{bc}}$ (\texttt{construction.md}:510--518).
-%% TODO: designed-but-unspecified fork in the design (construction.md:517):
-%% candidate(H) as specified versus a strengthened Last Final Snapshot
-%% rule; present candidate(H) as normative-for-the-book, track the
-%% alternative.
 
 \begin{definition}[Locally bounded-available chain]\label{def:xl-ba}
 For a per-node confirmation depth $\mu$:
@@ -2194,9 +2152,6 @@ secure.'' The structural rules above are the complete definition; all
 proofs beyond the in-chapter lemmas live in
 \texttt{security-analysis.md} (\texttt{construction.md}:735); this
 volume's account of that analysis is \S\ref{sec:xl-security}.
-%% TODO: book-internal TODO at construction.md:86 (possibly-unused
-%% ledger-prefix notation).
-
 \paragraph{Classification.} \emph{Designed but unspecified}, with the
 candidate-versus-strengthened-rule fork explicitly open in the book.
 
@@ -2216,14 +2171,13 @@ none of them.
   risk and does not affect $\mathsf{fin}$
   (\texttt{construction.md}:395--399).
 \end{itemize}
-The prototype ships \texttt{PROTOTYPE\_PARAMETERS} with $\sigma = 3$ and
-$L = 7$ --- satisfying $L \ge 2\sigma$ --- under the explicit caveat
-``No verification has been done on the security or performance of these
-parameters'' (zebra-crosslink @ \texttt{6d02a1b},
-\texttt{zebra-crosslink/src/chain.rs}:216--222).
-%% TODO: no production sigma or L exists in any source; revisit when a
-%% ZIP or the productionized implementation fixes them.
-
+Both prototype snapshots ship \texttt{PROTOTYPE\_PARAMETERS} with
+$\sigma = 3$ and $L = 7$ --- satisfying $L \ge 2\sigma$. The April source
+adds the explicit caveat ``No verification has been done on the security
+or performance of these parameters'' (zebra-crosslink @
+\texttt{6d02a1b}, \texttt{zebra-crosslink/src/chain.rs}:216--222;
+crosslink\_monolith @ \texttt{807b995},
+\texttt{librustzcash/zcash\_primitives/src/bft.rs}:388--404).
 For calibration: today's wallet policy defaults are $3$ confirmations for
 trusted and $10$ for untrusted outputs under the ZIP-315
 \texttt{ConfirmationsPolicy} (\emph{Wallet Guide}, \S``Confirmations,
@@ -2233,7 +2187,7 @@ the $k$-deep interface constant of the deployed best-chain protocol is
 \texttt{MAX\_BLOCK\_REORG\_HEIGHT} $= 1000$ in mainline Zebra, documented
 as ``a local-only node policy; it is not part of consensus'' and sized as
 defence-in-depth against sustained consensus splits (zebra @
-\texttt{9f3166b}, \texttt{zebra-chain/src/parameters/constants.rs}:30);
+\texttt{d1fd7ad}, \texttt{zebra-chain/src/parameters/constants.rs}:30);
 the zebra-crosslink fork still uses the older value $99 =
 \texttt{MIN\_TRANSPARENT\_COINBASE\_MATURITY} - 1$ (zebra-crosslink @
 \texttt{6d02a1b}, \texttt{zebra-state/src/constants.rs}:31,
@@ -2329,7 +2283,8 @@ the whole $\Pi_{\mathrm{bc}}$ side. We therefore cite the Quint model as
 a proof-of-concept formalization, never as verification of the book's
 construction.
 
-\subsection{Divergences in the deployment track}\label{sec:xl-divergences}
+\subsection{Divergences in the implementation track}
+\label{sec:xl-divergences}
 
 The Shielded Labs/Eiger implementation (zebra-crosslink @
 \texttt{6d02a1b}) carries a byte-for-byte copy of the book's construction
@@ -2345,15 +2300,8 @@ or copy of the most recent BFT finality certificate is insufficient
 evidence that a specific bitwise copy is canonical
 (\texttt{book/src/design/cl2-construction.md}:3--17, diffed against
 \texttt{construction.md} at \texttt{fe6e1d6}).
-%% RESOLVED at 6d02a1b (2026-07-15): the only trace of contingency mode
-%% is the GH #172 RPC deliverable (deliverables.md:12); no rule, no
-%% code, and finalization_gap_bound is never enforced. The L-bound is
-%% dropped at the design level, with a contingency-mode RPC surface
-%% still promised; the M3-era coinbase-only mode (forum, 2025-08-27) is
-%% superseded by the cl2 admonition. Re-check only against
-%% post-productionization commits.
 
-At the pinned commit, the further construction-level divergences are:
+At the April pinned commit, the further construction-level divergences are:
 \begin{itemize}
 \item \emph{Fat pointer for $\mathsf{context\_bft}$.} The fork adds
   \texttt{fat\_pointer\_to\_bft\_block} to the PoW block header: a bundle
@@ -2413,9 +2361,19 @@ At the pinned commit, the further construction-level divergences are:
   fetching carries the comment ``TODO: do we want these in chain order or
   walk-back order'' (\texttt{chain.rs}:52--54, 124--126;
   \texttt{lib.rs}:543--546, 809, near :432).
-  %% TODO: pin down which end of the header vector is the snapshot
-  %% before this guide describes the deployed fin extraction.
 \end{itemize}
+
+\paragraph{Current delta.} In crosslink\_monolith \texttt{v13}, the main
+finalization path consistently takes the first header as the candidate;
+the April header-end inconsistency above is historical. The constructor
+still validates only the number of headers and still logs that the other
+documented validations are unimplemented, so this correction does not
+establish the Linearity, Tail Confirmation, or best-chain checks. The BFT
+block format now supports version~2 fields for hard-fork data and an
+earliest PoW inclusion height. These are \emph{specified} prototype facts
+at \texttt{807b995}, not a validation of the TFL-book construction
+(\texttt{librustzcash/zcash\_primitives/src/bft.rs};
+\texttt{zebra-crosslink/zebra-crosslink/src/lib.rs}).
 
 Beyond the book's construction, the deployment track adds a
 mechanism-design layer --- finalization rewards paid only in blocks that
@@ -2425,33 +2383,16 @@ General Ledger State Design Invariant that all ledger state, including
 the PoS/BFT roster and finality status, is computable entirely from PoW
 blocks and transactions, with finality status the sole
 ``height-eventual'' state (\texttt{book/src/design/nutshell.md}:23--128).
-%% TODO: the mechanism-design layer and the five named security
-%% properties (book/src/design/security-properties.md) belong to later
-%% sections of this guide; cross-reference once drafted.
 
 \paragraph{Classification.} The code facts above are \emph{specified} in
-the pinned-commit sense, but the track is moving: Milestone~5
+the pinned-commit sense. Milestone~5
 (``Pre-Productionization'') completed 2026-04-15, productionization is
 ongoing with no confirmed mainnet activation date, and the first
 independent security and mechanism-design review is complete
-(forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706;
-shieldedlabs.net/roadmap; x.com/ShieldedLabs status
-\texttt{2019547550009946528}; all accessed 2026-07-15). Every
-implementation claim in this subsection is pinned to commit
-\texttt{6d02a1b} and must be re-verified against a post-productionization
-commit before it is treated as the deployed construction.
-%% NOTE: 6d02a1b already post-dates M5 and pins Tenderlink; re-verify
-%% only against future productionization-phase commits.
-
-%% Crosslink Guide, section: Stake, delegation, and slashing. Body only;
-%% assumes the shared preamble of the series (ironwood-guide.tex lines 1-90).
-%%
-%% Source pins: tfl-book @ fe6e1d6f (2024-12-13); zebra-crosslink @ 6d02a1b8
-%% (2026-04-21; shallow clone, depth 1 -- per-file history unavailable);
-%% crosslink-spec @ 8edc3e94 (2025-07-23); crosslink-protocol-guide @
-%% b77d8456 (2026-03-26); zips @ 69610984 (2026-07-09). Web sources fetched
-%% 2026-07-15. The local quint-crosslink clone is empty (branch main has no
-%% commits); see the TODO at the end of this section.
+(\url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706};
+\url{https://shieldedlabs.net/roadmap/}; checked 2026-09-05). The four-item list is pinned
+to historical commit \texttt{6d02a1b}; the current-delta paragraph is pinned
+to \texttt{807b995}. Neither is deployed construction.
 
 \section{Stake, delegation, and slashing}\label{sec:xl-stake}
 
@@ -2471,13 +2412,15 @@ book'') and two dated posts\footnote{Shielded Labs, ``Crosslink: Updated
 Staking Design'',
 \url{https://shieldedlabs.net/crosslink-updated-staking-design/} (forum
 post 2025-10-27, blog dated 2025-11-05); ``Crosslink Early Tokenomics
-Design'', forum thread t/52154 (2025-09-12); deployment updates, forum
-thread t/49706; forum threads under
-\url{https://forum.zcashcommunity.com/t/}. All fetched 2026-07-15.}.
+Design'',
+\url{https://forum.zcashcommunity.com/t/crosslink-early-tokenomics-design/52154}
+(2025-09-12); deployment updates,
+\url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706}.
+Last checked 2026-09-05.}.
 
-Nothing in this section reaches the \emph{specified} bin. No Crosslink or
-staking ZIP exists: at \texttt{zcash/zips} @ \texttt{69610984}
-(2026-07-09) the only Crosslink references are a citation footnote in
+No Crosslink or staking ZIP exists in the official repository: at
+\texttt{zcash/zips} @ \texttt{e753a6a3} (2026-09-03) the only Crosslink
+references are a citation footnote in
 ZIP~218 and a tfl-book reference in
 \texttt{draft-ecc-onchain-accountable-voting}; the ``IO Finalizer'' and
 ``Spend Finalizer'' of ZIP~374 are unrelated PCZT roles. The implementation
@@ -2489,9 +2432,6 @@ proposal-validity function (Tail Confirmation and Linearity rules) and
 models no stake, roster, voting power, delegation, bonding, or slashing
 (crosslink-spec @ \texttt{8edc3e94}, \texttt{validity.md},
 \texttt{src/validity.qnt}).
-%% TODO: replace the prose bin references with \S\ref to this volume's
-%% scope-and-method section once drafted; the three-bin discipline
-%% originates in the \emph{Tachyon Guide}, \S``The three-bin method''.
 Everything below is therefore \emph{designed but unspecified} at best, or
 implementation-defined prototype behaviour, or an \emph{open problem}; we
 keep the bin visible throughout. The implementation book itself warns that
@@ -2519,7 +2459,6 @@ The adversary bound is stated over the same abstraction. Notation follows
 the book: $\Pi_{\mathsf{bft}}$ is the BFT subprotocol as adapted by
 Crosslink, $\Pi_{\mathsf{origbft}}$ its underlying engine; the book's
 $\star$bft is a wildcard ranging over both.
-%% TODO: harmonize $\Pi$ notation with this volume's construction section.
 
 \begin{definition}[One-third bound on non-honest voting]
 \label{def:xl-nonhonest}
@@ -2553,7 +2492,9 @@ guarantee that PoS consensus providers have no discretionary control over
 such delegated funds (including that they cannot steal those funds)''
 (tfl-book, \texttt{src/design/goals.md} at \texttt{fe6e1d6f}). Note the
 tension recorded for \S\ref{sec:xl-stake-slashing}: the goal contemplates
-``slashing fees'' as a user risk; the deployed design forswears them.
+``slashing fees'' as a user risk; the 2025 implementation design forswears
+automatic slashing, while the current prototype adds socially selected
+bond burns.
 
 \paragraph{Classification.} \emph{Designed but unspecified}: the voting-unit
 model and Definition~\ref{def:xl-nonhonest} come from a design book with
@@ -2571,12 +2512,12 @@ takes place exclusively within the Orchard pool'' (Shielded Labs, Updated
 Staking Design, 2025-10-27/11-05). Participants lock ZEC to delegate stake
 to a chosen finalizer and earn rewards; Penumbra-style fully shielded
 delegations were considered and deferred to future versions, prioritizing
-time-to-market (ibid.). The 2025-10/11 design predates NU6.3's pool
-terminology: read ``the Orchard pool'' there as the Orchard-protocol
-shielded pool --- since NU6.3, the Ironwood pool. That pool is the one this
-series constructs in the \emph{Ironwood Guide} (\S``The note and its
-commitment''); nothing below alters its note
-machinery.
+time-to-market (ibid.). The 2025-10/11 design predates the proposed
+NU6.3 pool split. Its words therefore mean the then-single
+Orchard-protocol shielded pool; they do not decide whether a future
+Crosslink design would bond value in the legacy Orchard pool or the
+proposed Ironwood pool. That migration question is open; neither pool's
+note machinery is altered here.
 
 \begin{definition}[Staking position, roster, stake weight, active set]
 \label{def:xl-roster}
@@ -2612,11 +2553,12 @@ ZIP-315 confirmation depths (\emph{Wallet Guide}, \S``Transaction
 construction''); Crosslink turns it into consensus state.
 
 \paragraph{Classification.} \emph{Designed but unspecified} throughout.
-The active-set bound is explicitly provisional (``currently'' 100), the
-book's own TODO list flags ``active set selection'' as unresolved
-(\texttt{book/src/design/nutshell.md} at \texttt{6d02a1b8}), and the
-prototype applies no top-$K$ truncation at all
-(\S\ref{sec:xl-stake-prototype}).
+The active-set bound is explicitly provisional (``currently'' 100), and
+the book's own TODO list flags ``active set selection'' as unresolved
+(\texttt{book/src/design/nutshell.md} at \texttt{6d02a1b8}). The April
+prototype applied no top-$K$ limit; current \texttt{v13} limits the active
+Tenderlink roster to its first 100 members
+(\texttt{tenderlink/src/lib.rs} at \texttt{807b995}).
 
 \subsection{Staking actions and draft consensus rules}
 \label{sec:xl-stake-actions}
@@ -2684,26 +2626,35 @@ trade, ``For security and transparency, staked amounts are revealed so
 the community can verify the total ZEC staked and its distribution across
 finalizers'', with ``Transactions... processed in fixed 5-day epochs,
 grouping all commitments into a single batch'' (Updated Staking Design,
-2025-10-27/11-05). Quantisation of shielded weight has precedent in this
-series: the shielded voting protocol quantises note value into
-$0.125$-ZEC ballots for the same linkability reason (\emph{Voting Guide},
-\S``Ballots and eligibility'').
+2025-10-27/11-05). Another Zcash design also quantises shielded weight:
+Zally uses one ballot per $0.125$~ZEC
+(\texttt{valargroup/voting-circuits} @ \texttt{4c39abd5},
+\texttt{src/params.rs}:14).
 
 Two gaps are visible already at this level. First, the \emph{stake}
 action assigns ``a transparent ZEC amount'' while staking is exclusively
 Orchard-pool: how the revealed, quantized amount balances against Orchard
-value fields under \S4.17 is unspecified, and the prototype sidesteps it
-entirely --- a transaction carrying a staking action bypasses the
+value fields under \S4.17 is unspecified. The April prototype sidestepped
+it entirely --- a transaction carrying a staking action bypassed the
 \texttt{has\_inputs\_and\_outputs} consensus check with a ``TODO: real
 staking transactions with inputs/outputs''
 (\texttt{zebra-consensus/\allowbreak src/\allowbreak
-transaction/\allowbreak check.rs} at \texttt{6d02a1b8}).
+transaction/\allowbreak check.rs} at \texttt{6d02a1b8}). Current
+\texttt{v13} instead includes bond creation as a negative staking-pool
+balance and withdrawal as a positive one; the transaction has one optional
+staking-action field
+(\texttt{librustzcash/zcash\_primitives/src/transaction/builder.rs} and
+\texttt{mod.rs} at \texttt{807b995}). This demonstrates a prototype
+accounting route but does not specify the eventual format.
 Second, the phrase ``a power of 10 ZEC (or ZAT)'' leaves the bucket range
 ambiguous: whether sub-1-ZEC buckets ($10^k$ zatoshi) are permitted, and
 hence the minimum stake, is unspecified; the blog's examples start at
-1~ZEC. How staking actions pay fees, and whether a transaction may carry
-several, are open TODOs in both book and implementation
-(\texttt{book/src/design/nutshell.md} at \texttt{6d02a1b8}).
+1~ZEC. How the eventual format pays fees and whether it permits several
+actions remain open in the design; \texttt{v13}'s prototype format permits
+one optional action
+(\texttt{book/src/design/nutshell.md} at \texttt{6d02a1b8};
+\texttt{librustzcash/zcash\_primitives/src/transaction/mod.rs} at
+\texttt{807b995}).
 
 The delegation-safety goals for the first deployment are recorded as
 issues: ``Delegating to a finalizer does not enable the finalizer to
@@ -2756,31 +2707,42 @@ Implementation book (\texttt{6d02a1b8}, snapshot 2026-04-21)
   & staking day ($\sim$1 day) $+$ locked phase ($\sim$6 days)
   & $\geq 1$ full staking epoch
   & redelegate exempt from the locked phase \\
+Current prototype (\texttt{807b995}, \texttt{v13}, 2026-08-13)
+  & 150-block period; actions in first 70 blocks, with five temporary
+    exception heights
+  & $\geq 75$ blocks before begin-unbonding and again before withdrawal
+  & retarget exempt; slash lookback 300 blocks \\
 \bottomrule
 \end{tabular}
 \caption{Staking-parameter statements by source and date. Sources:
 forum t/52154 (2025-09-12); Shielded Labs blog (2025-10-27/11-05);
-\texttt{book/src/design/analysis/history/2025-12-11-mech-design/proposal.md}
-and \texttt{book/src/design/nutshell.md}, both at \texttt{6d02a1b8}. Web
-sources fetched 2026-07-15.}
+\protect\path{book/src/design/analysis/history/2025-12-11-mech-design/proposal.md}
+and \protect\path{book/src/design/nutshell.md}, both at \texttt{6d02a1b8};
+\protect\path{librustzcash/zcash_primitives/src/transaction/mod.rs} and
+\protect\path{zebra-crosslink/zebra-consensus/src/transaction.rs} at
+\texttt{807b995}. Web sources checked 2026-09-05.}
 \label{tab:xl-stake-params}
 \end{table}
 
 The blog shortened the September windows ``citing liquidity and
 accessibility''; the implementation book --- which post-dates the blog ---
 lengthens the effective cycle again to approximately one staking day per
-week. Which parameterization is current is unresolved. The divergence is
-not cosmetic on one point: the book's locked-phase rule exempts
+week. The current prototype fixes block-count values for its feature net,
+but no design source adopts them for production. The divergence is not
+cosmetic on one point: the book's locked-phase rule exempts
 \emph{redelegate}, making redelegation valid at any height, while the
 blog has participants ``reallocate their stake to another finalizer
-during these windows'', implying batched redelegation. Redelegation is
-the sole protocol-level punishment mechanism
-(\S\ref{sec:xl-stake-slashing}), so its latency is security-relevant.
+during these windows'', implying batched redelegation. In the baseline
+design, redelegation is the staker's only protocol-mediated censure
+mechanism (\S\ref{sec:xl-stake-slashing}), so its latency is
+security-relevant. The current prototype's socially selected burn is a
+separate hard-fork mechanism.
 
-\paragraph{Classification.} Each row is \emph{designed but unspecified}
-with a date; the current values are an \emph{open problem}. A ZIP must
-pin epoch length, staking-day length, and unbonding duration in blocks,
-and must fix redelegation latency explicitly.
+\paragraph{Classification.} The first four rows are \emph{designed but
+unspecified}; the \texttt{v13} row is a \emph{specified} prototype fact.
+Production values remain an \emph{open problem}. A ZIP must pin epoch
+length, staking-day length, and unbonding duration in blocks, and must fix
+redelegation latency explicitly.
 
 \subsection{Rewards and issuance}\label{sec:xl-stake-rewards}
 
@@ -2820,8 +2782,6 @@ confirms the ``40/40 issuance split'' as an audit assumption
 (\texttt{book/src/design/analysis/history/2025-12-11-mech-design/proposal.md}
 at \texttt{6d02a1b8}). The destination of the remaining 20\% is not stated
 in any source we located.
-%% TODO: presumably the ZIP-1015 lockbox/dev-fund allocation; verify
-%% before asserting -- no Crosslink source says so.
 How Crosslink rewards interact with the issuance schedule, halvings, and
 the 21M cap is exactly the ``Issuance and supply mechanics'' component the
 tfl-book lists as missing (tfl-book,
@@ -2844,10 +2804,12 @@ flags ``rewards distribution via coinbase'' and ``quantization of amounts
 Equation~\eqref{eq:xl-reward-slices} and the pending-rewards rule are
 draft consensus text. Issuance interaction, the 20\% remainder, the
 commission model, reward eligibility across the unbond--claim lifecycle,
-and the compounding mechanism are \emph{open problems}. The prototype
-implements none of this (\S\ref{sec:xl-stake-prototype}).
+and the compounding mechanism are \emph{open problems}. The April
+prototype implemented none of this; current \texttt{v13} implements a
+different fixed, directly compounding prototype reward
+(\S\ref{sec:xl-stake-prototype}).
 
-\subsection{Slashing, and its deliberate absence}
+\subsection{Automatic and user-activated slashing}
 \label{sec:xl-stake-slashing}
 
 The design commitment is verbatim and unambiguous: ``There will be no
@@ -2857,6 +2819,21 @@ fully in the stakers' hands to reward and censure node operators''
 as ``no protocol-level slashing in V1''
 (\texttt{book/src/design/analysis/history/2025-12-11-mech-design/}
 \texttt{proposal.md} at \texttt{6d02a1b8}).
+
+This prohibition describes automatic, evidence-triggered slashing in the
+baseline design. Current prototype \texttt{v13} implements a different
+mechanism: users configure a hard-fork rule with a PoW activation height,
+a BFT certificate height, and a list of terminated finalizer keys. At
+activation, affected finalizers leave the active roster and bonds that
+targeted them at any time in the preceding 300-block analysis window are
+burned. One such rule ships in the feature-net executable. Selection of
+the keys is social and out of band; the code does not infer guilt from an
+on-chain equivocation proof. This is a \emph{specified} prototype fact,
+not a normative or automatic slashing rule
+(crosslink\_monolith @ \texttt{807b995},
+\texttt{librustzcash/zcash\_primitives/src/bft.rs},
+\path{zebra-crosslink/zebra-chain/src/parameters/hardfork.rs}, and
+\path{zebra-crosslink/zebra-state/src/service/finalized_state/zebra_db/slashing.rs}).
 
 The ECC book never specified slashing either; it appears only as
 discussion. A ``Potential changes'' passage observes that ``In most PoS
@@ -2878,9 +2855,10 @@ Stalled Mode until manual intervention (tfl-book,
 \texttt{src/design/crosslink/questions.md} at \texttt{fe6e1d6f}). None of
 this is adopted as a rule.
 
-What replaces slashing is a chain of accountability between roles, stated
-in the implementation book's Five Component Model
-(\texttt{book/src/design/five-component-model.md} at \texttt{6d02a1b8}).
+What replaces automatic slashing in the baseline design is a chain of
+accountability between roles, stated in the implementation book's Five
+Component Model
+(\path{book/src/design/five-component-model.md} at \texttt{6d02a1b8}).
 Stakers police finalizers: it is ``the job of the stakers to hold the
 finalisers accountable by detecting and punishing misbehavior... by
 redelegating stake away from ill-behaved finalizers to well-behaved
@@ -2904,7 +2882,7 @@ accountable. Therefore, if an attacker controls $>1/2$ of the hashpower
 stakers from holding the finalizers accountable'' (ibid.; the file ends
 mid-list on the ``$>2/3$ stake and $<1/2$ hashpower'' scenario --- the
 document is incomplete). The reliance on stakers is so central that the
-zebra-crosslink design drops the tfl-book's Stalled Mode entirely: ``This
+April zebra-crosslink design drops the tfl-book's Stalled Mode entirely: ``This
 simplification to the protocol rules follows the rationale that we are
 already relying heavily on the stakers to guard safe operation of the
 protocol by redelegating appropriately to prevent hazards like BFT
@@ -2915,8 +2893,8 @@ Shielded Labs frames the substitution quantitatively as
 Penalty-for-Failure-to-Defend (PFD): penalties are assessed per property
 ($\mathrm{PFD}_{\mathrm{liveness}}$ versus
 $\mathrm{PFD}_{\mathrm{finality}}$); Tendermint-style slashing yields a
-``financial value gauge'' PFD, while PoW --- and Crosslink's
-slashing-free PoS --- yields a \emph{rate} PFD, the loss of future
+``financial value gauge'' PFD, while PoW --- and the baseline design's
+automatic-slashing-free PoS --- yields a \emph{rate} PFD, the loss of future
 revenue rate; the two types ``cannot be directly compared''
 (\texttt{book/src/design/analysis/pffd.md} at \texttt{6d02a1b8}, a paste
 of GH issue \#264). Redelegation-based punishment is thus a rate penalty
@@ -2935,7 +2913,7 @@ literature: the construction cites Neu--Tas--Tse [NTT2020, arXiv
 \texttt{src/design/crosslink/construction.md} at \texttt{fe6e1d6f}), and
 the same authors' accountability-gadgets paper (arXiv 2105.06075,
 Financial Cryptography 2022) is the natural successor for this topic;
-NTT2020 remains at v3 (2021-02-04) as of 2026-07-15.
+NTT2020 remains at v3 (2021-02-04) as of 2026-09-05.
 
 The backstop of the chain --- the user-led emergency hard fork --- has a
 drafted scope. The governance proposal limits legitimate emergency
@@ -2949,20 +2927,15 @@ does not itself constitute a violation''
 (\texttt{book/src/design/userled-emergency-hardforks.md} at
 \texttt{6d02a1b8}).
 
-\paragraph{Classification.} The absence of slashing is \emph{designed but
-unspecified} --- a dated, verbatim design commitment confirmed by the
-audit constraints. The accountability chain and PFD framing are design
-rationale at the same bin. The tfl-book's evidence sketches
-(bft-final-vee, conflicting-vote proofs) are an \emph{open problem}:
-whether future versions add evidence-based slashing, and what a ZIP must
-say about accountability records, is unresolved --- recall that the
-tfl-book's own delegation goal budgets for ``slashing fees''
-(\S\ref{sec:xl-stake-abstract}).
-%% RESOLVED 2026-07-15: findings published at
-%% nikete.com/crosslink-zebra-audit (verified); repo holds only the
-%% pre-registration. Delegation/penalty consequences are covered in
-%% \S\ref{sec:xl-econ}; no design changes adopting the recommendations
-%% are visible at 6d02a1b.
+\paragraph{Classification.} The absence of automatic slashing is
+\emph{designed but unspecified}; the user-activated burn is a
+\emph{specified} \texttt{v13} prototype fact. The accountability chain
+and PFD framing are design rationale. The tfl-book's evidence sketches
+(bft-final-vee and conflicting-vote proofs) remain an \emph{open problem}:
+whether a future specification adds evidence-based slashing, how socially
+selected burns are authorized, and what accountability records a ZIP
+requires are unresolved. The tfl-book's own delegation goal budgets for
+``slashing fees'' (\S\ref{sec:xl-stake-abstract}).
 
 \subsection{Finalizer keys}\label{sec:xl-stake-keys}
 
@@ -2981,9 +2954,10 @@ signed vote appending a 64-byte ed25519 signature over those 76 bytes
 109--133, at \texttt{6d02a1b8}). No FROST
 or threshold-signing design for finalizer keys is sourced anywhere in the
 Crosslink corpus: a search for ``frost'' over tfl-book,
-crosslink-protocol-guide, crosslink-spec, and zebra-crosslink returns
+crosslink-protocol-guide, crosslink-spec, zebra-crosslink, and the current
+monolith returns
 only upstream Zebra RedPallas/Orchard files unrelated to finalizers
-(negative grep, 2026-07-15). Threshold custody is established practice
+(negative grep, 2026-09-05). Threshold custody is established practice
 elsewhere in the Zcash stack --- FROST per RFC~9591 in the PCZT signing
 flow (\emph{Wallet Guide}, \S``Partially created transactions (PCZT)'')
 --- which makes its absence here a visible gap rather than an exotic ask.
@@ -2994,10 +2968,17 @@ deletion on rotation (tfl-book,
 \texttt{src/design/crosslink/construction.md} at \texttt{fe6e1d6f},
 issue \#140) --- yet no key-rotation or revocation mechanism for
 finalizer verification keys in the roster is specified in any source.
+Current \texttt{v13} serializes an \texttt{UpdateFinalizerKey} action
+kind, but its state code explicitly says that action is not implemented;
+an enum tag is not a rotation mechanism
+(\texttt{librustzcash/zcash\_primitives/src/transaction/mod.rs};
+\texttt{zebra-crosslink/zebra-state/src/service/finalized\_state/}%
+\texttt{zebra\_db/slashing.rs}
+at \texttt{807b995}).
 Bootstrap is equally unspecified: no source examined (tfl-book,
 implementation book, either blog post) defines eligibility or formation
-of the initial finalizer set. The prototype bootstraps ad hoc: the roster
-starts empty; keys are deterministically derived from the config field
+of the initial finalizer set. The April prototype bootstraps ad hoc: the
+roster starts empty; keys are deterministically derived from the config field
 \texttt{insecure\_user\_name} (``temp seed for private/public key
 pair''); test instrumentation can force-include roster members
 (\texttt{TFInstr::ROSTER\_FORCE\_INCLUDE}); and a node adds itself with
@@ -3006,16 +2987,18 @@ engine (\texttt{zebra-crosslink/src/lib.rs},
 \texttt{zebra-crosslink/src/test\_format.rs} at \texttt{6d02a1b8}).
 
 \paragraph{Classification.} The ed25519 key and vote formats are
-implementation-defined prototype facts. Key rotation, revocation,
+implementation-defined prototype facts. The unimplemented \texttt{v13}
+tag changes no bin: key rotation, revocation,
 threshold custody, and initial-roster formation (including any minimum
 self-stake, and eligibility beyond top-$K$ by stake weight) are
 \emph{open problems} in every design source.
 
-\subsection{The prototype}\label{sec:xl-stake-prototype}
+\subsection{Prototype snapshots}\label{sec:xl-stake-prototype}
 
-The zebra-crosslink prototype (@ \texttt{6d02a1b8}, 2026-04-21)
+\paragraph{April snapshot.} The zebra-crosslink prototype
+(@ \texttt{6d02a1b8}, 2026-04-21)
 implements a reduced, implementation-defined variant of the above; we
-record it as deployed-code fact about a prototype, not as design. The
+record it as code fact about a prototype, not as design. The
 placeholder activation height is \texttt{TFL\_ACTIVATION\_HEIGHT} $=$
 \texttt{BlockHeight(2000)} (\texttt{zebra-crosslink/src/lib.rs}).
 
@@ -3067,21 +3050,53 @@ the chain value pools occurs. (4)~The bonding lifecycle (unbond/claim)
 is not implemented; \texttt{Sub}/\texttt{Clear} remove weight
 immediately (\texttt{zebra-consensus/src/transaction/check.rs},
 \texttt{zebra-crosslink/src/lib.rs} at \texttt{6d02a1b8}; negative grep
-for quantiz/unbond/epoch, 2026-07-15).
+for quantiz/unbond/epoch, rechecked 2026-09-05).
+
+\paragraph{Current \texttt{v13} delta.} The active prototype at
+\texttt{807b995} has activation height 0 and replaces the stub actions
+with an optional transaction field containing create-bond,
+begin-unbonding, withdraw, retarget, register-finalizer,
+convert-finalizer-reward, or update-finalizer-key. Only the first four
+have a bond state machine; the last three are serialized placeholders.
+Create and withdrawal participate in transaction and chain value balance.
+Begin-unbonding and withdrawal each require 75 blocks since the bond's
+previous action. Except at five hard-coded feature-net heights, every
+action other than retarget must fall in the first 70 blocks of a
+150-block period; retarget is exempt from both that window and the delay.
+Tenderlink limits the active roster to its first 100 members.
+
+The reward mechanism remains deliberately prototypical but is no longer
+the April mechanism: each accepted PoW block for which at least one bond
+is active adds a fixed 500{,}000{,}000-zatoshi amount proportionally to
+all active bonds, gives rounding remainder to the largest bond, and
+increases the staking-bonded value pool. Rewards therefore compound
+directly; no finalizer commission
+or finality-triggered coinbase payout is implemented. Reorg and finalized
+state paths record and reverse or commit these bond increments. The
+user-activated burn mechanism is described in
+\S\ref{sec:xl-stake-slashing}
+(crosslink\_monolith @ \texttt{807b995};
+\path{librustzcash/zcash_primitives/src/transaction/mod.rs};
+\path{zebra-crosslink/zebra-consensus/src/transaction.rs};
+\path{zebra-crosslink/zebra-state/src/service.rs};
+\path{zebra-crosslink/zebra-state/src/service/non_finalized_state/chain.rs};
+\path{tenderlink/src/lib.rs}).
 
 \emph{Status.} Crosslink remains in feature-net validation: the
 Incentivized Crosslink Feature Net launched with Milestone 5 (completed
 2026-04-15; Season 1 from 2026-04-15; 500 ZEC allocated overall, 25 ZEC
 for Season 1; ``Only cTAZ earned via block rewards counts''), following
-Milestone 4's independent security review (concluded 2026-02-10). No NU8
-activation date is stated (deployment-updates thread, fetched
-2026-07-15).
+Milestone 4's independent security review (concluded 2026-02-10). By
+2026-09-03 the feature net had tested a user-activated recovery from BFT
+stalls; no Mainnet activation date is stated (feature-net thread, posts
+72 and 86, checked 2026-09-05).
 
-\paragraph{Classification.} Implementation-defined throughout, and
-self-describedly so; the book warns that the in-house BFT protocol's
+\paragraph{Classification.} Implementation-defined throughout, by the
+projects' own descriptions. The April book warns that the in-house BFT protocol's
 ``own security properties need to be more thoroughly verified''
-(\texttt{book/src/design.md} at \texttt{6d02a1b8}). None of this
-prototype behaviour constrains the eventual ZIP.
+(\texttt{book/src/design.md} at \texttt{6d02a1b8}); the current monolith
+README says it is not production-ready and not the eventual upstream
+proposal. Neither snapshot constrains a future ZIP.
 
 \subsection{What a specification must pin down}\label{sec:xl-stake-open}
 
@@ -3093,7 +3108,7 @@ above.
   unbonding duration, in blocks
   (Table~\ref{tab:xl-stake-params}).
 \item Redelegation latency: locked-phase exemption versus batched
-  windows --- the timing of the sole protocol-level punishment
+  windows --- the timing of the baseline design's staker-censure action
   (\S\ref{sec:xl-stake-params}).
 \item The staking transaction format: how a revealed, quantized,
   ``transparent'' amount balances against Orchard value fields under
@@ -3124,12 +3139,6 @@ above.
   (crosslink-spec @ \texttt{8edc3e94} models proposal validity only).
 \end{enumerate}
 
-%% RESOLVED 2026-07-15: quint-crosslink is empty upstream (git ls-remote
-%% returns zero refs), so item 13 stands as stated. The mechanism-design
-%% audit findings are published at nikete.com/crosslink-zebra-audit and
-%% covered in \S\ref{sec:xl-econ}; no delegation/penalty design changes
-%% are visible at 6d02a1b.
-
 \section{The wallet-visible contract}\label{sec:xl-contract}
 
 Crosslink changes what a Zcash node presents to everything above it. Today a
@@ -3149,7 +3158,7 @@ stall behaviour (\S\ref{sec:xl-stalls}), and the service-facing protocol
 
 Two texts carry the design (pinned, with the rest of the corpus, in
 Table~\ref{tab:xl-sources}). The ECC Trailing Finality Layer book
-(\texttt{Electric-Coin-Company/tfl-book} @ \texttt{fe6e1d6f},
+(\texttt{daira/tfl-book} @ \texttt{fe6e1d6f},
 2024-12-13; hereafter the
 \emph{tfl-book}) defines the Crosslink~2 construction and has not changed
 since; its own status page calls the design ``an early and incomplete
@@ -3160,14 +3169,15 @@ The Shielded Labs design book inside the implementation repository
 admonitions, and self-describes as a provisional precursor to ``a canonical
 Zcash Improvement Proposal submission'' (\texttt{book/src/design/nutshell.md}).
 No such ZIP exists: a repository-wide search of \texttt{zcash/zips} @
-\texttt{69610984} (2026-07-09) finds no Crosslink deployment artifact and no
-NU8 artifact of any kind (cf.\ \emph{Tachyon Guide}, \S``Relation to
-Crosslink and the upgrade environment''). Shielded Labs' productionization
+\texttt{e753a6a3} (2026-09-03) finds no Crosslink deployment artifact and
+no ZIP specifying NU8. Shielded Labs' productionization
 phase runs Q2~2026--Q2~2027 with no announced mainnet activation
-(shieldedlabs.net/roadmap and forum thread t/49706, fetched 2026-07-15).
-Nothing in this section is therefore \emph{specified}; claims are
-\emph{designed but unspecified} at best, prototype code is cited as code,
-and the open problems are named as such.
+(\url{https://shieldedlabs.net/roadmap/} and
+\url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706},
+checked 2026-09-05).
+No design claim in this section is therefore \emph{specified}; pinned
+prototype behaviour is \emph{specified} only as code, and the open problems
+are named as such.
 
 \subsection{Two ledger views}\label{sec:xl-views}
 
@@ -3176,7 +3186,7 @@ $B \sim_{\mathrm{bc}} C$ when one of $B, C$ is a prefix of the other, and
 $C^{\lceil k}$ for chain $C$ with its last $k$ blocks removed. The
 bc-best-chain of node $i$ at time $t$ is $\mathsf{ch}_i^t$, notation the
 tfl-book adopts from the ebb-and-flow model of Neu, Tas, and Tse (arXiv
-2009.04987v3, 2021-02-04, still the latest revision as of 2026-07-15;
+2009.04987v3, 2021-02-04, still the latest revision as of 2026-09-05;
 tfl-book \texttt{construction.md}:5).
 
 \begin{definition}[Ledger views of Crosslink~2]\label{def:xl-ledger-views}
@@ -3276,10 +3286,12 @@ transactions until $L$ blocks have passed''
 \paragraph{Parameters.} Production values of $\sigma$ and of the
 finalization gap bound $L$ are unchosen. The tfl-book requires $L$
 ``significantly greater than $\sigma$'' and ``at least $2\sigma$'' in
-practice (\texttt{construction.md}:391, 405); the prototype ships
-$\{\sigma = 3,\ L = 7\}$ with the caveat ``No verification has been done on
-the security or performance of these parameters''
-(\texttt{zebra-crosslink/src/chain.rs}:206--222). Wall-clock statements
+practice (\texttt{construction.md}:391, 405); both prototype snapshots
+ship $\{\sigma = 3,\ L = 7\}$, and the April source warns ``No
+verification has been done on the security or performance of these
+parameters'' (\texttt{zebra-crosslink/src/chain.rs}:206--222;
+crosslink\_monolith @ \texttt{807b995},
+\texttt{librustzcash/zcash\_primitives/src/bft.rs}:388--404). Wall-clock statements
 are additionally provisional: block target spacing is 75\,s today, and ZIP
 218 (Status: Draft) proposes 25\,s at NU7, describing itself as
 ``complementary to \ldots{} finality mechanisms such as Crosslink''
@@ -3328,9 +3340,10 @@ hypothesis definitions at \texttt{construction.md}:337--340, 203--206.)
 Assured Finality therefore survives the failure of either subprotocol's
 safety assumption alone; it fails only under the weaker of the two, which
 is the keystone guarantee a wallet's ``final'' badge would rest on. We
-defer the proof of branch (i), which runs through the Local fin-depth
-lemma and the Linear prefix lemma, to the security analysis
-(\S\ref{sec:xl-safety-theorems}); Prefix Agreement and Final Agreement
+defer both arguments to the security analysis
+(\S\ref{sec:xl-safety-theorems}); branch (i) runs through the Local
+fin-depth and Linear prefix lemmas, while branch (ii) runs through Final
+Agreement and the Linearity rule. Prefix Agreement and Final Agreement
 are stated in full as Definitions~\ref{def:xl-prefix-agreement}
 and~\ref{def:xl-final-agreement}.
 
@@ -3342,9 +3355,9 @@ $\mathrm{LOG}_{\mathrm{ba}}$ agreement proof trails off unfinished (``What
 we want to show is that, under some conditions on executions, \ldots'')
 (\texttt{security-analysis.md}:54, 137--160, 253--257); the SL~book copies
 this state verbatim. The bin split for this section:
-Theorem~\ref{thm:xl-af-two-sided} is completely stated, but only branch (i)
-carries a correct written proof; branch (ii)'s pasted proof is defective
-(Remark~\ref{rem:xl-final-agreement-proof});
+Theorem~\ref{thm:xl-af-two-sided} is completely stated. Branch (i) carries
+the book's correct proof; branch (ii)'s published proof text is defective,
+but Remark~\ref{rem:xl-final-agreement-proof} records a complete argument;
 transaction-log-level safety for the bounded-available view is
 \emph{designed but unspecified} with an incomplete proof.
 
@@ -3381,9 +3394,10 @@ definition is \emph{designed but unspecified} with its fifth property an
 acknowledged gap; ledger-level $\mathsf{localba}$ safety is an
 \emph{open problem} in the sources' own accounting.
 
-\subsection{The interface implemented today}\label{sec:xl-node-interface}
+\subsection{The prototype node interface}\label{sec:xl-node-interface}
 
-The prototype (\texttt{zebra-crosslink} @ \texttt{6d02a1b8}) exposes
+Current prototype \texttt{v13} (crosslink\_monolith @
+\texttt{807b995}) exposes
 finality through a typed internal service and a JSON-RPC surface. The
 internal state service defines
 \begin{center}
@@ -3396,22 +3410,27 @@ with request variants
 \texttt{FinalBlockRx}, \texttt{SetFinalBlockHash},\\
 \texttt{BlockFinalityStatus(height, hash)},
 \texttt{TxFinalityStatus(txid)}, \texttt{Roster},\\
-\texttt{FatPointerToBFTChainTip}, \texttt{StakingCmd}
+\texttt{FatPointerToBFTChainTip}, \texttt{StakingCmd},\\
+\texttt{FinalizersRecencyStatus}, \texttt{WalletStakingAction},
+\texttt{WalletStakingPositions}
 \end{center}
-(\texttt{zebra-state/src/crosslink.rs}:11--49; variant
-\texttt{FinalBlockRx} is a broadcast receiver). The RPC methods, six of
-the ten doc-commented as ``Placeholder''
-(\texttt{zebra-rpc/src/methods.rs}:246--420), are:
+(\texttt{zebra-crosslink/zebra-state/src/crosslink.rs}; variant
+\texttt{FinalBlockRx} is a broadcast receiver). The RPC methods, ten
+declarations still doc-commented as ``Placeholder'', are:
 \begin{itemize}[itemsep=1pt]
 \item \texttt{is\_tfl\_activated};
 \item \texttt{get\_tfl\_roster\_zec} and \texttt{get\_tfl\_roster\_zats};
 \item \texttt{get\_tfl\_fat\_pointer\_to\_bft\_chain\_tip};
+\item \texttt{staking\_command};
 \item \texttt{get\_tfl\_final\_block\_hash} and
   \texttt{get\_tfl\_final\_block\_height\_and\_hash};
 \item \texttt{get\_tfl\_block\_finality\_from\_hash} and
   \texttt{get\_tfl\_tx\_finality\_from\_hash};
 \item \texttt{set\_tfl\_finality\_by\_hash};
-\item \texttt{subscribe\_tfl\_new\_final\_block\_hash}.
+\item subscribe, stream, and blocking-notification methods for final blocks
+  and transactions;
+\item \texttt{get\_tfl\_recency\_status};
+\item wallet UFVK, staking-action, and staking-position methods.
 \end{itemize}
 The docs concede that the final-block RPCs ``for the sake of testing
 \ldots{} currently treat pre-reorg block as final''.
@@ -3420,50 +3439,57 @@ Block-level finality is computed as a tri-state: a height above the final
 height returns \texttt{NotYetFinalized} (``N.B. this may be invalidated by
 the time it is received''); otherwise the status is \texttt{Finalized} iff
 the best-chain hash at that height equals the queried hash, else
-\texttt{CantBeFinalized} (\texttt{zebra-crosslink/src/lib.rs}:1327--1374).
+\texttt{CantBeFinalized}
+(\texttt{zebra-crosslink/zebra-crosslink/src/lib.rs}:1611--1655).
 This matches the SL~book's globally-consistent claim only below the final
 height, as it must: above it, the answer is a moving target.
 
-Two behaviours contradict the SL~book's own definition of crosslink
-finality, and they sit exactly on the surface a wallet would consume:
+Two limitations prevent this RPC surface from realizing the SL~book's
+full finality contract:
 \begin{enumerate}[label=(\roman*)]
-\item Transaction finality omits the fork check. Request
-  \texttt{TxFinalityStatus} returns \texttt{Finalized} iff
-  $\texttt{tx.height} \le \texttt{final\_height}$, with a literal
-  \texttt{// TODO: CantBeFinalized} --- it never checks best-chain
-  membership of the containing block, so a transaction on a losing fork
-  below the final height is reported \texttt{Finalized}
-  (\texttt{zebra-crosslink/src/lib.rs}:1412--1431). A blocking wait built
+\item Transaction finality cannot express \texttt{CantBeFinalized}.
+  Request \texttt{TxFinalityStatus} returns \texttt{Finalized} iff a
+  transaction found in the best chain has
+  $\texttt{tx.height} \le \texttt{final\_height}$, and otherwise returns
+  \texttt{NotYetFinalized}; a literal
+  \texttt{// TODO: CantBeFinalized} remains. The underlying transaction
+  query returns \texttt{None} off the best chain, so a losing-fork
+  transaction is not falsely finalized, but it is indistinguishable from
+  an unknown transaction
+  (\path{zebra-crosslink/zebra-crosslink/src/lib.rs}:1806--1828;
+  \path{zebra-crosslink/zebra-state/src/request.rs}). A blocking wait built
   on \texttt{FinalBlockRx} loops until some status other than
   \texttt{NotYetFinalized} is returned
-  (\texttt{zebra-rpc/src/methods.rs}:2150--2195).
+  (\path{zebra-crosslink/zebra-rpc/src/methods.rs}:2182--2218).
 \item Method \texttt{set\_tfl\_finality\_by\_hash} is intended to be
   regtest-only but currently ships \texttt{regtest\_override = true}
-  (\texttt{zebra-rpc/src/methods.rs}:1975--2000).
+  (\path{zebra-crosslink/zebra-rpc/src/methods.rs}:2094--2127).
 \end{enumerate}
-Both are prototype-status defects rather than design statements, but a
-finality status that is neither objectively verifiable nor globally
-consistent is the current observable behaviour.
+Both are prototype-status limitations rather than design statements.
 
-\paragraph{Before activation: the fallback depth.} Whenever no BFT-final
-block is known (including before TFL activation), the implementation
+\paragraph{Fallback depth.} Whenever no BFT-final block is known, the
+implementation
 falls back to the block-locator's last hash as its final block: function
-\texttt{tfl\_reorg\_final\_block\_height\_hash} yields, in effect, the
-block at depth \texttt{MAX\_BLOCK\_REORG\_HEIGHT}, which the fork pins
-at 99, one less than the transparent coinbase maturity of 100; an
+\texttt{tfl\_reorg\_final\_block\_height\_hash} returns that last locator
+hash, which functions as the pre-reorg final point once the chain is deep
+enough. Current \texttt{v13} pins
+\texttt{MAX\_BLOCK\_REORG\_HEIGHT} at 99; an
 internal \texttt{latest\_final\_block}, once set by BFT, takes
-precedence (\texttt{zebra-crosslink/src/lib.rs}:235--332;
-\texttt{zebra-state/src/constants.rs}:14--31). Upstream Zebra meanwhile
+precedence (\path{zebra-crosslink/zebra-crosslink/src/lib.rs}:458--555;
+\path{zebra-crosslink/zebra-state/src/constants.rs};
+\path{librustzcash/components/zcash_protocol/src/consensus.rs} at
+\texttt{807b995}). Upstream
+Zebra meanwhile
 moved the same constant to 1000 (commit \texttt{02f9648a5}, 2026-06-15;
 relocated to \texttt{zebra-chain} by \texttt{8767a91ba}),
 documenting it as ``a local-only node policy; it is not part of
 consensus'' sized ``as a defence-in-depth measure against sustained
-consensus splits'' (\texttt{zebra} @ \texttt{9f3166b9},
-\texttt{zebra-chain/src/parameters/constants.rs}:20--30).
+consensus splits'' (\texttt{zebra} @ \texttt{d1fd7adf},
+\path{zebra-chain/src/parameters/constants.rs}:20--30).
 The lesson for prose about pre-Crosslink ``de facto finality'': the
 rollback depth is node policy, not consensus, and it currently differs by
-a factor of ten between upstream and the very fork implementing
-Crosslink. The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Resting:
+a factor of about ten between upstream and the feature-net prototype.
+The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Resting:
 the note in the commitment tree'') states the
 same policy-not-limit framing, and the \emph{Consensus Guide} owns the
 full three-way divergence register --- specification, retired
@@ -3471,8 +3497,8 @@ full three-way divergence register --- specification, retired
 maturity, and the finality floor''.
 
 \paragraph{Classification.} \emph{Specified as code} at prototype rigor
-only --- every RPC is a self-described placeholder, and nothing in this
-subsection is consensus.
+only. Several RPC comments still call their methods placeholders, and
+nothing in this subsection is consensus.
 
 \subsection{Anchor semantics: the undecided keystone}
 \label{sec:xl-anchors}
@@ -3486,13 +3512,13 @@ non-contextual new block rules (tfl-book \texttt{construction.md}:267,
 701--703). The Orchard anchor rule is therefore inherited as-is: a spend
 may reference the treestate of \emph{any} main-chain block from Orchard
 activation onward, with no sliding window (\emph{Ironwood Guide},
-\S``Resting: the note in the commitment tree'', paragraph ``Anchor choice,
+\S``Resting: the note in the commitment tree'', subsection ``Anchor choice,
 reorgs, and the anonymity set''; mainnet floor 1{,}687{,}104)
 --- where ``main chain'' now means the $\mathsf{localba}$ history. No
 source restricts spend anchors to the finalized prefix: not the tfl-book,
-not the SL~book, not the implementation (grep over
-\texttt{zebra-crosslink} @ \texttt{6d02a1b8}: no anchor-rule changes), and
-not the ZIP corpus (@ \texttt{69610984}).
+not the SL~book, not either implementation snapshot (no
+Crosslink-dependent anchor check at \texttt{6d02a1b8} or
+\texttt{807b995}), and not the ZIP corpus (@ \texttt{e753a6a3}).
 
 The wallet-level anchor policy under two ledgers is thus the single most
 consequential undecided item in the contract. A future ZIP must decide
@@ -3676,7 +3702,7 @@ branch changes what wallets and exchanges must handle during a stall ---
 a hard availability stop with expiry churn, or indefinitely growing
 unfinalized exposure. Remark~\ref{rem:xl-stall-expiry} is synthesis.
 
-\subsection{Exchanges, bridges, and downstream volumes}
+\subsection{Exchanges, bridges, and downstream protocols}
 \label{sec:xl-services}
 
 The stated service-facing goal is uniformity: ``CEXes and decentralized
@@ -3714,37 +3740,47 @@ finality-traversal RPC semantics (GH~\#172 is open); and the light-client
 wire protocol of \S\ref{sec:xl-confpolicy}. Each is an \emph{open
 problem}: the slogan is designed, the contract behind it is not.
 
-\paragraph{Downstream volumes.} For coin-voting, Crosslink finality bears
-on the snapshot pin: a round pins $(\textsf{snapshot\_height},
-\textsf{snapshot\_blockhash})$ into its round identifier (\emph{Voting
-Guide}, \S``The five-message round''), and requiring the pinned height to
-be at or below the finalized height would make the pin irreversible under
-Assured Finality; the orthogonal trust gap --- snapshot roots ``posted,
-never verified'' (\emph{Voting Guide}, \S``The snapshot roots: posted,
-never verified'') --- is untouched by finality and remains open. This
+\paragraph{Downstream protocols.} For Zally coin voting, Crosslink finality
+bears on the snapshot pin: a round binds its snapshot height and block hash
+in its round identifier (\texttt{valargroup/\allowbreak vote-sdk} @
+\texttt{cb915f51},
+\texttt{proto/svote/v1/tx.proto}:36--48 and
+\texttt{x/vote/keeper/msg\_server.go}:30--48). Requiring the pinned
+height to be at or below the finalized height would make the pin
+irreversible under Assured Finality. An orthogonal trust gap is untouched:
+the ante handler passes the stored coordinator roots to the proof verifier
+as public inputs, while the circuit documentation explicitly disclaims
+authenticating their provenance
+(\texttt{valargroup/\allowbreak vote-sdk} @ \texttt{cb915f51},
+\texttt{x/vote/ante/validate.go}:147--177;
+\texttt{valargroup/\allowbreak voting-circuits} @ \texttt{4c39abd5},
+\texttt{src/delegation/README.md}, ``Public Input Provenance''). This
 resolution analysis is this volume's synthesis.
-%% TODO: confirm with the Voting Guide owner that the caveat is framed as
-%% partially resolvable by Crosslink, not resolved.
-Project Tachyon is formally independent of Crosslink; the \emph{Tachyon
-Guide} (\S``Relation to Crosslink and the upgrade environment'') records
-the independence as asserted rather than examined, and the NU8 vacuum it
-documents is unchanged at \texttt{zcash/zips} @ \texttt{69610984}
-(2026-07-09).
+
+Project Tachyon and Crosslink are asserted to be independent. Bowe's founding
+post sees ``no reason to believe that Tachyon will conflict'' with Crosslink,
+and Shielded Labs calls them ``separate efforts that don't necessarily
+interact'' for roadmapping or timelines (Bowe, ``Tachyon: Scaling Zcash with
+Oblivious Synchronization'', 2025-04-02; forum t/50789 \#11, 2025-10-28).
+No interaction analysis exists in either direction, and the ZIP repository
+still contains no ZIP specifying NU8 (\texttt{zcash/zips} @
+\texttt{e753a6a3}, 2026-09-03).
 
 \paragraph{Classification.} The service goals and deliverables are
 \emph{designed but unspecified} (scoping and deliverables documents with
 open issue numbers); the five-component allocations are \emph{designed
-but unspecified} security claims pending the volume's security analysis;
+but unspecified} security claims assessed in \S\ref{sec:xl-econ};
 every concrete service-facing behaviour during a stall is an \emph{open
 problem}.
 
 \section{Security posture and open problems}\label{sec:xl-security}
 
-The security posture of Crosslink~2 is best stated as an inventory of four
+The security posture of Crosslink~2 is best stated as an inventory of five
 artifacts of unequal maturity. The design book states its central safety
-theorem twice over, from two independent assumptions --- though the second
-statement's pasted proof is defective
-(Remark~\ref{rem:xl-final-agreement-proof}) --- and then breaks off:
+theorem twice over, from two independent assumptions. The second theorem's
+published proof text is defective, but its intended argument can be
+completed (Remark~\ref{rem:xl-final-agreement-proof}); the analysis then
+breaks off:
 everything below a stated line of its analysis is marked ``Not updated for
 Crosslink~2'', and its last proof sketch ends mid-sentence (tfl-book @
 \texttt{fe6e1d6}, 2024-12-13, \texttt{src/design/crosslink/}%
@@ -3752,14 +3788,17 @@ Crosslink~2'', and its last proof sketch ends mid-sentence (tfl-book @
 machine-checks exactly one validity predicate of the BFT side and nothing
 else (crosslink-spec @ \texttt{8edc3e9}, 2025-07-23). The implementation
 departs from the analyzed design in two load-bearing ways that it documents
-itself (zebra-crosslink @ \texttt{6d02a1b}, 2026-04-21). An independent
+itself (zebra-crosslink @ \texttt{6d02a1b}, 2026-04-21); the active
+feature-net prototype has since moved again
+(crosslink\_monolith @ \texttt{807b995}, 2026-08-13). An independent
 mechanism-design review finds the construction's safety ``structurally
 strong once finality is reached'' and its finality progress ``economically
-fragile in the baseline design'' (nikete.com/crosslink-zebra-audit,
-completion announced 2026-02-05). We take the four in turn, keep the bin of
+fragile in the baseline design''
+(\url{https://www.nikete.com/crosslink_zebra_audit.pdf},
+completion announced 2026-02-05). We take the five in turn, keep the bin of
 every claim visible --- \emph{specified} here can only mean verifiable
 source at a pinned commit, since no Crosslink ZIP exists (zips @
-\texttt{6961098}, 2026-07-09) --- and close with the open-problem ledger
+\texttt{e753a6a}, 2026-09-03) --- and close with the open-problem ledger
 and its revisit triggers. The rules and properties named below are
 stated in \S\ref{sec:xl-bft}, \S\ref{sec:xl-bc}, and
 \S\ref{sec:xl-ledgers}; the source pins are those of
@@ -3826,17 +3865,41 @@ any times, $\textsf{bft-last-final}(C) \sim_{\mathrm{bft}}
 Final Agreement at \texttt{construction.md}, lines 203--206).
 \end{theorem}
 
+\begin{proof}
+Fix honest observations $(i,t)$ and $(j,u)$. Let
+$r \leq t$ and $s \leq u$ be the last times their local finalization
+values changed, taking genesis time if they never changed. Honesty at
+$t$ or $u$ means protocol compliance at every earlier time. By the update
+rule and the definition of $\mathsf{candidate}$,
+\[
+\mathsf{fin}_i^t \preceq_{\mathrm{bc}}
+  \mathsf{snapshot}(\mathsf{LF}(\mathsf{ch}_i^r)),
+\qquad
+\mathsf{fin}_j^u \preceq_{\mathrm{bc}}
+  \mathsf{snapshot}(\mathsf{LF}(\mathsf{ch}_j^s)).
+\]
+The corresponding $\mathsf{context}_{\mathrm{bft}}$ blocks are bft-valid
+blocks in honest view, so Final Agreement makes their $\mathsf{LF}$ blocks
+bft-comparable. Along the later $\mathsf{LF}$ block's ancestor path, the
+Parent and Linearity rules make their snapshots bc-comparable.
+Without loss of generality, let the first snapshot prefix the second.
+Both local finalization values are then prefixes of the second snapshot,
+so the Linear prefix lemma makes them bc-comparable. This is Assured
+Finality. The argument is the construction chapter's sketch at line~592,
+expanded using its definitions at lines 423--435 and 462--488.
+\end{proof}
+
 \begin{remark}[The written proof of Theorem~\ref{thm:xl-safety-final} is
 defective]\label{rem:xl-final-agreement-proof}
 The proof text pasted under the theorem in the book is a verbatim
 duplicate of the proof of Theorem~\ref{thm:xl-safety-prefix}: it invokes
 Prefix Agreement of $\Pi_{\mathrm{bc}}$, not Final Agreement of
 $\Pi_{\mathrm{bft}}$ (\texttt{security-analysis.md}, lines 86--91). The
-intended route presumably runs through the Linearity rule, as sketched at
-\texttt{construction.md}, line 592, but no correct written proof exists in
-the sources we have read. Bin: \emph{open problem} --- the theorem
-statement is the design's load-bearing claim for the case of a subverted
-PoW layer, and it currently has no proof.
+source therefore needs an erratum. The proof supplied immediately above
+uses its intended Linearity route and only premises already stated in the
+construction. Bin: \emph{designed but unspecified}; the argument is not
+peer-reviewed or machine-checked, but the source-text defect does not leave
+the theorem logically unsupported.
 \end{remark}
 
 The pair of theorems, where both hold, gives the design's headline
@@ -3857,7 +3920,7 @@ fewer than one third of each epoch's voting
 units are ever cast non-honestly, counted over the entire execution
 (\texttt{construction.md}, lines 131--141). First, uniqueness: any
 bft-valid block for a given epoch in honest view commits to the same
-proposal, by quorum intersection of two two-thirds vote sets, adapted from
+proposal, by quorum intersection of a pair of two-thirds vote sets, adapted from
 [CS2020, Lemma~1] (\texttt{security-analysis.md}, lines 208--213). Second,
 snapshot validity: with Prefix Consistency of $\Pi_{\mathrm{bc}}$ at depth
 $\sigma$ added, every bc-chain snapshot contributing to
@@ -3900,8 +3963,8 @@ whereas the book wants the conclusion to survive an adversary holding
 unspecified}: the proofs live in a design book at a pinned commit, not in
 a ZIP, a peer-reviewed paper, or machine-checked form. Within that bin,
 Theorem~\ref{thm:xl-safety-prefix} is complete on its stated assumptions;
-Theorem~\ref{thm:xl-safety-final} lacks a correct written proof
-(Remark~\ref{rem:xl-final-agreement-proof}); the ledger-level and
+Theorem~\ref{thm:xl-safety-final} has the source-text erratum and the
+completed argument of Remark~\ref{rem:xl-final-agreement-proof}; the ledger-level and
 snapshot-validity theorems predate Crosslink~2; and the
 $\Pi_{\mathrm{origbc}} \to \Pi_{\mathrm{bc}}$ assumption transfer is an
 acknowledged gap.
@@ -4133,7 +4196,7 @@ TODO: perhaps remove'' (crosslink-spec @ \texttt{8edc3e9},
 --- but of deliberately narrow scope. Machine-checking has not progressed
 since: the spec's last commit is 2025-07-23, the companion
 \texttt{quint-crosslink} repository contains no commits at all, and a web
-search on 2026-07-15 found no public evidence of a funded extension.
+search on 2026-09-05 found no public extension.
 Coverage of the bc-side rules, of any multi-node or adversarial property,
 and of liveness is an \emph{open problem}.
 \subsection{The implementation diverges from the analyzed design}
@@ -4182,48 +4245,54 @@ bitwise copy is canonical or will become canonical in the chain''
 (\texttt{book/src/design/cl2-construction.md}, lines 14--16). The book's
 model has the proposer re-sign $(P, \mathsf{proof}_P)$ with a strongly
 unforgeable signature (tfl-book @ \texttt{fe6e1d6},
-\texttt{construction.md}, lines 156--159); the implementation's
-replacement mechanism and its security argument are undocumented in the
-sources we have read.
-%% TODO: revisit when zebra-crosslink documents the outer-signature
-%% replacement; no security argument exists at 6d02a1b.
+\texttt{construction.md}, lines 156--159). The April prototype's direct
+certificate representation is visible in code, but no source supplies a
+security argument showing what replaces the outer signature's property.
 
 \paragraph{Which BFT protocol, exactly.} The book's analysis instantiates
 $\Pi_{\mathrm{origbft}}$ as adapted Streamlet: notarization at two-thirds
 of voting units, finality at the second of three adjacent notarized blocks
 with consecutive epochs, liveness after five consecutive honest-leader
 epochs (tfl-book @ \texttt{fe6e1d6}, \texttt{construction.md}, lines
-218--241 and 614--618). The implementation at HEAD instead uses
-``tenderlink'' 0.1.0, an in-house Tendermint-style engine pinned from
+218--241 and 614--618). The April snapshot instead uses ``tenderlink''
+0.1.0, an in-house Tendermint-style engine pinned from
 \texttt{git.sr.ht/\textasciitilde azmr/stuff} at revision
 \texttt{0e885095\ldots}; an earlier Malachite (Informal Systems)
 integration survives only as dead code --- \texttt{src/malctx.rs} still
 imports \texttt{malachitebft\_*} crates but is not declared as a module,
 and \texttt{Cargo.lock} contains no malachitebft packages
 (zebra-crosslink @ \texttt{6d02a1b}, \texttt{zebra-crosslink/Cargo.toml};
-\texttt{Cargo.lock}, lines 5445--5459; \texttt{src/lib.rs}). No published
-analysis shows tenderlink satisfies the properties the Crosslink safety
-arguments assume of $\Pi_{\mathrm{origbft}}$ --- Final Agreement,
-objective block validity, sound two-thirds notarization. Bin: \emph{open
-problem}, in the project's own words quoted above.
+\texttt{Cargo.lock}, lines 5445--5459; \texttt{src/lib.rs}). The current
+monolith retains Tenderlink and supplies extensive executable tests, but
+no published analysis shows that it satisfies the properties the Crosslink
+safety arguments assume of $\Pi_{\mathrm{origbft}}$ --- Final Agreement,
+objective block validity, and sound two-thirds notarization. Bin:
+\emph{open problem}, in the project's own words quoted above.
 
-\paragraph{Parameters, and the black box today.} The prototype ships
-$\sigma = 3$ and $L = 7$ under
-\texttt{PROTOTYPE\_PARAMETERS}, annotated ``No verification has been done
-on the security or performance of these parameters''
-(\texttt{zebra-crosslink/src/chain.rs}, lines 219--222); production values
-are unspecified everywhere. For comparison, the $\Pi_{\mathrm{bc}}$
-interface that Crosslink would consume today is the fork's hard rollback
-limit $\texttt{MAX\_BLOCK\_REORG\_HEIGHT} = 99$ --- the non-finalized
-state never reorganizes deeper, and zebra-crosslink reuses the constant
-as its pre-BFT fallback finality depth (zebra-crosslink @
-\texttt{6d02a1b}, \texttt{zebra-state/src/constants.rs}, line 31;
-\texttt{zebra-crosslink/src/lib.rs}, lines 260--292); upstream Zebra has
-since raised the same constant to $1000$ (zebra @ \texttt{9f3166b},
-\texttt{zebra-chain/src/parameters/constants.rs}, line 30), and the
-\emph{Ironwood Guide}'s 100-block ``reorg horizon'' for anchor selection
-is reconciled with the policy-not-limit framing in
-\S\ref{sec:xl-node-interface}.
+\paragraph{Parameters, and the black box today.} Both prototype snapshots
+ship $\sigma = 3$ and $L = 7$ under
+\texttt{PROTOTYPE\_PARAMETERS}; the April copy is annotated ``No
+verification has been done on the security or performance of these
+parameters'' (zebra-crosslink @ \texttt{6d02a1b},
+\path{zebra-crosslink/src/chain.rs}:219--222; crosslink\_monolith @
+\texttt{807b995},
+\path{librustzcash/zcash_primitives/src/bft.rs}:388--404).
+Production values are unspecified everywhere. Both snapshots use
+$\texttt{MAX\_BLOCK\_REORG\_HEIGHT} = 99$; the non-finalized state never
+reorganizes deeper, and Crosslink uses the constant as its pre-BFT fallback
+finality depth (zebra-crosslink @ \texttt{6d02a1b},
+\path{zebra-state/src/constants.rs}:31,
+\path{zebra-crosslink/src/lib.rs}:260--292; crosslink\_monolith @
+\texttt{807b995},
+\path{librustzcash/components/zcash_protocol/src/consensus.rs}:639,
+\path{zebra-crosslink/zebra-crosslink/src/lib.rs}:464--518). Upstream Zebra has
+since raised the same constant to $1000$ (zebra @ \texttt{d1fd7ad},
+\path{zebra-chain/src/parameters/constants.rs}, line 30). The
+\emph{Ironwood Guide} distinguishes this local Zebra limit from the
+protocol specification's 100-block rollback depth that validators are
+expected to handle; neither is an anchor-validity window. Wallet anchor
+recency is instead governed by confirmation policy
+(\S``Anchor choice, reorgs, and the anonymity set'').
 We cite the bound as interface, per this series' scope rule; its
 derivation belongs to the PoW layer.
 
@@ -4247,13 +4316,13 @@ review once the design settles.
 \subsection{Economic security: the mechanism-design review}
 \label{sec:xl-econ}
 
-The zebra-crosslink design decomposes security across five components:
+The April zebra-crosslink design decomposes security across five components:
 wallets (privacy and censorship defense), miners (liveness and
 censorship resistance; unable to violate finality even with more than
 half the hash power), finalizers (more than one third of stake-weighted
 votes can stall but cannot unilaterally roll back), stakers (holding
 finalizers accountable solely by \emph{redelegating} --- there is no
-slashing), and users (last-resort accountability via a user-led emergency
+automatic slashing), and users (last-resort accountability via a user-led emergency
 hard fork, with STEEM/HIVE cited as precedent). Its own attack scenarios:
 a collusion of more than half the hash power \emph{and} more than two
 thirds of stake can violate finality and execute rollback or
@@ -4270,7 +4339,8 @@ finalizers run by arbitrary or casual users is explicitly out of scope
 
 The independent review of this mechanism is the nikete (Nicolas Della
 Penna) audit: pre-registered 2025-12-11, completion announced by Shielded
-Labs on 2026-02-05, report at \texttt{nikete.com/crosslink-zebra-audit}.
+Labs on 2026-02-05, report at
+\url{https://www.nikete.com/crosslink_zebra_audit.pdf}.
 Its verdict: ``safety (irreversibility) is structurally strong once
 finality is reached'', but ``finality progress (liveness) is economically
 fragile in the baseline design and requires explicit incentive
@@ -4284,8 +4354,9 @@ voting weight, the effective cost to corrupt the frozen set decays over
 time. Its recommendations: signer-conditioned commission, first-inclusion
 miner bounties tied to finalized height, finality-gap telemetry,
 anti-jackpot constraints on pending rewards during stalls, and
-governance-level liveness resets (nikete.com/crosslink-zebra-audit,
-accessed 2026-07-15; pre-registration at
+governance-level liveness resets
+(\url{https://www.nikete.com/crosslink_zebra_audit.pdf}, checked
+2026-09-05; pre-registration at
 \texttt{book/src/design/analysis/history/2025-12-11-mech-design.md} and
 \texttt{\ldots/2025-12-11-mech-design/proposal.md} @ \texttt{6d02a1b8}).
 The
@@ -4294,20 +4365,23 @@ a design constraint, the assumed economics were a 40/40 issuance split
 and 5-day epochs with 5--10-day unbonding, and privacy impacts on stakers
 or finalizers were out of scope
 (\texttt{\ldots/2025-12-11-mech-design/proposal.md}, lines 33, 58, and
-64--66). Whether any recommendation has been incorporated is not visible
-in the repositories read.
-%% TODO: recheck zebra-crosslink after the next milestone for adoption of
-%% the audit's recommendations (none visible at 6d02a1b).
+64--66). Current \texttt{v13} replaces the audited pending-reward
+mechanism with per-block bond compounding and implements a socially
+selected termination-and-burn path. The latter resembles the audit's
+governance-reset recommendation, but the repository does not attribute
+either change to the report and no follow-up audit establishes that its
+incentive findings are resolved.
 
 The reward mechanics the audit targets are design-stage: pending rewards
 $R$ distribute at a finality-updating block as
 $S_{\mathrm{finalizer}} = c \cdot W_{\mathrm{finalizer}} /
 W_{\mathrm{total}}$ and
 $S_{\mathrm{staker}} = (1 - c) \cdot W_{\mathrm{staker}} /
-W_{\mathrm{total}}$ with commission rate $c = 0.1$, totals possibly
-summing below $S_{\mathrm{total}}$ because stake assigned outside the
-active set earns nothing (\texttt{book/src/design/nutshell.md}, lines
-19--37). The hostage-holdout finding is a direct consequence of that
+W_{\mathrm{total}}$ with commission rate $c = 0.1$. Every staker earns
+the staker slice regardless of its target finalizer. Totals may be below
+$S_{\mathrm{total}}$ only because commission attributable to stake on a
+non-active finalizer is unpaid (\texttt{book/src/design/nutshell.md},
+lines 19--37; audit, \S3). The hostage-holdout finding is a direct consequence of that
 ``until a finality-updating block'' accumulation. One privacy cost is
 already fixed at design stage: staking positions are ledger state with
 on-chain amount, target-finalizer key, and per-position redelegation key
@@ -4317,14 +4391,16 @@ quantizing stakes to powers of ten ZEC; the Crosslink Staking Orchard
 Restriction confines staking transactions to Orchard, fees, and burns,
 and Penumbra-style shielded delegation is deferred to ``continued
 exploration in future versions'' (\texttt{nutshell.md}, lines 39--104;
-shieldedlabs.net/crosslink-updated-staking-design/, 2025-10-27, accessed
-2026-07-15).
+\url{https://shieldedlabs.net/crosslink-updated-staking-design/},
+2025-10-27, checked
+2026-09-05).
 
 \paragraph{Classification.} The five-component model, the reward split,
 and the staking design are \emph{designed but unspecified}; the audit
 findings are \emph{specified} as a pinned report but normative for
-nothing. Whether the no-slashing, redelegation-only accountability model
-survives the phantom-security finding is an \emph{open problem} --- the
+nothing. Whether the baseline no-automatic-slashing accountability model,
+or \texttt{v13}'s socially selected burn, survives the phantom-security
+finding is an \emph{open problem} --- the
 audit proposal itself lists ``unbounded divergence between PoW progress
 and a stalled BFT subprotocol'' among the failure modes to examine, which
 is exactly the regime the implementation entered by dropping Stalled Mode
@@ -4333,23 +4409,25 @@ is exactly the regime the implementation entered by dropping Stalled Mode
 \subsection{Standing, siblings, and the open-problem ledger}
 \label{sec:xl-open}
 
-\paragraph{Normative standing.} No Crosslink ZIP exists: the zips
-repository at \texttt{6961098} (2026-07-09) contains Crosslink only as a
+\paragraph{Normative standing.} No Crosslink ZIP exists in the official
+repository: \texttt{e753a6a} (2026-09-03) contains Crosslink only as a
 citation footnote in draft ZIP~218 (25-second block target spacing) and as
 the source of the Assured Finality definition cited by
 \texttt{draft-ecc-}\allowbreak\texttt{onchain-accountable-voting}; the
-zebra-crosslink book
-says the ZIP draft exists as a Google Doc, to be refined ``as the
-prototype approaches maturity'' (\texttt{book/src/design.md}, line 7).
+zebra-crosslink book says the ZIP draft existed as a Google Doc, to be
+refined ``as the prototype approaches maturity''
+(\texttt{book/src/design.md}, line 7). Public overview and construction
+pre-drafts appeared in Shielded Labs' ZIP fork at \texttt{7cdceca}
+(2026-05-27), but neither is present on that fork's current main branch or
+in the official repository. They have no normative standing.
 NU8 scoping is an open governance discussion (``NU8 Decision Framework'',
 forum thread opened 2026-02-11) in which Crosslink competes with the
-25-second-blocks proposal and with Tachyon; the \emph{Tachyon Guide}
-records the same environment from the other side (\S``Relation to
-Crosslink and the upgrade environment''). Shielded Labs' roadmap shows
+25-second-blocks proposal and with Tachyon; their asserted independence is
+recorded in \S\ref{sec:xl-services}. Shielded Labs' roadmap shows
 Milestones 1--5 complete (2025-03-21 through 2026-04-15) and a
 productionization phase running Q2~2026 -- Q2~2027 --- testnet
 deployment, design iteration, potential integration
-(shieldedlabs.net/roadmap/, accessed 2026-07-15). No confirmed mainnet
+(\url{https://shieldedlabs.net/roadmap/}, checked 2026-09-05). No confirmed mainnet
 activation date exists.
 
 \paragraph{What Crosslink would change for the siblings.} Today the stack
@@ -4357,9 +4435,11 @@ expresses transaction confirmation entirely as depth policy on the
 black-box PoW chain: the \emph{Wallet Guide} documents the ZIP-315
 \texttt{ConfirmationsPolicy} with trusted depth $3$ and untrusted depth
 $10$ (\S``Transaction construction'', Definition ``Confirmations
-policy''), and the \emph{Ironwood Guide} records the 100-block reorg
-horizon governing anchor robustness (\S``Resting: the note in the commitment
-tree''). Crosslink would add a
+policy''), and the \emph{Ironwood Guide} distinguishes the specification's
+100-block validator rollback expectation from Zebra's 1000-block local
+rollback policy; neither is an anchor-validity window
+(\S``Anchor choice, reorgs, and the anonymity set''). Wallet anchor recency
+is separately governed by confirmation policy. Crosslink would add a
 protocol-level notion beneath both: finality status is the sole
 ``height-eventual'' ledger state it introduces --- computable for height
 $H$ only from a later attesting block, with the guarantee that if the
@@ -4368,10 +4448,12 @@ to the finality status of the same candidate block'' (zebra-crosslink @
 \texttt{6d02a1b}, \texttt{book/src/design/nutshell.md}, lines 116--124).
 How wallet policy would consume assured finality is unspecified in every
 source read. Separately, to prevent a terminology collision: the
-\emph{Voting Guide}'s ``finalization'' is an application-level tally
-event with its own caveat --- a round can finalize with empty results
-(\S``Trust model and verdict'', ``Tally liveness admits finalization
-without results'') --- and has no relation to consensus finality.
+Zally application uses ``finalization'' for a tally event: after the default
+tally timeout, end-of-block processing can finalize a round with empty
+results (\texttt{vote-sdk/x/vote/types/keys.go},
+\texttt{DefaultTallyTimeout}; \texttt{vote-sdk/x/vote/module.go};
+\texttt{valargroup/vote-sdk} @ \texttt{cb915f51}). This has no relation to
+consensus finality.
 
 \paragraph{The open-problem ledger.} We close with the ledger, each entry
 carrying its bin and, where one exists, its revisit trigger.
@@ -4379,23 +4461,25 @@ carrying its bin and, where one exists, its revisit trigger.
 \begin{enumerate}
 \item \emph{The authoritative security argument.} The analyzed design
   (tfl-book, frozen 2024-12-13, analysis incomplete below
-  \texttt{security-analysis.md}, line 54) and the built design
-  (zebra-crosslink, advancing through 2026-04, Stalled Mode and outer
-  signature dropped) have diverged with no document proving the latter.
+  \texttt{security-analysis.md}, line 54), the April built design
+  (Stalled Mode and the outer signature dropped), and current
+  \texttt{v13} have diverged with no document proving either prototype.
   Trigger: completion or supersession of the tfl-book analysis.
-\item \emph{The Final Agreement proof defect}
-  (Remark~\ref{rem:xl-final-agreement-proof}) and the unproven
-  $\Pi_{\mathrm{origbc}} \to \Pi_{\mathrm{bc}}$ assumption transfer
-  (\S\ref{sec:xl-safety-theorems}).
+\item \emph{The best-chain assumption transfer.} The published argument
+  that $\Pi_{\mathrm{origbc}}$ properties survive modification into
+  $\Pi_{\mathrm{bc}}$ is explicitly a handwave
+  (\S\ref{sec:xl-safety-theorems}). The separate Final Agreement proof
+  paste error has a complete reconstruction in
+  Remark~\ref{rem:xl-final-agreement-proof} and is not left open here.
 \item \emph{The parameter gap.} No quantitative relationship among $L$,
   $\sigma$, network delay, and honest hash and stake exists; the
-  prototype's $\sigma = 3$, $L = 7$ carry an explicit no-verification
-  warning, against a rollback bound that is itself only node policy ---
-  1000 blocks in mainline Zebra at \texttt{9f3166b}, 99 in the
-  zebra-crosslink fork (\S\ref{sec:xl-impl-divergences}).
+  prototypes' $\sigma = 3$, $L = 7$ lack a security justification; the
+  April source carries an explicit no-verification warning. Their
+  99-block rollback bound is node policy, against 1000 blocks in mainline
+  Zebra at \texttt{d1fd7ad} (\S\ref{sec:xl-impl-divergences}).
 \item \emph{The Stalled Mode question.} Whether the eventual ZIP adopts
-  the book's bounded availability or the implementation's
-  redelegation-only stance, and whether dropping the rule reopens the
+  the book's bounded availability or the prototypes' no-Stalled-Mode
+  stance, and whether dropping the rule reopens the
   unbounded-gap and tail-thrashing hazards the book used to justify it
   (\S\ref{sec:xl-impl-divergences}). Trigger: a filed Crosslink ZIP.
 \item \emph{The BFT engine.} No analysis shows tenderlink --- or any
@@ -4407,28 +4491,26 @@ carrying its bin and, where one exists, its revisit trigger.
   (Remark~\ref{rem:xl-quint-div}); the bc-side rules, adversarial
   settings, and liveness are unchecked. Trigger: any extension of the
   Quint spec or content in \texttt{quint-crosslink}.
-\item \emph{Accountability machinery.} On-chain evidence of BFT safety
-  violations remains a non-adopted [Recommended] change
+\item \emph{Accountability machinery.} Current \texttt{v13} can burn
+  bonds targeting socially selected finalizers at a configured hard fork,
+  but it does not infer guilt from on-chain evidence. Evidence-based BFT
+  accountability remains a non-adopted [Recommended] change
   (\S\ref{sec:xl-bounded}); long-range key hygiene improvements remain
   tfl-book issue \#140 (Remark~\ref{rem:xl-longrange}).
 \item \emph{Audit follow-through.} Adoption of the mechanism-design
-  recommendations, and survival of the no-slashing model against phantom
-  security, are unresolved (\S\ref{sec:xl-econ}). Shielded Labs states
-  further reviews by established firms precede activation.
+  recommendations, and whether the baseline or current prototype avoids
+  phantom security, are unresolved (\S\ref{sec:xl-econ}). The prototype's
+  compounding reward and user-activated burn post-date the audit; no
+  follow-up report covers them.
 \item \emph{Design-source discrepancies.} The staking epoch is roughly
   seven days in the nutshell (a one-day staking day plus a six-day locked
   phase) but five days in the 2025-10-27 blog post and the audit
-  proposal; which is current is unrecorded
-  (\texttt{nutshell.md}, lines 64--80; \texttt{proposal.md}, line 58).
+  proposal. Current \texttt{v13} instead uses 150-block periods, 70-block
+  action windows with five temporary exception heights, and two 75-block
+  lifecycle delays; no source adopts
+  those as production values (\texttt{nutshell.md}:64--80;
+  \texttt{proposal.md}:58; Table~\ref{tab:xl-stake-params}).
 \end{enumerate}
 
-%% TODO: verify whether simtfl (github.com/zcash/simtfl), the simulator
-%% the tfl-book references, produced any published analysis; not checked
-%% in this pass.
-%% TODO(assembly): the tfl-book's Crosslink 1 rule names in
-%% potential-changes.md (Increasing Score rule etc.) predate Crosslink 2
-%% and the chapter truncates mid-sentence; do not cite them as current
-%% design anywhere in this volume (potential-changes.md, lines 5-8 and
-%% 371-372).
 
 \end{document}

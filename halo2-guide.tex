@@ -155,8 +155,8 @@ proof composition and develop the accumulation schemes that make it practical.
 Finally, we assemble Halo~2 itself: PLONKish arithmetisation, the permutation
 and lookup arguments, the inner-product polynomial commitment with a worked
 example and its accumulation (the ``Halo trick''), and the complete seven-phase
-protocol. The \emph{Ironwood Guide} subsequently uses this proof system to
-construct a shielded payment protocol.
+protocol. Orchard uses this proof system to construct its shielded payment
+relation.
 
 A reader who wants the concrete picture before the formal machinery may begin
 with Section~\ref{sec:worked-example}. It carries the claim ``I know $x$ with
@@ -200,46 +200,44 @@ verifier ``succinct'' even when the polynomials themselves have large degree.
 
 \subsection{Compiling a PIOP into a SNARK}
 
-\begin{construction}[PIOP-to-SNARK compiler]\label{const:piop-snark}
+\begin{construction}[PIOP-to-argument compiler]\label{const:piop-snark}
 Given a PIOP $\Pi$ for $\Rel$, a PCS scheme $(\Setup, \Comm, \Open, \Verify)$
-for $\F[X]$, and a random oracle $H$, the compiler produces the SNARK:
+for $\F[X]$, and a random oracle $H$, the compiler produces a
+non-interactive argument:
 \begin{enumerate}[leftmargin=*]
 \item Setup: run the PCS setup to obtain $\mathsf{pp}$.
-\item Prover: simulate $\Pi$, replacing each polynomial oracle $p_i$ by its
-PCS commitment $C_i$, and each verifier-challenge / oracle-query round by
-the corresponding PCS opening. Use Fiat--Shamir (the \emph{Crypto Guide}) to derive
-challenges from the transcript.
+\item Prover: simulate $\Pi$, replacing each polynomial-oracle message $p_i$
+by its PCS commitment $C_i$. Use Fiat--Shamir (the \emph{Crypto Guide}) to
+derive verifier challenges from the transcript, and supply PCS openings for
+the PIOP's oracle queries.
 \item Verifier: parse the transcript, recompute Fiat--Shamir challenges,
 verify each PCS opening, and run the PIOP's final accept/reject check.
 \end{enumerate}
 \end{construction}
 
-A PIOP is \emph{round-by-round} knowledge sound with error $\kappa_\Pi$
-if partial transcripts admit a ``doomed'' labelling under which a claim
-with no extractable witness starts doomed, no prover message lifts the
-label except with probability $\kappa_\Pi$ over the verifier's next
-challenge, and a complete doomed transcript is rejected; equivalently,
-the PIOP withstands a \emph{state-restoration} prover, one permitted to
-rewind the verifier to any earlier round and redraw its challenge, the
-two notions implying each other with comparable error.
+A PIOP is \emph{round-by-round} knowledge sound, informally, when partial
+transcripts admit a ``doomed'' labelling that a prover message cannot escape
+except with bounded probability over the next verifier challenge. A related
+\emph{state-restoration} definition lets a prover restore an earlier verifier
+state and redraw its challenge. Precise equivalence or implication theorems
+between these notions require additional protocol and extractor conditions; we
+do not identify them definitionally here.
 
-\begin{theorem}[Soundness preservation]\label{thm:piop-snark}
-If $\Pi$ has round-by-round (equivalently, state-restoration) knowledge
-soundness $\kappa_{\Pi}$ and the PCS is extractable
-with extraction error $\kappa_{\mathrm{PCS}}$ (the PCS definition of the
-\emph{Crypto Guide}), the compiled SNARK has knowledge soundness
-$O(Q \cdot (\kappa_\Pi + \kappa_{\mathrm{PCS}}))$ in the random oracle model,
-where $Q$ is the adversary's RO-query budget.
+\begin{theorem}[Compilation principle, informal]\label{thm:piop-snark}
+Suppose $\Pi$ has a round-by-round or state-restoration knowledge-soundness
+theorem, the PCS supplies compatible online extraction and binding properties,
+and the transcript satisfies the hypotheses of an appropriate multi-round
+Fiat--Shamir theorem. Then the compiled protocol is a non-interactive argument
+of knowledge in the random-oracle model. The exact error and query loss depend
+on those definitions and on the extraction model; they are not determined
+solely by two scalar errors $\kappa_\Pi,\kappa_{\mathrm{PCS}}$.
 \end{theorem}
 
-The query budget multiplies $\kappa_\Pi$ as well as
-$\kappa_{\mathrm{PCS}}$: step 2 derives the PIOP challenges by
-Fiat--Shamir, so a cheating prover that re-randomises a commitment
-redraws every subsequent challenge, obtaining up to $Q$ independent
-draws of each --- the grinding attack. Round-by-round soundness confines
-this loss to the single factor $Q$; for an $r$-round PIOP with plain
-knowledge soundness only, the naive Fiat--Shamir analysis loses a factor
-$Q^{O(r)}$ (\S\ref{sec:ks}).
+Fiat--Shamir exposes a query-budget loss because changing a commitment redraws
+the later challenges. Plain nested forking can lose $Q^{O(r)}$ for $r$ rounds;
+stronger round-by-round or state-restoration notions are designed to obtain
+tighter bounds. Claiming a single factor $Q$ nevertheless requires the precise
+theorem's state-restoration, transcript, challenge, and extraction hypotheses.
 
 This factoring is of considerable utility: research on PIOPs (PLONK, Marlin,
 Spartan, HyperPlonk, $\dots$) proceeds independently of research on
@@ -259,8 +257,8 @@ such that $p(z) = y$ for a public $(z, y)$.''
 \begin{construction}[PIOP for univariate evaluation]\label{const:univ-piop}
 On input $(z, y)$ and prover witness $p$:
 \begin{enumerate}[leftmargin=*]
-\item Prover sends the polynomial oracle $p$ and the quotient oracle
-$q := (p - y)/(X - z)$.
+\item Prover sends the degree-$\le d$ polynomial oracle $p$ and the
+degree-$\le d-1$ quotient oracle $q := (p-y)/(X-z)$.
 \item Verifier samples a random challenge $r \in \F$.
 \item Verifier queries $p$ and $q$ at $r$.
 \item Verifier accepts iff $p(r) - y = q(r) \cdot (r - z)$.
@@ -272,10 +270,12 @@ Soundness follows from Schwartz--Zippel: if $(X - z) \nmid (p(X) - y)$,
 then $p(X) - y - q(X)(X - z)$ is a non-zero polynomial of degree $\le d$,
 and its random evaluation is zero with probability $\le d/|\F|$.
 
-Compiling this PIOP with the IPA-PCS, applying Fiat--Shamir, yields a
-non-interactive SNARK for the same relation. The PCS handles polynomial
-hiding and binding; the PIOP handles the relation logic. This separation
-is precisely the modular SNARK design pattern.
+Compiling this PIOP with the IPA-PCS and applying Fiat--Shamir yields a
+non-interactive argument for the same relation. Its opening proof is
+logarithmic in the degree bound, but the final IPA MSM makes verification
+linear unless it is deferred by an accumulation scheme. The PCS handles
+polynomial hiding and binding; the PIOP handles the relation logic. This
+separation is precisely the modular proof-system design pattern.
 
 \subsection{PLONK as a PIOP}
 
@@ -376,36 +376,37 @@ security in the random oracle model under the DL assumption
 To render the tree extractor concrete, consider the key step at each round of the
 IPA halving (see \S\ref{sec:ipa-detail}):
 
-\begin{lemma}[Single-round extraction]\label{lem:single-round}
-In a single round of the IPA at depth $j$, given three accepting
-sub-transcripts that share the round's first message $(L_j, R_j)$ but
-have three challenges $u_j$ with pairwise distinct squares
-($u_j \ne \pm u_j'$), the extractor recovers the round-$j$
-witness halves $\vec{a}_{\mathrm{lo}}^{(j)}, \vec{a}_{\mathrm{hi}}^{(j)}$
-together with the consistency of the $L_j, R_j$ cross-terms via $3 \times 3$
-Vandermonde inversion (rows $(u_j^{-2}, 1, u_j^2)$), since the folded
-relation is quadratic in $u_j$.
+\begin{lemma}[Single-round algebraic recovery]\label{lem:single-round}
+Consider one node of a recursive IPA tree extractor. Suppose extraction below
+each child has already exposed the child's folded scalar data, and the group
+messages have the algebraic representations required by the extraction model.
+In the symmetric normalisation of Construction~\ref{const:ipa}, three branches
+whose nonzero challenges have pairwise distinct squares give an invertible
+system with rows $(u_j^{-2},1,u_j^2)$. In the deployed normalisation of
+Remark~\ref{rem:ipa-deployed}, the corresponding rows are
+$(u_j^{-1},1,u_j)$ and merely require pairwise distinct nonzero challenges.
+Solving the system recovers the parent representation and its cross-term
+consistency.
 \end{lemma}
 
 \begin{proof}[Sketch]
-The three accepting transcripts give three accepting verifier equations.
-Because the folded relation is quadratic in $u_j$ (the three monomials
-$u_j^{-2}, 1, u_j^2$), treating these as three linear equations in three
-unknowns (the cross-terms and the folded commitment), the system has a
-unique solution because the $3 \times 3$ Vandermonde determinant with rows
-$(u_j^{-2}, 1, u_j^2)$ is non-zero exactly when the squares $u_j^2$ are
-pairwise distinct ($u_j \ne \pm u_j'$). Excluding the bad challenge collisions contributes an additive
-$O(1/|\F|)$ term per round to the knowledge error.
+After the child data have been extracted, the three accepting relations are
+linear equations in the three parent coefficient terms. Multiplying a deployed
+row by $u_j$ gives $(1,u_j,u_j^2)$, an ordinary Vandermonde row; its determinant
+is nonzero for distinct $u_j$. Multiplying a symmetric-normalisation row by
+$u_j^2$ gives $(1,u_j^2,u_j^4)$, so that version requires distinct squares.
+The raw group equations alone do not reveal discrete logarithms or witness
+halves; the conclusion uses the recursively extracted child data and the
+stated algebraic-representation or special-soundness hypotheses.
 \end{proof}
 
 The full extraction requires three accepting transcripts at each of the
 $k = \log_2 d$ rounds, giving a tree of $3^k = d^{\log_2 3} \approx d^{1.585}$
-leaves --- polynomial in $d$, though more than the $O(d)$ a binary tree
-would cost. In the AGM, each prover invocation is direct (the extractor
-reads the algebraic representation); in the standard model with forking,
-each invocation costs $1/\varepsilon$ expected queries to the prover,
-where $\varepsilon$ is the cheating prover's acceptance probability,
-yielding total cost $O(d^{\log_2 3} \cdot \mathsf{poly}(\lambda) / \varepsilon)$.
+leaves---polynomial in $d$, though more than the $O(d)$ a binary tree would
+cost. In the AGM the extractor can read algebraic representations directly. A
+standard-model or Fiat--Shamir extractor additionally needs the appropriate
+rewinding or state-restoration theorem; its cost cannot be obtained by simply
+multiplying every tree node by an independent $1/\varepsilon$ factor.
 
 \subsection{Concrete versus asymptotic security}
 
@@ -417,8 +418,8 @@ loses a factor $q^{O(\log d)}$, exponential in the round count $\log d$
 with base the query count $q$; the interactive standard-model extraction
 itself is polynomial ($d^{\log_2 3}$ transcripts, expected polynomial
 time).
-\item Halo 2's deployed parameters assume the AGM and/or the random oracle
-model heuristically.
+\item Security analyses for Halo 2's deployed parameters rely on the AGM
+and/or the random-oracle model.
 \end{itemize}
 
 This reflects the practical reality of deployed SNARKs: tight reductions
@@ -427,12 +428,11 @@ selecting the former.
 
 \section{Recursive proof composition and accumulation schemes}\label{sec:pcd}
 
-We now turn to recursive proof composition: proving, inside one proof,
-that another proof verifies. This is what makes Halo 2's combination of
-``no trusted setup'' with recursion possible. Orchard's mainnet
-deployment does not recurse, but the accumulation structure shapes the
-deployed verifier nonetheless --- the deferred MSM and the batched
-verification of \S\ref{sec:halo-acc} --- so we develop it with care.
+We now turn to recursive proof composition: proving, inside one proof, that
+another proof verifies. This is what makes transparent Halo-style recursion
+efficient. Orchard's mainnet deployment does not recurse. Its verifier can
+batch independent proof equations, but that randomized MSM batching is
+distinct from the recursive accumulation scheme developed here.
 
 \subsection{Recursion and its two classical obstacles}
 
@@ -451,10 +451,10 @@ For this to work, the SNARK's verifier must itself be efficiently
 expressible as a circuit, and here the classical instantiations meet two
 obstacles:
 \begin{enumerate}[leftmargin=*]
-\item Pairing-based SNARKs have constant-size, constant-time verifiers,
-but the verifier evaluates a pairing --- costly to express algebraically
-inside a circuit, since it requires extension-field arithmetic --- and
-these SNARKs need a trusted setup besides.
+\item Classical pairing-based systems such as Groth16 and KZG-backed PLONK
+have constant-size proofs and succinct verifiers, but their verifiers evaluate
+pairings---costly to express inside a circuit because they require
+extension-field arithmetic---and these particular systems use trusted setup.
 \item Transparent SNARKs built on the IPA need no pairing and no trusted
 setup, but their verifiers run in linear time --- the $O(d)$ MSM of
 \S\ref{sec:gpoly}. A linear-time check dominates the verifier circuit
@@ -480,8 +480,9 @@ new accumulator is valid only if the old one was valid and the new claim
 holds. Folding is fast: $O(\log d)$ in the IPA instantiation below.
 \item A \emph{decider}, which is expensive (linear-time) but which the scheme
 invokes only once at
-the very end to validate the accumulator. If the decider accepts, every
-claim folded in so far is true.
+the very end to validate the accumulator. Under the scheme's computational
+assumptions, an accepting decider implies that every folded claim is true,
+except with the stated soundness error.
 \end{itemize}
 \end{definition}
 
@@ -493,7 +494,7 @@ deferred work once, at the end of the entire chain. We state the scheme
 precisely as Theorem~\ref{thm:bcms20-acc}, once the IPA construction of
 \S\ref{sec:ipa-detail} is in hand.
 
-\subsection{The necessity of a cycle of curves}\label{sec:cycle}
+\subsection{A cycle of curves for efficient native recursion}\label{sec:cycle}
 
 The accumulation scheme's in-circuit folding involves arithmetic on group
 elements of the underlying curve. For this to be efficient inside the
@@ -511,7 +512,7 @@ computable in polynomial time (Smart; Semaev; Satoh--Araki, 1998--99), so
 no \emph{secure} curve has $\F_p = \F_q$, and no one curve $E_p$ can host
 both the proof's coordinates and its own verifier circuit natively.
 
-The resolution is a \emph{2-cycle} of elliptic curves, where $|E_p| = q$ and
+An efficient native resolution is a \emph{2-cycle} of elliptic curves, where $|E_p| = q$ and
 $|E_q| = p$. Then:
 \begin{itemize}[leftmargin=*]
 \item A circuit committed on $E_q$ verifies a proof generated over $E_p$;
@@ -521,18 +522,21 @@ $E_p$, enabling native manipulation of $E_p$'s group elements.
 \item A circuit over $\F_q$ verifies the next proof, generated over $E_q$.
 \item Proofs alternate between the two curves.
 \end{itemize}
-This is precisely the Pasta cycle of the \emph{Math Guide},
+This is not a logical necessity: a circuit can emulate non-native field
+arithmetic, at substantial cost. It is the efficient native design used by the
+Pasta cycle of the \emph{Math Guide},
 where the two curves are Pallas (over $\F_{p_{\Pallas}}$, order $p_{\Vesta}$)
 and Vesta (over $\F_{p_{\Vesta}}$, order $p_{\Pallas}$).
 
 \section{The Halo 2 proof system}\label{sec:halo2}
 
 We now assemble the abstractions of the \emph{Crypto Guide}--\S\ref{sec:pcd} into
-the concrete proof system Halo 2: a transparent PLONKish SNARK whose
-polynomial commitment is the inner-product argument over the Pasta cycle.
+the concrete proof system Halo 2: a transparent PLONKish argument whose
+polynomial commitment uses one curve at a time. Orchard proves over the Pallas
+base field and commits on Vesta; the full Pasta cycle is needed only by the
+optional native-recursion construction above.
 This section develops Halo 2 to the level of detail required to state
-\emph{what an Orchard Action proof actually is}, the subject of
-the \emph{Ironwood Guide}.
+\emph{what an Orchard Action proof actually is}.
 
 \subsection{PLONKish arithmetisation}\label{sec:plonkish}
 
@@ -570,7 +574,7 @@ gates of higher arity and degree, each gated by a selector $q_i(X)$
 vanishing on rows where the gate is inactive. The Orchard Action circuit
 uses ten advice columns plus a small fixed-column lookup table for
 Sinsemilla; its custom gates encode the algebraic constraints of the
-Action statement (the \emph{Ironwood Guide}) together with the
+Action statement together with the
 complete- and incomplete-addition arithmetic for in-circuit
 elliptic-curve operations (the \emph{Math Guide} names the distinction).
 
@@ -594,14 +598,11 @@ passage: a real custom gate (the ECC chip's
 incomplete point addition), two real lookup declarations (the ten-bit range
 check and the Sinsemilla generator table), and the synthesis machinery that
 turns witness data into the column vectors on which every argument of this
-section operates. Our sources are \texttt{halo2\_proofs}~0.3.2 and
-\texttt{halo2\_gadgets}~0.4.0, as resolved by \texttt{orchard}~0.13.1, the
-version we cite, with file paths relative to each crate's \texttt{src/}.
-The deployed \texttt{orchard} (0.15.0) keeps \texttt{halo2\_proofs}~0.3.2
-but resolves \texttt{halo2\_gadgets}~0.5.0, the release carrying the
-NU6.2 circuit correction (ZIP 257; the \emph{Ironwood Guide}); every
-gate and lookup declaration cited below is identical in the two
-releases.
+section operates. The source versions audited here are
+\texttt{halo2\_proofs}~0.3.2, \texttt{halo2\_gadgets}~0.5.0, and
+\texttt{orchard}~0.15.3, with file paths relative to each crate's
+\texttt{src/}. This audited Orchard release includes both the post-NU6.2
+circuit correction and the post-NU6.3 circuit version.
 
 \paragraph{Shape first, data second.}
 A circuit, to \texttt{halo2\_proofs}, is a type implementing the
@@ -654,11 +655,9 @@ fixed-column expression (\texttt{plonk/circuit.rs},
 \texttt{plonk/keygen.rs}). The deployed Action circuit declares $56$
 selectors, whose compressed columns are among the $29$ fixed columns pinned
 in its verifying key; the pinned count is the post-compression one
-(\texttt{orchard}~0.13.1, \texttt{src/circuit\_description}; since 0.14
-the file lives at \texttt{src/circuit\_data/\allowbreak
-circuit\_description\_insecure}, and the corrected post-NU6.2 key beside
-it, \texttt{circuit\_description\_fixed}, pins the identical constraint
-system, differing only in its permutation commitments).
+(\texttt{orchard}~0.15.3,
+\texttt{src/circuit\_data/\allowbreak circuit\_description\_fixed} and
+\texttt{circuit\_description\_post\_nu6\_3}).
 
 \paragraph{Regions, the layouter, and wiring.}
 Data enters at synthesis through a \texttt{Layouter}. A chip requests a
@@ -806,8 +805,7 @@ halo2 book's \emph{Fixed-base scalar multiplication} chapter).
 Prover-side, \texttt{assign\_region} rejects a \emph{known} bad witness
 with an error --- a developer diagnostic, not a constraint. (The
 circuit's other incomplete additions --- the variable-base
-ladder's fused double-and-add rounds and Sinsemilla's two per chunk, the
-ones the \emph{Ironwood Guide}'s gadget survey counts --- are separate gates
+ladder's fused double-and-add rounds and Sinsemilla's two per chunk --- are separate gates
 built on the same discipline; \texttt{ecc/chip/mul/\allowbreak incomplete.rs},
 \texttt{sinsemilla/chip.rs}.)
 
@@ -821,7 +819,8 @@ system (\texttt{halo2\_proofs}, \texttt{plonk/circuit.rs}). Each
 declaration is one instance of the argument of \S\ref{sec:lookup}, the
 input expressions playing $A_0, \dots, A_{m-1}$ and the table columns
 $S_0, \dots, S_{m-1}$. The deployed circuit carries exactly three
-(\texttt{orchard}~0.13.1, \texttt{src/circuit\_description}): one shared
+(\texttt{orchard}~0.15.3, \texttt{src/circuit\_data/\allowbreak
+circuit\_description\_post\_nu6\_3}): one shared
 range-check declaration, and the Sinsemilla generator declaration twice ---
 once per Sinsemilla chip instance, each on its own half of the ten advice
 columns.
@@ -931,8 +930,8 @@ of Phase~4 (\S\ref{sec:halo2-full}). This is the point where the worked
 example of \S\ref{sec:h2i-polys} resumes: it interpolates a four-row trace
 and assembles exactly this
 $G(X)$ whose divisibility by $Z_H$ the rest of the protocol certifies ---
-and where the \emph{Ironwood Guide}'s gadget stack bottoms out: each gadget
-of its survey is a bundle of \texttt{configure}-time gates and lookups plus
+and where Orchard's deployed gadget stack bottoms out: each gadget
+is a bundle of \texttt{configure}-time gates and lookups plus
 \texttt{synthesize}-time regions, and after synthesis nothing remains of
 the stack but rows in these same columns. The scale-up from the toy is
 numerical, not conceptual. The deployed Action circuit has $k = 11$
@@ -941,8 +940,9 @@ instance column, and twenty-nine fixed columns, with a constraint-degree
 bound of nine across
 its gates and permutation and lookup expressions --- so the quotient splits
 into $9 - 1 = 8$ chunks, and the prover's FFTs run over an extended domain
-of size $2^{14} = 8 \cdot 2^{11}$ (\texttt{orchard}~0.13.1,
-\texttt{src/circuit\_description}; \texttt{halo2\_proofs},
+of size $2^{14} = 8 \cdot 2^{11}$ (\texttt{orchard}~0.15.3,
+\texttt{src/circuit\_data/\allowbreak circuit\_description\_post\_nu6\_3};
+\texttt{halo2\_proofs},
 \texttt{poly/domain.rs}). The next two subsections supply the arguments
 this construction leans on: the permutation argument behind every copy
 constraint, and the lookup argument behind
@@ -956,28 +956,33 @@ A PLONK-style permutation argument, which Halo 2 generalises to multiple
 columns, enforces equality constraints between distinct cells. Each
 cell $(i, j)$ (column $i$, row $j$) receives a unique label
 $\delta_i \cdot \omega^j$ with $\delta_i$ chosen so all products are
-distinct as $(i, j)$ ranges over the trace. The prover writes
+distinct as $(i, j)$ ranges over the trace. Preprocessing fixes
 $\sigma$-permuted polynomials $s_i(X)$ with $s_i(\omega^j) =
-\delta_{i'} \cdot \omega^{j'}$ when $\sigma(i, j) = (i', j')$.
+\delta_{i'} \cdot \omega^{j'}$ when $\sigma(i, j) = (i', j')$; the
+verifying key contains commitments to them.
 
 Given Fiat--Shamir challenges $\beta, \gamma \in \F$, the prover commits
 to a running-product polynomial $Z_{\mathrm{perm}}(X)$ asserting, where
 $v_i(X)$ denotes the Lagrange interpolation (\S\ref{sec:plonkish}) of the
 $i$-th column participating in the permutation,
 \[
-\prod_{i, j} \frac{v_i(\omega^j) + \beta\,\delta_i\,\omega^j + \gamma}
-{v_i(\omega^j) + \beta\,s_i(\omega^j) + \gamma} = 1.
+\prod_{i,j}\bigl(v_i(\omega^j)+\beta\delta_i\omega^j+\gamma\bigr)
+=
+\prod_{i,j}\bigl(v_i(\omega^j)+\beta s_i(\omega^j)+\gamma\bigr).
 \]
 The assignment satisfies every equality constraint (cells related by
 $\sigma$ carry equal values) precisely when the denominator factors are a
 permutation of the numerator factors, in which case the product equals $1$
 for every $\beta, \gamma$; conversely, if some constraint is violated, the
-product at the sampled $\beta, \gamma$ equals $1$ with probability at most
+two products at the sampled $\beta, \gamma$ are equal with probability at most
 $O(N/|\F|)$ by Schwartz--Zippel, where $N$ is the number of cells
 participating in the permutation. The verifier checks this by opening $Z_{\mathrm{perm}}$
 at $x$ and $\omega x$, verifying the boundary $Z_{\mathrm{perm}}(\omega^0) = 1$
-and the row-by-row update. The per-proof verifier work is $O(m + \log n)$,
-where $m$ denotes the number of columns participating in the permutation.
+and a cross-multiplied row-by-row update, which remains defined when a factor is
+zero. Excluding the final IPA MSM, this argument contributes $O(m+\log n)$
+verifier work, where $m$ is the number of participating columns; the complete
+deployed verifier still has the $O(n)$ commitment check of
+\S\ref{sec:gpoly}.
 
 \subsection{The lookup argument}\label{sec:lookup}
 
@@ -1002,8 +1007,9 @@ Z_{\mathrm{lookup}}(\omega X)(A'(X) + \beta)(S'(X) + \gamma) - Z_{\mathrm{lookup
 (A'(X) - S'(X))(A'(X) - A'(\omega^{-1} X)) &= 0.
 \end{align*}
 The first two constraints, with the boundary conditions of
-Remark~\ref{rem:active-rows}, force $A'$ and $S'$ to be permutations of
-$A$ and $S$ respectively; the third aligns row $0$ ($A'_0 = S'_0$), where
+Remark~\ref{rem:active-rows}, certify with the usual
+Schwartz--Zippel error that $A'$ and $S'$ are permutations of $A$ and $S$
+respectively; the third aligns row $0$ ($A'_0 = S'_0$), where
 the wrap-around reference $A'(\omega^{-1}X)$ deprives the fourth
 constraint of force. The fourth constrains every subsequent row either to
 start a new run aligned with $S'$ ($A'_i = S'_i$) or to continue the
@@ -1139,10 +1145,17 @@ $g(X) = \prod_{i=0}^{k-1} \bigl(1 + u_{k-1-i} X^{2^i}\bigr)$. The
 opening also begins with an extra blinding commitment $S$ and two
 challenges $\xi, z$, and ends with two scalars: the collapsed
 coefficient $c$ and a synthetic blinder $f$. The two conventions are
-equivalent up to per-round rescaling of the folded vectors and
-relabelling ($u_j^2$ here corresponds to the code's $u_j$, with the
-roles of $L_j$ and $R_j$ exchanged); every statement of this section
-transfers.
+algebraically related by per-round rescaling and a formal relabelling of the
+challenge. This does \emph{not} identify their challenge distributions: a
+uniform field element in the code is not the square of a uniform field element
+over all of $\F_p$. Consequently extraction and soundness conditions must be
+stated for the deployed coefficients $u_j^{-1},1,u_j$, as in
+Lemma~\ref{lem:single-round}, rather than transferred automatically from the
+square-weighted presentation. The code squeezes full-field challenges without
+rejection; a zero $u_j$ makes the required inversion fail, and analogous
+denominator collisions occur elsewhere with negligible probability. Thus its
+implementation-level completeness is overwhelming rather than literally
+perfect.
 \end{remark}
 
 \subsubsection{Worked example: an IPA opening at \texorpdfstring{$d = 4$}{d=4}}\label{sec:ipa-worked}
@@ -1206,19 +1219,16 @@ AGM (\S\ref{sec:ks}).
 \end{theorem}
 
 \begin{proof}[Sketch of the tree extractor]
-The extractor rewinds the prover $\mathcal{P}^*$ to obtain, at each
-round, \emph{three} accepting transcripts that agree on $(L_j, R_j)$ but
-carry pairwise distinct challenges $u_j$. The round-$j$ verification
-equation involves the three monomials $u_j^{-2}, 1, u_j^2$, whose
-coefficients --- the unknown representations of $L_j$, the folded
-commitment, and $R_j$ over the generators --- the extractor must
-determine; two transcripts would leave this system underdetermined.
-Three challenges with pairwise distinct squares (\(u \ne \pm u'\); the
-colliding pairs are excluded below) yield three linear equations whose
-\(3 \times 3\) Vandermonde-type determinant in \(u^2\) is non-zero, so
-the extractor solves for the
-round-$j$ witness halves $\vec{a}_{\mathrm{lo}}^{(j)},
-\vec{a}_{\mathrm{hi}}^{(j)}$ (Lemma~\ref{lem:single-round}).
+The extractor recursively obtains the folded scalar data below each child,
+then rewinds the prover $\mathcal P^*$ to obtain three accepting branches that
+agree on $(L_j,R_j)$. Lemma~\ref{lem:single-round} then inverts the resulting
+linear system to recover the parent representation. For
+Construction~\ref{const:ipa}, the three nonzero challenges need pairwise
+distinct squares because the coefficients are $u_j^{-2},1,u_j^2$; for the
+deployed normalisation, pairwise distinct nonzero values suffice because the
+coefficients are $u_j^{-1},1,u_j$. Three raw group equalities alone would not
+reveal the scalar halves: recursive child extraction and the protocol's
+special-soundness or algebraic-representation hypotheses are essential.
 
 Extracting the full witness $\vec{a} \in \F_p^d$ requires three sibling
 transcripts at the deepest level, which yield one round-1 witness; three
@@ -1229,7 +1239,8 @@ $3^k = d^{\log_2 3}$ leaves --- polynomial in $d$ (\S\ref{sec:ks}) ---
 yielding polynomial expected extraction time when $d = \poly(\lambda)$.
 The theorem's knowledge error of $O(d / |\F_p|)$ does not come from a
 tree-wide union bound. Each of the $k = \log_2 d$ rounds excludes $O(1)$
-bad challenges ($u_j = \pm u_j'$), contributing
+bad challenges (equal squares in the symmetric presentation, or equal values
+in the deployed one), contributing
 $O(\log d / |\F_p|) \le O(d / |\F_p|)$; Schwartz--Zippel terms of degree
 $d$ account for the rest. Collisions among the resampled challenges
 inside the extractor's $3^k$-leaf tree affect only its expected running
@@ -1250,8 +1261,9 @@ stacks $k$ rounds.
 The verifier's check (\ref{eq:ipa-final}) runs in $O(\log d)$ scalar
 operations and $\log d$ point additions, \emph{except} for the single
 evaluation $G^{(0)} = \ip{\vec{s}}{\vec{G}}$ --- an MSM of length $d$.
-The accumulation idea (Bowe--Grigg--Hopwood 2019; formalised by BCMS20)
-is to \emph{defer} this MSM and amortise it across many proofs.
+For optional recursive composition, the accumulation idea
+(Bowe--Grigg--Hopwood 2019; formalised by BCMS20) is to \emph{defer} this MSM
+and amortise it across many recursively composed proofs.
 
 \begin{definition}[Atomic accumulator for IPA]\label{def:ipa-acc}
 An IPA \emph{accumulator instance} is a tuple
@@ -1263,8 +1275,8 @@ having been discharged by the $[r^*] H$ term of (\ref{eq:ipa-final}).
 Subsequent unary $\Comm(\cdot)$ abbreviates $\Comm(\cdot\,; 0)$.
 \end{definition}
 
-\begin{theorem}[Accumulation of IPA, BCMS20]\label{thm:bcms20-acc}
-There is an accumulation scheme
+\begin{theorem}[IPA accumulation, informal BCMS20 interface]\label{thm:bcms20-acc}
+BCMS20 constructs an accumulation scheme
 $(\mathsf{AccVerifier},\allowbreak \mathsf{AccDecider})$ for IPA with:
 \begin{itemize}[leftmargin=*]
 \item $\mathsf{AccVerifier}$, on input a new IPA instance and an old
@@ -1311,18 +1323,19 @@ $\F_{p_{\Pallas}}$-native Action circuit manipulate the Pallas points
 $\cmsym$, $\rk$, and $\cvsym^{\mathsf{net}}$ directly
 (\S\ref{sec:instance}).
 
-Orchard's deployment does not recurse: the verifier of an Action proof
-pays the deferred MSM itself, as part of the standard verification cost.
-Even there the accumulation idea is load-bearing: a Zcash node verifying
-many Action proofs takes a random linear combination of their deferred
-MSMs and evaluates the combination as one MSM, amortising the linear-time
-work across the whole batch --- the deployed, non-recursive use of the
-same algebraic structure.
+Orchard's deployment does not recurse: the verifier of an Action proof pays the
+deferred MSM itself. The library's batch verifier separately random-scales and
+adds the complete MSM equation produced for each proof, then evaluates one
+combined MSM. This is randomized batch verification; it neither emits an
+accumulator for a later proof nor invokes the BCMS recursive accumulation
+scheme. Both techniques use linear combinations, but their interfaces and
+soundness statements are different.
 
-The mathematical core is the recognition that
-$G^{(0)} = \Comm(g(X; u_1, \dots, u_k))$ --- the linear-time check is
-\emph{itself a polynomial commitment opening of a structured polynomial}
-and hence amenable to recursion within an IPA.
+The deferred equation
+$G^{(0)}=\Comm(g(X;u_1,\dots,u_k);0)$ is a commitment-equality (equivalently,
+an MSM) claim for a publicly structured coefficient vector. It is not itself an
+evaluation opening. The accumulation protocol reduces and carries this claim
+using additional prover-assisted steps.
 
 \subsection{The complete Halo 2 protocol}\label{sec:halo2-full}
 
@@ -1333,18 +1346,18 @@ $\Vesta(\F_{p_{\Vesta}})$), and $H$ the multiplicative subgroup of $\F$
 of order $n$.
 
 \paragraph{Setup (preprocessed, one-time).}
-The circuit designer specifies columns, custom gates, lookup tables, and
-the equality permutation $\sigma$. Both parties derive commitments to the
-fixed-column polynomials $f_i(X)$, selector polynomials $q_i(X)$,
-permutation polynomials $s_i(X)$, and lookup-table polynomials $S_j(X)$,
-together with the Lagrange basis on $H$, the vanishing polynomial
-$Z_H(X) := X^n - 1$, and the IPA generators $\vec{G} \in \G^n$ and
-$H \in \G$. The commitments to the fixed, selector, permutation, and lookup-table
-polynomials, together with the domain parameters, constitute the
-\emph{verifying key} $\mathsf{vk}$; every part of it is recomputable from
-the public circuit description, which is why no trusted setup exists. To
-verify a proof one needs exactly three inputs: $\mathsf{vk}$, the
-instance (public-input) values, and the proof itself.
+The circuit designer specifies columns, gates, lookup tables, and the equality
+permutation $\sigma$. Selector compression materialises selectors in fixed
+columns, and assigned lookup tables are fixed-column data; they are not two
+additional disjoint classes of committed columns. Key generation commits to the
+resulting fixed-column polynomials and to the permutation polynomials. The
+transparent IPA parameters separately contain the domain data and generator
+bases. At the generic \texttt{halo2\_proofs} API boundary, verification receives
+those parameters, a PLONK verifying key, the instance values, and the proof.
+Orchard's higher-level \texttt{VerifyingKey} wrapper contains both the IPA
+parameters and the PLONK key, so its public interface can present those as one
+argument. All are reproducible from public algorithms and the circuit; no
+secret setup trapdoor exists.
 
 \paragraph{Phase 1 --- advice commitments.}
 Both parties first absorb a digest of $\mathsf{vk}$ and the (unblinded)
@@ -1372,7 +1385,8 @@ columns $A', S'$ must be fixed \emph{before} the challenges
 $\beta, \gamma$ that randomise the products are drawn.
 
 \paragraph{Phase 4 --- quotient challenge $y$.}
-The verifier returns a fresh $y \in \F$. The prover assembles the
+Before $y$ is drawn, the prover commits to the random polynomial used to blind
+the quotient opening. The verifier then returns a fresh $y \in \F$. The prover assembles the
 \emph{gate equation}: a single polynomial $C(X)$ that is a $y$-weighted
 linear combination of (i) each custom gate, (ii) permutation constraints,
 (iii) lookup constraints. By construction $C(X)$ vanishes on $H$ when
@@ -1381,7 +1395,7 @@ $h(X) := C(X) / Z_H(X) = C(X) / (X^n - 1)$ is a polynomial. Its degree,
 however, is bounded by \(d(n-1) - n = (d-1)(n-1) - 1\) for maximum gate
 degree \(d\) --- a gate of degree \(d\) multiplies up to \(d\) column
 polynomials of degree \(< n\), and division by \(Z_H\) removes \(n\) ---
-which exceeds the IPA's degree bound $n$. The prover therefore
+which, for the deployed $d=9$, exceeds the IPA's degree bound $n$. The prover therefore
 splits $h$ into \(\lceil (\deg h + 1)/n \rceil\) chunks
 $h_0, h_1, \dots$ of degree $< n$, with
 $h(X) = \sum_i X^{n i}\, h_i(X)$, and commits to each chunk separately;
@@ -1392,7 +1406,8 @@ whose size accommodates $\deg C$, a small multiple of $n$.
 
 \paragraph{Phase 5 --- evaluation challenge $x$.}
 The verifier returns $x \in \F$. The prover evaluates every committed
-polynomial except the quotient chunks at $x$, and at the rotated points
+polynomial required by the verifier's queries, except the quotient chunks, at
+$x$, and at the rotated points
 the constraints reference --- $\omega x$ for the running products (and
 for any gate reading an adjacent row), $\omega^{-1} x$ for the permuted
 lookup input $A'$ --- and sends these claimed evaluations as field
@@ -1432,12 +1447,14 @@ a single opening of $f^*$ at $x_3$ then discharges every original
 opening at once.
 
 \paragraph{Phase 7 --- IPA opening.}
-Prover and verifier execute the recursive halving IPA
-(\S\ref{sec:ipa-detail}) on $f^*$, yielding $\log_2 n$ pairs $(L_j, R_j)$,
-a final scalar $a$, and a final blinder $r^*$. The verifier accepts iff
-(\ref{eq:ipa-final}) holds.
+Prover and verifier execute the deployed recursive halving IPA of
+Remark~\ref{rem:ipa-deployed} on $f^*$. The prover sends the blinding
+commitment $S$, then $\log_2 n$ pairs $(L_j,R_j)$, and finally the scalars
+$c,f$. The verifier accepts if the resulting deployed-normalisation MSM
+equation holds; Equation~\eqref{eq:ipa-final} is the symmetric presentation,
+not the code's literal equation.
 
-\paragraph{Accumulation (recursion).}
+\paragraph{Optional accumulation (recursion; not deployed by Orchard).}
 The next proof's verifier circuit \emph{defers} the MSM check
 $G^{(0)} = \Comm(g(X; u_1, \dots, u_k))$ at the end of
 phase 7 into an accumulator and folds it with prior
@@ -1463,10 +1480,12 @@ one $O(n)$-size MSM \emph{per committed polynomial} --- several tens in
 all: each advice column, the permuted lookup columns, the running
 products, the quotient chunks, and the multipoint polynomial $f$
 (typical Orchard Action circuit: $n = 2^{11}$, a few seconds on commodity
-hardware). The verifier performs $O(\log n)$ field and group operations
-per proof --- recomputing the challenges, the gate-equation field evaluation,
-the $\log n$ rounds of phase 7 --- plus the single deferred $O(n)$ MSM,
-amortised over a batch as in \S\ref{sec:halo-acc}.
+hardware). The verifier performs $O(\log n)$ field and group operations per
+proof---recomputing the challenges, the gate-equation field evaluation, and the
+$\log n$ rounds of phase 7---plus the single deferred $O(n)$ MSM. A batch
+verifier may combine complete MSM equations using fresh random scalars; that
+batching is distinct from the optional accumulation scheme of
+\S\ref{sec:halo-acc}.
 
 \paragraph{Proof size.}
 Two kinds of data make up a proof. The IPA of phase 7 contributes
@@ -1495,9 +1514,9 @@ and advice columns, but the arguments of \S\ref{sec:perm}--\S\ref{sec:halo2-full
 never single them out. We single them out now, because what an Orchard Action proof
 \emph{asserts} is precisely a statement about its instance values --- the
 anchor, nullifier $\nfsym$, net value commitment $\cvsym^{\mathsf{net}}$,
-randomised key $\rk$, extracted new-note commitment $\cmx$, and the
-$\mathsf{enableSpends}/\mathsf{enableOutputs}$
-flags (the \emph{Ironwood Guide}).
+randomised key $\rk$, extracted new-note commitment $\cmx$, the
+$\mathsf{enableSpends}/\mathsf{enableOutputs}$ flags, and---for the post-NU6.3
+circuit---the $\mathsf{disableCrossAddress}$ flag.
 
 \paragraph{The instance polynomial.}
 An instance column is a public-input column: its $n$ entries
@@ -1518,8 +1537,8 @@ $\sigma$, and the circuit equality-constrains each instance cell to the
 advice cell carrying the corresponding in-circuit value (halo2's
 \texttt{constrain\_instance}). A satisfying assignment therefore exists
 \emph{only} when the advice cells holding the anchor, $\nfsym$,
-$\cvsym^{\mathsf{net}}$, $\rk$, $\cmx$, and the flags equal the public values the
-verifier supplied. (An alternative design binds public inputs with a
+$\cvsym^{\mathsf{net}}$, $\rk$, $\cmx$, and the applicable enable/disable flags
+equal the public values the verifier supplied. (An alternative design binds public inputs with a
 dedicated gate $q(X)\bigl(a(X) - \pi(X)\bigr) = 0$, where the selector
 $q$ is active exactly on the designated rows; Orchard does not use it ---
 the copy constraint reuses the existing permutation machinery at no extra
@@ -1551,7 +1570,7 @@ exactly those public values; a prover that does not know such a witness
 verifier with at most negligible probability. This binds the proof to its public
 statement: an Action proof that a node verifies against an anchor it accepts,
 a nullifier it will mark spent, and a value commitment it will sum into
-the net balance check (the \emph{Ironwood Guide}) can only verify if the
+the net balance check can only verify if the
 prover knew a witness consistent with \emph{those} values.
 
 \subsection{Zero knowledge: hiding the witness in Halo 2}\label{sec:halo-zk}
@@ -1610,31 +1629,29 @@ private witness passes through. The final inner-product opening
 (\S\ref{sec:ipa-detail}) likewise runs with a blinder, so it too hides its
 input.
 
-\paragraph{The simulator.} Formally, zero knowledge is the existence of a
-\emph{simulator} that, given only the public input and \emph{not} the witness,
-outputs a transcript indistinguishable from a real one. Halo~2's simulator runs
-the protocol ``backwards,'' exactly as Schnorr's does (\emph{Crypto Guide}): it
-chooses the evaluations and the final opening so as to satisfy the verifier's
-equations, then chooses hiding commitments consistent with them --- possible
-precisely because the commitments are perfectly hiding and it may choose the blinders
-freely --- and, non-interactively, \emph{programs} the Fiat--Shamir oracle so
-the challenges come out as required. Since the commitments are perfectly hiding
-and a blinder protects every opening, the simulated transcript is distributed as a real
-one. Interactively this is honest-verifier zero knowledge; compiled through
-Fiat--Shamir in the random-oracle model it is a NIZK that reveals nothing beyond
-the truth of the statement.
+\paragraph{The simulator.} Formally, zero knowledge requires a simulator for
+the \emph{complete joint transcript}, given only the public input. The usual
+proof samples suitably blinded commitments and evaluations satisfying the
+verifier equations, then programs fresh Fiat--Shamir queries to the required
+challenges. Perfect hiding of each commitment is one ingredient, not by itself
+a proof that this joint distribution matches a real execution: the blinding
+dimension, transcript order, opening simulation, and freshness of programmed
+queries must all be covered by the composed protocol theorem. Under those
+hypotheses the interactive protocol is honest-verifier zero knowledge and its
+Fiat--Shamir compilation is NIZK in the programmable random-oracle model.
 
-\paragraph{The three properties together.} For the relation fixed by a PLONKish
-circuit, Halo~2 thus delivers all three guarantees a SNARK should:
-\emph{completeness} (an honest prover holding a satisfying witness always
-convinces the verifier), \emph{knowledge soundness} (\S\ref{sec:ks}: from any
+\paragraph{The three properties together.} Subject to the full PIOP--PCS
+composition and Fiat--Shamir hypotheses just stated, Halo~2 targets three
+guarantees for the relation fixed by a PLONKish circuit:
+\emph{overwhelming completeness} (an honest prover holding a satisfying
+witness convinces the verifier except on the negligible transcript
+degeneracies noted in Remark~\ref{rem:ipa-deployed}), \emph{knowledge soundness} (\S\ref{sec:ks}: from any
 convincing prover an extractor pulls a satisfying witness, so an accepted proof
 certifies one is \emph{known}), and \emph{zero knowledge} (a witness-free
 simulator reproduces the proof, so it leaks nothing else). It is exactly this
 combination --- ``the prover knows a satisfying witness, and the proof discloses
 nothing more'' --- on which the Orchard Action proof rests: knowledge soundness
-yields balance and nullifier integrity, zero knowledge yields privacy
-(\emph{Ironwood Guide}).
+yields balance and nullifier integrity, while zero knowledge yields privacy.
 
 \section{Worked example: one computation, carried from claim to conviction}\label{sec:worked-example}
 
@@ -1649,8 +1666,9 @@ follows that one sentence until a sceptic is convinced of it --- without ever
 being told that $x = 3$.
 
 Three demands make this nontrivial, and a Halo~2 proof meets all three. The
-proof is \emph{complete}: an honest prover who knows $x$ always convinces the
-verifier. It is \emph{sound} (more precisely, \emph{knowledge sound}): a prover
+proof has \emph{overwhelming completeness}: an honest prover who knows $x$
+convinces the verifier except on negligible transcript degeneracies. It is
+\emph{sound} (more precisely, \emph{knowledge sound}): a prover
 who does \emph{not} know a valid $x$ is rejected, except with negligible
 probability --- and ``knowledge'' is meant literally, in the sense that a
 satisfying $x$ could in principle be extracted from any prover who succeeds.
@@ -1666,7 +1684,7 @@ the nullifier --- the unique tag whose publication marks the note spent ---
 is computed correctly, the value commitment (a Pedersen commitment to the note's
 value; \emph{Crypto Guide}, \S``The Pedersen commitment'') opens, and the note sits in the
 tree'' --- a conjunction of a few thousand small arithmetic facts
-over $\F_{p_{\mathsf{Pallas}}}$ (the \emph{Ironwood Guide}, checks~A1--A10). Our claim is
+over $\F_{p_{\mathsf{Pallas}}}$ in the deployed Orchard Action relation. Our claim is
 a conjunction of \emph{four} small arithmetic facts. The proof system does not
 care which; it is the same machine at two scales. Master $x^3 + x + 5 = 35$ and
 the Action circuit is only larger, not different.
@@ -1698,10 +1716,11 @@ Section~\ref{sec:h2i-assemble} threads the legs back together into one sentence:
 why the verifier, having checked a few numbers, is right to be convinced.
 
 We work throughout in the prime field $\F_{97}$. This is a toy size chosen so
-the reader can check every product by hand; the security of the real system
-comes from running the identical argument over a $255$-bit field, where the
-``vanishing probability'' below is genuinely $2^{-240}$ rather than our
-visible $3/97$.
+the reader can check every product by hand. Over Orchard's roughly $255$-bit
+field, a \emph{fixed} false identity of degree around $2^{14}$ survives one
+fresh uniform evaluation challenge with probability around $2^{-240}$ instead
+of our visible $3/97$. This is one Schwartz--Zippel term, not the security level
+of the complete proof system.
 
 \subsection{From computation to a grid of constraints}\label{sec:h2i-arith}
 
@@ -1967,11 +1986,13 @@ three-element set:
 At the verifier's actual draw $z = 20 \notin \{22,96,75\}$, we get
 $G^{\!*}(20) = 20$ but $t^{\!*}(20)\,\ZH(20) = 64$, and $20 \neq 64$: caught.
 The fraction $3/97$ is large only because our field is a toy. Over Orchard's
-$255$-bit Pallas field the gap polynomial still has at most $\deg D$ roots ---
-now a vanishingly small fraction of the $\approx 2^{254}$ candidate points, a
-soundness error on the order of $2^{-240}$ from a \emph{single} draw of $z$ ---
-so one random challenge already suffices, and the deployed proof even replaces
-that coin toss with a hash of the transcript (Fiat--Shamir, \S\ref{sec:h2i-fs}).
+roughly $255$-bit field, a fixed nonzero gap polynomial has at most $\deg D$
+roots. For $\deg D$ around $2^{14}$, one independently uniform $z$ contributes
+a Schwartz--Zippel term around $2^{-240}$. The complete proof has other
+randomized identities and cryptographic assumptions, and Fiat--Shamir grinding
+multiplies a per-draw term by the adversary's query budget. In particular this
+isolated figure is not an overall $240$-bit security claim; the Pasta-group
+discrete-log layer has about $126$ bits of classical concrete security.
 
 \paragraph{Bounding the degree.} The argument needs $D$ to have \emph{low}
 degree relative to $|\F|$ --- otherwise ``$d/|\F|$ roots'' is no constraint.
@@ -2054,37 +2075,40 @@ sending each cell's \emph{value-with-label} to its \emph{value-with-$\sigma$-per
 is consistent --- a balance between two multisets.
 
 \paragraph{The grand product.} With verifier challenges $\beta, \gamma$, the
-prover builds a running product that telescopes across all $3n$ cells:
+prover builds a running product whose endpoint enforces
 \[
 \prod_{\text{cells } (i,j)}
-\frac{v_{i}(\omega^j) + \beta\,(\text{label}) + \gamma}
-     {v_{i}(\omega^j) + \beta\,(\text{$\sigma$-label}) + \gamma}
-\;=\; 1
-\quad\Longleftrightarrow\quad
-\text{every copy constraint holds.}
+\bigl(v_i(\omega^j)+\beta(\text{label})+\gamma\bigr)
+=
+\prod_{\text{cells } (i,j)}
+\bigl(v_i(\omega^j)+\beta(\text{$\sigma$-label})+\gamma\bigr).
 \]
 If the wiring is honest, numerator and denominator run over the \emph{same}
-multiset of factors (just reordered by $\sigma$), so the ratio is $1$ identically;
-if any wired pair disagrees, the multisets differ and the product misses $1$
-except with probability $O(n/|\F|)$ over $\beta, \gamma$ --- Schwartz--Zippel
-again. The prover commits to this running-product polynomial and the verifier
-checks its boundary ($=1$ at the first row) and its row-to-row update at the
-random $z$, just another handful of openings.
+multiset of factors, so the equality holds identically. If a copy constraint is
+false, the resulting nonzero polynomial in $\beta,\gamma$ can still vanish for
+a particular challenge pair, but only with probability $O(n/|\F|)$ by
+Schwartz--Zippel. Thus the converse is probabilistic, not an ``if and only if''
+for fixed challenges. The actual circuit enforces cross-multiplied row updates,
+not literal field divisions, so a zero factor does not make the constraint
+undefined. The prover commits to the running-product polynomial and the
+verifier checks its boundary and row-to-row update at random $z$.
 
 \paragraph{A two-cell glimpse.} Strip the product down to a single wired pair,
 $c_0 = a_1$ (both should be $9$), carrying labels $L_{c_0}, L_{a_1}$ that
-$\sigma$ swaps. Their combined contribution to numerator-over-denominator is
+$\sigma$ swaps. Their factors satisfy
 \[
-\frac{\bigl(9 + \beta L_{c_0} + \gamma\bigr)\bigl(9 + \beta L_{a_1} + \gamma\bigr)}
-     {\bigl(9 + \beta L_{a_1} + \gamma\bigr)\bigl(9 + \beta L_{c_0} + \gamma\bigr)} \;=\; 1,
+\bigl(9+\beta L_{c_0}+\gamma\bigr)
+\bigl(9+\beta L_{a_1}+\gamma\bigr)
+=
+\bigl(9+\beta L_{a_1}+\gamma\bigr)
+\bigl(9+\beta L_{c_0}+\gamma\bigr),
 \]
 because the shared value $9$ makes the two numerator factors a mere reordering
 of the two denominator factors --- the labels may permute under $\sigma$
 precisely because the values agree. Now let the prover cheat the copy,
-$a_1 = 8 \neq 9$: the numerator factor $8 + \beta L_{a_1} + \gamma$ matches no
-denominator factor, the cancellation breaks, and the pair's contribution drifts
-off $1$. Equal values let labels permute; one unequal value strands a factor,
-and the whole product feels it.
+$a_1=8\neq9$: the factor $8+\beta L_{a_1}+\gamma$ on one side generally has no
+match on the other, and the two products differ. Equal values let labels
+permute; one unequal value strands a factor, and the whole product feels it.
 
 \paragraph{Watch it happen.} For our honest trace, with $\beta = \gamma = 2$,
 the grand product comes out to exactly $1$. Tamper one wire --- set $b_1 = 4$,
@@ -2166,11 +2190,11 @@ a few extra random coefficients (equivalently, the trace reserves a few random
 rows), and the commitment carries an independent random blinding term. The
 gate and permutation arguments are arranged to ignore those random rows
 (Remark~\ref{rem:active-rows}), so they do not disturb
-soundness; but the openings at $z$ are now masked by fresh randomness and are
-distributed independently of $x$. Formally one exhibits a \emph{simulator} that
-produces an identically distributed transcript knowing only that the statement
-is true --- so whatever the verifier sees, he could have generated alone,
-hence learned nothing. The simulator construction appears in
+soundness; in the full zero-knowledge argument, the openings at $z$ are masked
+by fresh randomness and their joint distribution reveals nothing about $x$.
+Formally one exhibits a \emph{simulator} that, under the composition hypotheses
+of \S\ref{sec:halo-zk}, matches the transcript distribution knowing only that
+the statement is true. The simulator discussion appears in
 \S\ref{sec:halo-zk}; the intuition is simply:
 \emph{commitments hide, and blinded openings are noise pinned to one honest
 constraint}.
@@ -2204,9 +2228,11 @@ favourable challenge is to vary some input of $H$ --- and every input she
 controls is something the finished proof must stand behind: the statement
 she is claiming, or a commitment she must open. Each variation re-rolls
 the challenge blindly: one hash evaluation buys one ticket in a lottery
-she wins only with the soundness error, about $2^{-240}$ per draw of
-$z$ (\S\ref{sec:h2i-random}). She may grind through as many
-tickets as she can hash; against odds like these it changes nothing. Two
+she wins only with the relevant per-draw soundness error. If that error is
+$\epsilon$ and she makes at most $Q$ distinct transcript queries, a union bound
+gives at most $Q\epsilon$ for this grinding route; for the illustrative
+identity check, $\epsilon$ is around $2^{-240}$. Thus the query budget must be
+included rather than declared irrelevant. Two
 fine points matter. The hash must digest the \emph{whole} transcript ---
 leave the statement or any commitment out, and she aims precisely at what
 the hash cannot see. And the guarantee is proved with $H$ modelled as a
@@ -2228,18 +2254,18 @@ One cost has stayed quietly non-trivial. The opening proofs of
 \S\ref{sec:h2i-commit} shrink by halving, so the verifier's rounds are
 logarithmic --- except at the very end, where checking the final fold
 means recomputing one combination of \emph{all} the generators
-$G_0, \dots, G_m$: a wall of group arithmetic proportional to the whole
-circuit's size. Even without any recursion the deployed verifier
-declines to pay this per proof: checking a batch of transactions, it
-folds all their deferred walls into one and pays a single wall for the
-batch (\S\ref{sec:halo-acc}).
+$G_0,\dots,G_m$: a wall of group arithmetic proportional to the whole
+circuit's size. When checking a batch, the deployed library random-combines
+the complete per-proof MSM equations and evaluates one combined MSM. That is a
+standard randomized batch check, not the recursive accumulation operation of
+\S\ref{sec:halo-acc}.
 Where the cost would be truly ruinous is \emph{recursion}. For a
 circuit to verify a \emph{proof} --- the step that would let one proof
 attest to a whole chain of others --- everything the verifier does must
 be re-expressed as gates, and a circuit-sized wall of group arithmetic
 inside a circuit defeats the point.
 
-Halo's namesake trick is to not pay. The expensive claim has a special
+For optional recursion, Halo's namesake trick is to defer payment. The expensive claim has a special
 shape --- ``this point equals that known combination of the generators''
 --- and two claims of this shape can be \emph{folded} into one by the
 move this worked example keeps meeting: commit, draw a challenge, take a random
@@ -2277,14 +2303,16 @@ accepts a proof. What has he thereby learned?
 commitment \emph{binds} (\S\ref{sec:h2i-commit}), the polynomials behind the
 openings were fixed before $z$; because $z$ was random and a false identity
 disagrees with the true one at all but $\le \deg D$ points
-(\S\ref{sec:h2i-random}), passing means $G(X) = t(X)\,\ZH(X)$ holds \emph{as
-polynomials}, save for a $2^{-240}$ fluke.
+(\S\ref{sec:h2i-random}), passing supports the conclusion that
+$G(X)=t(X)\ZH(X)$ holds as polynomials, except with the corresponding
+$\deg D/|\F|$ Schwartz--Zippel error for this fixed check.
 \item $G = t\,\ZH$ means $\ZH \mid G$, which means $G$ vanishes on all of $H$
 (\S\ref{sec:h2i-vanish}), which means \emph{every gate equation holds at every
 row} (\S\ref{sec:h2i-polys}).
-\item The permutation grand product passed (\S\ref{sec:h2i-perm}), so the
-\emph{copy constraints} hold too: the per-row gates are wired into one
-coherent computation, not four disconnected coincidences.
+\item The permutation grand product passed (\S\ref{sec:h2i-perm}), so, except
+with its random-challenge soundness error, the \emph{copy constraints} hold too:
+the per-row gates are wired into one coherent computation, not four disconnected
+coincidences.
 \item The public-input polynomial fixed the target at $35$ (\S\ref{sec:h2i-zk}), so
 the computation he has verified is the one he asked about.
 \end{enumerate}
@@ -2292,31 +2320,34 @@ Putting these together --- and recalling from \S\ref{sec:h2i-arith} that filling
 the advice columns \emph{is} knowing $x$, since those cells are the wires
 carrying $x$ and its powers --- there exists an assignment to the advice
 columns, a value of $x$, making the entire arithmetisation of
-``$x^3 + x + 5 = 35$'' hold. The prover demonstrably \emph{knew} such an $x$; indeed the soundness
-proof is constructive --- an \emph{extractor} can rewind a successful prover
-and read $x$ out of her openings (\S\ref{sec:ipa-extract}). And by
-zero-knowledge (\S\ref{sec:h2i-zk}) the verifier extracted no
-more than this single bit of truth. He has checked perhaps a dozen field
-elements and a logarithmic-size opening proof, yet he is as certain as
-$2^{-240}$ that the prover holds a secret cube-root-ish witness --- without the
-faintest idea what it is.
+``$x^3+x+5=35$'' hold. Under the composed PIOP, PCS-extraction, and
+Fiat--Shamir hypotheses of \S\ref{sec:ks}, an extractor for the \emph{full}
+protocol can obtain such an $x$. The IPA opening extractor alone establishes
+knowledge of committed polynomial data; it does not by itself prove that those
+polynomials encode a satisfying circuit witness. And by
+zero-knowledge (\S\ref{sec:h2i-zk}) the verifier learns no
+more than this single bit of truth. The verifier has checked a small transcript
+and a logarithmic-size opening proof; its confidence is governed by the sum of
+all algebraic error terms and the PCS, Fiat--Shamir, and discrete-log
+assumptions, not by the isolated $2^{-240}$ term alone.
 
 \paragraph{The same machine, at Orchard scale.} Nothing above used that our
 statement was small. Replace the four gates by the few thousand constraints of
 the Orchard Action --- nullifier integrity, the value-commitment opening, the
-Merkle path recomputation, key re-randomisation (\emph{Crypto Guide}, \S``Key
-re-randomisation and unlinkability''; the \emph{Ironwood Guide},
-checks~A1--A10) --- and the columns grow from four rows to $2^{k}$, the gate
+Merkle path recomputation, and key re-randomisation (\emph{Crypto Guide},
+\S``Key re-randomisation and unlinkability'') --- and the columns grow from
+four rows to $2^{k}$, the gate
 polynomial gains custom high-degree terms, and a Sinsemilla lookup table
 (\S\ref{sec:h2i-lookups}; the \emph{Crypto Guide},
 \S``Sinsemilla: an algebraic hash-based commitment'') joins
 the permutation. But the spine is identical: arithmetise into a grid, interpolate
 to polynomials, compress ``all rows correct'' into one identity $G = t\,\ZH$,
 commit, and test at a random point. When a Zcash full node verifies a shielded
-spend, it is running exactly the check of Section~\ref{sec:h2i-random} --- one
-random evaluation of a committed polynomial identity --- and concluding,
-with cryptographic certainty and learning nothing, that somewhere a valid note
-was spent by its rightful owner.
+spend, randomized polynomial-identity tests of the kind in
+Section~\ref{sec:h2i-random} form its algebraic core. The full verifier also
+checks permutation and lookup relations, multiple openings, transcript
+challenges, and the final IPA equation before concluding that the asserted
+Action relation holds.
 
 \paragraph{What the formal treatment supplies.} The earlier sections discharge
 every deferral above: the inner-product argument and why its openings are
@@ -2325,7 +2356,6 @@ trustworthy (\S\ref{sec:ipa-detail}); the algebraic-group-model extractor behind
 accumulation fold sketched in \S\ref{sec:h2i-halo}
 (\S\ref{sec:halo-acc}); and the cycle of curves that makes recursion efficient
 (\S\ref{sec:cycle}). This worked example has supplied the picture those
-formalisms formalise: \emph{why a single random number, checked against a
-committed polynomial, is enough to know that an unseen computation was done
-right}.
+formalisms formalise: \emph{how random evaluations of committed polynomials
+contribute to knowing that an unseen computation was done right}.
 \end{document}

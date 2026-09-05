@@ -646,3 +646,62 @@ Result: no remaining published-corpus correctness defect was found by the
 closing gates.  Literal TODO/FIXME text that remains in the rendered volumes is
 quoted evidence of known incompleteness in upstream drafts or implementations,
 not unfinished Arboretum prose.
+
+## Active-corpus rebuild and independent audit (2026-09-05)
+
+This pass restarted from the rewritten sources and fixed the publication scope
+at eleven volumes: Math, Crypto, Halo 2, Consensus, Ironwood, Wallet, Sync,
+FlyClient, ZSA, Crosslink, and FROST.  PQ, Tachyon, and Voting remain in the
+repository as research snapshots, but are excluded from the website,
+concordance, and complete edition.  FlyClient is classified as a frontier
+design: its chain-history commitment is deployed, but the proof-serving and
+sampling bridge is not.
+
+Every active volume received a fresh claim-level review, followed by
+independent adversarial passes over the frontier material and a separate
+whole-series integration review.  Current protocol claims were checked against
+primary specifications, ZIPs (including `zcash/zips` at `e753a6a3`), and the
+named implementation snapshots.  The resulting corrections include
+probability-model boundaries and consensus implementation divergences; a
+replacement of FlyClient's invalid Poisson stopping-time argument by the exact
+negative-binomial MGF and Chernoff bound; ZSA issuance, split-note, carrier, and
+status corrections; Crosslink model, proof, staking, finality, and deployment
+corrections; and FROST RFC-status, protocol, domain-separation, and printed
+reduction corrections.  Cross-volume dependency declarations and cited
+heading names were then reconciled with the rewritten volumes.
+
+Three closing checks passed:
+
+1. **Source and claim gate.**  The eleven standalone sources each have exactly
+   one abstract.  All 1,595 labels are unique and all 2,529 local references
+   resolve; the generated eleven-part complete source has the same counts and
+   no missing target.  The integration pass verified all 29 lower-volume
+   dependency edges and 217 quoted cross-volume titles, with no undeclared,
+   upward, or parked-volume edge.  All 30 retained numerical verification
+   programs passed; the consensus closed and direct forms agree within
+   `3.331e-16`, and both 250-cell paper tables reproduce with zero mismatch.
+2. **PDF gate.**  Tectonic rebuilt all fourteen retained standalone guides and
+   the 586-page complete edition out of tree.  All fifteen logs are free of
+   errors, unresolved references, duplicate destinations, missing glyphs,
+   underfull boxes, and overfull boxes.  Ghostscript accepted every PDF;
+   extracted text contains no unresolved marker or raw reference macro; every
+   font is embedded, subset, and Unicode-mapped.
+3. **Web gate.**  The generator regression suite passed and produced exactly
+   twelve web sources: the eleven active volumes and the complete edition.
+   They contain no residual TikZ, PDF-only font preamble, or unexpanded
+   reference glue.  All ten active figures were regenerated without page
+   furniture; the thirty section references inside the two reference-bearing
+   figures resolve to their final numbers.  The landing roster, concordance,
+   complete-edition order, status groups, PDF links, theme controls, theorem
+   permalinks, proof endings, and mobile math-overflow controls pass their
+   assertions.
+
+The remaining uncertainty is upstream and is labelled where it occurs rather
+than converted into an assurance: the FlyClient paper leaves proof obligations
+and the Zcash bridge open; the ZSA carrier and parts of its design are not
+settled; Crosslink has no normative deployment specification and its source
+proofs do not all establish their printed claims; and the examined
+re-randomised-FROST preprint has material reduction gaps.  A case-insensitive
+raw-content and path exclusion sweep, including hidden and ignored generated
+files but excluding version-control object storage, found zero hits.  No
+remaining Arboretum defect was found by the three closing gates.

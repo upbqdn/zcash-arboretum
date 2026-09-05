@@ -584,8 +584,8 @@ adversary \(\mathcal{A}\),
 
 Two remarks on the shape of this definition are in order. First, the quantifier
 order is essential: \emph{for every} PPT adversary, the advantage is negligible.
-No bound constrains the advantage of one fixed adversary; the claim is universal over
-the entire class. Second, the use of \(\negl\) on the right is what makes the
+For each fixed adversary there may be a different negligible bound; the claim is
+universal over the entire class. Second, the use of \(\negl\) on the right is what makes the
 definition asymptotic and clean: it is robust to the polynomial slop that
 reductions introduce, and it captures ``the adversary does no better than the trivial
 strategy, up to an amount that vanishes faster than any inverse polynomial.''
@@ -920,15 +920,15 @@ resources, e.g.\ time \(t\), number of queries \(q\), and memory \(s\):
 \(\mathrm{Adv}_{\mathsf{G}}(\mathcal{A}) \leq f(t,q,s)\).
 \end{definition}
 
-\begin{definition}[\(\lambda\)-bit security]\label{model:def:bitsec}
-A scheme (or problem) has \(n\) \emph{bits of security}, or is
-\emph{\(n\)-bit secure}, if every adversary running in time \(t\) achieves
-advantage at most about \(t / 2^{n}\); equivalently, the best known attack
-achieving constant (say \(\geq 1/2\)) success probability requires on the order
-of \(2^{n}\) elementary operations. Thus \(n\)-bit security means that breaking the
-scheme costs about \(2^n\) work. One commonly summarises a scheme by the single number
-\(n\)---``\(128\)-bit security''---meaning no feasible adversary exists, where the
-horizon of feasibility lies conventionally around \(2^{128}\) operations.
+\begin{definition}[\(n\)-bit security]\label{model:def:bitsec}
+A scheme (or problem) is commonly said to offer \(n\) \emph{bits of security}
+when the cheapest known attack achieving appreciable success costs on the order
+of \(2^n\) elementary operations. A proof may justify the stronger, explicit
+claim that every adversary running in time \(t\) has advantage at most about
+\(t/2^n\), but that linear advantage bound is not implied merely by the absence
+of a faster known attack. Thus ``\(128\)-bit security'' is a concrete estimate,
+relative to a specified attack model and state of knowledge, that breaking the
+scheme costs roughly \(2^{128}\) work.
 \end{definition}
 
 The relationship to the asymptotic picture is the following: one chooses the security
@@ -945,14 +945,15 @@ parameter and the security level track simply. For discrete-logarithm-based
 primitives the accounting differs and instructs. In a group of prime order
 \(q \approx 2^{\ell}\), generic attacks (baby-step/giant-step, Pollard's rho)
 solve discrete logarithm in time \(\approx \sqrt{q} = 2^{\ell/2}\). Hence a
-\(256\)-bit elliptic-curve group offers only about \(128\) bits of security---one
-\emph{halves} the field size to obtain the security level. Moreover, for
-discrete logarithm in the multiplicative group of a finite field, sub-exponential
-index-calculus attacks force \(\ell\) into the thousands of bits for \(128\)-bit
-security. This is precisely why elliptic-curve groups (no known sub-exponential
-attack) are preferred: they permit \(\ell \approx 2n\) rather than
-\(\ell \approx \text{thousands}\). The single number \(n\) conceals a problem-specific
-translation from parameter size to security level.
+prime-order elliptic-curve group whose order is \(256\) bits offers only about
+\(128\) bits of security---one halves the bit length of the group order to
+obtain the generic security level. For discrete logarithm in a finite-field
+multiplicative group, sub-exponential index-calculus attacks additionally force
+the ambient field modulus into the thousands of bits for \(128\)-bit security.
+This is precisely why elliptic-curve groups, for which no comparable
+sub-exponential classical attack is known, are preferred. The single number
+\(n\) conceals a problem-specific translation from all parameter sizes to the
+security level.
 \end{example}
 
 \begin{remark}[Reading a bit-security budget end to end]\label{model:rem:budget}
@@ -1027,7 +1028,10 @@ In a cyclic group \(G = \langle g\rangle\) of prime order \(q\), discrete logari
 Let \(\mathcal A\) succeed on a uniformly random target with probability \(\varepsilon\). Given a fixed challenge \(h = g^x\) whose logarithm we seek, draw \(r\) uniformly from \(\Z/q\Z\) and form \(h' = h \cdot g^{r} = g^{x + r}\). Because \(r\) is uniform and addition modulo \(q\) is a bijection, \(h'\) is uniformly distributed in \(G\), independently of \(h\); hence \(\mathcal A(h')\) returns \(x + r \bmod q\) with probability \(\varepsilon\). Subtract \(r\) to recover \(x\). Each trial uses fresh \(r\), so the trials are independent and \(t\) of them succeed with probability \(1 - (1-\varepsilon)^t\), which is overwhelming once \(t = \omega(\varepsilon^{-1}\log\lambda)\). One checks correctness of each candidate by testing \(g^{x} \stackrel{?}{=} h\).
 \end{proof}
 
-Random self-reducibility is the formal reason cryptographers may speak of ``the'' hardness of DLP in a group without concern for weak instances: there are none, every instance is as hard as a random one.
+Random self-reducibility is the formal reason cryptographers may speak of
+``the'' hardness of DLP in a group: an average-case solver also solves every
+fixed instance after randomisation. This does not literally make every encoded
+instance difficult---for example, the logarithm of the identity is immediate.
 
 \subsection{Diffie--Hellman: computational and decisional}
 \label{assumptions:subsec:dh}
@@ -1060,12 +1064,26 @@ A triple \((g^a, g^b, g^c)\) with \(c \equiv ab \pmod q\) is a \emph{Diffie--Hel
 
 \begin{remark}
 \label{assumptions:rem:ddh-self-reducible}
-DDH, like DLP, is random self-reducible: given a target triple \((u, v, w) = (g^a, g^b, g^c)\), choose \(r, s, t\) uniformly and form
+DDH, like DLP, admits a random self-reduction. Given a target triple
+\((u,v,w)=(g^a,g^b,g^c)\), choose
+\(\alpha,\gamma\xleftarrow{\$}(\Z/q\Z)^\times\) and
+\(\beta,\delta\xleftarrow{\$}\Z/q\Z\), and form
 \[
-(u', v', w') = \bigl(u^{r} g^{t},\; v^{s},\; w^{rs}\, v^{t s}\bigr)
-= \bigl(g^{(ar + t)},\, g^{bs},\, g^{(cr + bt)s}\bigr).
+(u',v',w')=
+\bigl(u^\alpha g^\beta,\;v^\gamma g^\delta,\;
+w^{\alpha\gamma}u^{\alpha\delta}v^{\beta\gamma}
+g^{\beta\delta}\bigr).
 \]
-If \(c = ab\) then \(cr + bt = b(ar + t)\), so the new exponents satisfy the DH relation and \((u',v',w')\) is a fresh uniform DH triple; if \(c \ne ab\) the third exponent is uniform and independent. Thus the rerandomisation maps DH triples to DH triples and non-DH triples to uniform triples, so any noticeable advantage on random instances transfers to every instance.
+Writing \(A=\alpha a+\beta\), \(B=\gamma b+\delta\), and
+\(E=c-ab\), the third exponent is \(AB+\alpha\gamma E\).
+Thus a DH triple (\(E=0\)) becomes a uniform DH triple. A non-DH
+triple becomes uniform conditional on being non-DH, because
+\(\alpha\gamma E\) is uniform in \((\Z/q\Z)^\times\). The latter
+distribution has statistical distance \(1/q\) from
+\(\mathcal D_{\mathrm{rand}}\), whose third component accidentally completes a
+DH triple with probability \(1/q\). Consequently a noticeable distinguishing
+advantage on random instances transfers to every fixed triple, up to this
+negligible term.
 \end{remark}
 
 \subsection{The hierarchy
@@ -1089,7 +1107,9 @@ Suppose \(\mathcal A\) solves DLP. Given a CDH instance \((g, g^a, g^b)\), run \
 
 \begin{theorem}[CDH is at least as hard as DDH]
 \label{assumptions:thm:cdh-le-ddh}
-If CDH is solvable in PPT, then DDH is solvable in PPT (indeed with advantage overwhelmingly close to \(1\)). Equivalently, the DDH assumption implies the CDH assumption.
+If CDH is solvable in PPT with non-negligible success probability, then DDH is
+solvable in PPT with non-negligible advantage. Equivalently, the DDH assumption
+implies the CDH assumption.
 \end{theorem}
 
 \begin{proof}
@@ -1097,7 +1117,7 @@ Suppose \(\mathcal A\) solves CDH. Construct a distinguisher \(D\) for DDH as fo
 \[
 \mathrm{Adv}_{\mathrm{ddh}}(D) \ge \varepsilon - \tfrac{1}{q},
 \]
-which is noticeable. Amplifying \(\varepsilon\) to \(1 - \negl\) by the random self-reducibility of CDH (rerandomise \((g^a,g^b)\) as in Remark~\ref{assumptions:rem:ddh-self-reducible} and take a majority/consistency vote) drives the advantage to \(1 - \negl\).
+which is noticeable.
 \end{proof}
 
 The chain is strict in the sense that, in many natural groups, the harder assumptions fail while one believes the easier ones to hold. The principal example is the role of pairings.
@@ -1265,7 +1285,7 @@ This is the deeper justification for ``prime order'' in Definition~\ref{assumpti
 \subsection{Instantiation on elliptic curves; the Pasta curves}
 \label{assumptions:subsec:pasta}
 
-We now fix the concrete groups used in the remainder of the monograph. Recall from the companion volume that an elliptic curve over a finite field \(\Fp\) (with \(p > 3\) prime) in short Weierstrass form is
+We now fix the concrete groups used in the remainder of the monograph. Recall from the \emph{Math Guide} that an elliptic curve over a finite field \(\Fp\) (with \(p > 3\) prime) in short Weierstrass form is
 \[
 E \colon y^2 = x^3 + ax + b, \qquad a, b \in \Fp,\ \ 4a^3 + 27 b^2 \ne 0,
 \]
@@ -1370,7 +1390,14 @@ There is no contradiction with Shoup's bound (Theorem~\ref{assumptions:thm:shoup
 \label{assumptions:rem:shor-scope}
 Shor's algorithm decisively breaks every assumption in this section, the entire discrete-log family and integer factoring, in polynomial time, so all of RSA, finite-field Diffie--Hellman, and elliptic-curve cryptography are \emph{quantum-broken}. What it does \emph{not} break:
 \begin{itemize}
-\item \emph{Symmetric primitives and hash functions.} The best generic quantum attack on a search problem is Grover's algorithm, a quadratic, not exponential, speedup. A symmetric cipher with a \(2\lambda\)-bit key, or a hash with a \(2\lambda\)-bit output, retains \(\lambda\) bits of \emph{quantum} security. Doubling key/output lengths suffices.
+\item \emph{Symmetric primitives and hash functions.} Grover's algorithm
+  searches a space of size \(2^n\) in about \(2^{n/2}\) quantum queries, so a
+  symmetric cipher with a \(2\lambda\)-bit key, or an \(n=2\lambda\)-bit hash
+  against preimages, retains \(\lambda\) bits of quantum security. Generic
+  quantum collision finding instead costs \(\Theta(2^{n/3})\) queries, so an
+  output of about \(3\lambda\) bits is needed for \(\lambda\)-bit quantum
+  collision security. Thus doubling suffices for key search and preimages, but
+  not for collisions.
 \item \emph{Post-quantum assumptions.} Hardness based on lattices (LWE, SIS), codes, multivariate systems, and isogenies is not known to fall to Shor and underlies post-quantum cryptography.
 \end{itemize}
 The discrete-log assumptions adopted here are therefore secure only under the standing premise that no cryptographically relevant quantum computer exists. Within that premise, and against all classical attacks, the Pasta curves deliver the \(\approx 126\)-bit security analysed in \S\ref{assumptions:subsec:pasta}, which is the ground on which the Halo 2 constructions to come are built.
@@ -1479,7 +1506,8 @@ The three notions differ in who chooses what, and this dictates their relative s
 Let \(H\) be a keyed hash family that is compressing (input length \(m > n\)). Then:
 \begin{enumerate}
   \item Collision resistance implies second-preimage resistance.
-  \item Second-preimage resistance implies preimage resistance, up to a polynomial loss, when \(H\) is sufficiently compressing.
+  \item Second-preimage resistance implies preimage resistance when \(H\) is
+    sufficiently compressing, with additive loss \(2^{n-m}\).
 \end{enumerate}
 Neither implication reverses in general.
 \end{proposition}
@@ -1493,7 +1521,18 @@ Neither implication reverses in general.
 \end{proof}
 
 \begin{remark}[Which application needs which]\label{hash:rem:whichneeds}
-The notions are not interchangeable. A password-hashing scheme storing \(H(\text{password})\) requires \emph{preimage} resistance and nothing more---an attacker who learns the digest must not recover an input. A scheme that signs \(H(m)\) and permits an adversary to later substitute a forged document requires \emph{second-preimage} resistance for the honestly chosen \(m\). A scheme in which the \emph{signer themselves} might cheat---preparing two contracts with the same hash, signing the benign one, and later presenting the malicious one---requires full \emph{collision} resistance, since here the adversary controls both messages. Commitment schemes, Merkle trees, and the Fiat--Shamir transform all fall in this last, most demanding category, which is why collision resistance is the headline property of a cryptographic hash.
+The notions are not interchangeable. Password storage needs resistance to
+offline guessing, not merely preimage resistance of a fast hash: deployments
+use a unique salt and a deliberately slow, preferably memory-hard password KDF.
+A scheme that signs \(H(m)\) and permits an adversary to later substitute a
+forged document requires \emph{second-preimage} resistance for the honestly
+chosen \(m\). A scheme in which the \emph{signer themselves} might
+cheat---preparing two contracts with the same hash, signing the benign one, and
+later presenting the malicious one---requires full \emph{collision} resistance,
+since here the adversary controls both messages. Commitment schemes, Merkle
+trees, and the Fiat--Shamir transform all fall in this last, most demanding
+category, which is why collision resistance is the headline property of a
+cryptographic hash.
 \end{remark}
 
 \subsection{The birthday bound on generic collision finding}\label{hash:sub:birthday}
@@ -1593,7 +1632,22 @@ By prefix-freeness the domains \(\tau_{i} \mathbin{\|} \{0,1\}^{*}\) are pairwis
 \end{proof}
 
 \begin{example}[Personalisation in practice]\label{hash:ex:personalisation}
-Three idioms implement Definition~\ref{hash:def:domainsep}. \emph{(a) Prefix tagging:} prepend an ASCII context string, e.g. \texttt{"Zcash\_nf"} for nullifiers versus \texttt{"Zcash\_cm"} for note commitments, ensuring distinct slices. \emph{(b) Native personalisation:} BLAKE2b's parameter block carries a \(16\)-byte personalisation field that mixes into the IV, so \texttt{BLAKE2b(person="ZcashKDF")} and \texttt{BLAKE2b(person="ZcashPRF")} are, by construction, independent functions without touching the message at all---this is why Zcash favours BLAKE2 for its oracles. \emph{(c) Suffix/framing in XOFs:} SHA-3 reserves domain-separation \emph{suffix bits} (\(01\) for SHA-3 hashing, \(1111\) for SHAKE) appended before padding, so that SHA3-256 and SHAKE256, sharing the same permutation, can never collide across uses. The unifying requirement, in all three, is that distinct uses induce disjoint effective inputs to the underlying primitive---realised in idiom~(a) by the prefix-freeness of Proposition~\ref{hash:prop:domainsep}: an ad hoc tag that is a prefix of another silently merges two domains and reopens the replay attack.
+Three idioms implement Definition~\ref{hash:def:domainsep}. \emph{(a) Prefix
+tagging:} prepend an ASCII context string, e.g.\ \texttt{"Zcash\_nf"} for
+nullifiers versus \texttt{"Zcash\_cm"} for note commitments, ensuring distinct
+slices. \emph{(b) Native personalisation:} BLAKE2b's parameter block carries a
+\(16\)-byte personalisation field that mixes into the IV, so distinct
+personalisation values separate the primitive's effective inputs without
+touching the message. In the ideal-function model the resulting domains behave
+as independent functions; a concrete BLAKE2b instantiation does not make
+information-theoretic independence a fact ``by construction.'' \emph{(c)
+Suffix/framing in XOFs:} SHA-3 and SHAKE use distinct domain-separation suffixes
+before padding. This separates their effective inputs, although finite digests
+from the two functions can still coincide by chance. The unifying requirement
+is that distinct uses induce disjoint effective inputs to the underlying
+primitive---realised in idiom~(a) by the prefix-freeness of
+Proposition~\ref{hash:prop:domainsep}: an ad hoc tag that is a prefix of another
+silently merges two domains and reopens the replay attack.
 \end{example}
 
 \subsection{Hashing to a field element}\label{hash:sub:tofield}
@@ -1629,7 +1683,7 @@ using \(p < 2^{L}\) so \(p/2^{L} < 1\). The bias from naive single-block reducti
 \end{proof}
 
 \begin{remark}[The standardised hash-to-field]\label{hash:rem:h2f}
-The IETF ``hash-to-curve'' specification packages Definition~\ref{hash:def:tofield} as a routine \(\mathrm{hash\_to\_field}(m, \mathrm{count})\) that produces \(\mathrm{count}\) field elements, internally calling an \(\mathrm{expand\_message}\) primitive (either \(\mathrm{expand\_message\_xmd}\) built on a fixed-output hash like SHA-256, or \(\mathrm{expand\_message\_xof}\) built on SHAKE) with a mandatory domain-separation tag (DST). The specification sets the \(L\) parameter there to \(\lceil(\lceil\log_{2} p\rceil + k)/8\rceil\) bytes with \(k\) the suite's target security level in bits (RFC~9380's own suites for \(255\)-bit fields, such as the curve25519 suites, set \(k = 128\), i.e.\ \(L = 48\) bytes; the Zcash suite for Pallas and Vesta is more generous, taking \(k = 256\) so that each element is reduced from a full \(64\)-byte BLAKE2b-512 digest), exactly realising the slack of Proposition~\ref{hash:prop:tofield}. This is the concrete recipe we use to map identities to field elements and to produce the field elements inside hash-to-curve (\S\ref{hash:sub:tocurve}); the deployed Fiat--Shamir transcript realises the same wide-output-then-reduce principle of Proposition~\ref{hash:prop:tofield} by squeezing a personalised BLAKE2b state (\emph{Halo 2 Guide}).
+The IETF ``hash-to-curve'' specification packages Definition~\ref{hash:def:tofield} as a routine \(\mathrm{hash\_to\_field}(m, \mathrm{count})\) that produces \(\mathrm{count}\) field elements, internally calling an \(\mathrm{expand\_message}\) primitive (either \(\mathrm{expand\_message\_xmd}\) built on a fixed-output hash like SHA-256, or \(\mathrm{expand\_message\_xof}\) built on SHAKE) with a mandatory domain-separation tag (DST). The specification sets the \(L\) parameter there to \(\lceil(\lceil\log_{2} p\rceil + k)/8\rceil\) bytes with \(k\) the suite's target security level in bits (RFC~9380's own suites for \(255\)-bit fields, such as the curve25519 suites, set \(k = 128\), i.e.\ \(L = 48\) bytes; the Zcash suite for Pallas and Vesta is more generous, taking \(k = 256\) so that each element is reduced from a full \(64\)-byte BLAKE2b-512 digest), exactly realising the slack of Proposition~\ref{hash:prop:tofield}. This is the concrete recipe we use to map identities to field elements and to produce the field elements inside hash-to-curve (\S\ref{hash:sub:tocurve}); Halo~2's deployed Fiat--Shamir transcript uses the same wide-output-then-reduce principle when squeezing a personalised BLAKE2b state.
 \end{remark}
 
 \subsection{Hashing to a curve point}\label{hash:sub:tocurve}
@@ -1643,36 +1697,55 @@ The obvious approach: hash \(m\) to a candidate \(x \in \Fp\) (via \S\ref{hash:s
 The modern solution is an explicit, everywhere-defined algebraic map from \(\Fp\) to \(E(\Fp)\). The basic tool is the \emph{simplified Shallue--van~de~Woestijne--Ulas (SWU) map}, which applies directly to curves with \(ab \neq 0\). For curves with \(j\)-invariant \(0\) (\(a = 0\), such as the Pallas/Vesta curves of Halo~2) or \(1728\) (\(b = 0\)) the simplified SWU map does not apply directly; instead one evaluates it on an \emph{isogenous} auxiliary curve with \(a'b' \neq 0\)---one related to the target curve by an \emph{isogeny}, a nonconstant map between curves, given by polynomial formulas in the coordinates, that respects the group law---and transports the result back through the isogeny map (see Remark~\ref{hash:rem:fullh2c}).
 
 \begin{definition}[Simplified SWU map, high level]\label{hash:def:swu}
-Let \(E \colon y^{2} = g(x) = x^{3} + ax + b\) over \(\Fp\) with \(ab \neq 0\), and fix a nonsquare \(Z \in \Fp\) (a ``nothing-up-my-sleeve'' constant, e.g. the smallest nonsquare). The simplified SWU map \(\mathrm{SWU} \colon \Fp \to E(\Fp)\) sends a field element \(u\) to a point as follows. It computes two candidate \(x\)-coordinates,
+Let \(E \colon y^{2}=g(x)=x^{3}+ax+b\) over \(\Fp\), with \(ab\ne0\).
+As required by RFC~9380, choose \(Z\in\Fp\) such that \(Z\) is a nonsquare,
+\(Z\ne-1\), the polynomial \(g(X)-Z\) is irreducible over \(\Fp\), and
+\(g(b/(Za))\) is square. The simplified SWU map
+\(\mathrm{SWU}\colon\Fp\to E(\Fp)\) sends \(u\) to a point as follows. It
+computes two candidate \(x\)-coordinates,
 \[
   x_{1} \;=\; \frac{-b}{a}\Bigl(1 + \frac{1}{Z^{2}u^{4} + Z u^{2}}\Bigr),
   \qquad
   x_{2} \;=\; Z u^{2}\, x_{1},
 \]
-(with a defined fallback when the denominator vanishes), and uses the key algebraic identity
+  using the fallback \(x_1=b/(Za)\) when the displayed denominator vanishes,
+  and uses the key algebraic identity
 \[
   g(x_{2}) \;=\; Z^{3} u^{6}\, g(x_{1}),
 \]
-together with the fact that \(Z\) is a nonsquare, to prove that \emph{exactly one} of \(g(x_{1}), g(x_{2})\) is a quadratic residue. It then sets \(x = x_{1}\) if \(g(x_{1})\) is square and \(x = x_{2}\) otherwise, takes \(y = \sqrt{g(x)}\) with a fixed sign convention, and outputs \((x,y)\).
+together with the conditions on \(Z\) to prove that at least one of
+\(g(x_1),g(x_2)\) is a square. It then sets \(x=x_1\) if \(g(x_1)\) is
+square and \(x=x_2\) otherwise, takes \(y=\sqrt{g(x)}\) with the sign of
+\(y\) chosen to match that of \(u\), and outputs \((x,y)\).
 \end{definition}
 
 \begin{proposition}[Correctness of the simplified SWU branch selection]\label{hash:prop:swu}
-With notation as in Definition~\ref{hash:def:swu} and \(u\) such that the denominator \(D = Z^{2}u^{4} + Zu^{2}\) is nonzero, the map is well-defined: exactly one of \(g(x_{1})\) and \(g(x_{2})\) is a square in \(\Fp\), so \(\mathrm{SWU}(u)\) is a genuine point of \(E(\Fp)\) computed without any trial loop.
+With the parameter conditions of Definition~\ref{hash:def:swu}, the map is
+well-defined for every \(u\in\Fp\): its selected value \(g(x)\) is square,
+so \(\mathrm{SWU}(u)\) is a genuine point of \(E(\Fp)\), computed without a
+trial loop.
 \end{proposition}
 
 \begin{proof}
-Sketch. The defining relation \(g(x_{2}) = Z^{3}u^{6}\,g(x_{1})\) is a polynomial identity in \(u\); substituting \(x_{2} = Zu^{2}x_{1}\) into \(g\) and simplifying using the formula for \(x_{1}\) verifies it, and we take it as given. Now apply the multiplicativity of the Legendre symbol:
+Suppose first that \(D=Z^2u^4+Zu^2\ne0\). The defining relation
+\(g(x_2)=Z^3u^6g(x_1)\) follows by substituting the formulas above. If
+\(g(x_1)=0\), the first candidate already works. Otherwise, multiplicativity
+of the Legendre symbol gives
 \[
   \legendre{g(x_{2})}{p}
   = \legendre{Z^{3}u^{6}}{p}\legendre{g(x_{1})}{p}
   = \legendre{Z}{p}\legendre{Z^{2}u^{6}}{p}\legendre{g(x_{1})}{p}
   = \legendre{Z}{p}\legendre{g(x_{1})}{p},
 \]
-since \(Z^{2}u^{6} = (Zu^{3})^{2}\) is a nonzero square and contributes a Legendre symbol of \(+1\) (assuming \(u \neq 0\); the case \(u=0\) maps to a fixed point). Because \(Z\) is a \emph{nonsquare}, \(\legendre{Z}{p} = -1\), hence \(\legendre{g(x_{2})}{p} = -\legendre{g(x_{1})}{p}\). The two symbols are opposite, so precisely one of \(g(x_{1}), g(x_{2})\) is a nonzero square and admits a square root \(y\); the branch selection picks that one. Thus the output is always a valid affine point, on the first try, for every admissible \(u\).
+since \(Z^{2}u^{6}=(Zu^{3})^{2}\) is a nonzero square. Because \(Z\) is a
+nonsquare, the two symbols are opposite, and the branch selection picks a
+square. If \(D=0\), the prescribed fallback has
+\(g(x_1)=g(b/(Za))\) square by the fourth condition on \(Z\). Thus every input
+produces a valid affine point.
 \end{proof}
 
 \begin{remark}[From a field point to a uniform group point; full hash-to-curve]\label{hash:rem:fullh2c}
-A single SWU evaluation is \emph{not} surjective onto \(E(\Fp)\) and its image is not uniform; one SWU output covers only part of the curve and with a non-flat distribution. The standardised \(\mathrm{hash\_to\_curve}(m)\) therefore composes several stages: (i) \(\mathrm{hash\_to\_field}(m,2)\) yields two independent near-uniform field elements \(u_{0}, u_{1}\) (\S\ref{hash:sub:tofield}); (ii) apply the map to each, \(Q_{0} = \mathrm{SWU}(u_{0})\), \(Q_{1} = \mathrm{SWU}(u_{1})\); (iii) add them on the curve, \(R = Q_{0} + Q_{1}\)---summing two independent images provably smooths the distribution to within negligible distance of uniform on \(E(\Fp)\); and (iv) \emph{clear the cofactor} by multiplying \(R\) by \(h = \#E(\Fp)/r\) to land in the prime-order subgroup of order \(r\) where the cryptography occurs. For curves with \(a = 0\) (\(j\)-invariant \(0\)), such as Pallas/Vesta, the simplified SWU map of Definition~\ref{hash:def:swu} does not apply directly---its \(x_{1}\) formula needs \(ab \neq 0\)---so one instead evaluates simplified SWU on an isogenous auxiliary curve \(E' \colon y^{2} = x^{3} + a'x + b'\) with \(a'b' \neq 0\) and then transports the resulting point back to \(E\) through the \emph{isogeny map} \(E' \to E\); the obstruction is intrinsic, for the \(j\)-invariant is an isomorphism invariant: a Weierstrass change of variables rescales \((a, b)\) to \((u^{4}a, u^{6}b)\), so no model of these curves attains \(ab \neq 0\), and the simplified-SWU route always passes through the isogeny. (Curves in Montgomery or twisted Edwards form are hashed by a different standardised map, Elligator~2, with no isogeny; prime-order curves such as Pallas and Vesta admit no such form, their order being odd while Montgomery and Edwards curves have order divisible by four.) The result is a hash \(\{0,1\}^{*} \to E(\Fp)\) that is constant-time, able to stand in for a random oracle into the group in security arguments (no efficient distinguisher can exploit its internal structure to tell the two apart), and the standard way to produce independent generators for Pedersen-style commitments.
+A single SWU evaluation is \emph{not} surjective onto \(E(\Fp)\) and its image is not uniform; one SWU output covers only part of the curve and with a non-flat distribution. The standardised \(\mathrm{hash\_to\_curve}(m)\) therefore composes several stages: (i) \(\mathrm{hash\_to\_field}(m,2)\) yields two independent near-uniform field elements \(u_{0}, u_{1}\) (\S\ref{hash:sub:tofield}); (ii) apply the map to each, \(Q_{0} = \mathrm{SWU}(u_{0})\), \(Q_{1} = \mathrm{SWU}(u_{1})\); (iii) add them on the curve, \(R = Q_{0} + Q_{1}\), as required by the random-oracle encoding and its indifferentiability analysis; and (iv) \emph{clear the cofactor} by multiplying \(R\) by \(h = \#E(\Fp)/r\) to land in the prime-order subgroup of order \(r\) where the cryptography occurs. For curves with \(a = 0\) (\(j\)-invariant \(0\)), such as Pallas/Vesta, the simplified SWU map of Definition~\ref{hash:def:swu} does not apply directly---its \(x_{1}\) formula needs \(ab \neq 0\)---so one instead evaluates simplified SWU on an isogenous auxiliary curve \(E' \colon y^{2} = x^{3} + a'x + b'\) with \(a'b' \neq 0\) and then transports the resulting point back to \(E\) through the \emph{isogeny map} \(E' \to E\); the obstruction is intrinsic, for the \(j\)-invariant is an isomorphism invariant: a Weierstrass change of variables rescales \((a, b)\) to \((u^{4}a, u^{6}b)\), so no model of these curves attains \(ab \neq 0\), and the simplified-SWU route always passes through the isogeny. (Curves in Montgomery or twisted Edwards form are hashed by a different standardised map, Elligator~2, with no isogeny; an odd-prime-order curve such as Pallas or Vesta cannot itself have either form, since those forms exhibit rational \(2\)-torsion and hence have even group order.) Under the hash model and suite conditions of RFC~9380, the resulting hash \(\{0,1\}^{*} \to E(\Fp)\) can instantiate a random oracle into the group; it is constant-time and is the standard way to produce independent generators for Pedersen-style commitments.
 \end{remark}
 
 \begin{remark}[Nothing-up-my-sleeve generators]\label{hash:rem:nums}
@@ -1681,8 +1754,8 @@ A recurring use of hash-to-curve is generating the public generators \(G_{1},\do
 \subsection{Arithmetisation-friendly hashing: Poseidon}\label{hash:subsec:poseidon}
 Every hash described above (SHA-2, BLAKE2) is \emph{bit-oriented}: its round function
 shuffles and XORs $32$- or $64$-bit words. Inside an arithmetic circuit over a
-large prime field \(\Fp\) --- the setting of the proof systems of the
-\emph{Halo~2 Guide} --- such a function is prohibitively expensive, since field
+large prime field \(\Fp\) --- the setting of proof systems such as Halo~2 ---
+such a function is prohibitively expensive, since field
 arithmetic and range checks must re-express every Boolean operation.
 \emph{Arithmetisation-friendly} hashes follow the opposite design: the
 round function consists of a few low-degree \emph{field} operations, incurring few
@@ -1728,8 +1801,8 @@ base field, at the \(128\)-bit security level. Orchard uses it in
 the first state element after one permutation of the input padded by the fixed
 capacity value \(2^{65}\) (so no message padding is then required). Keyed by its first
 argument it is the pseudorandom function \(F_{\mathsf{nk}}(\rho) =
-\mathsf{PoseidonHash}(\mathsf{nk}, \rho)\) from which Orchard constructs the nullifier
-(\emph{Ironwood Guide}); unlike the Pedersen and Sinsemilla hashes constructed
+\mathsf{PoseidonHash}(\mathsf{nk}, \rho)\) from which Orchard constructs the
+nullifier; unlike the Pedersen and Sinsemilla hashes constructed
 later (\S\ref{commitments:subsec:pedersen},
 \S\ref{commitments:subsec:sinsemilla}), its security rests on cryptanalytic
 confidence in the round function rather than on a clean assumption such as
@@ -1781,7 +1854,18 @@ A keyed function \(F\) (Definition~\ref{prf:def:keyed}) is a \emph{pseudorandom 
 where \(\mathsf{Func}(\ell, m) = \mathsf{Func}(\{0,1\}^{\ell}, \{0,1\}^{m})\), and the input \(1^\lambda\) (the security parameter in unary) merely conveys to \(\mathcal{A}\) the parameter size.
 \end{definition}
 
-Stated informally: an adversary handed a black box that is either \(F_k\) for a secret random key, or a freshly sampled truly random function, and allowed to query it adaptively, cannot determine which it has. Two features merit emphasis. First, the adversary obtains \emph{oracle} access only --- it never sees the key, and it cannot read the code of the function, only its input--output behaviour. Second, the comparison object is the gigantic, unstorable random function; the PRF compresses this into \(\lambda\) bits while remaining computationally indistinguishable from it. Information theory cannot afford this trade: a keyed function takes at most \(2^{\lambda}\) values as \(k\) ranges over the keys, a vanishing fraction of all \(|R|^{|D|}\) functions, so an \emph{unbounded} adversary could in principle distinguish. Pseudorandomness is an inherently computational notion.
+Stated informally: an adversary handed a black box that is either \(F_k\) for a
+secret random key, or a freshly sampled truly random function, and allowed to
+query it adaptively, cannot determine which it has. Two features merit
+emphasis. First, the algorithm defining \(F\) is public; only the sampled key is
+hidden. The game grants oracle access to the resulting keyed instance
+\(F_k\), not its key. Second, the comparison object is the gigantic,
+unstorable random function; the PRF compresses this into \(\lambda\) bits while
+remaining computationally indistinguishable from it. Information theory cannot
+afford this trade: a keyed function takes at most \(2^{\lambda}\) values as
+\(k\) ranges over the keys, a vanishing fraction of all \(|R|^{|D|}\) functions,
+so an \emph{unbounded} adversary could in principle distinguish.
+Pseudorandomness is an inherently computational notion.
 
 \begin{remark}[Necessity of oracle access and of adaptivity]\label{prf:rem:adaptive}
 The adversary chooses its queries; it need not commit to them in advance and may let later queries depend on earlier answers. This \emph{adaptive} access is the strongest reasonable model and the one that downstream constructions rely on. A weaker ``non-adaptive'' definition, in which the adversary fixes all queries before seeing any answer, is genuinely weaker and insufficient for many applications.
@@ -1948,7 +2032,7 @@ Each round is the map \((A, B) \mapsto (B, (A + y) \bmod m)\), where \(y = y(i, 
 \begin{remark}[``Exactly a keyed bijection'', and the locus of security]\label{prf:rem:fpe}
 Two points complete the picture. First, FF1 is a keyed bijection by \emph{structure}: invertibility comes for free from the Feistel construction (Proposition~\ref{prf:prp:feistelbijection} and \ref{prf:prp:ff1bijection}) and holds for \emph{any} round function whatsoever, including a broken or constant one. The PRF (AES) is responsible not for invertibility but for \emph{pseudorandomness} --- making \(\mathcal{E}_{k,T}\) look like a uniformly random permutation of \(\mathcal{X}\) (Definition~\ref{prf:def:fpe}), per the Luby--Rackoff heuristic of Theorem~\ref{prf:thm:lubyrackoff} adapted to the modular, multi-round, tweaked setting. This clean separation --- bijectivity from algebra, security from the PRF --- is precisely why Feistel is the standard route to FPE.
 
-Second, the domain-size caveat is real: the published SP 800-38G requires \(\rho^{\nu} \ge 100\) and recommends \(\rho^{\nu} \ge 10^{6}\) (its draft Revision~1 would make \(10^{6}\) mandatory), because for very small domains an attacker can recover or distinguish the keyed permutation by exhaustively cataloguing input/output pairs, and known message-recovery attacks on small-domain FPE (Bellare--Hoang--Tessaro and successors) erode the security margin. For the moderately large domains FPE is meant for (card numbers, identifiers), and with ten rounds, FF1 is the NIST-standardised, AES-backed realisation of a keyed pseudorandom bijection on an arbitrary finite format. Its single use in Orchard is the derivation of \emph{diversifiers}: FF1-AES256 maps an address index to the 11-byte diversifier embedded in a shielded address, so that one spending key yields many unlinkable addresses (\emph{Ironwood Guide}).
+Second, the domain-size caveat is real: the published SP 800-38G requires \(\rho^{\nu} \ge 100\) and recommends \(\rho^{\nu} \ge 10^{6}\) (its draft Revision~1 would make \(10^{6}\) mandatory), because for very small domains an attacker can recover or distinguish the keyed permutation by exhaustively cataloguing input/output pairs, and known message-recovery attacks on small-domain FPE (Bellare--Hoang--Tessaro and successors) erode the security margin. For the moderately large domains FPE is meant for (card numbers, identifiers), and with ten rounds, FF1 is the NIST-standardised, AES-backed realisation of a keyed pseudorandom bijection on an arbitrary finite format. Its single use in Orchard is the derivation of \emph{diversifiers}: FF1-AES256 maps an address index to the 11-byte diversifier embedded in a shielded address, so that one spending key yields many unlinkable addresses.
 \end{remark}
 
 \clearpage
@@ -2150,7 +2234,30 @@ Model \textsf{ChaCha20} as a pseudorandom function \(F_k(\nu, j)\) from \((\nu, 
 
 \emph{Confidentiality.} Since the adversary is nonce-respecting, every encryption query uses a fresh \(\nu\). For a fresh nonce, the blocks \(\Phi(\nu, 1), \Phi(\nu, 2), \dots\) used as keystream are uniform and independent of everything the adversary has seen, so \(c = m \oplus \mathrm{KS}\) is a genuine one-time pad and reveals nothing about \(m\) beyond its length; the tag is a deterministic function of \(c, a, \nu\) and adds no information. Thus the idealised scheme has zero CPA advantage, and the real scheme has CPA advantage at most \(\mathrm{Adv}^{\mathrm{prf}}_F(\lambda)\).
 
-\emph{Integrity.} For each nonce \(\nu\), the one-time key \((r,s) = \Phi(\nu, 0)[0{:}32]\) is uniform and independent across distinct nonces, and—because counter \(0\) is reserved for the MAC key while encryption uses counters \(\ge 1\)—independent of the keystream that produced the ciphertexts. Hence per nonce the setting is exactly the Carter--Wegman one-time-MAC setting of Theorem~\ref{symmetric:thm-cw} with the \(\varepsilon\)-A\(\Delta\)U \textsf{Poly1305} hash of Proposition~\ref{symmetric:prp-poly1305-axu}, \(\varepsilon \le 8\ell_{\max}/2^{106}\). Consider any single verification query \((\nu^\ast, a^\ast, c^\ast, t^\ast)\) that is fresh. If \(\nu^\ast\) was never used for encryption, the pad \(s\) for \(\nu^\ast\) is uniform and entirely unknown to the adversary, so the tag \(t^\ast\) is correct with probability \(2^{-128}\). If \(\nu^\ast\) equals the nonce of some encryption query (the adversary may reuse a nonce in a \emph{verification} query, though not in encryption), then the adversary has seen exactly one tag under \((r,s)\), and the freshness of \((a^\ast, c^\ast)\) means it is attempting a forgery on a new message under that one-time key; by Theorem~\ref{symmetric:thm-cw} this succeeds with probability at most \(\varepsilon \le 8\ell_{\max}/2^{106}\). A union bound over the \(q_v\) verification queries gives forgery probability at most \(8\,q_v\,\ell_{\max}/2^{106}\) in the idealised scheme, and adding back the PRF-switching cost yields the stated bound.
+\emph{Integrity.} For each nonce \(\nu\), the block
+\(\Phi(\nu,0)[0{:}32]\) is uniform and independent across distinct nonces.
+Clamping its first half samples \(r\) from Poly1305's prescribed restricted
+set, while the second half \(s\) remains uniform; the resulting one-time keys
+are independent across nonces. Because counter \(0\) is reserved for this key
+while encryption uses counters \(\ge 1\), each one-time key is also independent
+of the keystream that produced its ciphertext. Hence per nonce the setting is
+exactly the Carter--Wegman one-time-MAC setting of
+Theorem~\ref{symmetric:thm-cw} with the \(\varepsilon\)-A\(\Delta\)U
+\textsf{Poly1305} hash of Proposition~\ref{symmetric:prp-poly1305-axu},
+\(\varepsilon \le 8\ell_{\max}/2^{106}\). Consider any single verification
+query \((\nu^\ast,a^\ast,c^\ast,t^\ast)\) that is fresh. If \(\nu^\ast\) was
+never used for encryption, the pad \(s\) for \(\nu^\ast\) is uniform and
+entirely unknown to the adversary, so the tag \(t^\ast\) is correct with
+probability \(2^{-128}\). If \(\nu^\ast\) equals the nonce of some encryption
+query (the adversary may reuse a nonce in a \emph{verification} query, though
+not in encryption), then the adversary has seen exactly one tag under
+\((r,s)\), and the freshness of \((a^\ast,c^\ast)\) means it is attempting a
+forgery on a new message under that one-time key; by
+Theorem~\ref{symmetric:thm-cw} this succeeds with probability at most
+\(\varepsilon \le 8\ell_{\max}/2^{106}\). A union bound over the \(q_v\)
+verification queries gives forgery probability at most
+\(8q_v\ell_{\max}/2^{106}\) in the idealised scheme, and adding back the
+PRF-switching cost yields the stated bound.
 \end{proof}
 
 \begin{remark}[Single key, two roles]\label{symmetric:rem-single-key}
@@ -2159,14 +2266,34 @@ Model \textsf{ChaCha20} as a pseudorandom function \(F_k(\nu, j)\) from \((\nu, 
 
 \subsection{Key-derivation functions}\label{symmetric:subsec:kdf}
 
-The AEAD above assumes a uniformly random \(256\)-bit key. In practice keys come from sources that are \emph{high-entropy but not uniform}: a Diffie--Hellman shared secret \(g^{xy}\) is a group element, not a uniform bit string; a passphrase or a hardware noise source has min-entropy spread unevenly across its bits. A \emph{key-derivation function} (KDF) bridges this gap, turning a non-uniform secret into one or more uniformly random keys. The relevant entropy measure is min-entropy.
+The AEAD above assumes a uniformly random \(256\)-bit key. In practice keys may
+come from sources that are \emph{high-entropy but not uniform}: a
+Diffie--Hellman shared secret \(g^{xy}\) is a structured group encoding, while a
+hardware noise source may have entropy spread unevenly across its bits. A
+passphrase is a different, usually low-entropy source and needs a deliberately
+costly password KDF. A general \emph{key-derivation function} (KDF) converts an
+appropriate source secret into one or more pseudorandom keys. The relevant
+entropy measure is min-entropy.
 
 \begin{definition}[Min-entropy]\label{symmetric:def-minentropy}
 The \emph{min-entropy} of a random variable \(X\) is \(H_\infty(X) = -\log_2 \max_x \Pr[X = x]\). Equivalently, the best chance of guessing \(X\) in one try is \(2^{-H_\infty(X)}\). The \emph{statistical distance} between distributions \(X, Y\) on a set \(S\) is \(\Delta(X,Y) = \tfrac12 \sum_{u \in S} |\Pr[X=u] - \Pr[Y=u]|\); we say \(X\) is \(\epsilon\)-close to uniform if \(\Delta(X, U_S) \le \epsilon\).
 \end{definition}
 
 \begin{definition}[Key-derivation function and its security]\label{symmetric:def-kdf}
-A \emph{key-derivation function} is a function \(\mathrm{KDF} : \mathcal{S} \times \mathcal{I} \times \{0,1\}^\ast \times \N \to \{0,1\}^\ast\) taking a source secret (sample of a random variable \(\Sigma\)), an optional non-secret \emph{salt} \(\mathrm{slt}\), an \emph{info}/context string \(\mathrm{ctx}\), and a desired output length \(L\). Its security goal: whenever \(\Sigma\) has min-entropy at least \(\gamma\) (relative to the adversary's side information), the output \(\mathrm{KDF}(\Sigma, \mathrm{slt}, \mathrm{ctx}, L)\) should be computationally indistinguishable from \(U_L\), even given \(\mathrm{slt}\), \(\mathrm{ctx}\), and that side information.
+A \emph{key-derivation function} is a function
+\(\mathrm{KDF}:\mathcal S\times\mathcal I\times\{0,1\}^*\times\N
+\to\{0,1\}^*\) taking a source secret \(\Sigma\), a non-secret salt
+\(\mathrm{slt}\), an \emph{info}/context string \(\mathrm{ctx}\), and a
+desired output length \(L\). Its security goal must specify the source model.
+For an arbitrary source of min-entropy at least \(\gamma\), an extractor-style
+guarantee uses a salt sampled uniformly and independently of that source, and
+requires \((\mathrm{slt},\mathrm{KDF}(\Sigma,\mathrm{slt},\mathrm{ctx},L))\)
+to be indistinguishable from \((\mathrm{slt},U_L)\), even given the context and
+the adversary's side information. No fixed deterministic unsalted function can
+provide this guarantee for \emph{every} high-min-entropy source. Unsalted KDFs
+therefore rely on a narrower premise, such as input keying material that is
+already computationally pseudorandom or is hard to query in a random-oracle
+model.
 \end{definition}
 
 The notion a KDF targets is that of a (computational) randomness extractor: a seeded function whose output looks uniform whenever its input has enough min-entropy.
@@ -2181,14 +2308,34 @@ with distinguishing advantage at most \(\epsilon\); ``strong'' means the constru
 
 Information theory can realise this notion unconditionally. The \emph{leftover hash lemma} states that any \(2^{-n}\)-universal family \(\{g_r : \mathcal{X} \to \{0,1\}^n\}\) with a uniform public seed \(R\) satisfies \(\Delta\bigl((R, g_R(X)),\, (R, U_n)\bigr) \le \tfrac12\sqrt{2^{\,n-\gamma}}\) whenever \(H_\infty(X) \ge \gamma\); thus investing \(\gamma \ge n + 2\log_2(1/\epsilon)\) bits of min-entropy buys \(n\) bits that are \(\epsilon\)-close to uniform. We state this without proof, since the deployed mechanism below rests on a random-oracle modelling instead.
 
-\paragraph{HKDF, in passing.} The standardised general-purpose KDF is Krawczyk's \textsf{HKDF} (RFC~5869), built from HMAC (\S\ref{prf:ssec:hmac}) in an \emph{extract-then-expand} architecture: a salted HMAC call first distils the non-uniform secret into a short uniform \emph{pseudorandom key} (the extractor stage, justified along leftover-hash lines), and a counter-chained sequence of HMAC calls then stretches that key, under a context string, into as many output bytes as required (the expander stage, justified by HMAC's PRF security). HKDF is the right tool when one KDF must serve arbitrary sources and output lengths. Zcash does not use it---indeed the shielded protocol uses HMAC nowhere---because its requirements are far narrower and a single hash call meets them.
+\paragraph{HKDF, in passing.} The standardised general-purpose KDF is
+Krawczyk's \textsf{HKDF} (RFC~5869), built from HMAC
+(\S\ref{prf:ssec:hmac}) in an \emph{extract-then-expand} architecture: a
+salted HMAC call first distils suitable non-uniform input keying material into a
+short pseudorandom key, and a counter-chained sequence of HMAC calls then
+expands that key, under a context string, up to RFC~5869's limit of \(255\)
+hash-output-length blocks.
+HKDF is a standard choice across many protocol source models and output lengths;
+its precise guarantee still depends on assumptions about the source and HMAC.
+Zcash does not use it---indeed the shielded protocol uses HMAC
+nowhere---because its requirements are narrower and a single hash call meets
+them in the random-oracle analysis.
 
 \paragraph{The Zcash KDF.} Orchard derives the note-encryption key by one personalised BLAKE2b call:
 \[
   K_{\mathrm{enc}} \;=\; \mathrm{KDF}(\mathsf{sharedSecret}, \mathsf{epk})
   \;=\; \mathrm{BLAKE2b}\text{-}256\bigl(\texttt{"Zcash\_OrchardKDF"};\ \mathsf{sharedSecret} \,\|\, \mathsf{epk}\bigr),
 \]
-where \(\mathsf{sharedSecret}\) is the Diffie--Hellman shared point of the key agreement in Section~\ref{sec:keyagreement}, \(\mathsf{epk}\) is the sender's ephemeral public key, and the quoted string occupies BLAKE2b's personalisation field. The analysis models this personalised hash as a random oracle: by the domain-separation principle of \S\ref{hash:sub:domainsep} (Proposition~\ref{hash:prop:domainsep} and Example~\ref{hash:ex:personalisation}), the personalisation makes it an oracle independent of every other hash use in the protocol, and on an input containing the high-min-entropy, hard-to-guess \(\mathsf{sharedSecret}\) its output is uniform and independent of the adversary's view---which is exactly the security goal of Definition~\ref{symmetric:def-kdf}. Folding \(\mathsf{epk}\) into the input binds the derived key to this particular ephemeral, the role the context string plays in HKDF; no salt is needed because the random-oracle modelling already rules out source distributions tuned against the function.
+where \(\mathsf{sharedSecret}\) is the Diffie--Hellman shared point of the key
+agreement in Section~\ref{sec:keyagreement}, \(\mathsf{epk}\) is the sender's
+ephemeral public key, and the quoted string occupies BLAKE2b's personalisation
+field. The analysis models this personalised hash as a random oracle. Domain
+separation gives a distinct ideal oracle for this use, and the derived key is
+uniform unless the adversary queries that oracle at the hidden
+\(\mathsf{sharedSecret}\); Section~\ref{sec:keyagreement} reduces such a query
+to CDH. Folding \(\mathsf{epk}\) into the input binds the key to this particular
+ephemeral. No salt is used here because the claim is this narrower
+CDH-plus-random-oracle one, not extraction from every high-min-entropy source.
 
 \begin{remark}[The role of the KDF in the larger protocol]\label{symmetric:rem-hkdf-role}
 In the Zcash note-encryption layer, a Diffie--Hellman exchange on the Pallas curve produces a shared group element, and the single BLAKE2b call above condenses that element into the symmetric key fed to \textsf{ChaCha20-Poly1305}. The two halves of this section thus meet exactly here: key derivation manufactures the uniform key that the AEAD's security proof (Theorem~\ref{symmetric:thm-chachapoly}) takes as a hypothesis, and the chain from a non-uniform shared secret to an authenticated ciphertext is complete. Section~\ref{sec:keyagreement} assembles this chain end to end as hybrid public-key encryption.
@@ -2289,7 +2436,7 @@ That is, the two parties holding \(s\) and \(t\) compute the same shared secret 
 \begin{example}[Diffie--Hellman as a key-agreement scheme]\label{keyagreement:exp:dh-scheme}
 Fix \(\Pi = (\G, g, n)\) with \(\G = \langle g\rangle\) of prime order \(n\). Set \(\mathcal{S} = \Z/n\Z\) (or, to avoid the degenerate identity-only case, \(\mathcal{S} = (\Z/n\Z)\setminus\{0\}\)), \(\mathcal{P} = \mathcal{K} = \G\), and define
 \[
-  \mathsf{KeyGen}(\Pi) = a \xleftarrow{\$} \Z/n\Z, \qquad
+  \mathsf{KeyGen}(\Pi) = a \xleftarrow{\$} \mathcal{S}, \qquad
   \mathsf{DerivePublic}(\Pi, a) = g^a, \qquad
   \mathsf{Agree}(\Pi, a, B) = B^a.
 \]
@@ -2301,7 +2448,7 @@ which is~\eqref{keyagreement:eq:correctness}. This is the \emph{Diffie--Hellman 
 \end{example}
 
 \begin{remark}[Why this is the right abstraction]\label{keyagreement:rem:abstraction}
-The interface deliberately hides the group. A protocol designer who programs against \(\mathsf{DerivePublic}\) and \(\mathsf{Agree}\) can swap in any concrete scheme satisfying~\eqref{keyagreement:eq:correctness}---a prime-field group, an elliptic curve, or even a post-quantum non-interactive key agreement such as the CSIDH group action---without changing a line of the surrounding logic. The Zcash note-encryption machinery follows this pattern with one generalisation: the deployed \(\mathsf{DerivePublic}\) takes the base point as an explicit argument, so that Sapling and Orchard derive keys over per-address \emph{diversified bases} rather than a fixed generator (\emph{Ironwood Guide}). It still invokes an abstract key agreement and never inspects the underlying group, which is why the construction transports from Sprout's Curve25519 to Sapling's Jubjub and Orchard's Pallas. A key-encapsulation mechanism, by contrast, cannot satisfy~\eqref{keyagreement:eq:correctness}: encapsulation requires the recipient's public key before producing its ciphertext, so no counterparty-independent \(\mathsf{DerivePublic}\) exists. The static--ephemeral one-flow pattern of Subsection~\ref{keyagreement:subsec:hpke} does generalise to any KEM, with the encapsulation ciphertext playing the role of the ephemeral public key, at the cost of changing the interface the surrounding logic programs against.
+The interface deliberately hides the group. A protocol designer who programs against \(\mathsf{DerivePublic}\) and \(\mathsf{Agree}\) can swap in any concrete scheme satisfying~\eqref{keyagreement:eq:correctness}---a prime-field group, an elliptic curve, or even a post-quantum non-interactive key agreement such as the CSIDH group action---without changing a line of the surrounding logic. The Zcash note-encryption machinery follows this pattern with one generalisation: the deployed \(\mathsf{DerivePublic}\) takes the base point as an explicit argument, so that Sapling and Orchard derive keys over per-address \emph{diversified bases} rather than a fixed generator. It still invokes an abstract key agreement and never inspects the underlying group, which is why the construction transports from Sprout's Curve25519 to Sapling's Jubjub and Orchard's Pallas. A key-encapsulation mechanism, by contrast, cannot satisfy~\eqref{keyagreement:eq:correctness}: encapsulation requires the recipient's public key before producing its ciphertext, so no counterparty-independent \(\mathsf{DerivePublic}\) exists. The static--ephemeral one-flow pattern of Subsection~\ref{keyagreement:subsec:hpke} does generalise to any KEM, with the encapsulation ciphertext playing the role of the ephemeral public key, at the cost of changing the interface the surrounding logic programs against.
 \end{remark}
 
 The output of \(\mathsf{Agree}\) is a group element, but downstream symmetric primitives require a uniform bit string of fixed length. Bridging this gap---turning a structured, non-uniform group element into key material---is the job of a key-derivation function, introduced in \S\ref{symmetric:subsec:kdf} and put to work in Subsection~\ref{keyagreement:subsec:hpke}. First we must state the precise sense in which \(g^{ab}\) is secret.
@@ -2326,7 +2473,15 @@ The adversary's challenge is, by definition, to distinguish \((g^a, g^b, g^{ab})
 \end{proof}
 
 \begin{remark}[Why pseudorandomness, not just unpredictability]\label{keyagreement:rem:whyddh}
-Theorem~\ref{keyagreement:thm:passive} is the property a key-agreement scheme requires. Feeding \(g^{ab}\) into a key-derivation function to produce a symmetric key, we model that function (in Subsection~\ref{keyagreement:subsec:hpke}) as extracting near-uniform bits from an input of high min-entropy that is hard to guess. \textsc{Cdh} alone guarantees that \(g^{ab}\) is hard to guess in full but not that it lacks efficiently-predictable structure; \textsc{Ddh} guarantees it is as good as random. In practice one often relies only on \textsc{Cdh} together with a \emph{hash} key-derivation function modelled as a random oracle, which manufactures the missing pseudorandomness; we make this precise below. In either case the design goal is that the derived symmetric key be indistinguishable from uniform.
+Theorem~\ref{keyagreement:thm:passive} is the property a key-agreement scheme
+requires. Feeding \(g^{ab}\) into a key-derivation function produces a symmetric
+key. \textsc{Cdh} alone guarantees that \(g^{ab}\) is hard to compute in full,
+but not that it lacks efficiently predictable structure; \textsc{Ddh}
+guarantees it is as good as a random group element. In practice one may instead
+combine \textsc{Cdh} with a hash KDF modelled as a random oracle: the output is
+uniform unless the adversary queries the oracle at the hidden shared secret. We
+make this precise below. In either case the derived key should be
+indistinguishable from uniform.
 \end{remark}
 
 \subsection{Active attacks and the role of authentication}\label{keyagreement:subsec:active}
@@ -2365,7 +2520,7 @@ In every case the security goal of the key agreement proper remains the passive 
 
 The development above is stated for an abstract cyclic group, by design: the protocol, the abstraction, and the security reductions are group-agnostic. We now instantiate the group \(\G\) with the group of points of an elliptic curve, the instantiation used in modern systems and in Zcash specifically.
 
-Recall from the companion volume that an elliptic curve \(E\) over a field \(\F\) (of characteristic neither \(2\) nor \(3\), say given in short Weierstrass form \(y^2 = x^3 + a x + b\) with nonzero discriminant) has a set of \(\F\)-rational points \(E(\F)\) which, together with the point at infinity \(\mathcal{O}\) as identity and the chord-and-tangent addition law, forms a finite abelian group. We write this group \emph{additively}, so the analogue of exponentiation \(g \mapsto g^x\) is \emph{scalar multiplication} \(P \mapsto [x]P = \underbrace{P + \cdots + P}_{x}\), computable in \(O(\log x)\) point additions by double-and-add.
+Recall from the \emph{Math Guide} that an elliptic curve \(E\) over a field \(\F\) (of characteristic neither \(2\) nor \(3\), say given in short Weierstrass form \(y^2 = x^3 + a x + b\) with nonzero discriminant) has a set of \(\F\)-rational points \(E(\F)\) which, together with the point at infinity \(\mathcal{O}\) as identity and the chord-and-tangent addition law, forms a finite abelian group. We write this group \emph{additively}, so the analogue of exponentiation \(g \mapsto g^x\) is \emph{scalar multiplication} \(P \mapsto [x]P = \underbrace{P + \cdots + P}_{x}\), computable in \(O(\log x)\) point additions by double-and-add.
 
 \begin{definition}[Elliptic-curve Diffie--Hellman]\label{keyagreement:def:ecdh}
 Fix an elliptic curve \(E/\F\), a base point \(P \in E(\F)\) of large prime order \(n\) generating a subgroup \(\G = \langle P\rangle\), and cofactor \(h = |E(\F)|/n\). The scheme \(\mathsf{ECDH}\), in the abstraction of Definition~\ref{keyagreement:def:kascheme}, is
@@ -2402,7 +2557,15 @@ The elliptic-curve setting reintroduces the small-subgroup concern of Remark~\re
 We can now assemble the final construction of the section. Diffie--Hellman yields the two parties a shared group element, but three obstacles stand between that element and a usable encryption scheme: (i) the shared secret is a structured group element, not uniform key bits; (ii) Diffie--Hellman by itself transports no message; and (iii) we want the static--ephemeral, non-interactive flow of Subsection~\ref{keyagreement:subsec:staticephemeral}, so that the recipient need not be online. The resolution is to compose key agreement with a key-derivation function and an authenticated cipher. The construction requires two ingredients from the symmetric world.
 
 \begin{definition}[Key-derivation function, recalled]\label{keyagreement:def:kdf}
-We use the specialisation of Definition~\ref{symmetric:def-kdf} (\S\ref{symmetric:subsec:kdf}) obtained by omitting the optional salt and fixing the output length to \(\ell\): a \emph{key-derivation function} (\textsc{Kdf}) is a deterministic function \(\mathsf{KDF}\colon \mathcal{K} \times \{0,1\}^* \to \{0,1\}^\ell\) mapping a (possibly non-uniform, high-entropy) \emph{input keying material} \(k \in \mathcal{K}\) together with an optional context string to an \(\ell\)-bit output. Security is as there: whenever \(k\) is drawn from a distribution of sufficiently high min-entropy that is hard to predict, the output \(\mathsf{KDF}(k, c)\) is computationally indistinguishable from a uniform \(\ell\)-bit string, even given the context \(c\). When \(\mathsf{KDF}\) is built from a cryptographic hash, the cleanest model is the \emph{random oracle}: \(\mathsf{KDF}(\cdot)\) behaves like a function whose every output is an independent uniform string.
+We use an unsalted, fixed-output specialisation of
+Definition~\ref{symmetric:def-kdf}: a \emph{key-derivation function}
+(\textsc{Kdf}) is a deterministic function
+\(\mathsf{KDF}\colon\mathcal K\times\{0,1\}^*\to\{0,1\}^\ell\) mapping input
+keying material \(k\) and a context string to an \(\ell\)-bit output. For the
+theorem below we model this function as a random oracle. Distinct inputs then
+have independent uniform outputs, and security follows provided the adversary
+cannot query the oracle at the hidden DH secret and context. This is a
+source-specific ROM guarantee, not a generic deterministic extractor claim.
 \end{definition}
 
 \begin{definition}[Authenticated encryption with associated data, recalled]\label{keyagreement:def:aead}
@@ -2456,16 +2619,22 @@ In \emph{Game 1} the \textsc{Aead} key \(\widetilde K\) is uniform and independe
 \end{proof}
 
 \begin{remark}[Why each ingredient is necessary]\label{keyagreement:rem:necessary}
-The composition is tight; dropping any piece breaks it.
+Each ingredient has a distinct role; dropping any piece breaks the intended construction.
 \begin{itemize}
   \item \emph{Without the \textsc{Kdf}}, one would key the cipher with the raw group element \(S\), whose bit-representation is non-uniform and, in non-\textsc{Ddh} groups, partially predictable (Remark~\ref{keyagreement:rem:legendre}); the \textsc{Kdf} both standardises the format and extracts uniform randomness, and by binding \(E_{\mathrm{pk}}\) into its context it ties the key to this particular ephemeral.
   \item \emph{Without the \textsc{Aead}'s integrity}, a passively confidential but malleable cipher would let an active adversary tamper with \(c\) undetectably; authenticated encryption ensures any modification yields \(\bot\), giving chosen-ciphertext robustness for the symmetric payload.
-  \item \emph{Without the ephemeral key} (a static--static secret), every message to \(B\) would reuse the same \(K\), violating the nonce-uniqueness that \textsc{Aead} security demands and destroying forward secrecy. The fresh ephemeral per message both supplies forward secrecy with respect to the ephemeral and guarantees a fresh key for each ciphertext.
+  \item \emph{Without the ephemeral key} (a static--static secret), every
+    message to \(B\) would begin from the same shared secret. Fresh sender
+    ephemerals and context binding instead give each ciphertext separate key
+    material and avoid relying on nonce uniqueness under a reused key. They do
+    \emph{not} provide forward secrecy against later compromise of the
+    recipient's static key \(b\): from a recorded \(E_{\mathrm{pk}}\), an
+    attacker knowing \(b\) recomputes \([b]E_{\mathrm{pk}}\).
 \end{itemize}
 \end{remark}
 
 \begin{remark}[Delivering shielded notes]\label{keyagreement:rem:notes}
-Definition~\ref{keyagreement:def:hpke} is precisely the pattern by which a shielded transaction delivers a note to its recipient \emph{in band}---on the public ledger, readable by no one but the recipient. The recipient's shielded address embeds a static public key \(B = [b]G_d\) on the protocol's curve (Pallas, in Orchard); the base \(G_d\) is not a protocol-wide generator but a per-address \emph{diversified base}, the hash-to-curve image of the address's diversifier (\emph{Ironwood Guide}). The sender, constructing the note, samples an ephemeral \(e\), publishes \(E_{\mathrm{pk}} = [e]G_d\) over that same base as part of the transaction, derives \(K = \mathsf{KDF}([eb]G_d, \dots)\), and \textsc{Aead}-encrypts the note plaintext (value, recipient, randomness, memo) under \(K\), attaching the ciphertext to the transaction. Anyone scanning the chain sees \((E_{\mathrm{pk}}, c)\) but, lacking \(b\), cannot derive \(K\) and so learns nothing; the recipient, trial-deriving \(K' = \mathsf{KDF}([b]E_{\mathrm{pk}}, \dots)\) for incoming transactions, decrypts exactly those notes addressed to them. The non-interactivity of Subsection~\ref{keyagreement:subsec:staticephemeral} is essential: the recipient need never have been online when the sender created the note. Authenticity of \(B\) (Remark~\ref{keyagreement:rem:auth-supplied}) comes from the address being part of the recipient's verified payment credential, which is what defeats the man-in-the-middle concern of Subsection~\ref{keyagreement:subsec:active} in this setting; the zero-knowledge proof accompanying the transaction supplies the complementary integrity guarantees on the note's contents.
+Definition~\ref{keyagreement:def:hpke} is precisely the pattern by which a shielded transaction delivers a note to its recipient \emph{in band}---on the public ledger, readable by no one but the recipient. The recipient's shielded address embeds a static public key \(B = [b]G_d\) on the protocol's curve (Pallas, in Orchard); the base \(G_d\) is not a protocol-wide generator but a per-address \emph{diversified base}, the hash-to-curve image of the address's diversifier. The sender, constructing the note, samples an ephemeral \(e\), publishes \(E_{\mathrm{pk}} = [e]G_d\) over that same base as part of the transaction, derives \(K = \mathsf{KDF}([eb]G_d, \dots)\), and \textsc{Aead}-encrypts the note plaintext (value, recipient, randomness, memo) under \(K\), attaching the ciphertext to the transaction. Anyone scanning the chain sees \((E_{\mathrm{pk}}, c)\) but, lacking \(b\), cannot derive \(K\) and so learns nothing; the recipient, trial-deriving \(K' = \mathsf{KDF}([b]E_{\mathrm{pk}}, \dots)\) for incoming transactions, decrypts exactly those notes addressed to them. The non-interactivity of Subsection~\ref{keyagreement:subsec:staticephemeral} is essential: the recipient need never have been online when the sender created the note. Authenticity of \(B\) (Remark~\ref{keyagreement:rem:auth-supplied}) comes from the address being part of the recipient's verified payment credential, which is what defeats the man-in-the-middle concern of Subsection~\ref{keyagreement:subsec:active} in this setting; the zero-knowledge proof accompanying the transaction supplies the complementary integrity guarantees on the note's contents.
 \end{remark}
 \clearpage
 
@@ -2593,11 +2762,16 @@ The choice has operational meaning. If binding is only computational, an adversa
 The most elementary construction uses a cryptographic hash function. Recall that a hash function \(H \colon \{0,1\}^* \to \{0,1\}^n\) is \emph{collision resistant} if no PPT adversary can find \(x \neq x'\) with \(H(x) = H(x')\) except with negligible probability, and \emph{preimage/one-way} if, given \(H(x)\) for a random \(x\) of appropriate length, no PPT adversary can find any \(x'\) with \(H(x') = H(x)\) except with negligible probability.
 
 \begin{definition}[Hash commitment]\label{commitments:def:hash-commit}
-Let \(H \colon \{0,1\}^* \to \{0,1\}^n\) be a hash function, \(\mathcal{M} = \{0,1\}^*\) and \(\mathcal{R} = \{0,1\}^\ell\) with \(\ell = \ell(\lambda)\) (e.g.\ \(\ell = 2n\)). Define
+Let \(H\colon\{0,1\}^*\to\{0,1\}^n\) be a hash function,
+\(\mathcal M=\{0,1\}^*\), and \(\mathcal R=\{0,1\}^\ell\), with
+\(\ell=\ell(\lambda)\). Let \(\mathsf{enc}(m,r)\) be an injective,
+self-delimiting encoding of the pair, for example a canonical length encoding
+of \(m\) followed by \(m\) and the fixed-length string \(r\). Define
 \[
-  \mathsf{Commit}(m; r) \;=\; H(m \,\|\, r),
+  \mathsf{Commit}(m;r)=H(\mathsf{enc}(m,r)),
 \]
-where \(\|\) denotes concatenation, and open canonically. (There are no nontrivial public parameters beyond the choice of \(H\).)
+and open canonically. (There are no nontrivial public parameters beyond the
+choice of \(H\).)
 \end{definition}
 
 \begin{proposition}[Binding of the hash commitment]\label{commitments:prop:hash-binding}
@@ -2605,7 +2779,12 @@ If \(H\) is collision resistant, then the hash commitment is computationally bin
 \end{proposition}
 
 \begin{proof}
-Suppose a PPT adversary \(\mathcal{A}\) outputs a commitment \(c\) and two valid openings \((m_0, r_0)\), \((m_1, r_1)\) with \(m_0 \neq m_1\) such that \(H(m_0 \| r_0) = c = H(m_1 \| r_1)\). Since \(m_0 \neq m_1\), the strings \(m_0 \| r_0\) and \(m_1 \| r_1\) are distinct (a difference in the message part survives concatenation when the message length is encoded, e.g.\ by prefixing \(|m|\); we assume such an unambiguous encoding). Thus \(\mathcal{A}\) has produced a collision for \(H\). The reduction \(\mathcal{B}\) that runs \(\mathcal{A}\) and outputs \((m_0\|r_0, m_1\|r_1)\) therefore wins the collision game with exactly the binding advantage of \(\mathcal{A}\), which must then be negligible.
+Suppose a PPT adversary \(\mathcal A\) outputs a commitment \(c\) and two
+valid openings \((m_0,r_0)\), \((m_1,r_1)\), with \(m_0\ne m_1\). Then
+\(H(\mathsf{enc}(m_0,r_0))=c=H(\mathsf{enc}(m_1,r_1))\). Injectivity of
+\(\mathsf{enc}\) makes the two hash inputs distinct, so the reduction that
+outputs them wins the collision game with exactly \(\mathcal A\)'s binding
+advantage.
 \end{proof}
 
 \begin{proposition}[Hiding of the hash commitment]\label{commitments:prop:hash-hiding}
@@ -2613,7 +2792,12 @@ Model \(H\) as a random oracle. Then for messages of length bounded by \(\poly(\
 \end{proposition}
 
 \begin{proof}
-Sketch. In the random-oracle model, \(c = H(m_b \| r)\) is a uniformly random \(n\)-bit string \emph{unless} the adversary ever queries \(H\) at the point \(m_b \| r\). Since \(r\) is uniform in \(\{0,1\}^\ell\) and information-theoretically hidden from \(\mathcal{A}\) before it sees \(c\), each of the adversary's \(q\) queries hits the point \(m_b \| r\) with probability at most \(2^{-\ell}\); a union bound bounds the probability that any query does by \(q \cdot 2^{-\ell}\). Conditioned on no such query, the value \(c\) is independent of \(b\), so the two worlds \(b=0\) and \(b=1\) are identically distributed. Hence the advantage is at most \(q \cdot 2^{-\ell} = \negl(\lambda)\).
+Sketch. In the random-oracle model,
+\(c=H(\mathsf{enc}(m_b,r))\) is a uniformly random \(n\)-bit string unless
+the adversary queries that exact point. Since \(r\) is uniform in
+\(\{0,1\}^\ell\), each of its \(q\) queries hits the point with probability at
+most \(2^{-\ell}\). A union bound gives \(q2^{-\ell}\). Conditioned on no hit,
+\(c\) is independent of \(b\), proving the claim.
 \end{proof}
 
 \begin{remark}[Why the randomness \(r\) is essential]\label{commitments:rem:hash-salt}
@@ -2621,7 +2805,13 @@ Without \(r\), the deterministic commitment \(c = H(m)\) fails to be hiding when
 \end{remark}
 
 \begin{remark}[Strength profile]\label{commitments:rem:hash-profile}
-Hash commitments are transparent (no trusted setup, no algebraic structure to subvert) and post-quantum plausible (collision resistance of good hash functions is not known to fall to quantum algorithms beyond a quadratic speedup, which a modest increase in \(n\) absorbs). Their weakness is that the commitment is an opaque bit string with \emph{no algebraic structure}: one cannot, for instance, add two commitments to obtain a commitment to the sum of the messages. The next construction repairs exactly this.
+Hash commitments are transparent (no trusted setup, no algebraic structure to
+subvert) and post-quantum plausible: generic quantum collision finding takes
+\(\Theta(2^{n/3})\) queries for an \(n\)-bit hash, so increasing the output
+length compensates for the loss. Their weakness is that the commitment is an
+opaque bit string with \emph{no algebraic structure}: one cannot, for instance,
+add two commitments to obtain a commitment to the sum of the messages. The next
+construction repairs exactly this.
 \end{remark}
 
 \subsection{The Pedersen commitment}\label{commitments:subsec:pedersen}
@@ -2709,7 +2899,13 @@ Additive homomorphism is what renders Pedersen commitments indispensable in priv
 The scalar Pedersen scheme commits to a single field element. To commit to a whole vector \(\mathbf{m} = (m_1, \dots, m_n) \in \Fp^n\) in a single group element, the scheme uses \(n\) independent generators.
 
 \begin{definition}[Pedersen vector commitment]\label{commitments:def:pedersen-vector}
-On input \(1^\lambda\) and a length \(n = \poly(\lambda)\), let \(\mathsf{Setup}\) output \((\G, p)\) together with generators \(G_1, \dots, G_n, H \xleftarrow{\$} \G\) sampled so that no nontrivial discrete-log relation among them is known (in practice one derives them from a public seed by hashing into the curve---a ``nothing-up-my-sleeve'' procedure that yields a transparent setup). The message space is \(\Fp^n\) and the randomness space is \(\Fp\). Define
+On input \(1^\lambda\) and a length \(n=\poly(\lambda)\), let
+\(\mathsf{Setup}\) output \((\G,p)\) together with independent
+\(G_1,\dots,G_n,H\xleftarrow{\$}\G\setminus\{\mathcal O\}\), sampled so
+that no nontrivial discrete-log relation among them is known. In practice one
+derives them from a public seed by hashing into the curve, rejecting the
+identity if it occurs. The message space is \(\Fp^n\) and the randomness space
+is \(\Fp\). Define
 \[
   \mathsf{Commit}(\mathsf{pp}, \mathbf{m}; r)
   \;=\; \sum_{i=1}^{n} [m_i]\,G_i \;+\; [r]\,H
@@ -2735,7 +2931,22 @@ hence
 \]
 a nontrivial linear relation among \(G_1, \dots, G_n, H\) (nontrivial because some \(m_i \neq m_i'\)). 
 
-To convert this into a discrete log, the reduction \(\mathcal{B}\) takes a DLog challenge \((\G, p, G, Q)\) with \(Q = [s]G\) for unknown \(s\), and embeds the challenge in \emph{every} generator: it samples \(u_i, w_i \xleftarrow{\$} \Fp\) and sets \(G_i = [u_i]G + [w_i]Q\) for \(i = 1, \dots, n\), and likewise \(H = [u_H]G + [w_H]Q\). Each generator is uniform in \(\G\) (the term \([u_i]G\) alone is uniform), matching the real distribution, and the generators reveal nothing about the \(w\)-coordinates: for every candidate value of \(w_i\) there is exactly one \(u_i\) consistent with the observed \(G_i\), so conditioned on the adversary's entire view the \(w_i, w_H\) remain independent and uniform. Writing the recovered relation as \(\sum_i [a_i] G_i + [a_H] H = \mathcal{O}\) with the \(a_i, a_H\) not all zero, substitution yields the scalar equation \(c_0 + c_1 s \equiv 0 \pmod p\) with \(c_0 = \sum_i a_i u_i + a_H u_H\) and \(c_1 = \sum_i a_i w_i + a_H w_H\). Since the coefficient vector is nonzero and the \(w\)-coordinates are uniform and independent of it, \(c_1\) is uniform on \(\Fp\), hence nonzero with probability \(1 - 1/p\); then \(s = -c_0\, c_1^{-1} \bmod p\) solves the challenge. Thus \(\mathrm{Adv}^{\mathrm{dlog}}(\mathcal{B}) \ge (1 - 1/p)\,\mathrm{Adv}^{\mathrm{bind}}(\mathcal{A})\), which forces the binding advantage to be negligible.
+To convert this into a discrete log, the reduction \(\mathcal B\) takes a
+DLog challenge \((\G,p,G,Q)\), with \(Q=[s]G\), and embeds the challenge in
+every generator. It samples \(u_i,w_i\xleftarrow{\$}\Fp\), sets
+\(G_i=[u_i]G+[w_i]Q\), and resamples the pair if \(G_i=\mathcal O\); it does
+the same for \(H\). Each result is uniform in
+\(\G\setminus\{\mathcal O\}\), matching the real distribution. Conditioned on
+the observed generators, the \(w\)-coordinates remain independent and uniform.
+Writing the recovered relation as
+\(\sum_i[a_i]G_i+[a_H]H=\mathcal O\), substitution yields
+\(c_0+c_1s=0\), where \(c_0=\sum_i a_i u_i+a_Hu_H\) and
+\(c_1=\sum_i a_i w_i+a_Hw_H\). Since the coefficient vector is nonzero,
+\(c_1\) is uniform in \(\Fp\), hence nonzero with probability \(1-1/p\).
+Then \(s=-c_0c_1^{-1}\) solves the challenge. Thus
+\(\mathrm{Adv}^{\mathrm{dlog}}(\mathcal B)\ge
+(1-1/p)\mathrm{Adv}^{\mathrm{bind}}(\mathcal A)\), which forces the binding
+advantage to be negligible.
 \end{proof}
 
 \begin{remark}[A compressing commitment]\label{commitments:rem:compressing}
@@ -2775,14 +2986,23 @@ The plain Pedersen hash requires one independent generator per chunk, which is c
   \qquad
   \mathrm{Acc}_j = \mathrm{Acc}_{j-1} \;+\; \bigl(\mathrm{Acc}_{j-1} + S(m_j)\bigr) \;=\; [2]\,\mathrm{Acc}_{j-1} + S(m_j),
 \]
-with output \(\mathrm{SinsemillaHash}(M) = \mathrm{Acc}_k\), where the double-and-incomplete-add step is the elliptic-curve operation that the arithmetic circuit verifies in very few constraints. Unrolling the recurrence exhibits the hash as a fixed positional combination
+with point output \(\mathrm{SinsemillaHashToPoint}(M)=\mathrm{Acc}_k\), where
+the double-and-incomplete-add step is the elliptic-curve operation that the
+arithmetic circuit verifies in very few constraints. Unrolling the recurrence
+exhibits the point hash as a fixed positional combination
 \[
-  \mathrm{SinsemillaHash}(M) \;=\; \sum_{j=1}^{k} \bigl[2^{\,k-j}\bigr]\, S(m_j) \;+\; \bigl[2^{k}\bigr]\, Q,
+  \mathrm{SinsemillaHashToPoint}(M) \;=\; \sum_{j=1}^{k} \bigl[2^{\,k-j}\bigr]\, S(m_j) \;+\; \bigl[2^{k}\bigr]\, Q,
 \]
 whose integer coefficients are powers of two determined by position alone; the message enters only through \emph{which} generator \(S(m_j)\) each piece selects.
 
 \begin{proposition}[Collision resistance of Sinsemilla reduces to DLog]\label{commitments:prop:sinsemilla-cr}
-Modelling the generator-derivation map \(m \mapsto S(m)\) and the base point \(Q\) as independent uniform generators (a ``nothing-up-my-sleeve'' hash-to-curve, which derives \(Q\) as well as the table), any collision in \(\mathrm{SinsemillaHash}\) yields a nontrivial discrete-log relation among the generators \(\{S(m)\} \cup \{Q\}\), and hence--via the same every-generator embedding as Proposition~\ref{commitments:prop:pedersen-hash-cr}, extended to include \(Q\)--a discrete logarithm. Thus Sinsemilla is collision resistant under the discrete logarithm assumption in \(\G\).
+Modelling the generator-derivation map \(m \mapsto S(m)\) and the base point
+\(Q\) as independent uniform generators, any collision in
+\(\mathrm{SinsemillaHashToPoint}\), on inputs for which its incomplete
+additions are defined, yields a nontrivial discrete-log relation among
+\(\{S(m)\}\cup\{Q\}\). Hence the point hash is collision resistant under the
+discrete-log assumption in \(\G\), apart from the separately bounded
+exceptional cases of incomplete addition.
 \end{proposition}
 
 \begin{proof}
@@ -2793,17 +3013,23 @@ Sketch. Consider first colliding messages \(M \neq M'\) of equal piece-count \(k
 a relation whose coefficient on each table generator \(S(v)\) aggregates the positions where \(M\), respectively \(M'\), carries chunk value \(v\): writing \(c_v = \sum_{j \colon m_j = v} 2^{\,k-j} - \sum_{j \colon m'_j = v} 2^{\,k-j}\), the relation reads \(\sum_v [c_v]\, S(v) = \mathcal{O}\) over the \emph{distinct} generators \(S(v)\). Each \(c_v\) is a difference of two subset-sums of the distinct powers \(2^{k-1}, \dots, 2^{0}\), hence an integer of absolute value below \(2^k\). For admissible message lengths (\(2^k\) below the group order, a finite design-time check) \(c_v\) vanishes modulo the group order only if it vanishes as an integer, and by uniqueness of binary expansions \(c_v = 0\) forces the two position sets to coincide; coincidence for every \(v\) forces \(M = M'\) (the messages have equal piece-count \(k\) in this case). Since \(M \neq M'\), some \(S(v)\) carries a nonzero net coefficient and the relation is nontrivial. For piece-counts \(k > k'\) the constants do not cancel: the relation acquires the coefficient \(2^k - 2^{k'}\) on \(Q\), a nonzero integer below the group order for admissible lengths, so the collision yields a nontrivial relation among \(\{S(v)\} \cup \{Q\}\). Embedding a DLog challenge in every table generator and in \(Q\), exactly as in Theorem~\ref{commitments:thm:vector-props}, applied to the relation over the distinct generators with their net coefficients, recovers the challenge logarithm.
 \end{proof}
 
-In deployment the final piece is zero-padded to the piece width, so the deployed \(\mathrm{SinsemillaHash}\) is collision resistant only between inputs of a fixed length for a given personalisation --- exactly the property the protocol specification requires; the variable-length argument above applies to the piece-aligned presentation given here.
+The deployed \(\mathrm{SinsemillaHash}\) applies the Pallas coordinate
+extractor to this point. Equality of extracted \(x\)-coordinates means the two
+points are equal or negatives, and either signed equality yields the same kind
+of nontrivial generator relation. The final piece is zero-padded to the piece
+width, so the deployed hash claims collision resistance only between inputs of
+a fixed length for a given personalisation; the variable-length argument above
+applies to the piece-aligned point presentation.
 
 To turn the hash into a \emph{hiding} commitment one appends a Pedersen blinding term: fix one further independent generator \(H'\) (hashed to the curve, with no known discrete-log relation to \(Q\) or the table) and define
 \[
-  \mathrm{SinsemillaCommit}(m;\, r) \;=\; \mathrm{SinsemillaHash}(m) \;+\; [r]\,H',
+  \mathrm{SinsemillaCommit}(m;\, r) \;=\; \mathrm{SinsemillaHashToPoint}(m) \;+\; [r]\,H',
   \qquad r \xleftarrow{\$} \Fp.
 \]
-Hiding is inherited verbatim from Pedersen: \([r]H'\) is uniform on \(\G\) for uniform \(r\), so the commitment's distribution is independent of \(m\) (Theorem~\ref{commitments:thm:pedersen-hiding}). Binding rests on discrete log: two valid openings to distinct messages yield either a collision in \(\mathrm{SinsemillaHash}\) (Proposition~\ref{commitments:prop:sinsemilla-cr}) or a nontrivial discrete-log relation between \(H'\) and the hash generators. Orchard's note commitment \(\mathsf{NoteCommit}\) instantiates exactly this map; its key commitment \(\mathsf{CommitIvk}\) composes it with the \(x\)-coordinate extraction (the specification's \(\mathsf{SinsemillaShortCommit}\)), returning a base-field element rather than a point.
+Hiding is inherited verbatim from Pedersen: \([r]H'\) is uniform on \(\G\) for uniform \(r\), so the commitment's distribution is independent of \(m\) (Theorem~\ref{commitments:thm:pedersen-hiding}). Binding rests on discrete log: two valid openings to distinct messages yield either a collision in \(\mathrm{SinsemillaHashToPoint}\) (Proposition~\ref{commitments:prop:sinsemilla-cr}) or a nontrivial discrete-log relation between \(H'\) and the hash generators. Orchard's note commitment \(\mathsf{NoteCommit}\) instantiates exactly this map; its key commitment \(\mathsf{CommitIvk}\) composes it with the \(x\)-coordinate extraction (the specification's \(\mathsf{SinsemillaShortCommit}\)), returning a base-field element rather than a point.
 
 \begin{remark}[Significance for circuits]\label{commitments:rem:sinsemilla-circuit}
-Sinsemilla's advantage is \emph{verification cost inside a proof}. In a SNARK, the prover must re-express every step it takes as polynomial constraints; a bit-oriented hash such as SHA-256 costs tens of thousands of constraints, whereas Sinsemilla's per-piece cost is a handful of curve operations chosen to lie in the same field the proof system already works over. One obtains a collision-resistant hash and commitment (used for note commitments and Merkle trees in Orchard) that is simultaneously cheap to prove and grounded in the same discrete-log hardness as the surrounding protocol. The presentation above is the conceptual core; the \emph{Ironwood Guide} instantiates it concretely (piece width, the incomplete-addition caveats, and the exact domain strings).
+Sinsemilla's advantage is \emph{verification cost inside a proof}. In a SNARK, the prover must re-express every step it takes as polynomial constraints; a bit-oriented hash such as SHA-256 costs tens of thousands of constraints, whereas Sinsemilla's per-piece cost is a handful of curve operations chosen to lie in the same field the proof system already works over. One obtains a collision-resistant hash and commitment (used for note commitments and Merkle trees in Orchard) that is simultaneously cheap to prove and grounded in the same discrete-log hardness as the surrounding protocol. The presentation above is the conceptual core; Orchard fixes the concrete piece width, incomplete-addition handling, and domain strings.
 \end{remark}
 
 \subsection{Polynomial commitment schemes}\label{commitments:subsec:poly}
@@ -3134,11 +3360,27 @@ which is the discrete logarithm of \(X\). Hence \(\mathcal{D}\) solves the insta
 \end{proof}
 
 \begin{remark}[The tightness loss]\label{signatures:rem:tightness}
-The dominant term of the bound is \(\varepsilon' \gtrsim \varepsilon^2 / q_h\). The reduction is therefore \emph{not tight}: extracting the discrete logarithm requires running the forger \emph{twice} and incurs a \emph{squaring} of the success probability, divided by the number of hash queries. Concretely, if a forger succeeds with probability \(\varepsilon = 2^{-40}\) after \(q_h = 2^{60}\) hash queries, the reduction only guarantees a discrete-log solver of advantage about \(2^{-80}/2^{60} = 2^{-140}\), far weaker than \(\varepsilon\). To compensate, one must choose group parameters offering more bits of discrete-log security than the target signature-security level, roughly doubling the security margin demanded of \(\G\). This quadratic loss is intrinsic to rewinding-based Fiat--Shamir proofs; tight reductions are known only under stronger assumptions (e.g.\ the one-more discrete log or DDH with key-prefixing) or in idealised algebraic models. The loss is the cost of converting an \emph{interactive} proof of knowledge into a \emph{non-interactive} signature by forking.
+The dominant term of this bound is
+\(\varepsilon'\gtrsim\varepsilon^2/q_h\), so this particular forking
+reduction is not tight. For example, a forger succeeding with
+\(\varepsilon=2^{-40}\) after \(q_h=2^{60}\) hash queries yields only the
+guarantee \(\varepsilon'\approx2^{-140}\). This theorem alone therefore loses
+substantial concrete security. It neither proves that parameters must literally
+be doubled nor that such a loss is inherent to Schnorr: parameter selection must
+use a concrete attack model and query bounds, and tighter analyses are available
+under other assumptions or idealised algebraic models.
 \end{remark}
 
 \begin{remark}[Nonce reuse is fatal]\label{signatures:rem:nonce}
-Special soundness has a dark mirror. If a signer ever produces two signatures \((R, s)\) and \((R, s')\) on \emph{different} messages \(m \ne m'\) with the \emph{same} commitment \(R\) — for instance by reusing the nonce \(r\), or by drawing \(r\) from a biased source — then the challenges \(c = H(R\|X\|m)\) and \(c' = H(R\|X\|m')\) differ, and \emph{anyone} can apply the extractor of Proposition~\ref{signatures:prop:soundness} to recover the secret key \(x = (s - s')/(c - c')\). Security therefore rests entirely on the nonce being fresh and unpredictable for every signature. This motivates \emph{deterministic} nonce generation, the defining idea of EdDSA below.
+Special soundness has a dark mirror. If a signer ever produces two signatures
+\((R,s)\) and \((R,s')\) on different messages \(m\ne m'\) with the same
+commitment \(R\)---for instance by reusing the nonce \(r\)---then, except for
+the \(1/q\) chance of a random-oracle challenge collision, the challenges
+\(c=H(R\|X\|m)\) and \(c'=H(R\|X\|m')\) differ. Anyone can then apply the
+extractor of Proposition~\ref{signatures:prop:soundness} to recover
+\(x=(s-s')/(c-c')\). Fresh, unpredictable nonce generation is therefore
+essential. This motivates deterministic nonce generation, the defining idea of
+EdDSA below.
 \end{remark}
 
 \subsection{RedDSA: re-randomisable Schnorr for Orchard}\label{signatures:subsec:reddsa}
@@ -3150,7 +3392,10 @@ RedDSA is EdDSA generalised in two directions: the base point is a \emph{paramet
 \begin{definition}[RedDSA, schematic]\label{signatures:def:reddsa}
 RedDSA is parameterised by a generator \(P \in \G\) of the prime-order group. KeyGen samples \(x \gets \Fq\) and sets the public key \(X = [x]P\). To sign \(m\) under \(x\):
 \begin{enumerate}
-  \item sample a nonce \(r\) (in Zcash, \(r := H(T \,\|\, X \,\| \,m)\) for a fresh random byte string \(T\), i.e.\ \emph{hedged}-deterministic);
+  \item sample a fresh \(80\)-byte random string \(T\) and derive
+    \(r:=H(T\mathbin\|X\mathbin\|m)\). This is randomised, hash-based nonce
+    generation; unlike EdDSA's nonce derivation, it is not deterministic from
+    the signing key and message;
   \item \(R := [r]P\);
   \item \(c := H(R \,\|\, X \,\|\, m) \in \Fq\);
   \item \(s := r + c\,x\); output \(\sigma = (R, s)\).
@@ -3216,7 +3461,7 @@ Orchard has \emph{no} per-note value commitments: each Action commits once to it
 \[
   \mathrm{cv}^{\mathrm{net}} \;=\; \mathrm{cm}(v^{\mathrm{old}} - v^{\mathrm{new}},\, \rho) \;=\; [v^{\mathrm{old}} - v^{\mathrm{new}}]\,V + [\rho]\,P
 \]
-for the spent value \(v^{\mathrm{old}}\) and created value \(v^{\mathrm{new}}\) of that Action (\emph{Ironwood Guide}), and the net commitment is the plain sum \(B = \sum_i \mathrm{cv}^{\mathrm{net},i}\) over the transaction's Actions. In either case, by homomorphism,
+for the spent value \(v^{\mathrm{old}}\) and created value \(v^{\mathrm{new}}\) of that Action, and the net commitment is the plain sum \(B = \sum_i \mathrm{cv}^{\mathrm{net},i}\) over the transaction's Actions. In either case, by homomorphism,
 \[
   B \;=\; [\Delta v]\,V \;+\; [\bar\rho]\,P,
 \]
@@ -3224,7 +3469,12 @@ where \(\Delta v\) is the net value (\(\sum_i v_i^{\mathrm{in}} - \sum_j v_j^{\m
 \[
   B \;=\; [\bar\rho]\,P.
 \]
-That is: the net commitment \(B\) is a known multiple of the single generator \(P\) if and only if the values balance, and the multiplier \(\bar\rho\) is the net blinding factor — a quantity the signer can compute (it knows all the \(\rho\)'s) but that resists production otherwise, since producing any \(P\)-multiple representation of an \emph{unbalanced} \(B\) would require knowing the discrete log of \(V\) to base \(P\), which we assume hard.
+Thus, when the values balance, the signer knows the representation
+\(B=[\bar\rho]P\), with multiplier equal to the net blinding factor. For an
+unbalanced \(B\), computing any such \(P\)-multiple representation from the
+published commitments would require the discrete log of \(V\) to base \(P\),
+which we assume hard; an abstract representation still exists because \(P\)
+generates the group.
 
 \begin{definition}[Binding signature]\label{signatures:def:binding}
 With \(B\) and \(\bar\rho\) as above (assuming balance, so \(B = [\bar\rho]P\)), set the \emph{binding verification key} \(\mathit{bvk} := B\) and the \emph{binding signing key} \(\mathit{bsk} := \bar\rho\). The binding signature is a RedDSA signature (Definition~\ref{signatures:def:reddsa}) over base point \(P\), signing key \(\bar\rho\), verification key \(B\), on a message that is the hash of the transaction (the \emph{sighash}). The verifier recomputes \(B\) from the publicly listed value commitments and the public balance, then checks the RedDSA equation \([s]P = R + [c]B\) with \(c = H(R\|B\|\text{sighash})\).
@@ -3260,7 +3510,7 @@ The primitives of the preceding sections---commitments, hash functions, signatur
 
 These three questions---convincing, hiding, and succinctness---are the subject of this section. The theory of interactive proofs and arguments of knowledge, zero knowledge, and succinct non-interactive arguments of knowledge (SNARKs) answer them respectively. The development culminates in the architecture that underlies the Halo~2 proving system: a polynomial interactive oracle proof compiled by a polynomial commitment scheme and made non-interactive by the Fiat--Shamir transform. We build the entire edifice from the ground up.
 
-Throughout, \(n\) denotes a security parameter; ``probabilistic polynomial time'' (PPT) means a randomised algorithm whose running time is bounded by a fixed polynomial in the length of its input (and in \(n\) when \(n\) is supplied in unary as \(1^n\)); and \(\negl(n)\) denotes a \emph{negligible} function, one that eventually drops below \(1/n^c\) for every constant \(c\). We use freely the asymptotic and probabilistic language of the companion volume.
+Throughout, \(n\) denotes a security parameter; ``probabilistic polynomial time'' (PPT) means a randomised algorithm whose running time is bounded by a fixed polynomial in the length of its input (and in \(n\) when \(n\) is supplied in unary as \(1^n\)); and \(\negl(n)\) denotes a \emph{negligible} function, one that eventually drops below \(1/n^c\) for every constant \(c\). We use freely the asymptotic and probabilistic language of the \emph{Math Guide}.
 
 \subsection{Languages, relations, and witnesses}\label{zk:subsec:languages}
 
@@ -3444,7 +3694,15 @@ The two-transcript notion generalises to protocols with several challenge rounds
 Let \((P,V)\) be a \((2\mu+1)\)-move public-coin protocol for \(R\), in which the prover speaks first and the verifier issues \(\mu\) uniformly random challenges from a space \(\mathcal{C}\). For positive integers \(k_1, \dots, k_\mu\), a \emph{\((k_1, \dots, k_\mu)\)-tree of accepting transcripts} for an instance \(x\) is a tree of depth \(\mu\) in which every node at level \(i\) has \(k_i\) children labelled by \emph{pairwise distinct} challenges for round \(i\), every root-to-leaf path carries the prover messages of one accepting transcript, and transcripts through a common node share their prefix. The protocol is \emph{\((k_1, \dots, k_\mu)\)-special-sound} if a PPT algorithm computes a witness \(w \in R(x)\) from any such tree.
 \end{definition}
 
-A \(\Sigma\)-protocol is the case \(\mu = 1\), \(k_1 = 2\). The extraction argument of Theorem~\ref{zk:thm:special} generalises: rewinding the prover round by round, an extractor assembles the required tree of \(\prod_{i} k_i\) accepting transcripts, so a \((k_1,\dots,k_\mu)\)-special-sound protocol is a proof of knowledge whose knowledge error grows from \(1/|\mathcal{C}|\) to the order of \(\bigl(\sum_i (k_i - 1)\bigr)/|\mathcal{C}|\), and whose extraction cost is polynomial provided the tree size \(\prod_i k_i\) is. Both degradations are benign when \(\mathcal{C}\) is exponentially large, \(\mu\) is logarithmically bounded, and the \(k_i\) are constant, for then the tree size \(\prod_i k_i\) is polynomial. This is the notion under which the inner-product argument's extractor operates (Proposition~\ref{commitments:prop:ipa-props}): each of the \(\log_2 d\) folding rounds contributes one level of branching. The \emph{Halo~2 Guide} instantiates this notion for its IPA extractor with one refinement: because each round's verification equation involves only the monomials \(u^{-2}, 1, u^{2}\), the three challenges at every node must have pairwise distinct \emph{squares} (\(u \neq \pm u'\)), a negligible-fraction exclusion absorbed into the knowledge error.
+A \(\Sigma\)-protocol is the case \(\mu=1\), \(k_1=2\). Under the hypotheses
+of an appropriate tree-extraction theorem, rewinding round by round assembles
+the required tree of \(\prod_i k_i\) accepting transcripts. The extraction cost
+is polynomial when that tree size is polynomial. This is the structural notion
+used for inner-product arguments (Proposition~\ref{commitments:prop:ipa-props}),
+where each folding round contributes a level. In the deployed Halo~2 IPA
+normalisation the relevant coefficients are \(u^{-1},1,u\). Thus the extractor
+needs distinct nonzero challenge values at a node; it does not require pairwise
+distinct squares as the alternative \(u^{-2},1,u^2\) normalisation would.
 
 \begin{proposition}[sHVZK is HVZK]\label{zk:prop:shvzk}
 A \(\Sigma\)-protocol satisfying special HVZK is honest-verifier zero knowledge in the sense of Definition~\ref{zk:def:zk}.
@@ -3459,13 +3717,22 @@ The canonical \(\Sigma\)-protocol is Schnorr's identification protocol for \(R_{
 \end{example}
 
 \begin{remark}[From HVZK to full zero knowledge]\label{zk:rem:hvzktozk}
-\(\Sigma\)-protocols are only \emph{honest-verifier} zero knowledge: a malicious \(V^*\) might choose \(e\) as a function of \(a\) to leak information, and the sHVZK simulator (which picks \(e\) itself) does not obviously cope. Three standard remedies upgrade HVZK to malicious-verifier ZK:
+\(\Sigma\)-protocols are only \emph{honest-verifier} zero knowledge: a malicious
+\(V^*\) might choose \(e\) as a function of \(a\) to leak information, and the
+sHVZK simulator (which picks \(e\) itself) does not obviously cope. Two common
+compilers address this:
 \begin{enumerate}
-  \item \emph{Sequential repetition} of a protocol with a small challenge, where \(V\) commits to nothing across rounds---this gives full ZK by a rewinding simulator but costs rounds.
-  \item Have \(V\) \emph{commit} to its challenge \(e\) before seeing \(a\) (a coin-tossing or commitment step), so a malicious \(V^*\) cannot make \(e\) depend on \(a\); the simulator then rewinds past the opening.
-  \item Apply Fiat--Shamir (Subsection~\ref{zk:subsec:fiatshamir}), which removes the verifier's choice of \(e\) altogether by deriving \(e\) from a hash---in the random-oracle model the resulting non-interactive protocol is zero knowledge against \emph{all} verifiers.
+  \item Have \(V\) \emph{commit} to its challenge \(e\) before seeing \(a\)
+    (with the additional compiler conditions needed for simulation), so it
+    cannot adapt \(e\) to \(a\).
+  \item Apply Fiat--Shamir (Subsection~\ref{zk:subsec:fiatshamir}), deriving
+    \(e\) from a hash. Under the hypotheses of
+    Theorem~\ref{zk:thm:fs}, the programmable random-oracle model then gives
+    non-interactive zero knowledge.
 \end{enumerate}
-For the SNARK pipeline it is route~3 that matters, and HVZK is exactly the property Fiat--Shamir requires.
+Sequential repetition amplifies soundness but does not, by itself, generically
+upgrade HVZK to malicious-verifier ZK. For the SNARK pipeline it is the second
+route that matters.
 \end{remark}
 
 \subsection{The Fiat--Shamir transform: from interactive to non-interactive}\label{zk:subsec:fiatshamir}
@@ -3486,7 +3753,12 @@ The requirement that each challenge hash \emph{all} prior messages---the instanc
 \end{remark}
 
 \begin{theorem}[Fiat--Shamir: security in the ROM]\label{zk:thm:fs}
-Let \((P,V)\) be a \(\Sigma\)-protocol for \(R\) with challenge space \(\mathcal{C}\), \(|\mathcal{C}| = N\), special soundness, and special HVZK. In the random-oracle model, \(\Pi = \mathrm{FS}[(P,V), \mathcal{H}]\) is a non-interactive argument that is:
+Let \((P,V)\) be a \(\Sigma\)-protocol for \(R\) with challenge space
+\(\mathcal C\), \(|\mathcal C|=N\), special soundness, and special HVZK.
+Assume also that, conditioned on \((x,e)\), the first message produced by the
+special-HVZK simulator has superlogarithmic min-entropy. In the random-oracle
+model, \(\Pi=\mathrm{FS}[(P,V),\mathcal H]\) is a non-interactive argument that
+is:
 \begin{enumerate}
   \item \emph{complete} (perfectly, inheriting completeness of \((P,V)\));
   \item \emph{knowledge sound}: from any PPT prover \(P^*\) making at most \(Q\) random-oracle queries and producing an accepting proof for \(x\) with probability \(\varepsilon\), an extractor obtains a witness \(w\in R(x)\) with probability at least \(\varepsilon \cdot (\varepsilon/Q - 1/N)\) (up to constants), in particular non-negligibly whenever \(\varepsilon\) is non-negligible and \(N\) is super-polynomial; and
@@ -3503,7 +3775,16 @@ Let \((P,V)\) be a \(\Sigma\)-protocol for \(R\) with challenge space \(\mathcal
 \end{proof}
 
 \begin{remark}[What the random oracle is, and is not]\label{zk:rem:romcaveat}
-The ROM is an idealisation: real hash functions are fixed, public, and not random, and there exist (contrived) protocols secure in the ROM yet insecure under \emph{every} concrete instantiation. The transform is nonetheless trusted in practice and underlies essentially every deployed non-interactive proof and signature, including the Fiat--Shamir-compiled SNARKs below. Two refinements matter for those systems: \emph{(i)} the multi-round forking analysis is more delicate---one must fork each of the protocol's rounds, and the success probability degrades with the round count and the soundness structure (special soundness must generalise to the tree special soundness of Definition~\ref{zk:def:treess}); \emph{(ii)} when the underlying interactive argument is computationally (not statistically) sound, the ROM extraction layers on top of the computational soundness reduction. A subtle but practically important issue is the gap between \emph{programmable} ROM proofs and the non-programmable setting; deployed systems adopt the programmable model.
+The ROM is an idealisation: real hash functions are fixed, public, and not
+random, and there exist (contrived) protocols secure in the ROM yet insecure
+under every concrete instantiation. The transform is nonetheless trusted in
+practice. Theorem~\ref{zk:thm:fs} covers the one-challenge \(\Sigma\) case; it
+does not by itself prove security for a multi-round protocol such as Halo~2.
+There one needs a separate multi-round theorem with compatible transcript,
+state-restoration or rewinding, tree-special-soundness, and challenge-distribution
+hypotheses. When the interactive argument is computationally sound, the ROM
+extraction also layers on top of that computational reduction. Deployed analyses
+must state which programmable-oracle and algebraic models they use.
 \end{remark}
 
 \begin{example}[Schnorr signatures]\label{zk:exp:schnorrsig}
@@ -3526,7 +3807,11 @@ This is the destination. A SNARK certifies a possibly enormous computation with 
 \begin{definition}[Non-interactive argument; preprocessing]\label{zk:def:nizk}
 A \emph{non-interactive argument} for an \textsf{NP}-relation \(R\) consists of three PPT algorithms:
 \begin{itemize}
-  \item \(\mathsf{Setup}(1^n, R) \to \mathsf{srs}\), producing a \emph{structured reference string} (also ``public parameters''; in the ROM this may be a single random oracle, giving a \emph{transparent} setup with no secret to discard);
+  \item \(\mathsf{Setup}(1^n,R)\to\mathsf{srs}\), producing public
+    parameters. In the ROM, all algorithms additionally access one globally
+    sampled ideal random oracle; a PPT setup algorithm does not output that
+    infinite oracle as a finite SRS. A transparent setup has no secret trapdoor
+    to discard;
   \item \(\mathsf{Prove}(\mathsf{srs}, x, w) \to \pi\), with \((x,w)\in R\), producing a proof \(\pi\);
   \item \(\mathsf{Verify}(\mathsf{srs}, x, \pi) \to \{0,1\}\).
 \end{itemize}
@@ -3542,8 +3827,14 @@ A \emph{SNARK} (succinct non-interactive argument of knowledge) for an \textsf{N
 If it also satisfies zero knowledge (Definition~\ref{zk:def:zk}, in its non-interactive ROM form), it is a \emph{zk-SNARK}.
 \end{definition}
 
-\begin{remark}[Why succinctness forces \emph{arguments}, not proofs]\label{zk:rem:succinctforcesarg}
-A succinct \emph{proof}---information-theoretic soundness with sublinear communication---for an \textsf{NP}-complete language is essentially ruled out: an unbounded prover could otherwise compress \textsf{NP}-certificates below the bounds that complexity theory forbids, and indeed a transcript shorter than the witness cannot information-theoretically pin down the witness. Succinct \emph{arguments} escape this because a computationally bounded prover \emph{cannot find} a convincing-but-false short proof, even though one may exist. This is the deepest reason the field works with \emph{arguments} (Remark~\ref{zk:rem:proofvsarg}): succinctness and computational soundness arise together, by necessity.
+\begin{remark}[Why these systems are arguments]\label{zk:rem:succinctforcesarg}
+Succinctness alone does not imply computational soundness: a short transcript
+need not uniquely encode a witness, and interactive proof systems can have
+information-theoretic soundness. The constructions here are \emph{arguments}
+for a concrete reason: their polynomial commitments are binding only against
+efficient adversaries under cryptographic assumptions. It is that commitment
+layer, not succinctness by itself, that changes a proof into an argument
+(Remark~\ref{zk:rem:proofvsarg}).
 \end{remark}
 
 \begin{remark}[What knowledge soundness provides an application]\label{zk:rem:ksbuys}
@@ -3563,7 +3854,17 @@ The first step in building any of these systems is \emph{arithmetisation}: encod
 The cryptographic half of the recipe is the \emph{polynomial commitment scheme} of Definition~\ref{commitments:def:pcs}: a short, binding commitment \(\mathsf{Commit}(p)\) to a polynomial \(p \in \F[X]\) of bounded degree, together with short proofs, verifiable against the commitment alone, that the committed polynomial satisfies \(p(\zeta) = v\)---with evaluation binding and, for SNARK use, the extractability property that a prover who opens evaluations must ``know'' an underlying polynomial. Instantiations include KZG (pairing-based, \(O(1)\)-size, trusted setup), the inner-product-argument (IPA) commitment over a single elliptic curve used in Halo~2 (transparent, no trusted setup, logarithmic-size openings), and FRI (hash-based, transparent, used in STARKs).
 
 \begin{theorem}[The compilation recipe, informally]\label{zk:thm:recipe}
-Let \(\mathsf{PIOP}\) be a public-coin polynomial IOP for \(R\) that is complete and knowledge-sound, and let \(\mathsf{PC}\) be a polynomial commitment scheme that is correct, evaluation-binding, and extractable. Compile them as follows: wherever the prover would send a polynomial oracle \(p_i\), it instead sends \(\mathsf{Commit}(p_i)\); wherever the verifier would query \(p_i(\zeta)\), the prover sends the claimed value with a \(\mathsf{PC}\) evaluation proof, which the verifier checks. The result is a public-coin \emph{interactive argument of knowledge} for \(R\). Applying the Fiat--Shamir transform (Definition~\ref{zk:def:fs}) in the random-oracle model---deriving every verifier challenge as a hash of the transcript so far---yields a non-interactive argument of knowledge: a \emph{SNARK}. If, in addition, the Poly-IOP is made zero knowledge (e.g.\ the prover blinds its polynomials with random masking terms and the commitment is hiding), the SNARK is a \emph{zk-SNARK}.
+Let \(\mathsf{PIOP}\) be a public-coin polynomial IOP for \(R\) that is complete
+and knowledge-sound, and let \(\mathsf{PC}\) be a polynomial commitment scheme
+that is correct, evaluation-binding, and extractable. Replace polynomial oracles
+by commitments and each query answer by an evaluation proof. Under compatible
+composition hypotheses, this gives a public-coin interactive argument of
+knowledge. A suitable multi-round Fiat--Shamir theorem in the random-oracle
+model then makes it non-interactive. Its proof is succinct; under the strict
+Definition~\ref{zk:def:snark}, it is a SNARK only if verification is also
+sublinear in the proved computation. If the Poly-IOP and commitments are
+properly blinded and the corresponding simulation theorem applies, the result
+is zero knowledge.
 \end{theorem}
 
 \begin{proof}[Sketch]
@@ -3571,7 +3872,16 @@ Let \(\mathsf{PIOP}\) be a public-coin polynomial IOP for \(R\) that is complete
 \end{proof}
 
 \begin{remark}[Where Halo~2 sits, and what comes next]\label{zk:rem:halo2}
-The system this monograph builds toward, Halo~2, is exactly an instance of Theorem~\ref{zk:thm:recipe}: a \emph{PLONKish} arithmetisation (custom gates, lookup arguments, and a permutation argument for copy constraints) furnishes the polynomial IOP; the \emph{inner-product-argument} polynomial commitment over a single elliptic curve furnishes a \emph{transparent} \(\mathsf{PC}\) with no trusted setup and logarithmic openings; and Fiat--Shamir over a concrete hash makes it non-interactive. Its signature innovation, \emph{accumulation} (the ``Halo'' technique), defers and batches the expensive final IPA check across many proofs, enabling recursive composition without a trusted setup---one proof attesting to the verification of another. We have now built each ingredient named here---elliptic-curve groups, polynomial commitments, the Schwartz--Zippel lemma, the Fiat--Shamir transform, knowledge soundness via extraction---from first principles, and the chapters that follow assemble them into that system. The reader should carry forward three load-bearing ideas: \emph{rewinding} (Remark~\ref{zk:rem:rewinding}) as the universal device behind both extraction and simulation; the clean split between an \emph{unconditionally sound} information-theoretic core and a \emph{cryptographically} enforced commitment; and the principle that \emph{knowledge} soundness---not mere soundness---is what an application stakes its security on.
+Halo~2 follows this broad recipe: a PLONKish arithmetisation supplies the
+polynomial protocol, an IPA polynomial commitment gives transparent logarithmic
+openings, and Fiat--Shamir makes the transcript non-interactive. Because the
+deployed IPA verifier performs work linear in the commitment dimension, Halo~2
+has succinct proofs but does not meet the strict sublinear-verifier convention
+of Definition~\ref{zk:def:snark}; it is nevertheless commonly called a
+zk-SNARK under the broader proof-succinctness convention. Optional recursive
+composition can use accumulation to defer commitment checks without a trusted
+setup. Those claims require additional model and composition hypotheses beyond
+the generic recipe stated here.
 \end{remark}
 
 \clearpage

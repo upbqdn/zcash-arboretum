@@ -124,16 +124,16 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the Orchard protocol of the \emph{Ironwood Guide}, this volume of
-\emph{The Zcash Arboretum} documents Zcash Shielded Assets: per-asset value
-bases and asset identity, transparent issuance and finalization (ZIP-227),
-shielded transfer and burn (ZIP-226), and the split-note construction that
-guards the counterfeiting boundary. The upstream ZIPs are in flux --- their
-transaction carrier was withdrawn and their fee terms removed upstream --- so
-every claim is classified as specified, designed-but-unspecified, or open,
-and where ZIP text, fork text, and the implementation disagree (as they do on
-the split-note nullifier derivation), all three readings are stated with the
-divergence flagged rather than silently resolved.
+Assuming the Orchard protocol of the \emph{Ironwood Guide} and transaction
+construction from the \emph{Wallet Guide}, this volume of \emph{The Zcash
+Arboretum} documents Zcash Shielded Assets: per-asset value bases and asset
+identity, transparent issuance and finalization (ZIP-227), shielded transfer
+and burn (ZIP-226), and the split-note construction that guards the
+counterfeiting boundary. The upstream ZIPs are in flux --- their transaction
+carrier was withdrawn and their fee terms removed upstream --- so every claim
+is classified as specified, designed-but-unspecified, or open. Where ZIP text,
+fork text, and the implementation disagree, all three readings are stated and
+the divergence is flagged.
 \end{abstract}
 \clearpage
 \tableofcontents
@@ -166,10 +166,12 @@ value base $V^{\mathsf{Orchard}}$ of the homomorphic Pedersen value commitment
 and the binding signature'') is replaced, per Asset, by an \emph{Asset Base}
 witnessed
 inside the circuit; the same Asset Base must appear in the old and the new
-note commitments and as the base of the Action's value commitment, so balance
-holds separately per Asset Identifier without revealing which Assets --- or
-how many distinct ones --- a transaction transfers (\texttt{zip-0226.rst}
-lines~59--63). The transparent protocol is unchanged: unshielding is
+note commitments and as the base of the Action's value commitment. Under the
+discrete-log binding assumption for independently derived bases, the binding
+signature then enforces balance separately per Asset Identifier without
+revealing which Assets --- or how many distinct ones --- a transaction
+transfers (\texttt{zip-0226.rst} lines~59--63). The transparent protocol is
+unchanged: unshielding is
 impossible for Custom Assets, burn is the only supply-reduction mechanism and
 sends to no address, and the Native Asset cannot be burnt
 (\texttt{zip-0226.rst} lines~206--230).
@@ -227,12 +229,10 @@ the current \textsf{zips} tree, ZIP-204 assigns NU7 protocol versions
 $170180$ (Testnet) and $170190$ (Mainnet), but
 \texttt{draft-arya-deploy-nu7} still says $170150$ and $170160$; the draft is
 therefore internally stale even though its activation heights remain TBD
-(\textsf{zips} \texttt{ad30e59}, ZIP-204 and
-\texttt{draft-arya-deploy-nu7}). In
-the Zcash Foundation's February 2026 NU7 sentiment polls, the proposal that
-drew ``universal or near-universal support'' was Tachyon, not ZSA. ZSA's
-own standing in those polls is split: ZCAP supported ZSAs at 70.4\%, the
-coinholder poll ran 98.6\%
+(\textsf{zips} \texttt{e753a6a3}, ZIP-204 and
+\texttt{draft-arya-deploy-nu7}). The Zcash Foundation's February 2026 NU7
+sentiment polls record split support
+for ZSAs: ZCAP supported them at 70.4\%, the coinholder poll ran 98.6\%
 against, and the Foundation did not recommend ZSAs for NU7, writing that
 ``before any decision is made, we need to understand why coinholders oppose
 ZSAs so strongly'' (zfnd.org, ``NU7 Polling Results: What We Heard and Where
@@ -241,11 +241,13 @@ We Go From Here'', 2026-02-23,
 
 The specification's baseline moved beneath it in 2026. ZIP~226 is now defined
 relative to the protocol with ZIP~2005 (Ironwood Quantum Recoverability;
-Status Proposed, deploying with NU6.3 ``Ironwood'') applied, and states that
+Status Proposed, specified for deployment with NU6.3 ``Ironwood'') applied,
+and states that
 ZIP~2005 ``is expected to deploy before any ZSA activation''
 (\texttt{zip-0226.rst} line~45, which still cites the ZIP under its older
-name ``Orchard Quantum Recoverability''; \texttt{zip-2005.md} header). The dependency points upward: if the
-NU6.3 content changes, the ZSA specification inherits the change.
+name ``Orchard Quantum Recoverability''; \texttt{zip-2005.md} header). The
+dependency points upward: if the NU6.3 content changes, the ZSA specification
+inherits the change.
 
 The carrier format has no live specification. ZIP~226 defines its transaction
 structure and sighash by deferring to ZIP~230 (the v6 transaction format) and
@@ -265,8 +267,12 @@ per-transparent-input sighash information that appeared in the withdrawn ZIP
 248'', and ``The value 6 for the transaction version number need not avoid
 collisions with the withdrawn ZIP 230 or with the current draft of ZIP 248''
 (\texttt{zip-0229.md} lines~154--162). ZIP~248, the intended extensible-format
-home for the ZIP~230/231/246 material, exists only as the unmerged pull
-request zcash/zips\#1156. The rot reaches into the ZSA texts themselves:
+home for the ZIP~230/231/246 material, merged as a Draft on 2026-09-03
+(zcash/zips\#1156, commit \texttt{e753a6a3}). It defines a generic V7 carrier
+and lists OrchardZSA and ZSA issuance only under ``Potential Future Bundle
+Types'': the former has a provisional variant and the latter no allocated
+bundle type. It does not specify their V7 encodings or digests. The rot also
+reaches into the ZSA texts themselves:
 ZIP~227's SigHash consensus rule cites ``modifications described in ZIP 226
 [\#zip-0226-txiddigest]'', an anchor ZIP~226 no longer contains
 (\texttt{zip-0227.rst} lines~474, 693). This volume therefore bins the entire
@@ -306,31 +312,41 @@ sources, pinned here by URL and date, and both are scoped. Audit: Least
 Authority TFA GmbH, \emph{OrchardZSA Protocol Security Audit Report}
 (commissioned by ZCG as Zcash Ecosystem Security Lead), Updated Final Audit
 Report 30 January 2025. Scope: the QED-it \texttt{orchard}
-\texttt{zsa1}-vs-\texttt{main} diff (PR QED-it/orchard\#7, including the ZSA
-circuit extensions) and the QED-it \texttt{halo2} gadget changes (PR
-QED-it/halo2\#18), at revisions \texttt{a7c02d22} (initial) and
-\texttt{01e85a5f} (verification); findings: no issues, four suggestions (all
-but one resolved).
+\texttt{zsa1}-vs-\texttt{main} diff (PR QED-it/orchard\#7) for compatibility
+with the ZIPs, excluding the circuit from that comparison; the QED-it
+\texttt{halo2} gadget changes (PR QED-it/halo2\#18); and the Orchard
+\texttt{src/circuit} folder, including dependencies that differed from
+upstream. The initial revisions were Orchard \texttt{a7c02d22} and Halo~2
+\texttt{290bc565}; verification used Orchard \texttt{01e85a5f}. The report
+found no issues and made four suggestions, three resolved and one planned.
 \url{https://leastauthority.com/wp-content/uploads/2025/01/Least-Authority-ZCG-OrchardZSA-Protocol-Updated-Final-Audit-Report.pdf}.
 The audit does not cover \texttt{librustzcash-zsa} or the v6 transaction
 format layer, and the audited revisions predate the pinned
-\texttt{cf801a5d}. Testnet: ZecHub, \emph{Zcash Shielded News Vol.\,61}
-(2025-12-17): ``A feature-complete version of ZSAs is now available on
-testnet'' (\url{https://zechub.substack.com/p/zcash-shielded-news-vol61});
-the testnet is QED-it's public Zebra-based single-node ZSA testnet (see
-forum.zcashcommunity.com thread \#53293, ``ZSA Testnet Question''). This
-volume accordingly asserts ``audited'' only of the orchard/halo2 circuit
-layer at the audited revisions, and ``running on QED-it's public testnet''
-of the stack as a whole --- and nothing stronger.
+\texttt{cf801a5d}. Testnet: QED-it's \texttt{zcash\_tx\_tool} repository
+documents public Zebra endpoints hosted by QED-it and test flows for issuance,
+transfer, and burn (HEAD \texttt{655298f4}, README and the Running tx-tool
+wiki, checked 2026-09-05,
+\url{https://github.com/QED-it/zcash_tx_tool}); its README labels the tool
+Alpha and says its feature set is incomplete. ZecHub had described a
+\emph{feature-complete version} on that testnet on 2025-12-17
+(\url{https://zechub.substack.com/p/zcash-shielded-news-vol61}), but that
+historical description is not promoted to a claim about the current tool.
+This volume accordingly asserts \emph{audited} only of the scoped Orchard and
+Halo~2 code at those revisions, and only the existence of QED-it's public test
+environment for the stack as a whole.
 
 \subsection{Sources}\label{sec:zsa-sources}
 
 Table~\ref{tab:zsa-sources} lists the primary sources, each pinned to a
 commit. All facts in this volume were verified firsthand at the stated
-commits; the only web sources cited are pinned by URL and date --- the Least
-Authority OrchardZSA audit report (2025-01-30), ZecHub \emph{Shielded News}
-Vol.\,61 (2025-12-17), and the Zcash Foundation's NU7 Polling Results post
-(2026-02-23), all three in \S\ref{sec:zsa-status}.
+commits; the web sources cited are pinned by URL and date --- the Least
+Authority OrchardZSA audit report (2025-01-30), QED-it's public-testnet
+documentation (HEAD \texttt{655298f4}, checked 2026-09-05), ZecHub
+\emph{Shielded News} Vol.\,61 (2025-12-17), and the Zcash Foundation's NU7
+Polling Results post (2026-02-23), all in \S\ref{sec:zsa-status}; and the
+unversioned \emph{OrchardZSA circuit} document linked from ZIP~226 (checked
+2026-09-05), used only to bound the circuit description's scope in
+\S\ref{sec:zsa-circuit}.
 
 \begin{table}[htbp]
 \centering
@@ -353,16 +369,18 @@ Artifact & Pin / date & Role \\
 \label{tab:zsa-sources}
 \end{table}
 
-\paragraph{Current-head boundary (2026-08-30).} The QED-it forks have moved
-since the source snapshot: \textsf{orchard} \texttt{b578ad9} is based on
-0.15.0 and adds the NU6.3 cross-address restriction to the ZSA circuit, while
-\textsf{librustzcash} \texttt{c5c232d} synchronises the NU6.2-era upstream
-transaction changes. Neither change supplies a current normative carrier for
-ZSA: upstream ZIPs~230 and~246 remain withdrawn, ZIPs~226 and~227 remain
-Draft, and the NU7 deployment draft still does not select them. Detailed
-wire, circuit, and fee claims below therefore continue to describe the
-explicit pins in Table~\ref{tab:zsa-sources}; later fork behaviour is not
-silently attributed to that public-testnet snapshot.
+\paragraph{Current-head boundary (2026-09-05).} The QED-it forks have moved
+since the source snapshot: \textsf{orchard} \texttt{837ddd1} is based on
+0.15.0, adds the NU6.3 cross-address restriction to the ZSA circuit, and
+includes later internal circuit refactors, while \textsf{librustzcash}
+\texttt{c5c232d} synchronises the NU6.2-era upstream transaction changes.
+Upstream ZIP~248 is now a merged Draft for a generic V7 carrier, but it leaves
+the ZSA-specific bundle encodings and digests to future specifications;
+ZIPs~230 and~246 remain withdrawn, ZIPs~226 and~227 remain Draft, and the NU7
+deployment draft still does not select them. Detailed wire, circuit, and fee
+claims below therefore continue to describe the explicit pins in
+Table~\ref{tab:zsa-sources}; later fork behaviour is not silently attributed
+to that public-testnet snapshot.
 
 \paragraph{Upstream versus fork.} Upstream ZIP~226 diverged from the fork text
 at \texttt{fd71419a} in three substantive ways: it added the ZIP~2005
@@ -425,24 +443,21 @@ is library-side only (\texttt{orchard-zsa}
 
 \subsection{Method: the three bins for ZSA}\label{sec:zsa-method}
 
-This volume adopts the series' classification of design-stage claims
-(\emph{Voting Guide}, \S``The source situation: code as the de facto
-specification''): every claim is \emph{specified}, \emph{designed but
-unspecified}, or an \emph{open problem}, and the bin stays visible in the
-prose. The distribution differs sharply from
-the Tachyon volume's. Bin~(i) holds the entire cryptographic core --- the
-per-asset note and its commitment, the Asset Base derivation, value
-commitments and the balance equation, split notes, the circuit statement,
-issuance keys, issue notes and reference notes, the issuance state machine,
-and burn --- because the ZIP texts state it at consensus rigor and the pinned
-implementation cross-checks it. Bin~(ii) holds the carrier layer: the v6 wire
-format, the digest tree and sighash, the note-plaintext lead byte, and the
-ZSA fee terms, each specified today only by withdrawn ZIPs, the QED-it fork
-texts, or code (\S\ref{sec:zsa-status}). Bin~(iii) holds NU7 inclusion and
-activation, the eventual lead-byte assignment, and the carrier format's
-future home. Per the series conventions, every formula in this volume is
-transcribed verbatim from the pinned ZIP text or the pinned code, and the
-citation names which.
+This volume classifies every design-stage claim as \emph{specified},
+\emph{designed but unspecified}, or an \emph{open problem}, and keeps the bin
+visible in the prose. Bin~(i) holds the constructions and consensus rules that
+the live ZIP texts state directly: the per-asset note and commitment, Asset
+Base derivation, value commitments and balance equation, the split-note
+circuit delta, issuance keys, issue and reference notes, the issuance state
+machine, and burn. Bin~(ii) holds both the gate-level realization of that
+circuit delta and the carrier layer: the v6 wire format, digest tree and
+sighash, note-plaintext lead byte, and ZSA fee terms. Those details are fixed
+only by implementation, an externally hosted unversioned circuit description,
+withdrawn ZIPs, or the QED-it fork texts (\S\ref{sec:zsa-status}). Bin~(iii)
+holds NU7 inclusion and activation, the
+eventual lead-byte assignment, and the carrier format's future home. Formulas
+below identify whether their source is ZIP text, pinned code, or an explicitly
+labelled derivation in this volume.
 
 \section{Asset identity}\label{sec:zsa-asset-identity}
 
@@ -479,9 +494,11 @@ which the ZIP itself presents as a relation diagram
 (\texttt{zip-0227.rst}:210--224): the issuer-chosen description string is
 hashed, the hash paired with the issuer key into an identifier, the
 identifier hashed into a digest, and the digest mapped onto the Pallas
-curve. Every Asset issued under ZIP~227 is scoped to the issuer that
-issued it, and its Asset Identifier is globally unique, ``used across all
-Zcash protocols that support ZSAs'' (\texttt{zip-0227.rst}:227--240).
+curve. Every Asset issued under ZIP~227 is scoped to the issuer that issued
+it. Its Asset Identifier is intended to be globally unique and is ``used
+across all Zcash protocols that support ZSAs''
+(\texttt{zip-0227.rst}:227--240); for two descriptions under one issuer,
+uniqueness is computational and rests on BLAKE2b-256 collision resistance.
 
 This section constructs the chain end to end: the issuance key pair at its
 root (\S\ref{sec:zsa-issuance-keys}); the hash steps from description to
@@ -516,7 +533,7 @@ or $\bot$; public keys are $32$-byte sequences or $\bot$; private keys are
 $32$-byte sequences (\texttt{zip-0227.rst}:122--135). Signing fixes the
 BIP-340 auxiliary data to $a = [\mathtt{0x00}]^{32}$: the signature is
 $\sigma := \mathsf{Sign}(\mathsf{isk}, M)$ with auxiliary data $a$, or
-$\bot$ if $\mathsf{Sign}$ fails; on the wire it is encoded as
+$\bot$ if $\mathsf{Sign}$ fails; its scheme-level encoding is
 $\mathtt{issueAuthSig} = [\mathtt{0x00}] \,\|\, \sigma$
 (\texttt{zip-0227.rst}:190--207).
 \end{definition}
@@ -675,14 +692,14 @@ with two $\mathtt{0x00}$ bytes of distinct meaning.
 \end{definition}
 
 The pair structure carries the uniqueness argument. Because the issuer
-identifier is a component of $\mathsf{AssetId}$, two different issuers
-cannot produce the same identifier; in the ZIP's words, the Custom Asset
+identifier is a component of $\mathsf{AssetId}$, two distinct issuer-key
+encodings cannot produce the same pair; in the ZIP's words, the Custom Asset
 ``is described via a combination of the issuer identifier and an asset
 description string, to preclude the possibility of two different issuers
 creating colliding Custom Assets'' (\texttt{zip-0227.rst}:525). Within one
-issuer, distinct descriptions separate assets via
-$\mathsf{assetDescHash}$; for every new Asset there MUST be a new and
-unique Asset Identifier (\texttt{zip-0226.rst}:93--96).
+issuer, distinct descriptions separate assets via $\mathsf{assetDescHash}$
+only subject to BLAKE2b-256 collision resistance; for every new Asset there
+MUST be a new and unique Asset Identifier (\texttt{zip-0226.rst}:93--96).
 
 \begin{remark}[Why a hash, not the string]\label{rem:zsa-desc-hash}
 ZIP~227 replaces the direct description string of an earlier design with a
@@ -699,7 +716,7 @@ wallets to obtain the description from a trusted party, a registry, or
 direct user approval. Consistent with the last point, wallets MUST NOT
 display just the $\texttt{asset\_desc}$ string as the name of the Asset;
 the ZIP suggests a petname system mapping names to Asset Identifiers via
-client configuration, or the Asset Digest as a compact unique byte
+client configuration, or the Asset Digest as a compact identifying byte
 sequence, e.g.\ in QR codes (\texttt{zip-0227.rst}:263--266).
 \end{remark}
 
@@ -758,7 +775,12 @@ $\mathsf{AssetBase}$ is ``the unique element of the Pallas group that
 identifies each Asset in the Orchard protocol \dots\ a valid group element
 that is not the identity and is not $\bot$''
 (\texttt{zip-0226.rst}:111--117), a non-identity point of
-$\Ep(\F_{p_{\Pallas}})$ in our notation. Its byte form is
+$\Ep(\F_{p_{\Pallas}})$ in our notation. Here uniqueness can only mean that
+the derivation is deterministic for a given identifier, not that the map is
+injective: a $512$-bit digest is mapped into a roughly $255$-bit group, so
+collisions exist in principle. Asset separation at the base and global-state
+levels is computational and requires that collisions in the digest/group-hash
+chain be infeasible to find. Its byte form is
 \[
 \texttt{asset\_base} :=
 \mathrm{LEBS2OSP}_{\ell_{\PP}}(\mathrm{repr}_{\PP}(\mathsf{AssetBase})),
@@ -817,8 +839,9 @@ The enforcement mechanism belongs to the transfer sections of this volume
 \begin{remark}[The identity-point corner case]\label{rem:zsa-identity-point}
 The protocol specification's $\GroupHash^{G}(D, M)$ has the full group as
 codomain, so its output can in principle be the zero point
-(\texttt{protocol.tex} \S5.4.9.8; the \emph{Crypto Guide} constructs the
-hash-to-curve pipeline). ZIP~227's $\mathsf{ZSAValueBase}$ never
+(\texttt{protocol.tex} \S5.4.9.8; the \emph{Ironwood Guide},
+\S``GroupHash, domain separation, and nothing-up-my-sleeve generators'',
+constructs the hash-to-curve pipeline). ZIP~227's $\mathsf{ZSAValueBase}$ never
 states what happens in that event; the non-identity requirement comes from
 ZIP~226's typing of the note field
 (\texttt{zip-0226.rst}:111--117) and from the implementation, which panics
@@ -900,8 +923,9 @@ $\texttt{nIssueActions} > 0$, and if $\texttt{nIssueActions} = 0$ then
 \texttt{issuerLength} MUST be $0$ (\texttt{zip-0230.rst}:166--179,
 215--217, 430--443). Each
 Issue Action carries \texttt{assetDescHash} as \texttt{byte[32]},
-\texttt{nNotes} (compactSize, possibly zero, to finalize without
-issuing), \texttt{vNotes} ($115$ bytes per note description: $43$-byte
+\texttt{nNotes} (compactSize, possibly zero; for an existing Asset, this
+permits finalization without further issuance), \texttt{vNotes} ($115$ bytes
+per note description: $43$-byte
 recipient, $8$-byte value, $32$-byte $\rho$, $32$-byte
 $\mathsf{rseed}$), and \texttt{flagsIssuance} with finalize in the least
 significant bit; the burn encoding carries \texttt{assetBase} as
@@ -938,10 +962,10 @@ with construction, \texttt{IssueAction::verify} checks that every note's
 base equals the one derived from the validating key and the description
 hash, failing with error \texttt{IssueBundleIkMismatchAssetBase}
 otherwise (\texttt{orchard-zsa} \texttt{src/issuance.rs}:216--244 @
-\texttt{cf801a5d}). An asset's
-identity is therefore not an on-chain object at all: it is a recomputable
-function of two consensus-visible byte strings, anchored to the issuer key
-that signs the bundle.
+\texttt{cf801a5d}). The Asset Identifier is therefore not serialized as a
+standalone field: its two components are consensus-visible, and the Asset Base
+is a recomputable function of them, anchored to the issuer key that signs the
+bundle.
 
 \paragraph{Classification.} The entire derivation chain of this section is
 \emph{specified}: every formula above appears in the ZIP texts at rigor
@@ -978,28 +1002,29 @@ chain.
 
 \section{Issuance and finalization (ZIP-227)}\label{sec:zsa-issuance}
 
-The preceding section moved Custom Assets between shielded notes; this one
-brings them into existence. ZIP-227 (Status Draft, Category Consensus;
+The transfer mechanism below moves Custom Assets between shielded notes; this
+section brings them into existence. ZIP-227 (Status Draft, Category Consensus;
 owners Pablo Kogan and Vivek Arte of QEDit, Daira-Emma Hopwood, and Jack
 Grigg) specifies the issuance mechanism for Custom Assets on the Zcash
 chain: a per-transaction \emph{issuance bundle} in which a publicly named
 issuer creates new notes, a per-Asset \emph{finalize} switch that ends
 issuance forever, and a node-maintained global supply map. The draft's Test
 Vectors, Reference Implementation, and Deployment sections all read TBD
-(ZIP-227, header and closing sections @ zips \texttt{6961098}). Deployment
-standing --- Draft ZIPs, externally audited at circuit scope, running on
-QED-it's public testnet, contested for NU7 --- is fixed once in
-\S\ref{sec:zsa-scope} and not relitigated here.
+(ZIP-227, header and closing sections @ zips \texttt{69610984}). Deployment
+standing --- Draft ZIPs, externally audited at the stated Orchard/Halo~2 scope,
+exercised in QED-it's Alpha public test environment, contested for NU7 --- is
+fixed once in \S\ref{sec:zsa-scope} and not relitigated here.
 
 Issuance is deliberately \emph{not} shielded. The ZIP's Motivation states:
 ``This ZIP only enables \emph{transparent} issuance. As a first step,
 transparency will allow for proper testing of the applications that will be
 most used in the Zcash ecosystem, and will enable the supply of Assets to
-be tracked'' (ZIP-227, \emph{Motivation}). The issuer, the Asset, the
-issued amounts, and the finalization status are all consensus-visible;
-only the recipients of the issued notes are shielded, because the notes
-themselves enter the Orchard note commitment tree
-(\S\ref{sec:zsa-issuance-notes}).
+be tracked'' (ZIP-227, \emph{Motivation}). The issuer, Asset, issued amounts,
+finalization status, raw recipient addresses, $\rho$ values, and random seeds
+are serialized in the clear. For an ordinary recipient, the address does not
+reveal the nullifier key, so a later spend is designed to be unlinkable to the
+public issue-note description. The mandatory all-zero-key reference note is an
+explicit exception (\S\ref{sec:zsa-issuance-notes}).
 
 \paragraph{Encoding ground truth.} One sourcing decision governs every
 wire format and digest below, and we state it once. ZIP-227 normatively
@@ -1009,20 +1034,20 @@ Version 6 Transaction Format'', obsoleted by ZIP-229, its lead byte
 replaced by the placeholder \texttt{\{\{LEADBYTE\}\}}, and ZIP-246 carries
 ``Digests for the Withdrawn Version 6 Transaction Format'', with v6
 digests now assigned to ZIP-229 (ZIP-230 and ZIP-246, headers and
-warnings @ zips \texttt{6961098}) --- and ZIP-229 carries no
+warnings @ zips \texttt{69610984}) --- and ZIP-229 carries no
 issuance-bundle fields. The QEDit fork of the ZIPs repository retains
 ZIP-230 and ZIP-246 at Status Draft with lead byte $\mathtt{0x03}$, and
 its copy of ZIP-227 differs from upstream only cosmetically (zips-zsa @
 \texttt{fd71419}). We therefore present the ZIP-230/246 issuance encoding
-as what it is: the fork-specified design, deployed on QED-it's public
-testnet (ZecHub Vol.\,61, 2025-12-17; \S\ref{sec:zsa-status}) and
-implemented by the pinned fork libraries (the circuit layer audited by
-Least Authority, 2025-01-30), with no merged upstream v6 specification
-behind it.
+as what it is: the fork-specified design, exercised in QED-it's public test
+environment (\S\ref{sec:zsa-status}) and
+implemented by the pinned fork libraries (at an older Orchard/Halo~2 revision
+audited by Least Authority, 2025-01-30), with no merged upstream v6
+specification behind it.
 The NU7 standing of the whole format stack is part of the deployment
 picture of \S\ref{sec:zsa-scope}.
 
-\paragraph{Implementation pins.} Claims about deployed behavior cite the
+\paragraph{Implementation pins.} Claims about implemented behavior cite the
 QEDit libraries at fixed commits: \texttt{orchard-zsa} branch
 \texttt{zsa1} @ \texttt{cf801a5d} (2026-06-29), \texttt{librustzcash-zsa}
 branch \texttt{zsa1} @ \texttt{3f9b53fc} (2026-04-17), and the patched
@@ -1073,8 +1098,8 @@ future if key rotation is ever specified
 \subsection{Asset identity: description, digest, and Asset Base}%
 \label{sec:zsa-issuance-asset}
 
-Every Custom Asset is named by its issuer plus a human-meaningful
-description, and consumed by the protocol as a Pallas point. The full
+Every Custom Asset is named by its issuer plus an issuer-chosen description,
+and consumed by the protocol as a Pallas point. The full
 derivation chain --- $\mathsf{assetDescHash}$, $\mathsf{AssetId}$,
 $\mathsf{EncodeAssetId}$ with its version byte, $\mathsf{AssetDigest}$,
 and $\mathsf{AssetBase} = \mathsf{ZSAValueBase}(\mathsf{AssetDigest})$ ---
@@ -1084,10 +1109,10 @@ hash-not-string rationale is Remark~\ref{rem:zsa-desc-hash}, and the UTF-8
 SHOULD-versus-panic delta between ZIP and implementation is recorded in
 \S\ref{sec:zsa-asset-id}. The native Asset bypasses the chain entirely:
 its base is the Orchard value-commitment base $V^{\mathsf{Orchard}}$
-(\S\ref{sec:zsa-native-asset}). An Asset Base equal to the Pallas identity
-is invalid everywhere --- \texttt{AssetBase::custom} panics after hashing
-to the curve and \texttt{AssetBase::from\_bytes} rejects the identity on
-parse (Remark~\ref{rem:zsa-identity-point}). What the issuance layer adds
+(\S\ref{sec:zsa-native-asset}). ZIP~226 excludes the Pallas identity from
+the Asset-Base type; \texttt{AssetBase::custom} panics after hashing to it,
+while \texttt{AssetBase::from\_bytes} rejects it on parse
+(Remark~\ref{rem:zsa-identity-point}). What the issuance layer adds
 to the chain is consensus-side recomputation: validators re-derive every
 Issue Note's $\mathsf{AssetBase}$ from the bundle's \texttt{issuer} and
 the action's \texttt{assetDescHash}, never reading it off the wire
@@ -1119,20 +1144,22 @@ components $\mathbb{P}^{\ast}$ and $\F_{q_{\mathbb{P}}}$, our
 $\Ep(\F_{p_{\Pallas}})^{\ast}$ and $\F_{p_{\Pallas}}$).
 \end{definition}
 
-Issue notes never appear on chain as commitments: the wire format carries
-the note fields themselves (\S\ref{sec:zsa-issuance-wire}), and each
-validator computes the note commitment --- by the OrchardZSA
-$\NoteCommit$ of \S\ref{sec:zsa-transfer} --- and appends it to the
-Orchard note commitment tree. Precisely because the nullifier key of the
-recipient is unknown to validators, the note's future spend cannot be
-linked to the issuance transaction (ZIP-227, \emph{Issue Note} and
-\emph{Issuance Protocol}). Issuance is thus transparent at creation and
-shielded from the first spend onward.
+Issue-note commitments are not serialized: the wire format carries the note
+fields themselves in the clear (\S\ref{sec:zsa-issuance-wire}), and each
+validator computes the commitment --- by the OrchardZSA $\NoteCommit$ of
+\S\ref{sec:zsa-transfer} --- and appends it to the Orchard note commitment
+tree. For an ordinary issue note, the recipient address does not reveal the
+nullifier key; under the nullifier PRF assumptions, a later nullifier is
+computationally unlinkable to that public description. This privacy claim does
+not apply to the reference note, whose all-zero spending key is public
+(ZIP-227, \emph{Issue Note}, \emph{Reference Notes}, and \emph{Issuance
+Protocol}). Issuance is transparent at creation; later transfers of ordinary
+issue notes are shielded.
 
 \paragraph{Computation of $\rho$.} An Orchard note takes
 $\rho := \nfsym_{\mathrm{old}}$ from the Action that creates it (the
-\emph{Ironwood Guide}, \S``Delivery: the note reaches its owner''); an issue note has
-no such Action, so ZIP-227 derives $\rho$ from the
+\emph{Ironwood Guide}, \S``Delivery: the note reaches its owner''); an issue
+note has no such Action, so ZIP-227 derives $\rho$ from the
 transaction's OrchardZSA transfer bundle instead:
 \[
 \mathsf{DeriveIssuedRho}(\nfsym, i_{\mathsf{A}}, i_{\mathsf{N}}) :=
@@ -1173,10 +1200,11 @@ bundle, so a duplicated bundle would share the SIGHASH (ZIP-227,
 In the builder, notes are created with $\rho$ unset, via
 \texttt{new\_issue\_note}; once the transfer bundle's first nullifier
 is known, \texttt{update\_rho\_for\_issuance\_note} sets $\rho$ and
-resamples $\mathsf{rseed}$ in a loop until the note commitment is not
-$\bot$\footnote{Strictly, this conditions $\mathsf{rseed}$ on a
-negligible-probability event, a technical deviation from the ZIP's
-``sampled uniformly at random'' (ZIP-227, \emph{Issue Note}).}
+resamples $\mathsf{rseed}$ until both the derived ephemeral key is valid and
+the note commitment is not $\bot$\footnote{Strictly, these
+negligible-probability rejection steps condition $\mathsf{rseed}$, a
+technical deviation from the ZIP's ``sampled uniformly at random''
+(ZIP-227, \emph{Issue Note}).}
 (\texttt{orchard-zsa}, \texttt{src/note.rs} lines~457--489 @
 \texttt{cf801a5d}).
 
@@ -1245,7 +1273,8 @@ Field & Type & Notes \\
 \midrule
 \multicolumn{3}{@{}l@{}}{\emph{Per \texttt{IssueAction}:}} \\
 \texttt{assetDescHash} & \texttt{byte[32]} & \\
-\texttt{nNotes} & \texttt{compactSize} & may be $0$ (finalize-only) \\
+\texttt{nNotes} & \texttt{compactSize} &
+  may be $0$ (existing-Asset finalization) \\
 \texttt{vNotes} & \texttt{IssueNoteDescription[nNotes]} &
   $115$ bytes each \\
 \texttt{flagsIssuance} & \texttt{byte} &
@@ -1274,10 +1303,10 @@ and the action's $\mathsf{assetDescHash}$, the four fields of an
 \texttt{IssueNoteDescription} determine the Issue Note completely
 (ZIP-230, \emph{Issue Note Description}; ZIP-227, \emph{Issue Note}) ---
 the note commitment is deliberately absent, since validators recompute it
-(\S\ref{sec:zsa-issuance-notes}). Second, an action with
-\texttt{nNotes} $= 0$ is legal: it lets an issuer finalize an Asset
-without issuing more of it (ZIP-230, \emph{Issuance Action Description};
-finalization semantics in \S\ref{sec:zsa-issuance-final}). Third, the
+(\S\ref{sec:zsa-issuance-notes}). Second, the encoding permits
+\texttt{nNotes} $= 0$; for an existing Asset this lets the issuer finalize
+without issuing more (ZIP-230, \emph{Issuance Action Description}; the
+new-Asset corner case is recorded in \S\ref{sec:zsa-issuance-state}). Third, the
 flags byte is strict: \texttt{IssuanceFlags::from\_byte} returns
 \texttt{None} whenever any bit other than the LSB is set, and
 deserialization fails on such bytes, enforcing ZIP-230's ``remaining bits
@@ -1311,9 +1340,8 @@ its \texttt{Vec<Note>}, and its \texttt{IssuanceFlags}
 
 The issuance authorization signature scheme $\mathsf{IssueAuthSig}$ is
 instantiated as a BIP-340 Schnorr signature over secp256k1 with the
-standard parameters --- not RedPallas: issuance is a transparent
-capability, and the choice buys direct compatibility with existing
-secp256k1 tooling. Batch verification MAY be used, and precomputation MAY
+standard parameters, not RedPallas; ZIP-227 gives no rationale for that curve
+choice. Batch verification MAY be used, and precomputation MAY
 be used if and only if it produces equivalent results (ZIP-227,
 \emph{Issuance Authorization Signature Scheme}). The associated types
 (same section):
@@ -1409,9 +1437,9 @@ fork's five-branch digest today.
 
 \subsection{Transaction digests}\label{sec:zsa-issuance-digests}
 
-The v6 digest tree extends the ZIP-244 structure the \emph{Ironwood
-Guide} presents in \S``Conservation without disclosure: value commitments and
-the binding signature'': the txid digest is BLAKE2b-256 with personalization
+The v6 digest tree extends the ZIP-244 structure the \emph{Ironwood Guide}
+presents in \S``What the signatures sign: ZIP-244 digests and their v6
+form'': the txid digest is BLAKE2b-256 with personalization
 $\texttt{ZcashTxHash\_} \,\|\, \mathrm{CONSENSUS\_BRANCH\_ID}$ over six
 branches T.1--T.6 (header, transparent, Sapling, Orchard, issuance,
 memo), and the signature digest has the same six-branch structure with
@@ -1459,8 +1487,8 @@ composite
 without issuance components hashes the empty string under the same
 personalizations.
 
-The code computes exactly these. On the txid side,
-\texttt{hash\_issue\_bundle\_txid\_data} hashes
+The code computes exactly these issuance-specific hashes. On the txid side,
+\texttt{hash\_issue\_\allowbreak bundle\_txid\_data} hashes
 \[
 \mathrm{compactSize}(|\mathsf{ik\_encoding}|) \,\|\,
 \mathsf{ik\_encoding} \,\|\, \mathsf{issue\_actions\_digest}
@@ -1469,7 +1497,7 @@ under \texttt{ZTxIdSAIssueHash}; the actions digest hashes, per action,
 the $32$-byte hash, the notes digest, and the flags byte; the notes
 digest hashes, per note, the $43$-byte recipient, the $8$-byte
 little-endian value, and the two $32$-byte fields. On the authorizing
-side, \texttt{hash\_issue\_bundle\_auth\_data} hashes
+side, \texttt{hash\_issue\_\allowbreak bundle\_auth\_data} hashes
 \[
 \mathrm{compactSize}(|\mathsf{sighashInfo}|) \,\|\,
 \mathsf{sighashInfo} \,\|\, \mathrm{compactSize}(65) \,\|\,
@@ -1530,7 +1558,8 @@ $0$ --- and the Asset's reference note. A missing entry
 ($\mathsf{issued\_assets}(\mathsf{AssetBase}) = \bot$) is read as
 $\mathsf{balance} = 0$, $\mathsf{final} = 0$,
 $\mathsf{note_{ref}} = \bot$; the constant $\mathsf{MAX\_ISSUE} =
-2^{64} - 1$ caps the total supply of any Custom Asset (ZIP-227,
+2^{64} - 1$ caps the recorded circulating balance of any Custom Asset at any
+one state (ZIP-227,
 \emph{Global Issuance State}).
 \end{definition}
 
@@ -1636,7 +1665,9 @@ as typed errors:
   \texttt{AssetBaseCannotBeIdentityPoint} --- a note's Asset Base
   differs from the one \texttt{IssueAction::verify} derives from
   $(\mathsf{ik}, \mathsf{assetDescHash})$, or the derived point is the
-  Pallas identity;
+  Pallas identity. The latter variant is intended but unreachable at this
+  pin because \texttt{AssetBase::custom} panics first
+  (Remark~\ref{rem:zsa-identity-point});
 \item \texttt{ValueOverflow} --- the checked \texttt{u64} value sum
   overflows, the code's realization of $\mathsf{MAX\_ISSUE} = 2^{64}-1$
   (\texttt{src/issuance.rs} lines~216--244; \texttt{src/value.rs}
@@ -1655,9 +1686,11 @@ consensus from these libraries:
   (\texttt{IssueActionWithoutNoteNotFinalized},
   \texttt{src/issuance.rs} lines~216--219), but ZIP-227's consensus-rule
   list contains no such MUST, and ZIP-230 merely notes that
-  \texttt{nNotes} may be zero ``to only finalize''. A ZIP-conformant
-  validator would accept an empty, non-finalizing action that the
-  reference implementation rejects.
+  \texttt{nNotes} may be zero ``to only finalize''. For an already-existing
+  Asset, the written consensus rules admit an empty, non-finalizing action
+  that the reference implementation rejects; for a new Asset, the ZIP's
+  instruction to take the first note as the reference note is undefined when
+  the list is empty.
 \item \emph{First-issuance detection.} The ZIP keys the reference-note
   requirement on $\mathsf{note_{ref}} = \bot$; the code keys it on the
   complete absence of an \texttt{AssetRecord}
@@ -1706,8 +1739,9 @@ Applications}):
   finalizing variant, \S\ref{sec:zsa-issuance-state}).
 \item \emph{NFTs}: issue multiple actions in one transaction, each with
   $\mathsf{value} = 1$ at the Asset's fundamental unit and
-  $\mathsf{finalize} = 1$ --- each action's Asset is thereafter unique
-  and non-replicable.
+  $\mathsf{finalize} = 1$ --- each action defines a distinct finalized Asset
+  Identifier with supply one, subject to the collision-resistance assumptions
+  of \S\ref{sec:zsa-asset-id}.
 \end{itemize}
 
 Finalization is also the entirety of the compromise story. No key
@@ -1745,7 +1779,7 @@ creation cost disincentivizes junk assets.
 Upstream, these contributions no longer exist: ZIP-317's change history
 records, on 2026-06-26, ``Removed the ZSA issuance and asset-creation
 fee contributions (ZIP 227)'' (ZIP-317, change history @ zips
-\texttt{6961098}) --- while ZIP-227's own \emph{Changes to ZIP 317}
+\texttt{69610984}) --- while ZIP-227's own \emph{Changes to ZIP 317}
 section still claims the conventional fee accounts for both. The
 formulas above survive only in the QEDit fork and its libraries:
 \emph{fork-specified}, implemented in \texttt{librustzcash-zsa} behind
@@ -1767,7 +1801,7 @@ it: the note gains one field, the \emph{Asset Base} (\S\ref{sec:zsa-note});
 the note commitment becomes a case split that keeps ZEC commitments identical
 to NU5 (\S\ref{sec:zsa-notecommit}); the value commitment trades its fixed
 value base for the per-asset base, which turns the binding signature into a
-per-asset balance check and gives burn its consensus meaning
+computational per-asset balance check and gives burn its consensus meaning
 (\S\ref{sec:zsa-value}, \S\ref{sec:zsa-burn}); and dummy spends give way to
 \emph{Split Inputs} for Custom Assets (\S\ref{sec:zsa-split}). We then state
 the extended Action statement (\S\ref{sec:zsa-circuit}) and the carrier
@@ -1827,8 +1861,9 @@ conventions: ZIP-226 sets $\mathsf{asset\_base} :=
 \mathrm{LEBS2OSP}_{\ell_P}(\mathrm{repr}_{\mathbb{P}}(\mathsf{AssetBase}))$,
 which is $\mathsf{AssetBase}^\star \in \{0,1\}^{256}$ in $32$ bytes.
 
-An Asset Base is never a free choice of the transactor. Every Custom Asset's
-base is derived by the ZIP-227 issuance chain --- constructed in
+In a transfer, an Asset Base is not an arbitrary point chosen by the
+transactor. Every Custom Asset's base descends from the ZIP-227 issuance chain
+--- constructed in
 \S\ref{sec:zsa-issuance}, reproduced here because the soundness argument of
 \S\ref{sec:zsa-split} depends on its shape:
 \begin{align*}
@@ -1922,16 +1957,16 @@ baseline layout of the \emph{Ironwood Guide}, ``The note and its commitment'':
 under the fresh hash domain
 \texttt{z.cash:ZSA-NoteCommit-M} but the \emph{same} randomness base
 $\GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}NoteCommit\text{-}r},
-\texttt{""})$. ZIP-226's rationale: ``the nested structure of the
+\texttt{""})$. ZIP-226's rationale says that ``the nested structure of the
 Sinsemilla-based commitment allows us to add the Asset Base as a final
-recursive step'', and the output ``is still indistinguishable from the
-original Orchard ZEC note commitments, by definition of the Sinsemilla hash
-function''. Because the trapdoor and output types are unchanged, ZSA
-commitments land in the same note commitment tree as ZEC commitments and are
-indistinguishable from them there (ZIP-226). One caveat bounds the claim:
-Orchard (v5) note commitments \emph{are} distinguishable from OrchardZSA
-(v6) note commitments, because the two protocols use different transaction
-versions (ZIP-226).
+recursive step'', and calls the output ``still indistinguishable from the
+original Orchard ZEC note commitments''. More precisely, the common output
+type lets ZSA commitments inhabit the same note commitment tree, while their
+computational indistinguishability rests on the hiding and hash assumptions of
+the randomized Sinsemilla commitment (ZIP-226). One caveat bounds the claim:
+Orchard (v5) note commitments and OrchardZSA (v6) note commitments are
+contextually distinguishable when observed in transactions, because the two
+protocols use different transaction versions (ZIP-226).
 
 \begin{remark}[Implementation]\label{rem:zsa-notecommit-impl}
 Function \texttt{NoteCommitment::derive} computes \emph{both} commitments.
@@ -1988,17 +2023,20 @@ $\mathsf{bsk} = \sum_{i=1}^{n} \rcv_i$ over the $n$ Actions of a transfer
 (ZIP-226); the verifier's key acquires burn terms --- one zero-trapdoor
 commitment subtracted per $\mathsf{assetBurn}$ entry, each a bare multiple
 of its base --- displayed in this volume as \eqref{eq:zsa-bvk}
-(\S\ref{sec:zsa-split-attack}). Why this checks balance \emph{per asset}:
-``the committed values must sum to zero per Asset Base, as the Pedersen
-commitments add up homomorphically only with respect to the same value
-base point'' (ZIP-226). Partitioning the Actions into a ZEC set and a
-Custom Asset set, the custom-asset commitments must cancel against the
-declared burns up to pure randomness terms --- the cancellation equation
-is displayed in \S\ref{sec:zsa-split-input} --- so
-$\mathsf{bvk} = [\mathsf{bsk}]\,R^{\mathsf{Orchard}}$ holds if and only
-if, per Custom Asset, the sum of net Action values equals its
-$\mathsf{assetBurn}$ entry (or $0$ if absent), and the ZEC component
-equals $v_{\mathrm{balance}}^{\mathsf{Orchard}}$ (ZIP-226). The
+(\S\ref{sec:zsa-split-attack}). The verifier checks one Pallas-group
+equation, not independent algebraic coordinates for the assets. Since Pallas
+is cyclic, every pair of non-identity bases has some discrete-log relation;
+the separation is computational. After the randomness terms cancel, any
+nonzero per-asset imbalance that still verifies yields a useful relation among
+the independently group-hashed Asset Bases, $V^{\mathsf{Orchard}}$, and
+$R^{\mathsf{Orchard}}$. Under the discrete-log and hash-to-curve assumptions,
+finding such a relation is infeasible. Subject to those assumptions, the
+binding signature therefore enforces that each Custom Asset's net Action
+value equals its $\mathsf{assetBurn}$ entry (or $0$ if absent), while the ZEC
+component equals $v_{\mathrm{balance}}^{\mathsf{Orchard}}$. This is the
+computational content of ZIP-226's ``per Asset Base'' claim; its wording that
+Pedersen commitments add homomorphically only for the same base is not a
+literal group-theoretic statement. The
 binding-signature mechanics --- $\mathsf{bsk}$/$\mathsf{bvk}$ cancellation
 and RedPallas on the base $R^{\mathsf{Orchard}}$ --- are those of the
 \emph{Ironwood Guide}, ``Conservation without disclosure: value commitments
@@ -2057,13 +2095,14 @@ The transaction-level field $\mathsf{valueBalanceOrchard}$ (int64) remains
 the net \emph{ZEC-only} flow, ``the net value of Orchard spends minus
 outputs'' (withdrawn ZIP-230), and the transparent protocol is unchanged, so
 a Custom Asset cannot be unshielded by transfer: ``All Custom Assets are
-contained within the shielded pool'' (ZIP-226). Burning is the only exit.
-What a burn reveals is exactly its $\mathsf{assetBurn}$ entry: ``the amount
-and identifier of the Asset being burnt''. What transfers hide: ``the
-overall balance is checked without revealing which (or how many distinct)
-Assets are being transferred''; OrchardZSA ZEC commitments are
-indistinguishable from non-native OrchardZSA commitments, and the amounts
-and identifiers of transferred Assets stay private (ZIP-226).
+contained within the shielded pool'' (ZIP-226). Burning is the only
+supply-reduction path. What a burn reveals on the wire is exactly its
+$\mathsf{assetBurn}$ entry: the $32$-byte Asset Base and amount --- what
+ZIP-226 calls ``the amount and identifier of the Asset being burnt''. In a
+transfer, ``the overall balance is checked without revealing which (or how
+many distinct) Assets are being transferred''; under the note-encryption and
+commitment-hiding assumptions, the transferred amounts and Asset Bases remain
+private (ZIP-226).
 
 A burn also updates ZIP-227's global issuance state:
 $\mathsf{issued\_assets}(\mathsf{AssetBase}).\mathsf{balance} \in \{0,
@@ -2115,15 +2154,17 @@ points reject duplicate Assets and amounts that do not fit in $63$ bits
 
 \subsection{The Action statement, extended}\label{sec:zsa-circuit}
 
-A bin statement first. ZIP-226's ``Circuit Statement'' section describes the
-constraint changes informally and defers ``all modifications in the
-Circuit'' to an external document; no statement at the rigor of the
-\emph{Ironwood Guide}'s Definition ``Orchard Action statement, Ironwood
-circuit (NU6.3)'' exists in any specification. The implemented circuit is the
-de facto specification, and
-every gate-level claim below cites it (\textsf{orchard-zsa},
-\texttt{src/circuit/circuit\_zsa.rs}). Bin: \emph{designed and implemented,
-but unspecified}.
+A bin statement first. ZIP-226's ``Circuit Statement'' section specifies the
+constraint delta in prose and formulas, while deferring ``all modifications in
+the Circuit'' to the externally hosted, unversioned document \emph{OrchardZSA
+circuit}. That document describes the public and private inputs, intermediate
+values, and constraints, but the ZIP does not embed or pin a complete statement
+at the rigor of the \emph{Ironwood Guide}'s Definition ``Orchard Action
+statement, Ironwood circuit (NU6.3)''. The pinned implementation is therefore
+the reproducible source for the exact gate realization, and every gate-level
+claim below cites it (\textsf{orchard-zsa},
+\texttt{src/circuit/circuit\_zsa.rs}). Bin: \emph{externally described and
+implemented, but not fixed by a versioned upstream specification}.
 
 ZIP-226 states the deltas against A1--A9 as follows:
 \begin{enumerate}[label=(\alph*), leftmargin=*]
@@ -2191,9 +2232,9 @@ The public instance grows from $9$ to $10$ field elements:
 \end{aligned}
 \]
 with the new $\mathsf{enable\_zsa}$ last. In the vanilla flavor
-$\mathsf{enable\_zsa}$ is always false, and since \textsf{halo2} pads
-instances with zeros, old nine-element proofs and new proofs behave
-identically; the crate accordingly carries two circuit flavors,
+$\mathsf{enable\_zsa}$ is always false; the instance-construction API pads the
+missing tenth element with zero, preserving the vanilla flavor's public-input
+semantics. The crate carries two circuit flavors,
 \texttt{OrchardVanilla} and \texttt{OrchardZSA} (\textsf{orchard-zsa},
 \texttt{src/circuit.rs}, \texttt{src/flavor.rs}). At the bundle level the
 $\mathsf{enableZSAs}$ flag is bit $2$ of $\mathsf{flagsOrchard}$ (LSB order,
@@ -2257,8 +2298,8 @@ reserved for ZSA notes upstream. Bin: \emph{open}.
 \end{remark}
 
 \paragraph{Digests.} Withdrawn ZIP-246 extends the ZIP-244 digest tree ---
-the baseline is the \emph{Ironwood Guide}, ``What the signatures sign: the
-ZIP-244 digest and its v6 form'' --- with a per-Action-Group
+the baseline is the \emph{Ironwood Guide}, ``What the signatures sign:
+ZIP-244 digests and their v6 form'' --- with a per-Action-Group
 $\mathsf{orchard\_burn\_digest}$ (node T.4a.vi) under
 $\mathsf{orchard\_action\_groups\_digest}$ (personalization
 \texttt{ZTxIdOrcActGHash}), beside the compact and non-compact action
@@ -2325,10 +2366,11 @@ ZIP-317 contains no ZSA changes. The conventional-fee baseline is the
 
 \section{Split notes and the counterfeiting boundary}\label{sec:zsa-split}
 
-An Orchard bundle pads to a uniform shape with \emph{dummy notes}: an Action
-with no real input spends a zero-valued note under a freshly sampled key,
-and the membership constraint waves it through because the check is gated by
-the spent value --- constraint A3 of the Action statement,
+An Orchard bundle pairs inputs and outputs into Actions by padding the shorter
+side with \emph{dummy notes}: an Action with no real input spends a zero-valued
+note under a freshly sampled key, and the membership constraint waves it
+through because the check is gated by the spent value --- constraint A3 of the
+Action statement,
 $v_{\mathrm{old}} \cdot (\mathsf{root} - \mathsf{anchor}) = 0$, ``how an
 Action pads with no real input'' (the \emph{Ironwood Guide}, ``The Action
 statement, formally''; its node-verification section, ``What a node
@@ -2344,9 +2386,9 @@ move no
 value, whatever path it fails to prove. ZIP-226 replaces the fixed base
 with a witnessed one, and the same exemption becomes a mint. This section
 develops the attack that forces the change, the \emph{split note} that
-ZIP-226 substitutes for the dummy note on custom assets, and the exact
-constraint set --- specified and implemented --- that draws the
-counterfeiting boundary.
+ZIP-226 substitutes for the dummy note on custom assets, the ZIP-specified
+circuit delta, and the implemented gate that draws the counterfeiting
+boundary.
 
 Ground truth for this section: ZIP-226 and ZIP-227 at \texttt{zcash/zips}
 commit \texttt{69610984} (2026-07-09); the pinned implementation, crate
@@ -2420,8 +2462,9 @@ $V^{\mathsf{Orchard}}$-components cancel in \eqref{eq:zsa-bvk},
 = [\rcv_1 + \rcv_2]\,R^{\mathsf{Orchard}},
 \]
 the attacker knows $\mathsf{bsk} = \rcv_1 + \rcv_2$, the binding signature
-verifies --- and a $v$-valued ZEC note now exists that no one paid for. Any
-known multiple or linear combination of existing bases serves equally.
+verifies --- and a $v$-valued ZEC note now exists that no one paid for.
+Suitably chosen known relations among accepted bases can be exploited
+analogously.
 (\emph{Classification:} the construction is assembled here from the
 specified formulas \eqref{eq:zsa-cvnet} and \eqref{eq:zsa-bvk}; ZIP-226
 states the attack only in words.) The ZIP's own statement, verbatim: the
@@ -2433,10 +2476,11 @@ the ZEC value balance and hence counterfeiting ZEC funds'' (ZIP-226,
 ``Split Notes'', rationale).
 
 The boundary to draw is therefore precise: every asset base that enters a
-value commitment must be proven to be an output of $\GroupHash$ --- a point
-of unknown discrete-log relation to $V^{\mathsf{Orchard}}$ and
-$R^{\mathsf{Orchard}}$ --- and the one place an unproven base could enter
-is an Action with no real input.
+value commitment must either be the fixed native base or descend from an
+accepted $\GroupHash$ output. Security then assumes that no useful
+discrete-log relation among that base, $V^{\mathsf{Orchard}}$, and
+$R^{\mathsf{Orchard}}$ can be found. The one place an unproven base could
+otherwise enter is an Action with no real input.
 
 \subsection{The split input}\label{sec:zsa-split-input}
 
@@ -2459,16 +2503,16 @@ old-note commitment check consumes $v_{\mathrm{old}}$ unchanged
 (\texttt{orchard-zsa}, \texttt{src/circuit/circuit\_zsa.rs}: the gate
 zeroes $v_{\mathrm{old}}$ via the $(1-\mathsf{split\_flag})$ factor in the
 value equation, lines 127--131, whereas the $\NoteCommit$ call at lines
-637--655 takes $v_{\mathrm{old}}$ as witnessed). The copy is therefore not
-a spend --- it moves no value and, as \S\ref{sec:zsa-split-nf} shows,
-reveals no usable nullifier --- but it drags the original note's asset base
-into the proof, where an equality constraint passes it to the output note.
+637--655 takes $v_{\mathrm{old}}$ as witnessed). The Action therefore neither
+moves value from the copied note nor publishes that note's ordinary nullifier;
+instead it publishes the randomized split nullifier of
+\S\ref{sec:zsa-split-nf}. The copy drags the original note's asset base into
+the proof, where an equality constraint passes it to the output note.
 
-The split Action still balances, per asset. Committed values must sum to
-zero for each asset base separately, ``as the Pedersen commitments add up
-homomorphically only with respect to the same value base point'' (ZIP-226,
-``Value Balance Verification''): for a correct transaction the
-custom-asset commitments satisfy
+The split Action participates in the same computational per-asset binding
+argument as \S\ref{sec:zsa-value}: a successful imbalance would require a
+useful discrete-log relation among the independently derived bases. For a
+correct transaction the custom-asset commitments satisfy
 \[
 \sum_{j \in S_{\mathsf{CA}}} \cvsym^{\mathsf{net}}_{j}
 - \sum_{(\mathsf{AssetBase},\,v)\,\in\,\mathsf{assetBurn}}
@@ -2520,9 +2564,10 @@ Consensus Rule Changes''), along the derivation chain constructed in
 \texttt{orchard-zsa}, \texttt{src/note/asset\_base.rs}),
 and then appends the issue-note commitments to the \emph{same} Orchard
 note commitment tree --- transfer-Action commitments first, then issuance
-notes (ZIP-227, ``Addition to the Note Commitment Tree''). Hence a
-custom-asset note commitment resident in the tree commits, by induction
-along the two rules, to a genuine $\GroupHash$ output. ZIP-226 states the
+notes (ZIP-227, ``Addition to the Note Commitment Tree''). Hence, under
+note-commitment binding, a custom-asset note commitment resident in the tree
+commits, by induction along the two rules, to a genuine $\GroupHash$ output.
+ZIP-226 states the
 conclusion: ``This ensures that the value base points of all output notes
 of a transfer are actual outputs of a GroupHash, as they originate in the
 Issuance protocol which is publicly verified'' (``Split Notes'',
@@ -2549,7 +2594,7 @@ $\mathsf{split\_flag}$, and $\mathsf{is\_native\_asset}$, constrained to
 equal $1$ exactly when the witnessed base is the native one,
 $\mathsf{AssetBase} = V^{\mathsf{Orchard}}$. One public input appears: the
 bundle-level $\mathsf{enableZSA}$ flag (a bit of the v6
-$\mathsf{flagsOrchardZSA}$ field), with the constraint
+$\mathsf{flagsOrchard}$ field), with the constraint
 $\mathsf{enableZSA} = 0 \implies \mathsf{is\_native\_asset} = 1$ ---
 switching the flag off collapses the circuit to native-asset behaviour
 and, transitively via the split constraint below, disables split notes
@@ -2777,10 +2822,12 @@ the offset variant in constant time exactly when the note carries a
 73--90; \texttt{src/note.rs}, lines 415--426).
 
 \paragraph{Deriving $\psi^{\nfsym}$: a three-way divergence.} The value
-of $\psi^{\nfsym}$ is a private witness, constrained by the circuit only
-in the \emph{non}-split case; how a wallet derives it for split notes is
-therefore wallet-level, not consensus-level. The three extant texts
-disagree; per the volume's policy (\S\ref{sec:zsa-sources}), the upstream
+of $\psi^{\nfsym}$ is always constrained through the A5 equation to the
+published nullifier. Only the equality
+$\psi^{\nfsym}=\psi_{\mathrm{old}}$ is gated off in the split case; no
+constraint derives $\psi^{\nfsym}$ from a seed. How a wallet samples it for a
+split note is therefore wallet-level, not consensus-level. The three extant
+texts disagree; per the volume's policy (\S\ref{sec:zsa-sources}), the upstream
 ZIP formula comes first. Upstream ZIP-226 --- written against the
 ZIP-2005 baseline, ``expected to deploy before any ZSA activation'' ---
 specifies
@@ -2806,21 +2853,26 @@ the ordinary $\psi$ domain byte keyed by a fresh random $32$-byte
 \texttt{src/circuit.rs}:316--319, \texttt{src/note.rs}:114--116 and
 417--425; domain byte \texttt{PSI} $= \mathtt{0x09}$ per the QED-it
 \texttt{zcash\_spec} fork, \texttt{src/prf\_expand.rs}:89 @
-\texttt{d5e84264}). All three yield a uniformly distributed witness; the
-implementation matches neither ZIP text exactly. (\emph{Classification:}
+\texttt{d5e84264}). Direct field sampling is uniform; the two PRF-and-reduction
+constructions are intended to be pseudorandom and have at most the negligible
+modular-reduction bias of $\mathrm{ToBase}$. The implementation matches neither
+ZIP text exactly. (\emph{Classification:}
 each derivation is specified in its own text; the divergence is
 consensus-invisible.)
 
 \paragraph{Why the offset $L^{\mathsf{Orchard}}$?} The randomised
-$\psi^{\nfsym}$ already makes the split nullifier unlinkable to the
+$\psi^{\nfsym}$ is intended to make the split nullifier unlinkable to the
 note's true nullifier. ZIP-226 states no rationale for additionally
 adding $L^{\mathsf{Orchard}}$. A plausible purpose is robustness against
 a prover who \emph{chooses} $\psi^{\nfsym} = \psi_{\mathrm{old}}$ --- the
 circuit does not forbid it in the split case --- and would thereby
 publish the note's true nullifier from a zero-valued split Action,
 bricking the original note or colliding with an honest spend of it
-elsewhere in the transaction; the constant offset makes even that choice
-yield a different group element. (\emph{Classification:}
+elsewhere in the transaction. The constant offset makes the pre-extraction
+group point different even under that choice. It is not an absolute
+noncollision proof for the extracted nullifier, since elliptic-curve points
+with opposite signs have the same extracted $x$-coordinate.
+(\emph{Classification:}
 designed-but-unspecified; the preceding sentence is our inference, stated
 in neither ZIP nor code.)
 %% TODO: hunt for a citable rationale (QED-it security analysis,
@@ -2830,9 +2882,9 @@ in neither ZIP nor code.)
 
 Recall the ZIP's claim that ``we do not care about whether the previously
 issued note copied to create a Split Input is owned by the sender''
-(\S\ref{sec:zsa-split-input}). The constraint system says otherwise.
-Spend authority (A6) and address integrity (A7) are unchanged \emph{and
-unconditional} in the ZSA circuit: the proof establishes
+(\S\ref{sec:zsa-split-input}). Both the proof and the Action signature narrow
+that claim. Spend-authority consistency (A6) and address integrity (A7) are
+unchanged and unconditional in the ZSA circuit: the proof establishes
 $\rk = [\alpha]\,G^{\mathsf{SpendAuth}} + \aksym$ and
 $\ivk = \CommitIvk_{\rivk}(\Extract(\aksym), \nksym)$ with
 $\pkd_{\mathrm{old}} = [\ivk]\,\gd_{\mathrm{old}}$ --- for split inputs
@@ -2842,16 +2894,24 @@ the copied note's $\cmsym_{\mathrm{old}}$ must open to the actual tree
 leaf (Sinsemilla binding plus the mandatory Merkle check of
 \S\ref{sec:zsa-split-gate}), the witnessed $\pkd_{\mathrm{old}}$ is the
 original recipient's, and A7 then forces the prover to know $(\aksym,
-\nksym, \rivk)$ consistent with it --- that is, to hold the copied note's
-full viewing key. The ZIP's ownership sentence holds for \emph{spentness}
---- a nullified note is a perfectly good split input, precisely because
-the value is zeroed --- but not for ownership in the key-material sense.
-The implementation never exercises the freedom the prose suggests: the
-builder only ever copies one of the sender's own spends in the same
-bundle, option (1) of \S\ref{sec:zsa-split-input}
+\nksym, \rivk)$ consistent with it --- the full-viewing-key components or an
+equivalent witness. More decisively, every Action must carry a RedPallas spend
+authorization signature under $\rk$. A split spend has
+\texttt{dummy\_sk = None}; preparation auto-signs only true dummy spends, and
+\texttt{apply\_signatures} finishes a split Action only after receiving a
+\texttt{SpendAuthorizingKey} whose validating key matches $\aksym$, otherwise
+returning \texttt{MissingSignatures} (\texttt{src/builder.rs}, lines~308--315
+and 1347--1432, \texttt{SpendInfo::create\_split\_spend},
+\texttt{Bundle::prepare}, \texttt{Bundle::apply\_signatures}, and
+\texttt{Bundle::sign}). Thus constructing a valid transaction
+requires the copied note's spend-authorizing key, absent a signature forgery
+or discrete-log break. The ZIP's sentence holds for \emph{spentness} --- a
+nullified note can still be copied because its value is zeroed --- but not for
+ownership. The builder consequently copies the first real spend of that Asset
+in the same bundle, option (1) of \S\ref{sec:zsa-split-input}
 (\texttt{src/builder.rs}, \texttt{pad\_spend}). (\emph{Classification:}
-the constraint reading is specified --- the ZIP's constraint list and the
-implemented circuit agree; the rationale prose overstates.)
+the circuit and signature behavior are implemented; the ZIP rationale
+overstates the available choices.)
 
 One genuine exception exists, and neither ZIP states it. ZIP-227 requires
 the first note of any asset's first issuance to be a \emph{reference
@@ -2860,7 +2920,8 @@ all-zero Orchard spending key --- a key anyone can derive (ZIP-227,
 ``Reference Notes''; \texttt{orchard-zsa},
 \texttt{src/constants/reference\_keys.rs} pins the all-zero spending key
 and the $43$-byte raw address). Because that spending key is public,
-anyone can satisfy A6/A7 for the reference note, which makes it a
+anyone can satisfy A6/A7 and produce the Action signature for the reference
+note, which makes it a
 universally available split input for its asset --- the one case in which
 ``ownership does not matter'' holds literally. (\emph{Classification:}
 inference; the connection between reference notes and split inputs is
@@ -2878,11 +2939,12 @@ assets (\texttt{orchard-zsa}, \texttt{src/builder.rs}, lines 1081--1164).
 The padding spend is asset-dependent (\texttt{pad\_spend}, lines
 928--944): for the native asset, \texttt{SpendInfo::dummy} exactly as in
 Orchard; for a custom asset, \texttt{create\_split\_spend} on the first
-real spend of that asset in the bundle --- and if the bundle spends none,
-\texttt{BuildError::NoSplitNoteAvailable} (``No split note has been
-provided for this asset''): unlike a dummy, a split input cannot be
-conjured from nothing. Output-side padding uses dummy outputs of the
-padding asset in both regimes.
+real spend of that asset in the bundle. If the bundle spends none,
+\texttt{pad\_spend} produces \texttt{BuildError::NoSplitNoteAvailable}; the
+current per-asset iterator unwraps that result and panics with the error rather
+than returning it from \texttt{bundle\_for\_version}. Unlike a dummy, a split
+input cannot be conjured from nothing. Output-side padding uses dummy outputs
+of the padding asset in both regimes.
 
 The copy itself is minimal. Function \texttt{Note::create\_split\_note}
 duplicates the note and sets exactly one new field,
@@ -2890,7 +2952,8 @@ $\mathsf{rseed\_split\_note}$ --- a fresh random $32$-byte seed, drawn by
 \texttt{RandomSeed::random} and resampled until the derived
 $\mathsf{esk}$ is valid --- asserting the asset is not the native one;
 \texttt{SpendInfo::create\_split\_spend} keeps the original note's full
-viewing key and Merkle path and raises $\mathsf{split\_flag}$
+viewing key and Merkle path, sets no dummy signing key, and raises
+$\mathsf{split\_flag}$
 (\texttt{src/note.rs}, lines 436--442, 95--103; \texttt{src/builder.rs},
 lines 302--318). Recipient, value, asset, $\rho$, $\mathsf{rseed}$ ---
 hence $\cmsym_{\mathrm{old}}$ --- are identical to the tree-resident
@@ -2908,13 +2971,13 @@ flavour leaves unknown (\texttt{src/circuit.rs}, lines 199--244,
 The counterfeiting boundary, restated once in full: a custom-asset output
 note's base equals its Action's input-note base (the A1/A2 equality on
 the shared witness); that input note is a tree leaf (the mandatory Merkle
-factor); every custom-asset tree leaf descends from a publicly recomputed
-$\GroupHash$ output (the issuance anchor of
+factor); under note-commitment binding, every custom-asset tree leaf descends
+from a publicly recomputed $\GroupHash$ output (the issuance anchor of
 \S\ref{sec:zsa-split-membership}); and the copy that makes padding
-possible moves no value (the zeroed $v'$) and emits an unlinkable,
-non-colliding nullifier \eqref{eq:zsa-split-nf}. Each link is enforced by
-a constraint quoted above; breaking any one of them re-opens the mint of
-\S\ref{sec:zsa-split-attack}.
+possible moves no value (the zeroed $v'$). Those links enforce the
+counterfeiting boundary of \S\ref{sec:zsa-split-attack}. Independently, the
+randomized nullifier \eqref{eq:zsa-split-nf} prevents the copy from publishing
+the original note's ordinary nullifier.
 
 \section{Transaction integration and outlook}\label{sec:zsa-integration}
 
@@ -2928,14 +2991,14 @@ authorizing-data commitment (ZIP-246), the transaction-level consensus rules
 of ZIP-226/227, the fee treatment (ZIP-317), the state of the QED-it
 implementation stack at commit-pinned sources, the obligations the format
 imposes on wallets, and the deployment outlook. Deployment status --- Draft
-ZIPs, externally audited at circuit scope, running on QED-it's public
-testnet, contested for NU7 --- is stated once in the scope section
-(\S\ref{sec:zsa-status}) and not relitigated per object;
+ZIPs, externally audited at the stated Orchard/Halo~2 scope, exercised in
+QED-it's Alpha public test environment, contested for NU7 --- is stated once
+in the scope section (\S\ref{sec:zsa-status}) and not relitigated per object;
 what this section adds is the classification of each format artifact, because
 the ZSA transaction layer is the part of the protocol where specification and
 implementation have diverged furthest. Table~\ref{tab:zsa-sources-integration}
 pins the sources; all repository facts below were verified firsthand at the
-stated commits, on 2026-07-14.
+stated commits, most recently on 2026-09-05.
 
 \begin{table}[htbp]
 \centering\small
@@ -2943,7 +3006,7 @@ stated commits, on 2026-07-14.
 \toprule
 Source & Commit & Date & Role \\
 \midrule
-\texttt{zcash/zips} & \texttt{6961098} & 2026-07-09
+\texttt{zcash/zips} & \texttt{69610984} & 2026-07-09
   & upstream ZIP texts \\
 QED-it \texttt{zips} fork & \texttt{fd71419} & 2026-02-11
   & fork ZIP texts (pre-withdrawal) \\
@@ -2951,13 +3014,10 @@ QED-it \texttt{orchard} fork, \texttt{zsa1} & \texttt{cf801a5d} & 2026-06-29
   & OrchardZSA bundle, circuit, issuance \\
 QED-it \texttt{librustzcash} fork, \texttt{zsa1} & \texttt{3f9b53fc}
   & 2026-04-17 & v6 assembly, digests, fees \\
-\texttt{zcash/orchard} @ \texttt{ltf/zsa} & \texttt{a799082e} & 2025-11-25
-  & upstream tracking branch \\
 \bottomrule
 \end{tabular}
-\caption{Pinned sources for this section. The \texttt{ltf/zsa} branch merges
-ZSA-compatible Halo~2 plus PCZT external spend-authorization signatures; it
-is the beginning of an upstreaming path, not a deployable stack.}
+\caption{Pinned sources for this section. The upstream tracking branch excluded
+in \S\ref{sec:zsa-sources} contains no ZSA implementation and is not a source.}
 \label{tab:zsa-sources-integration}
 \end{table}
 
@@ -2987,10 +3047,9 @@ ZIP-230 or draft ZIP-248 (ZIP-229, Non-requirements). The same transaction
 version number therefore now denotes two incompatible byte formats, and the
 ZSA one is the orphan.
 
-Classification, per the three-bin discipline of this series (the
-\emph{Tachyon Guide}, \S``The three-bin method''): the byte-level format
-below is fixed at ZIP rigor only by withdrawn upstream text and pinned
-fork code --- \emph{designed but unspecified} (\S\ref{sec:zsa-method}) ---
+Under the three-bin classification of \S\ref{sec:zsa-method}, the byte-level
+format below is fixed at ZIP rigor only by withdrawn upstream text and pinned
+fork code --- \emph{designed but unspecified} ---
 with no deployment path under its current ZIP numbers. We document it because
 it is the format the pinned implementation speaks and the reference against
 which any respecification will be diffed; \S\ref{sec:zsa-outlook} states what
@@ -3004,10 +3063,10 @@ would have to happen for it to become normative again.
 \texttt{nExpiryHeight}, an
 explicit 8-byte \texttt{fee} (\texttt{uint64}, per ZIP-2002), and an 8-byte
 \texttt{zip233Amount} (\texttt{uint64}, per ZIP-233) (ZIP-230, Transaction
-Format). Making the fee an explicit field --- rather than the implicit
-difference between transparent inputs and outputs --- is one of the format's
-two departures from v5 visible already in the header; the second is that
-signatures become versioned, below. The transparent fields add
+Format). Making the fee an explicit field replaces its derivation as the
+residual difference between transaction input and output value and lets
+clients read it without resolving prior transparent outputs (ZIP-2002).
+Separately, signatures become versioned below. The transparent fields add
 \texttt{vSighashInfo}: one \texttt{TransparentSighashInfo} (a
 \texttt{compactSize} length followed by \texttt{sighashInfo} bytes) per
 transparent input (ZIP-230, Transaction Format).
@@ -3082,9 +3141,9 @@ $\mathtt{0x03}$ was taken by ZIP-2005, and no replacement is assigned
 (ZIP-230, Sapling Output Description). An \texttt{AssetBurn} entry is $40$
 bytes: \texttt{AssetBase} ($32$, the encoding of
 $\mathsf{AssetBase}^{\mathsf{Orchard}}$) and \texttt{valueBurn}
-(\texttt{uint64}), consensus-checked non-zero and less than
-$\mathsf{MAX\_BURN\_VALUE}$ (ZIP-230, OrchardZSA Action Group Description;
-\S\ref{sec:zsa-tx-rules}).
+(\texttt{uint64}). ZIP-230 says the amount is non-zero and strictly less than
+$\mathsf{MAX\_BURN\_VALUE}$, but ZIP-226's consensus rule and the pinned code
+permit equality (\S\ref{sec:zsa-burn}).
 
 \paragraph{Issuance bundle.} The issuance component carries five fields:
 \texttt{issuerLength} (\texttt{compactSize}), \texttt{issuer},
@@ -3097,7 +3156,9 @@ values (ZIP-230, Transaction Format). An \texttt{IssueAction} carries
 \texttt{assetDescHash} ($32$ bytes), \texttt{nNotes} and \texttt{vNotes} at
 $115$ bytes per \texttt{IssueNoteDescription}, and \texttt{flagsIssuance}
 with \texttt{finalize} in the LSB; \texttt{nNotes} may be zero, so a
-finalize-only action is expressible. An \texttt{IssueNoteDescription} is
+finalize-only action for an existing Asset is expressible; the new-Asset
+corner case remains undefined in ZIP~227
+(\S\ref{sec:zsa-issuance-state}). An \texttt{IssueNoteDescription} is
 \texttt{recipient} ($43$ bytes, the raw Orchard payment-address encoding),
 \texttt{value} (\texttt{uint64}), \texttt{rho} ($32$), \texttt{rseed} ($32$).
 The \texttt{IssueAuthSignature} is \texttt{sizeSighashInfo} and
@@ -3122,17 +3183,17 @@ The machinery buys the ability to introduce --- and, critically, to retire
 
 \paragraph{Coinbase.} For coinbase transactions the
 \texttt{enableSpendsOrchard} and \texttt{enableZSAs} bits MUST be zero
-(ZIP-230, consensus rules), and ZIP-235 requires all coinbase transactions to
-be v6 from its activation, scheduled for NU7 (ZIP-230, Implications for
-Mining).
+(ZIP-230, consensus rules). Its mining discussion says draft ZIP-235 would
+require all coinbase transactions to use this v6 format from that proposal's
+then-planned NU7 activation (ZIP-230, Implications for Mining); neither
+withdrawn ZIP-230 nor draft ZIP-235 supplies a current deployment rule.
 
 \subsection{Digests: txid, sighash, and authorizing data (ZIP-246)}
 \label{sec:zsa-digests}
 
 ZIP-246 extends the ZIP-244 digest tree --- constructed for vanilla Orchard
-in the \emph{Ironwood Guide}, \S``Conservation without disclosure: value
-commitments and the binding signature'' --- from four top-level branches to
-six:
+in the \emph{Ironwood Guide}, \S``What the signatures sign: ZIP-244 digests
+and their v6 form'' --- from four top-level branches to six:
 \[
 \mathsf{txid} := \mathrm{BLAKE2b\text{-}256}\bigl(\texttt{ZcashTxHash\_}
 \,\|\, \mathsf{branchid},\;
@@ -3279,9 +3340,10 @@ nullifier: each issued note's $\rho$ is computed by the function ZIP-227
 names $\mathsf{DeriveIssuedRho}$ --- constructed in
 \S\ref{sec:zsa-issuance-notes} --- keyed by $\nfsym_{0,0}$, the nullifier
 of the input note of the first Action in the first Action Group, over the
-Issue Action and note indices (ZIP-227, Computation of $\rho$), which
-gives every issued note a globally unique $\rho$ because nullifiers are
-unique.
+Issue Action and note indices (ZIP-227, Computation of $\rho$). The indices
+domain-separate notes within the transaction, while the nullifier-keyed PRF
+makes collisions across transactions negligible under its pseudorandomness
+assumption; it does not give literal global uniqueness.
 Second, without a spend in the transaction the issuance-only SIGHASH would
 be replayable; the mandatory Action Group ties the issuance signature to a
 nullifier that consensus consumes (ZIP-227, Rationale).
@@ -3321,9 +3383,9 @@ v_{\mathrm{balance}}^{\mathsf{Orchard}}\bigr) \\
 \mathsf{ValueCommit}^{\mathsf{OrchardZSA}}_{0}(\mathsf{AssetBase}, v),
 \end{align*}
 and the prover signs the SIGHASH with $\mathsf{bsk} = \sum_{i=1}^{n}
-\rcv_i$ (ZIP-226, Burn Mechanism). The signature verifies only if every
-non-ZEC asset nets to exactly its declared burns --- the same
-Pedersen-homomorphism argument as for ZEC, run per asset base.
+\rcv_i$ (ZIP-226, Burn Mechanism). Under the unknown-discrete-log assumptions
+made explicit in \S\ref{sec:zsa-value}, the signature computationally enforces
+that every non-ZEC asset nets to exactly its declared burns.
 
 \paragraph{Commitment-tree order.} Note commitments enter the global tree
 in a fixed order: first, per Action Group, the commitments of the new
@@ -3366,10 +3428,10 @@ rule:
 \end{align*}
 where $\mathsf{nZSAIssueNotes}$ counts issue-note outputs and
 $\mathsf{nAssetCreations}$ counts Custom Assets newly added to the global
-issuance state (fork ZIP-317, Fee calculation). The rationale is state rent
-paid once: each new asset adds an $\mathsf{issued\_assets}$ row tracked in
-perpetuity, while subsequent issuance, finalization, and burn only mutate
-the row. The implementation matches the fork text:
+issuance state (fork ZIP-317, Fee calculation). The rationale is a one-time
+charge for state growth: each new asset adds an $\mathsf{issued\_assets}$ row
+tracked in perpetuity, while subsequent issuance, finalization, and burn only
+mutate the row. The implementation matches the fork text:
 \texttt{zcash\_primitives}' \texttt{transaction/fees/zip317.rs} defines
 \texttt{CREATION\_COST} $= 100$ behind
 \texttt{cfg(zcash\_unstable = "nu7")} and adds
@@ -3430,9 +3492,9 @@ $2272$ bytes per Action, against a vanilla base of $2720$
 (\texttt{primitives/orchard\_primitives\_zsa.rs},
 \texttt{orchard\_primitives\_vanilla.rs}).
 
-\paragraph{Divergences from the withdrawn ZIP text.} Four are material;
-each is an explicit interim measure or a pending reassignment, not a bug,
-but each blocks byte-compatibility with ZIP-230/246 as written.
+\paragraph{Divergences from the withdrawn ZIP text.} Four are material. The
+first three block byte-compatibility with ZIP-230/246 as written; the fourth
+changes private witness construction but is not enforced by the circuit.
 \begin{enumerate}[itemsep=2pt]
 \item \emph{No explicit fee field.} The v6 reader serializes no fee, and
   \texttt{zip233Amount} only behind the \texttt{zip-233} cargo feature;
@@ -3476,14 +3538,18 @@ but each blocks byte-compatibility with ZIP-230/246 as written.
 \paragraph{Audit scope.} Public reporting supports both standing claims,
 at scope: Least Authority's \emph{OrchardZSA Protocol Security Audit
 Report} (ZCG-commissioned, Updated Final 30 January 2025) reviewed the
-QED-it \texttt{orchard} \texttt{zsa1}-vs-\texttt{main} diff (PR
-QED-it/orchard\#7, the ZSA circuit extensions) and the QED-it
-\texttt{halo2} changes (PR QED-it/halo2\#18) at revisions
-\texttt{a7c02d22}/\texttt{01e85a5f} and identified no issues; ZecHub
-\emph{Shielded News} Vol.\,61 (2025-12-17) reports a feature-complete ZSA
-build on QED-it's public Zebra testnet; both sources are pinned in
-\S\ref{sec:zsa-status}. Neither covers \texttt{librustzcash-zsa} or the
-v6 carrier layer, and the audited revisions predate \texttt{cf801a5d}.
+QED-it \texttt{orchard} \texttt{zsa1}-vs-\texttt{main} diff for ZIP
+compatibility (PR QED-it/orchard\#7, excluding the circuit from that
+comparison), the QED-it \texttt{halo2} changes (PR QED-it/halo2\#18), and
+the Orchard \texttt{src/circuit} folder. Initial revisions were Orchard
+\texttt{a7c02d22} and Halo~2 \texttt{290bc565}; verification used Orchard
+\texttt{01e85a5f}. The report identified no issues. QED-it's
+current test-tool documentation exposes public Zebra endpoints and labels the
+tool Alpha with an incomplete feature set; the earlier ZecHub report's
+\emph{feature-complete} description is retained only as a dated report.
+Sources are pinned in \S\ref{sec:zsa-status}. Neither the audit nor those
+testnet claims establish coverage of \texttt{librustzcash-zsa} or the v6
+carrier layer, and the audited revisions predate \texttt{cf801a5d}.
 Two facts bound what the past audit covers: the audited revisions predate
 both the NU6.2 Orchard circuit remediation (ZIP-257) --- and the ZSA
 circuit is a fork of the Orchard circuit --- and the ZIP-2005-relative
@@ -3492,12 +3558,13 @@ both.
 
 \subsection{Wallet integration}\label{sec:zsa-wallets}
 
-ZIP-230 and ZIP-226 impose two obligations. First, all wallets SHOULD
-switch to sending only v6 transactions once permitted: a v5 transaction
-reveals that all its Orchard notes are ZEC, and only v6 OrchardZSA outputs
-are quantum-recoverable (ZIP-230, Implications for Wallets; ZIP-226,
-Backwards
-Compatibility with ZEC Notes). Second, wallets MUST support parsing and
+The withdrawn ZIP-230 and ZIP-226 design imposes two obligations. First, all
+wallets SHOULD switch to sending only its v6 transactions once permitted: a
+v5 transaction reveals that all its Orchard notes are ZEC, and the design's
+v6 OrchardZSA output format incorporates the quantum-recoverability changes
+(ZIP-230, Implications for Wallets; ZIP-226, Backwards Compatibility with ZEC
+Notes). This is a claim about the withdrawn carrier, not the different v6
+format now assigned to ZIP-229. Second, wallets MUST support parsing and
 trial-decrypting v6 outputs --- the new lead byte and the memo-bundle
 changes --- by activation, or rescan once support lands: funds sent to an
 un-upgraded wallet are temporarily inaccessible, because the new lead byte
@@ -3548,42 +3615,45 @@ Here'', 2026-02-23,
 \url{https://zfnd.org/nu7-polling-results-what-we-heard-and-where-we-go-from-here/}).
 
 Between the pinned implementation and any deployment stand three
-respecification problems, none of which is per-object protocol work.
+cross-cutting respecification problems.
 \begin{enumerate}[itemsep=2pt]
 \item \emph{A carrier.} Transaction version 6 now belongs to NU6.3's
   Ironwood format (ZIP-229), whose non-requirements exclude the ZSA
   machinery (\S\ref{sec:zsa-format-status}). The designated successor for
   what ZIP-230/246 deferred --- an extensible transaction format --- is
-  ZIP-248, which exists only as open PR \texttt{zcash/zips\#1156}. The
-  entire ZSA and memo-bundle format stack therefore has no merged
-  specification; if ZSAs are selected for NU7, the byte format of
-  \S\ref{sec:zsa-v6} must be respecified under new numbers, and
-  \S\ref{sec:zsa-digests} re-anchored to whatever digest ZIP results.
+  ZIP-248, now a merged Draft for V7. Its registry lists OrchardZSA with a
+  provisional variant and ZSA issuance without an allocated bundle type,
+  under ``Potential Future Bundle Types''; it does not specify either
+  bundle's encoding or digest. The ZSA-specific transaction format therefore
+  remains incomplete: if ZSAs are selected for NU7, the byte format of
+  \S\ref{sec:zsa-v6} must be mapped or respecified for V7, and
+  \S\ref{sec:zsa-digests} re-anchored to the resulting digest rules.
 \item \emph{A base protocol.} Upstream ZIP-226 is now ``defined relative to
   the Zcash protocol with the changes specified in ZIP 2005 applied,'' with
   ZIP-2005 (Ironwood Quantum Recoverability) ``expected to deploy before any
   ZSA activation'' (ZIP-226, header notes). NU6.3 (ZIP-258, testnet
   activation $4{,}134{,}000$, Mainnet $3{,}428{,}143$) introduces the
-  Ironwood pool and
-  restricts transfers into the Orchard pool (ZIP-2006, currently a Reserved
-  stub). No ZIP specifies whether OrchardZSA then targets the restricted
+  Ironwood pool and itself restricts transfers into the Orchard pool; its
+  intended supporting ZIP-2006 remains only a Reserved stub. No ZIP specifies
+  whether OrchardZSA then targets the restricted
   Orchard pool or is rebased onto Ironwood; the audited revisions
   predate the entire NU6.2/NU6.3 pivot. Classification: \emph{open}.
 \item \emph{Reconvergence of spec and code.} The divergence list of
   \S\ref{sec:zsa-impl} --- fee field, memo bundles, lead byte,
   $\psi^{\mathsf{nf}}$ --- plus the orphaned fee treatment of
   \S\ref{sec:zsa-fees} must land on one side or the other: either the
-  respecified ZIPs adopt what the code does, or the code moves. Every item
-  is known and mechanical; none is done.
+  respecified ZIPs adopt what the code does, or the code moves. Each
+  divergence is identified, but resolving it still requires protocol choices
+  and implementation work.
 \end{enumerate}
 
-The summary judgment this volume can defend: the ZSA transaction layer is
-\emph{designed and implemented, but currently unspecified} in
-the sense this series requires --- there is no merged normative text a
-mainnet node could be held to. The byte-level facts of this section are
+The summary judgment this volume can defend: a ZSA transaction layer is
+designed and implemented in the pinned forks, but the deployable protocol is
+\emph{currently unspecified} in the sense this series requires --- there is
+no complete merged carrier specification under which a mainnet node could
+implement it. The byte-level facts of this section are
 fixed by withdrawn ZIP text and pinned fork code, and they will remain the
-diff base for the respecification; the open items are enumerated above and
-in the scope section, and every one of them is legible, which is more than
-can be said for most protocols at this stage.
+diff base for any respecification; the remaining open items are enumerated
+above and in the scope section.
 
 \end{document}

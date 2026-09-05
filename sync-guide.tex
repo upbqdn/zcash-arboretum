@@ -124,9 +124,10 @@
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-Assuming the Orchard protocol of the \emph{Ironwood Guide} and the wallet layer
-of the \emph{Wallet Guide}, this volume of \emph{The Zcash Arboretum}
-documents how a light client synchronises: the compact-block format (ZIP-307)
+Assuming the best-chain model of the \emph{Consensus Guide}, the Orchard
+protocol of the \emph{Ironwood Guide}, and the wallet layer of the
+\emph{Wallet Guide}, this volume of \emph{The Zcash Arboretum} documents how a
+light client synchronises: the compact-block format (ZIP-307)
 and its deployed divergences, the light-client service surface as lightwalletd,
 Zaino, and Zebra implement it, the scanning pipeline of
 \textsf{librustzcash} with its verify-first reorg discipline, commitment-tree
@@ -144,7 +145,8 @@ flags the divergence.
 A wallet that trusts no server detects its notes by trial-decrypting every
 shielded output on the chain (\emph{Ironwood Guide}, \S``Delivery: the note
 reaches its owner'').
-That obligation costs twice: one key agreement of computation per output, and
+That obligation costs twice: one key agreement per output for each candidate
+incoming viewing key, and
 the bandwidth of downloading every output. ZIP~307 (\emph{Light Client
 Protocol for Payment Detection}) attacks the bandwidth half. A \emph{compact
 block} is ``a packaging of ONLY the data from a block needed to'' (1)~detect
@@ -155,9 +157,12 @@ scope to every shielded pool, and adds a fourth purpose: detecting spends of
 the coins of the wallet's transparent addresses
 (\texttt{compact\_formats.proto}, header comment, lines~21--26). The
 computational half survives compaction --- every compact output must still be
-trial-decrypted --- and that residual linear scan is among the costs whose
-removal motivates the successor design (\emph{Tachyon Guide}, \S``What the
-fold removes'').
+trial-decrypted --- and that residual linear scan is one of the costs Project
+Tachyon's proposed proof-carrying-wallet design aims to remove (Bowe--Miers,
+ePrint 2025/2031; \texttt{tachyon-zcash/tachyon},
+\texttt{book/src/proof-tree.md} @ \texttt{26fdc165}). The deployed service
+surface that carries compact blocks is catalogued in
+\S\ref{sec:sync-rpcs}.
 
 %% TODO: the service API surface (service.proto, CompactTxStreamer:
 %% GetBlockRange, GetTreeState, GetTransaction, GetSubtreeRoots) is deferred
@@ -191,7 +196,7 @@ repository and are vendored --- git subtree or symlink --- into
 repository's README states that it ``IS not a specification'' and defers to
 ZIP~307 (\textsf{lightwalletd},
 \texttt{lightwallet-protocol/\allowbreak README.md}) --- which is itself
-stale. No current document therefore normatively specifies the deployed
+stale. No current document therefore fully specifies the deployed
 wire format.
 Per our conventions we classify the compact-block format \emph{deployed but
 underspecified}: we cite \textsf{lightwallet-protocol} tagged releases as the
@@ -254,10 +259,11 @@ line citations and divergence findings remain reproducible.
 The messages live in the protobuf package
 \texttt{cash.z.wallet.sdk.rpc} and declare \texttt{proto3} syntax
 (\texttt{compact\_formats.proto}, lines~5--11).
-Proto3 semantics make every field optional: an absent field
-decodes to zero or empty, indistinguishable from an explicit zero. The
-scanner must defend against this --- the default-zero tree sizes of
-\S\ref{sec:sync-compact-scan} are the load-bearing case.
+For ordinary proto3 scalar, string, bytes, and repeated fields, absence
+decodes as the type's default and an absent scalar is indistinguishable from
+an explicitly encoded default. Message fields retain presence information.
+The scanner must defend against default-zero scalar metadata --- the tree
+sizes of \S\ref{sec:sync-compact-scan} are the load-bearing case.
 
 \begin{center}\footnotesize
 \begin{tabular}{@{}p{8.8cm}p{4.6cm}@{}}
@@ -308,9 +314,9 @@ lines~14--86):
   as ``only partially implemented: currently only \texttt{prevHash} is
   checked'' (ZIP~307, ``Block header validation''). Client-side, only
   \texttt{prevHash} and height continuity are enforced
-  (\S\ref{sec:sync-compact-scan}). What a header-verifying client would
-  gain from the ZIP-221 chain-history commitment is the \emph{FlyClient
-  Guide}'s subject.
+  (\S\ref{sec:sync-compact-scan}). ZIP~221's chain-history commitment was
+  designed to support succinct probabilistic header-chain verification,
+  but the pinned sync client does not consume it (ZIP~221).
 %% TODO: confirm no deployed client ever requests headers before stating the
 %% header path dead categorically (open question).
 \item Field \texttt{protoVersion} never varies on the wire.
@@ -327,10 +333,11 @@ lines~14--86):
   in \S\ref{sec:sync-compact-divergences}.
 \item Message \texttt{ChainMetadata} states each pool's note commitment tree
   size \emph{as of the end of this block}, as \texttt{uint32}
-  (\texttt{compact\_formats.proto}, lines~14--17): the tree holds at most
-  $2^{32}$ leaves, and the scanner maps arithmetic overflow to
-  \texttt{ScanError::TreeSizeOverflow} (\textsf{zcash\_client\_backend},
-  \texttt{src/scanning.rs}, lines~649--654). Section
+  (\texttt{compact\_formats.proto}, lines~14--17). A full depth-$32$
+  tree has size $2^{32}$, which this field cannot represent. Although
+  \texttt{ScanError::TreeSizeOverflow} exists, the compact-scanning path at
+  the pinned and current revisions does not emit it; its end-size additions
+  remain \texttt{u32} arithmetic. Section
   \ref{sec:sync-compact-scan} shows how these sizes turn a compact block
   into note positions.
 \item Field \texttt{txid} carries the 32-byte transaction identifier in
@@ -390,7 +397,8 @@ Message & Fields (bytes) & Payload & Full form & Saving \\
 \bottomrule
 \end{tabular}
 \caption{Compact shielded elements (\texttt{compact\_formats.proto},
-lines~106--130). The Sapling payload and saving figures are ZIP~307's
+lines~106--130). The Sapling comparison baselines and saving figures are
+ZIP~307's historical pre-v5 accounting
 (``Spend Compression'', ``Output Compression''); the 148-byte Orchard total
 is arithmetic, not stated in the sources. Payload figures count raw bytes;
 on the wire, a \texttt{CompactSaplingSpend} encodes to 34 bytes (36 as a
@@ -405,9 +413,12 @@ fixed.}\label{tab:sync-compact-sizes}
 \end{table}
 
 A \texttt{CompactSaplingSpend} retains only the 32-byte nullifier of the
-384-byte Spend description ($\cvsym$~32, anchor~32, nullifier~32, $\rk$~32,
-zkproof~192, spendAuthSig~64) --- the one field needed to detect a spend of
-one's own notes; ZIP~307 quotes this as a 90\% bandwidth improvement
+pre-v5, 384-byte Spend description counted by ZIP~307 ($\cvsym$~32,
+anchor~32, nullifier~32, $\rk$~32, zkproof~192, spendAuthSig~64) --- the
+one field needed to detect a spend of one's own notes; ZIP~307 quotes this
+historical comparison as a 90\% bandwidth improvement. In v5/v6 the anchor
+and bundle structure are shared, so 384 bytes is not the marginal size of
+each additional spend
 (ZIP~307, ``Spend Compression''). A \texttt{CompactSaplingOutput} retains
 $\mathsf{cmu}$, the ephemeral key, and the first 52 bytes of
 $\mathsf{encCiphertext}$, ``Total size is 116 bytes'' per the proto comment,
@@ -482,7 +493,8 @@ parsed as a compact note plaintext (no memo), then
 \item the recomputed commitment matches the on-chain one,
   $\Extract\bigl(\NoteCommit_{\rcm}(\ldots)\bigr) = \mathsf{cmu}$
   (respectively $\cmx$), and
-\item per ZIP-212, the ephemeral secret $\mathsf{esk}$ re-derived from
+\item for ZIP-212 Sapling and for Orchard/Ironwood, the ephemeral secret
+$\mathsf{esk}$ re-derived from
   $\mathsf{rseed}$ reproduces the published key: the byte encoding of
   $\mathsf{KA.DerivePublic}(\mathsf{esk}, \gd)$ equals
   \texttt{ephemeralKey}, compared in constant time
@@ -495,6 +507,8 @@ on-chain $\mathsf{cmu}$, itself authenticated by the binding signature over
 the transaction (ZIP~307, ``Output Compression''). Condition~(iii) is the
 deployed strengthening beyond the tag: it defeats a mauled ephemeral key
 (\emph{Ironwood Guide}, \S``Delivery: the note reaches its owner'').
+For pre-ZIP-212 Sapling notes the domain cannot re-derive
+$\mathsf{esk}$, so the implementation accepts without condition~(iii).
 
 \paragraph{Lead byte and the ZIP-212 grace period.} The lead byte is
 $\mathtt{0x01}$ pre-Canopy and $\mathtt{0x02}$ under ZIP-212; deployed code
@@ -548,8 +562,8 @@ the block (\texttt{PositionTracker::}\allowbreak%
 \texttt{\{sapling,orchard\}\_note\_position}). The
 shardtree that consumes these marks is constructed in the \emph{Ironwood
 Guide}, \S``Resting: the note in the commitment tree''; the observation that a
-light wallet reads positions directly off the
-block appears in \S``Delivery: the note reaches its owner''.
+light wallet derives positions from boundary metadata and output order
+appears in \S``Delivery: the note reaches its owner''.
 
 Positions are load-bearing, not merely convenient: the
 \texttt{TreeSizeUnknown} doc-comment records that without the tree size it
@@ -594,7 +608,9 @@ Guide}, \S``Reorganisations: truncate and rescan'');
 \texttt{EncodingInvalid}, \texttt{TreeSizeUnknown},
 \texttt{TreeSizeInvalid}, and \texttt{TreeSizeOverflow} do not
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs},
-lines~602--685). The final tree size also drives checkpointing: the
+lines~602--685). The overflow variant is emitted by the full-block
+scanner, not by the compact path described above. The final tree size also
+drives checkpointing: the
 helpers \texttt{compact\_tx\_}\allowbreak\texttt{contains\_last\_}\allowbreak%
 \texttt{sapling\_outputs\_in\_block},
 \texttt{\ldots\_orchard\_}\allowbreak\texttt{actions\_in\_block}, and
@@ -700,10 +716,11 @@ compact fields are all empty, and supports per-request pool filtering via
 \texttt{compact\_block\_with\_pool\_types}, lines~328--380, applied on
 the serving paths in \textsf{zaino-state}, \texttt{chain\_index.rs}) ---
 a filter added
-in v0.4.0, where an empty \texttt{poolTypes} means Sapling and Orchard for
-backward compatibility (\texttt{service.proto}, lines~38--41). Both
-servers therefore default to shielded-relevant transactions on the sync
-stream; we flag the deployed defaults against the ZIP in
+in v0.4.0. At the pinned v0.4.1 contract an empty \texttt{poolTypes}
+means Sapling and Orchard; v0.5.0 extends that legacy default to include
+Ironwood (\texttt{service.proto}, lines~38--41). Both pinned servers
+therefore default to shielded-relevant transactions on the sync stream;
+we flag the deployed defaults against the ZIP in
 \S\ref{sec:sync-compact-divergences}.
 
 Two \textsf{lightwalletd} RPCs, \texttt{GetBlockNullifiers} and
@@ -729,8 +746,8 @@ favour of \texttt{GetBlockRange} with \texttt{poolTypes}
 (\texttt{ironwoodCommitmentTreeSize} $= 3$, \texttt{ironwoodActions} $= 9$)
 exist only in \textsf{lightwallet-protocol} v0.5.0;
 \textsf{librustzcash} gates the corresponding tree accounting on
-\texttt{NetworkUpgrade::Nu6\_3}, and \textsf{lightwalletd} --- the deployed
-service --- neither parses nor serves Ironwood data
+\texttt{NetworkUpgrade::Nu6\_3}, and the pinned \textsf{lightwalletd}
+revision neither parses nor serves Ironwood data
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs},
 lines~687--696; \texttt{proto/compact\_formats.proto}, lines~17, 74). This
 describes the pinned \textsf{lightwalletd} revision: current
@@ -749,7 +766,7 @@ NU6.3 data exists on chain.
 Per our conventions, we flag rather than resolve the following.
 
 \begin{itemize}
-\item \emph{No normative specification of the deployed wire format.}
+\item \emph{No complete normative specification of the deployed wire format.}
   ZIP~307 is Draft, Sapling-only, and its message definitions are stale ---
   old names, old field numbers, no Orchard, no \texttt{ChainMetadata}, no
   \texttt{vin}/\texttt{vout} --- while the \textsf{lightwallet-protocol}
@@ -834,8 +851,10 @@ the deployed proxy (\S\ref{sec:sync-lwd}); Zaino, its successor
 implementations and the normative texts disagree
 (\S\ref{sec:sync-divergences}). The linear costs this architecture accepts
 --- trial decryption of every output, a maintained witness per note --- are
-precisely the costs the Tachyon redesign removes (\emph{Tachyon Guide},
-\S``What the fold removes'').
+precisely the costs Project Tachyon's proposed proof-carrying-wallet design
+targets (Bowe--Miers, ePrint 2025/2031;
+\texttt{tachyon-zcash/tachyon}, \texttt{book/src/proof-tree.md} @
+\texttt{26fdc165}).
 
 \subsection{Architecture and authority}\label{sec:sync-authority}
 
@@ -852,8 +871,9 @@ designed to let a client check that view succinctly since Heartwood
 (ZIP~221, via \texttt{hashLightClientRoot}, renamed
 \texttt{hashBlockCommitments} at NU5, where the field also binds a
 commitment to the block's transaction signatures and proofs); no
-deployed client consumes
-them (\emph{FlyClient Guide}, \S``The deployment gap'').
+deployed client in the pinned \textsf{lightwalletd} or
+\textsf{zcash\_client\_backend} sources verifies those commitments
+(ZIP~221; ZIP~244; negative source check at the pinned revisions).
 
 \paragraph{Where the contract lives.} The wire contract is \emph{not} in
 the ZIP. The two protobuf files that define the service ---
@@ -945,9 +965,11 @@ A compact output retains three fields of a Sapling Output description:
 \bigl(\mathtt{cmu}[32],\; \mathtt{ephemeralKey}[32],\;\\
 \mathtt{ciphertext} = \mathtt{encCiphertext}[0..52]\bigr),
 \end{multline*}
-116~bytes per output against $580 + 32$ bytes for the full description
-with its commitment --- an ${\sim}80\%$ reduction (ZIP~307, \S~``Output
-Compression''; \texttt{compact\_formats.proto:114--122}). The 52-byte
+116~bytes per output against ZIP~307's comparison baseline of a
+$580$-byte ciphertext plus its $32$-byte ephemeral key --- an
+${\sim}80\%$ reduction (ZIP~307, \S~``Output
+Compression''; \texttt{compact\_\allowbreak formats.proto:\allowbreak
+114--122}). The 52-byte
 ciphertext prefix covers the compact note plaintext --- the contents and
 opening of the note commitment. Truncation discards the AEAD tag;
 integrity of the decrypted prefix is instead checked by recomputing the
@@ -966,9 +988,10 @@ per Action:
 \]
 (\texttt{compact\_formats.proto:124--130}). The Orchard message carries
 its nullifier inline because an Action both spends and creates; on the
-Sapling side, spend compression is a separate message that reduces the
-384-byte Spend description to its 32-byte nullifier --- a ${\sim}90\%$
-reduction (ZIP~307, \S~``Spend Compression'').
+Sapling side, spend compression is a separate message containing the
+32-byte nullifier. ZIP~307's ${\sim}90\%$ figure compares this with the
+pre-v5 384-byte Spend encoding, not the marginal v5/v6 spend size
+(ZIP~307, \S~``Spend Compression'').
 \end{definition}
 
 \paragraph{Transparent data.} Since v0.4.0 the compact format can carry
@@ -1054,10 +1077,8 @@ The reference client narrows the surface further: the sync loop in
 \item \texttt{get\_tree\_state}, in \texttt{download\_chain\_state}.
 \end{itemize}
 Transaction enhancement via \texttt{GetTransaction} is listed as not yet
-implemented in that module (\texttt{src/sync.rs}). We return to the loop
-in the next section.
-%% TODO: replace the prose forward reference with \ref{sec:sync-loop} (or
-%% the final label of the scanning-pipeline section) once it is drafted.
+implemented in that module (\texttt{src/sync.rs}). The complete reference
+loop is reconstructed in \S\ref{sec:sync-loop}.
 
 \subsection{The RPC surface}\label{sec:sync-rpcs}
 
@@ -1114,9 +1135,10 @@ also issues \texttt{GetAddressUtxosStream} per account per cycle
 \end{table}
 
 \begin{remark}[Hash orders]\label{rem:sync-endian}
-Two byte orders cross the interface. The byte-typed fields
-\texttt{BlockID.hash} and \texttt{CompactBlock.hash} carry raw bytes in
-little-endian (protocol) order; lightwalletd reverses the
+Two byte orders cross the interface. On the usual block and transaction
+paths, byte-typed identifiers such as \texttt{BlockID.hash} and
+\texttt{CompactBlock.hash} carry raw bytes in little-endian (protocol)
+order; lightwalletd reverses the
 big-endian hex it receives from the node's RPCs
 (\textsf{lightwalletd}, \texttt{frontend/service.go:69--90}). Field
 \texttt{TreeState.hash}, by contrast, is big-endian display hex
@@ -1125,9 +1147,12 @@ the same split: \texttt{TxFilter} takes protocol-order txid bytes that
 the server reverses into display hex for \texttt{getrawtransaction}
 (\texttt{frontend/service.go:403--442}), and the mempool exclude entries
 are protocol-order byte suffixes the server reverses into display-order
-prefixes (\texttt{frontend/service.go:600--747}). Every byte-typed hash
-on this interface is protocol order; every string-typed hash is display
-order.
+prefixes (\texttt{frontend/service.go:600--747}). There are two deployed
+byte-typed exceptions: \texttt{GetTreeState} interprets its
+\texttt{BlockID.hash} bytes directly as display-order hex, and
+\texttt{SubtreeRoot.completingBlockHash} is likewise returned in display
+order (Remark~\ref{rem:sync-tree-byteorder}). String-typed hashes are
+display-order text.
 \end{remark}
 
 \paragraph{Chain tip.} The RPC
@@ -1167,9 +1192,10 @@ $s \le e$ (\texttt{service.proto:250--255};
 \textsf{lightwalletd}, \texttt{common/common.go:574--624};
 \textsf{zaino}, \texttt{zaino-state/}\allowbreak\texttt{src/}\allowbreak
 \texttt{chain\_index.rs:1774--1802}). An
-empty \texttt{poolTypes} field selects the legacy behaviour: prune each
-block to shielded (Sapling and Orchard) data only; clients MUST verify
-server capability before setting \texttt{poolTypes} non-empty
+At the pinned v0.4.1 contract, an empty \texttt{poolTypes} field selects
+the legacy behaviour: prune each block to Sapling and Orchard data only;
+v0.5.0 and current lightwalletd add Ironwood to that default. Clients MUST
+verify server capability before setting \texttt{poolTypes} non-empty
 (\texttt{service.proto:28--42}). Filtering prunes transaction components
 and then drops empty transactions, but a block whose transactions were all
 filtered is still returned, with empty \texttt{vtx}
@@ -1333,8 +1359,9 @@ txids match, none of the matching transactions are excluded, and
 unmatched entries are ignored (\texttt{service.proto:157--174,289--301};
 \textsf{lightwalletd}, \texttt{frontend/service.go:600--747}). Field~2 of
 the request is reserved for a future \texttt{exclude\_txid\_prefixes}.
-An empty \texttt{poolTypes} defaults to Sapling-plus-Orchard pruning;
-\texttt{POOL\_TYPE\_INVALID} is rejected. The lightwalletd
+At the pinned lightwalletd revision, an empty \texttt{poolTypes} defaults
+to Sapling-plus-Orchard pruning; current lightwalletd also includes
+Ironwood. \texttt{POOL\_TYPE\_INVALID} is rejected. The lightwalletd
 implementation backs the RPC with
 a process-global cache --- \texttt{mempoolMap} from txid to
 \texttt{CompactTx}, plus \texttt{mempoolList} --- refreshed at most every
@@ -1342,12 +1369,14 @@ a process-global cache --- \texttt{mempoolMap} from txid to
 \texttt{getrawtransaction} \texttt{verbose=0}, reusing already-fetched
 entries across refreshes; mempool \texttt{CompactTx}s are built with
 height~0 and no fee (\textsf{lightwalletd},
-\texttt{frontend/service.go:589--708}). Zaino enforces the same 32-byte
-suffix bound and the same exactly-one-match exclusion rule, parses
-transactions from stored serialised bytes, and prunes by the requested
-pool types before streaming (\textsf{zaino},
-\texttt{zaino-state/src/backends/state.rs:2302--2429},
-\texttt{chain\_index/mempool.rs:381--417}).
+\texttt{frontend/service.go:589--708}). At the pinned Zaino revision,
+both backends enforce the same 32-byte suffix bound and exactly-one-match
+exclusion rule. \texttt{StateService} validates and applies
+\texttt{poolTypes}; \texttt{FetchService} ignores that field and converts
+with its default filter, which includes Sapling, Orchard, and Ironwood.
+Thus requested pruning is backend-dependent
+(\textsf{zaino}, \texttt{zaino-state/src/backends/state.rs:2302--2429},
+\texttt{backends/fetch.rs:1630--1741}).
 
 \paragraph{Mempool stream.} The RPC
 $\mathtt{GetMempoolStream}(\mathtt{Empty})$ streams full
@@ -1461,7 +1490,8 @@ node that cannot yet serve genesis, and its log line (``Waiting for
 \ldots\ Sapling activation height'') is stale wording, not stale
 behaviour.
 
-\paragraph{The block cache.} The only persistent state lightwalletd
+\paragraph{The block cache.} The only persistent chain-serving state
+lightwalletd
 maintains is the compact-block cache: two append-only files per chain,
 \texttt{<data-dir>/db/<chain>/lengths} and \texttt{.../blocks}. With
 $d = \mathrm{protobuf}(\mathtt{CompactBlock})$ the entry for height $h$
@@ -1587,8 +1617,9 @@ superseding zcashd in that role (\textsf{zaino},
 Integration-Tests''; \texttt{docs/rpc\_api.md}).
 
 \paragraph{Current-head update.} The detailed account above deliberately
-describes the pinned July revision. At \textsf{zaino} \texttt{afd609e}
-(2026-08-28), validator support is Zebra-only and the old
+describes the pinned July revision. At \textsf{zaino} \texttt{78eec726}
+(2026-09-02; after the latest tag, 0.9.0 of 2026-08-29), validator
+support is Zebra-only and the old
 \texttt{StateService}\allowbreak/\allowbreak\texttt{FetchService} split has
 been replaced by one
 \texttt{ZebraValidator} composite. JSON-RPC is always present; direct
@@ -1602,7 +1633,8 @@ current Zaino internals.
 
 \subsection{Zebra's in-process server}\label{sec:sync-zebra-grpc}
 
-Zebra main \texttt{0a43e0e} contains a third implementation, added at
+Zebra main \texttt{d1fd7ad} (2026-09-04,
+\texttt{v6.3.0-188-gd1fd7ad}) contains a third implementation, added at
 \texttt{85ce9a3} on 2026-08-18 after the zebrad~6.3.0 release. It runs
 \texttt{CompactTxStreamer} inside zebrad: most handlers call Zebra's JSON-RPC
 methods in process, while compact blocks and mempool streams read the state and
@@ -1613,7 +1645,8 @@ deliberately returns
 \texttt{src/lightwalletd/\allowbreak methods.rs} and
 \texttt{server.rs}).
 
-This server is unreleased at the cited head, experimental, and disabled unless
+This server remains unreleased at the cited head, experimental, and disabled
+unless
 \texttt{rpc.\allowbreak lightwalletd\_\allowbreak listen\_\allowbreak addr}
 is configured. It serves plaintext
 HTTP/2 without TLS or authentication; Zebra therefore directs operators to
@@ -1641,10 +1674,11 @@ forks in \S\ref{sec:sync-authority}.
 \toprule
 Contract point & lightwalletd & Zaino \\
 \midrule
-\texttt{GetBlock}(\texttt{Nullifiers}) by hash (optional in proto) &
-\texttt{InvalidArgument}, ``not yet implemented'' (PR~\#309) &
-supported (hash takes precedence), but \texttt{StateService} ignores
-the hash in \texttt{GetBlockNullifiers} \\
+\texttt{GetBlock} / \texttt{GetBlockNullifiers} by hash (optional in proto) &
+hash lookup is \texttt{InvalidArgument}, ``not yet implemented''
+(PR~\#309) &
+\texttt{GetBlock} supports it; pinned \texttt{StateService} ignores the
+hash in \texttt{GetBlockNullifiers} \\
 \addlinespace
 Stream deadlines (proto: \texttt{GetMempoolStream} closes on new block) &
 none; open until next block &
@@ -1724,13 +1758,15 @@ suggested range, every compact output and action of every transaction is
 trial-decrypted against every prepared incoming viewing key of every tracked
 account --- two ZIP-32 scopes per pool per account
 (\S\ref{sec:sync-scan}) --- so synchronisation work scales with global chain
-traffic multiplied by tracked keys, and is independent of the wallet's own
-activity; restore-from-seed replays the whole computation from the birthday
+traffic multiplied by tracked keys. This trial-decryption component is
+independent of the wallet's own activity; other synchronisation work, such
+as note enhancement and retained-witness updates, is not. Restore-from-seed
+replays the trial-decryption computation from the birthday
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:598--699}).
-This is
-precisely the deployed cost centre that the \emph{Tachyon Guide}'s
-proof-carrying wallet is designed to remove (\S``The proof-carrying
-wallet'', cost-centre paragraph ``Trial decryption of the chain'').
+This is precisely the deployed cost centre that Project Tachyon's proposed
+proof-carrying wallet is designed to remove (Bowe--Miers, ePrint 2025/2031;
+\texttt{tachyon-zcash/tachyon}, \texttt{book/src/proof-tree.md} @
+\texttt{26fdc165}).
 
 \subsection{The compact stream}\label{sec:sync-scan-stream}
 
@@ -1742,10 +1778,12 @@ bytes of the note ciphertext:
 \underbrace{32}_{\text{commitment}} + \underbrace{32}_{\mathsf{epk}} +
 \underbrace{52}_{\text{ciphertext prefix}} = 116 \text{ bytes},
 \]
-an ${\sim}80\%$ reduction against the full $580$-byte ciphertext plus
-$32$-byte ephemeral key; its \emph{compact spend} is the $32$-byte nullifier
-alone, an ${\sim}90\%$ reduction against the $384$-byte Sapling Spend
-description (ZIP~307 \S\S``Output Compression'', ``Spend Compression'').
+an ${\sim}80\%$ reduction against ZIP~307's $580$-byte-ciphertext plus
+$32$-byte-ephemeral-key baseline; its \emph{compact spend} is the $32$-byte
+nullifier alone. The quoted ${\sim}90\%$ spend reduction uses the pre-v5
+$384$-byte Sapling Spend encoding; v5/v6 share anchor and bundle data, so
+that number is not the marginal size of every current spend
+(ZIP~307 \S\S``Output Compression'', ``Spend Compression'').
 Truncating at $52$ bytes discards the AEAD tag, so a compact decryption
 authenticates differently from a full one: the wallet recomputes the note
 commitment from the decrypted compact plaintext and compares it with the
@@ -1781,7 +1819,7 @@ reusing the \texttt{CompactOrchardAction} message), and transparent
 ZIP~307's message layout --- a \texttt{CompactBlock} with an embedded
 \texttt{BlockID}, messages \texttt{CompactSpend} and \texttt{CompactOutput}
 --- does not match the deployed format, and the ZIP remains Draft and
-Sapling-only. No ZIP specifies the deployed compact format or service:
+Sapling-only. No ZIP fully specifies the deployed compact format or service:
 \texttt{ChainMetadata} tree sizes, \texttt{CompactOrchardAction},
 \texttt{ironwoodActions}, \texttt{GetTreeState}, and
 \texttt{GetSubtreeRoots} exist only in the \texttt{zcash/lightwallet-protocol}
@@ -1821,8 +1859,8 @@ ironwood=2 \}}
 (\texttt{lightwallet-protocol/\allowbreak walletrpc/\allowbreak
 service.proto:24--321}).
 
-\begin{remark}[Deployment divergence at NU6.3]\label{rem:sync-divergence}
-The deployed \textsf{lightwalletd} tree (commit \texttt{61fee32e},
+\begin{remark}[Pinned-revision divergence at NU6.3]\label{rem:sync-divergence}
+The pinned \textsf{lightwalletd} tree (commit \texttt{61fee32e},
 2026-06-25) contains no Ironwood support: its \texttt{walletrpc} protos and
 Go code lack \texttt{ironwoodActions}, \texttt{ironwoodCommitmentTreeSize},
 \texttt{ironwoodTree}, and \texttt{ShieldedProtocol.\allowbreak
@@ -1878,9 +1916,11 @@ frontiers; an empty tree field yields an empty tree
 
 \paragraph{Choosing a birthday.} For a new wallet the crate documentation
 directs constructing the birthday from the treestate at
-$\mathsf{tip} - 100$: placing the birthday below the pruning depth
-guarantees that no reorganisation can mine a transaction intended for the
-wallet \emph{below} its birthday and so cause funds to be missed
+$\mathsf{tip} - 100$. Under the library's $100$-block reorganisation
+assumption, placing the birthday below that depth prevents a reorganisation
+from mining a transaction intended for the wallet \emph{below} its birthday
+and causing funds to be missed. This is not a consensus guarantee; Zebra's
+local rollback policy permits a deeper window (\S\ref{sec:sync-reorg})
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3199--3211}). For a
 restored wallet the birthday is historical, and the \texttt{recover\_until}
 height marks the chain tip at restoration time: the wallet is \emph{in
@@ -2021,7 +2061,8 @@ range upper bounds exclusive throughout:
 \mathsf{stable} := \mathsf{tip} - \mathsf{PRUNING\_DEPTH},
 \]
 where $\mathsf{PRUNING\_DEPTH} = 100$ blocks and heights at or below
-$\mathsf{stable}$ are treated as not subject to reorganisation
+$\mathsf{stable}$ are treated by the wallet as outside its assumed
+reorganisation window
 (\textsf{zcash\_client\_sqlite},
 \texttt{src/wallet/\allowbreak scanning.rs:522--523,\allowbreak
 582--584};
@@ -2108,9 +2149,8 @@ but carry version-3 note plaintexts, so \texttt{IronwoodDomain} is distinct
 from \texttt{OrchardDomain}, which accepts only version-2 plaintexts. Each
 incoming viewing key is tagged \texttt{(AccountId, zip32::Scope)}
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:213--256,352--434};
-the
-Ironwood pool is ZIP~2005, ``Ironwood Quantum Recoverability'', Status:
-Proposed, NU6.3). A scanning
+Ironwood's note-encryption and recoverability changes are specified by
+ZIP~2005 (Proposed), while ZIP~258 activates the pool at NU6.3). A scanning
 key derives a note's nullifier only when it carries nullifier-deriving
 capability: trait method \texttt{ScanningKeyOps::nf(note, position)}
 returns \texttt{None} for bare incoming viewing keys, so notes detected
@@ -2137,8 +2177,9 @@ run (\textsf{zcash\_client\_backend},
 \texttt{try\_compact\_note\_\allowbreak decryption}
 batches the cryptography: \texttt{D::batch\_epk} parses and prepares all
 ephemeral keys at once, shared secrets are computed for every
-(\ivk, \textsf{epk}) pair --- the scalar multiplications themselves cannot
-be batched --- and \texttt{D::batch\_kdf} derives all symmetric keys in one
+(\ivk, \textsf{epk}) pair --- at the pinned \textsf{zcash\_note\_encryption}
+0.4.1 revision, each scalar multiplication is still performed separately ---
+and \texttt{D::batch\_kdf} derives all symmetric keys in one
 pass before per-output trial decryption of the $52$-byte compact ciphertext
 (\textsf{zcash\_note\_encryption}, \texttt{src/batch.rs:42--85}); the
 underlying primitives are again the \emph{Ironwood Guide}'s
@@ -2538,7 +2579,7 @@ the Zcash \texttt{z\_gettreestate} rpc'', carries
 \[
 \begin{aligned}
 &\mathsf{network} : \text{string} = 1
-  \ (\texttt{"main"} \mid \texttt{"test"}); \quad
+  \ (\text{documented as }\texttt{"main"}\text{ or }\texttt{"test"}); \quad
  \mathsf{height} : \text{uint64} = 2; \\
 &\mathsf{hash} : \text{string} = 3
   \ (\text{big-endian display-order hex}); \quad
@@ -2551,7 +2592,9 @@ where the two tree fields are protobuf \emph{strings} --- hex encodings
 of the legacy-serialised commitment trees of
 Definition~\ref{def:sync-legacy-ser} --- not \texttt{bytes}
 (\texttt{lightwallet-protocol/walletrpc/}\allowbreak
-\texttt{service.proto:176--184}). At
+\texttt{service.proto:176--184}). The comment gives the two production
+network names, not a wire-level enum: for example, lightwalletd's test-only
+darkside mode returns \texttt{"darkside"}. At
 \textsf{librustzcash} HEAD the vendored proto adds
 $\mathsf{ironwoodTree} : \text{string} = 7$, absent from the deployed
 v0.4.1 surface (Remark~\ref{rem:sync-divergence}).
@@ -2791,7 +2834,8 @@ instantiates one such tree per pool as
 $\texttt{ShardTree}\langle \mathsf{Store}, \mathrm{DEPTH} = 32,
 \mathrm{SHARD\_HEIGHT} = 16 \rangle$ with block heights as checkpoint
 identifiers, via \texttt{with\_sapling\_tree\_mut} /
-\texttt{with\_orchard\_tree\_mut}
+\texttt{with\_orchard\_tree\_mut} /
+\texttt{with\_ironwood\_tree\_mut}
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3743--3826}).
 The shard height is documented as chosen to conform ``to the structure
 of subtree data returned by lightwalletd when using the GetSubtreeRoots
@@ -2806,13 +2850,18 @@ deployed constants realise it exactly (\textsf{shardtree},
 \textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1446--1447}).
 The SQLite backend constructs each tree as
 $\texttt{ShardTree::new}(\mathsf{store}, \mathsf{PRUNING\_DEPTH})$ with
-$\mathsf{PRUNING\_DEPTH} = 100$: at most $100$ checkpoints --- one per
-scanned block boundary --- are retained before pruning, $100$ blocks
-being the assumed maximum reorganisation depth and ZIP~307's cache-size
+$\mathsf{PRUNING\_DEPTH} = 100$: at most $100$ ordinary recent
+checkpoints are retained before pruning. Checkpoints occur at represented
+block boundaries; a block containing no note commitment in any pool need
+not create a distinct checkpoint. From NU6.3 activation onward, established
+checkpoints at heights divisible by $288$ are additionally retained as
+durable anchors and are exempt from that automatic pruning. The $100$-block
+depth is the assumed maximum reorganisation depth and ZIP~307's cache-size
 guidance (\S\ref{sec:sync-tree-linear})
 (\textsf{zcash\_client\_sqlite},
 \texttt{src/lib.rs:169,\allowbreak 2500,\allowbreak 2526,\allowbreak
-2558}).
+2558}; \textsf{zcash\_client\_backend},
+\texttt{src/data\_api/ll/wallet.rs:1535--1560}).
 
 What survives pruning is governed by per-node \emph{retention}
 (\textsf{incrementalmerkletree}, \texttt{src/\allowbreak lib.rs:76--107}):
@@ -3115,14 +3164,14 @@ the shard's block extent to begin at the previous shard's end height
 rows whose block ranges overlap that extent, and filter to priority
 above \texttt{Scanned}
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1435--1494}).
-Unwinding the predicate recovers the informal statement: a note is
-spendable at a given anchor exactly when its own shard is scanned up to
-the anchor, every earlier shard is covered by a downloaded root, and the
-blocks from the last complete shard boundary to the anchor have been
-scanned (the \texttt{ChainTip} range above). Which anchor a transaction
-then selects, and at what confirmation depth, is the \emph{Wallet
-Guide}'s material (\S``The proposal''; \S``Confirmations, trust, and
-spendability'').
+Unwinding the predicate recovers the tree-readiness condition: at a given
+anchor, the note's own shard must be scanned up to the anchor, every earlier
+shard must be covered by a downloaded root, and the blocks from the last
+complete shard boundary to the anchor must have been scanned (the
+\texttt{ChainTip} range above). Whether the note is otherwise eligible to
+spend, which anchor a transaction selects, and at what confirmation depth,
+is the \emph{Wallet Guide}'s material (\S``The proposal'';
+\S``Confirmations, trust, and spendability'').
 
 At the pinned \textsf{librustzcash} commit --- part of the NU6.3 work of
 Remark~\ref{rem:sync-divergence}, not of any release deployed with
@@ -3138,16 +3187,17 @@ tip shard by definition can never stabilise
 \texttt{src/wallet/common.rs:700--724}).
 
 \paragraph{What this buys, and what remains.} The linear protocol's
-impossibility is gone: a freshly restored wallet downloads one frontier
-(its birthday tree state) plus one $32$-byte root per completed shard,
-and a note found during scanning becomes spendable as soon as its own
-shard's block extent and the tip range are scanned --- not after the
-entire chain history. What remains is the trial decryption of every
+impossibility is gone: a freshly restored wallet can seed its trees from
+the birthday frontiers instead of replaying the chain prefix, and can use
+one $32$-byte root per completed shard. A note found during scanning becomes
+tree-ready once its own shard's block extent and the tip range are scanned
+--- not after the entire chain history. What remains is the trial decryption
+of every
 block from the birthday forward (\S\ref{sec:sync-scanning}) and the
 shard-completion scanning of this section; both are cost centres the
-\emph{Tachyon Guide}'s proof-carrying wallet is designed to remove
-(\S``What the fold removes'', paragraphs ``Trial decryption of the
-chain'' and ``Per-note witness maintenance'').
+proposed Tachyon proof-carrying wallet is designed to remove (Bowe--Miers,
+ePrint 2025/2031; \texttt{tachyon-zcash/tachyon},
+\texttt{book/src/proof-tree.md} @ \texttt{26fdc165}).
 
 \section{What the server learns}\label{sec:sync-privacy}
 %% Ground truth: zips @ 69610984 (2026-07-09); librustzcash @ e30517e433
@@ -3215,10 +3265,13 @@ contains no privacy analysis (\textsf{lightwalletd}, \texttt{README.md}).
 \subsection{What never leaves the device}\label{sec:sync-privacy-local}
 
 The baseline holds. No RPC in the deployed service carries key material:
-across the full \texttt{CompactTxStreamer} surface (twenty methods), every
-request consists only of heights, hashes, txids, transparent addresses, raw
-transaction bytes, and pool or subtree selectors (\textsf{lightwalletd},
-\texttt{lightwallet-protocol/walletrpc/service.proto}). Incoming viewing
+across the full \texttt{CompactTxStreamer} surface (twenty methods), requests
+carry only public selectors or data such as heights, hashes, txids,
+transparent addresses, raw transaction bytes, pool or subtree selectors,
+and --- for the testing-only \texttt{Ping} RPC --- a duration
+(\textsf{lightwalletd},
+\texttt{lightwallet-\allowbreak protocol/\allowbreak walletrpc/\allowbreak
+service.proto}). Incoming viewing
 keys remain on the device: trial decryption of compact outputs is performed
 client-side by \texttt{scan\_block} over locally cached
 \texttt{CompactBlock}s (\textsf{zcash\_client\_backend},
@@ -3226,7 +3279,7 @@ client-side by \texttt{scan\_block} over locally cached
 \S``Delivery: the note reaches its owner''; witness maintenance over the
 resulting positions is that
 of \S``Resting: the note in the commitment tree''.
-Nullifier matching against the \texttt{CompactSpend} and
+Nullifier matching against the \texttt{CompactSaplingSpend} and
 \texttt{CompactOrchardAction} nullifier fields is likewise local.
 
 The compact form is the reason a server mediates at all: the per-output
@@ -3305,21 +3358,28 @@ actually deployed:
 ``The above interaction reveals to the server at the start of each
 synchronisation phase (B and D) the block height which the light client had
 previously synchronised to. This is an information leak under our security
-model'' (ZIP~307 \S``Block privacy via bucketing''). The broadcast argument
-holds only for a client that fetches everything from everyone; the deployed
-client fetches specific ranges at specific times and follows detections
-with specific txids. We take the leaks in turn.
+model'' (ZIP~307 \S``Block privacy via bucketing''). Compact range contents
+alone do not reveal which outputs trial-decrypt successfully, but the
+requests' bounds and timing --- and, when an integrating wallet performs
+them, transaction-specific follow-up requests --- provide additional
+observables. We take them in turn.
 
-\paragraph{The first request reveals the birthday.} On account creation,
+\paragraph{Historic backfill reveals an approximate birthday.} On account
+creation,
 the scan queue marks the range from Sapling activation up to the account
 birthday as \textsf{Ignored} --- never downloaded --- and queues scanning
 from the birthday itself (\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet.rs}). The lowest height the client ever requests
-therefore approximates the account's creation or recovery height, a
-lifetime-stable identifier of the wallet.
+\texttt{src/wallet.rs}). The minimum historic start height visible across
+the request schedule therefore approximates the wallet's earliest account
+birthday. Priority scheduling means this need not be the first range
+requested, and importing an older account can later lower it.
 
-\paragraph{Each cycle reveals the prior sync height.} This is the leak
-ZIP~307 concedes above. Its proposed mitigation is bucketing: for a bucket
+\paragraph{Range boundaries reveal scan state and progress.} In ZIP~307's
+linear schedule, a range start is the prior sync height, which is the leak
+the ZIP concedes above. The deployed priority queue can instead request a
+verification, shard-completion, or historic range, so its bounds expose
+scan state and progress but are not invariably the preceding sync height.
+ZIP~307's proposed mitigation is bucketing: for a bucket
 size $N$, phases \textsf{B} and \textsf{D} would request
 \[
   \texttt{GetBlockRange}\bigl(X - (X \bmod N),\; Y\bigr)
@@ -3333,20 +3393,22 @@ confirms: \texttt{download\_blocks} issues \texttt{GetBlockRange} with
 start and end exactly equal to the suggested scan-range bounds, with no
 rounding (\textsf{zcash\_client\_backend}, \texttt{src/sync.rs}).
 
-\paragraph{Detection is followed by a fetch.} During compact-block
+\paragraph{Wallet-driven enhancement can follow detection with a fetch.}
+During compact-block
 scanning, function \texttt{put\_blocks} records, per scanned block, exactly
 the subset of transactions relevant to this wallet, and queues a retrieval
-request for each; \texttt{transaction\_data\_requests} later emits
+request for each. An integrating wallet that consumes
+\texttt{transaction\_data\_requests} later receives
 \textsf{Enhancement}(\texttt{txid}) or \textsf{GetStatus}(\texttt{txid}),
-which the sync driver resolves via the \texttt{GetTransaction} RPC
+and may resolve it via the \texttt{GetTransaction} RPC
 (\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs},
 \texttt{src/data\_api/ll/wallet.rs}; \textsf{zcash\_client\_sqlite},
-\texttt{src/wallet.rs}). The set of txids fetched in full therefore
-\emph{equals} the wallet's own transaction set, and each fetch follows
-immediately after the scan of the containing range. To the server this is
-a detection oracle: phase \textsf{C} traffic names the very transactions
-that payment detection privacy (Definition~\ref{def:sync-pdp}) is supposed
-to conceal, correlated in time with the range that contains them.
+\texttt{src/wallet.rs}). The simple \texttt{sync} module does not itself
+perform enhancement, and the API imposes no requirement that a fetch occur
+immediately after its containing range. When a wallet does issue these
+requests without cover, however, the selected txids reveal transactions it
+is enhancing or status-checking; that set is sensitive but can also include
+sent transactions and transparent-graph dependencies.
 
 Here the code diverges from the ZIP, in the unusual direction: the ZIP is
 stricter than the deployment. ZIP~307's full-transaction mitigation is
@@ -3361,6 +3423,9 @@ grep over both repositories at the pinned commits), and the deployed RPC
 surface offers no bulk full-transaction fetch to implement the second
 SHOULD with --- \texttt{GetBlock} returns compact data
 (\textsf{lightwalletd}, \texttt{lightwallet-protocol/walletrpc/service.proto}).
+The protocol does not prevent an individual wallet from issuing extra
+\texttt{GetTransaction} requests as cover; the point is that neither pinned
+reference library supplies that policy automatically.
 %% TODO: the MUST clause is UI-level and unverifiable from the local
 %% repositories (wallet front-ends are not local sources); record its
 %% status once a wallet-app source is in scope.
@@ -3393,8 +3458,8 @@ When a note is found, \texttt{scan\_complete} inserts scan ranges at
 priority \textsf{FoundNote} extending the scanned range so as to complete
 the note-commitment-tree shard(s) containing the found note, and
 \texttt{suggest\_scan\_ranges} orders by priority, so the server observes
-out-of-order, high-priority \texttt{GetBlockRange} fetches clustered around
-the blocks that contain the wallet's own notes
+out-of-order, high-priority \texttt{GetBlockRange} fetches that can narrow
+the blocks around detected notes
 (\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs};
 \textsf{zcash\_client\_backend}, \texttt{src/data\_api/scanning.rs}). No
 source documents this as a leak --- neither ZIP~307 nor the code
@@ -3407,7 +3472,8 @@ contiguous suggested ranges --- before it may be cited as fact.
 %% promote this remark accordingly.
 \end{remark}
 
-\paragraph{Mempool polling fingerprints the session.} Field
+\paragraph{Mempool polling can fingerprint the session.} If a client calls
+\texttt{GetMempoolTx}, field
 \texttt{exclude\_}\allowbreak\texttt{txid\_suffixes} of the
 \texttt{GetMempool}\allowbreak\texttt{Tx} request
 carries suffixes of txids the client already holds, so a mempool-polling
@@ -3420,7 +3486,8 @@ record it for completeness.
 
 Spending is out of ZIP~307's stated scope
 (\S\ref{sec:sync-privacy-model}), but the deployed submission path runs
-through the same server. The \texttt{SendTransaction} handler hex-encodes
+through the same server when a wallet chooses that path. The
+\texttt{SendTransaction} handler hex-encodes
 the received raw transaction and forwards it to the backing node's
 \texttt{sendrawtransaction} JSON-RPC (\textsf{lightwalletd},
 \texttt{frontend/service.go}), so the operator holds the complete
@@ -3446,16 +3513,18 @@ unary and streaming paths export per-method request counts and latency
 histograms over the HTTP endpoint (default \texttt{127.0.0.1:9068})
 (\textsf{lightwalletd}, \texttt{cmd/connstats.go}, \texttt{cmd/root.go}).
 
-Logging narrows the distance between can and does. Every RPC handler logs
-its full request parameters at Debug level --- \texttt{gRPC
-GetBlockRange(\%+v)}, \texttt{gRPC GetTransaction(\%+v)}, \texttt{gRPC
-SendTransaction(\%+v)}, \texttt{gRPC GetTaddressBalance(\%+v)},
-\texttt{gRPC GetAddressUtxos(\%+v)} --- and full responses at Trace level
+Logging narrows the distance between can and does. Most handlers log request
+parameters at Debug level --- including \texttt{GetBlockRange},
+\texttt{GetTransaction}, \texttt{SendTransaction},
+\texttt{GetTaddressBalance}, and \texttt{GetAddressUtxos} --- and ten unary
+return paths log full responses at Trace level; \texttt{GetLightdInfo} and
+the testing-only \texttt{Ping} have no equivalent handler log
 (\textsf{lightwalletd}, \texttt{frontend/service.go}). The default level is
-Info (\texttt{cmd/root.go}), so a single flag, \texttt{--log-level 5},
-records every block range, txid, raw transaction, and transparent address
-queried, to the default log file \texttt{./server.log}, without client
-consent or notice. A separate unary interceptor, enabled by
+Info (\texttt{cmd/root.go}), so \texttt{--log-level 5} enables the Debug
+request logs and can record block ranges, txids, raw transactions, and
+transparent addresses for the named handlers, to the default log file
+\texttt{./server.log}, without client consent or notice. A separate unary
+interceptor, enabled by
 \texttt{--grpc-logging-insecure} (default \texttt{false}; the flag name
 itself marks the hazard), logs \{peer address, method, duration, error\}
 per request, and carries the source comment ``TODO: anonymize the
@@ -3562,26 +3631,26 @@ Tor capability in \textsf{zcash\_client\_backend}; wallet deployment
 unknown\\
 \addlinespace
 Lowest \texttt{GetBlockRange} start &
-account birthday &
+earliest visible historic backfill; approximate account birthday &
 none\\
 \addlinespace
-Range start, each cycle &
-prior sync height &
+Range boundaries &
+scan state and progress; often a resume height &
 bucketing proposed (ZIP~307), unimplemented\\
 \addlinespace
 Out-of-order \textsf{FoundNote} ranges &
-blocks holding the wallet's notes &
+can narrow blocks around detected notes &
 none (inferred; Remark~\ref{rem:sync-foundnote})\\
 \addlinespace
-\texttt{GetTransaction} after scan &
-the wallet's own txids, timed &
-decoys normative (SHOULD), unimplemented\\
+Wallet-driven \texttt{GetTransaction} &
+txids selected for enhancement or status checks &
+decoys normative (SHOULD); no reference-library policy\\
 \addlinespace
-\texttt{exclude\_txid\_suffixes} &
+\texttt{exclude\_txid\_suffixes}, if mempool polling is used &
 mempool transactions already seen &
 none\\
 \addlinespace
-\texttt{SendTransaction} &
+\texttt{SendTransaction}, if this submission path is used &
 full transaction, pre-broadcast, linked to origin &
 circuit-isolation capability, deployment unknown\\
 \addlinespace
@@ -3596,23 +3665,23 @@ through \S\ref{sec:sync-privacy-mitigations}.}
 \label{tab:sync-privacy-summary}
 \end{table}
 
-The structural reading is that no row of the table is an implementation
-accident. Every leak above --- IP and timing exposure, range start heights,
-\textsf{FoundNote} clustering, fetch-on-detect, submission linkage --- is a
-property of server-mediated compact-block synchronisation itself: of
-detection by trial decryption over a server-supplied stream. A client that
-must ask for ranges reveals where it stopped; a client that must fetch what
-it detected reveals what it detected. Within the deployed protocol the
-upgrade path is a stub (ZIP~314, Reserved,
-Remark~\ref{rem:sync-zip307-draft}); the exit on offer is architectural.
-The \emph{Tachyon Guide} treats exactly this layer as the deployed
-protocol's removable cost centre: under the fold the wallet never scans,
-and services are asserted ``fully oblivious to their clients' transaction
-details'' (\S``What the fold removes''), while the unresolved analogues of
-these same leaks --- the sync-service trust model, and the
-timing-correlation linkage the designers call potentially fatal --- carry
-forward as that volume's \S``The sync-service trust model'' and
-\S``Timing-correlation linkage''. The present section is the baseline
-against which those designs ask to be measured.
+The structural reading is more limited: an unmitigated server-visible
+request schedule exposes connection metadata and range boundaries, while
+optional enhancement, mempool, and submission calls expose more when a
+wallet uses them. These observations are not properties of compact-block
+contents alone, nor are their present strengths inevitable: Tor, request
+bucketing, jitter, batching, and cover traffic can alter them, although the
+reference implementations do not supply all of those policies. Within the
+deployed protocol the specified upgrade path is only a stub (ZIP~314,
+Reserved, Remark~\ref{rem:sync-zip307-draft}); one proposed alternative is
+architectural.
+Project Tachyon proposes to remove exactly this layer: under its fold the
+wallet no longer scans, and its designers describe synchronization services as
+``fully oblivious to their clients' transaction details'' (Bowe--Miers, ePrint
+2025/2031, \S1.3; \texttt{tachyon-zcash/tachyon},
+\texttt{book/src/proof-tree.md} @ \texttt{26fdc165}). The ePrint gives no
+formal service threat model and calls timing-correlation linkage potentially
+fatal. The present section is the baseline against which that design must be
+measured.
 
 \end{document}

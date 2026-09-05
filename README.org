@@ -2,17 +2,16 @@
 #+AUTHOR: m@rek.onl
 #+OPTIONS: toc:nil num:nil
 
-The Zcash Arboretum: formal, full-depth, self-contained documentation of the [[https://z.cash/][Zcash]]
-protocol — restricted to the parts of Zcash that survive its own roadmap: the
-deployed Orchard core and the protocols growing on top of it. Each volume
-assumes the ones below it and is verified against the protocol specification
-and the deployed implementations.
+The Zcash Arboretum is formal, full-depth documentation of the
+[[https://z.cash/][Zcash]] protocol, focused on the deployed Orchard and Ironwood
+core and the protocols being built on top of it. Each volume states its
+dependencies and is checked against the protocol specification, applicable
+ZIPs, and deployed implementations.
 
 These materials are *non-normative*: they explain and motivate the
-constructions, but the [[https://zips.z.cash/protocol/protocol.pdf][Zcash
-protocol specification]] and the [[https://zips.z.cash/][ZIPs]] remain the sole
-authority. Where this text and the specification disagree, the specification is
-correct.
+constructions. The [[https://zips.z.cash/protocol/protocol.pdf][Zcash protocol
+specification]], applicable [[https://zips.z.cash/][ZIPs]], and consensus rules
+remain authoritative. Where this text disagrees with them, this text is wrong.
 
 * The volumes
 
@@ -32,25 +31,25 @@ Layered; read each atop the ones it names.
 
 ** Deployed protocol
 4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
-   double-spend race and its exact success probability (after Rosenfeld),
-   the arithmetic of confirmations, and the deployed most-work rule with
-   its safety rails.
+   double-spend race in the first-seen model (after Rosenfeld), the
+   arithmetic of confirmations, and the deployed most-work rule, including
+   implementation divergences and local safety rails.
 5. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
    the commitment tree and authentication paths, the key hierarchy, note
    encryption, value balance, the Action statement and circuit, the two-pool
-   split (legacy Orchard, current Ironwood), and post-quantum security of the
-   deployed stack.
+   split (legacy Orchard, current Ironwood), and the deployed stack's
+   post-quantum security boundary.
 6. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
    key derivation, unified addresses (ZIP-316), fees (ZIP-317), and the
    transaction-construction pipeline as deployed in librustzcash.
 7. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
    compact blocks, the lightwalletd, Zaino, and Zebra service surfaces, the
    scanning pipeline, and — stated plainly — what the server learns.
+
+** Frontier
 8. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
    the FlyClient sampling protocol and its security analysis, the deployed
    ZIP-221 chain-history commitment, and the unbuilt bridge between them.
-
-** Frontier
 9. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
     transfer, and the counterfeiting boundary.
 10. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
@@ -61,8 +60,8 @@ Layered; read each atop the ones it names.
     and the surfaces that use it.
 
 Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
-combines every volume into one document; the landing page publishes it in Web
-and PDF formats.
+combines all Arboretum volumes into one document; the landing page publishes it
+in Web and PDF formats.
 
 * Parked research
 
@@ -83,11 +82,10 @@ deployment.
 
 * Method
 
-Every protocol-level claim is checked against the protocol specification and
-the deployed sources (librustzcash, orchard, zebra, and the relevant wallet
-code) before it is written down, and each volume passes an adversarial review
-(independent verification of numbers, concepts, and cross-references) before
-substantial additions merge. Shared notation and layering rules live in
+Protocol-level claims are checked against the protocol specification and the
+deployed sources (librustzcash, orchard, zebra, and the relevant wallet code).
+Review covers numbers, concepts, source currency, and cross-references. Shared
+notation and layering rules live in
 [[file:CONVENTIONS.org][CONVENTIONS.org]].
 
 * Scope

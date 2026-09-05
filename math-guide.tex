@@ -112,8 +112,8 @@ fields, their possible sizes, and their cyclic multiplicative structure; the
 number theory of squares, square roots, and the discrete logarithm; linear
 algebra and the inner products behind short algebraic receipts for long
 lists of secrets; the roots of unity that furnish evaluation domains and the
-fast Fourier transform; elliptic curves, whose points form groups with no
-arithmetic an attacker can exploit; and finally the probability,
+fast Fourier transform; elliptic curves, whose point groups have no known
+subexponential discrete-log attack when chosen appropriately; and finally the probability,
 asymptotics, and model of computation required to state---and mean---a claim
 of 128-bit security.
 
@@ -6222,17 +6222,17 @@ Spanning says a list reaches everything; independence says it carries no
 dead weight. A list with both properties is a coordinate system.
 
 \begin{definition}[Basis]\label{linalg:def-basis}
-A \emph{basis} of \(V\) is a linearly independent list
-\(b_1, \dots, b_n\) that spans \(V\). Every \(v \in V\) is then a
-\emph{unique} linear combination
+A \emph{basis} of \(V\) is a linearly independent set \(B\) that spans
+\(V\). Every \(v \in V\) is then a \emph{unique finite} linear combination
+of elements of \(B\): existence because \(B\) spans, uniqueness because two
+expressions subtract to a relation among finitely many distinct elements of
+the independent set (as in Lemma~\ref{linalg:lem-dependence}). For a finite
+basis \(B=(b_1,\dots,b_n)\), write
 \[
-v = c_1 b_1 + \dots + c_n b_n :
+v=c_1b_1+\dots+c_nb_n,
+\qquad [v]_B=(c_1,\dots,c_n),
 \]
-existence because the list spans, uniqueness because two expressions for
-\(v\) subtract to a relation among the independent \(b_i\) (as in the
-proof of Lemma~\ref{linalg:lem-dependence}). The scalars \(c_i\) are the
-\emph{coordinates} of \(v\) in the basis \(B = (b_1, \dots, b_n)\),
-written \([v]_B = (c_1, \dots, c_n)\).
+and call the scalars \(c_i\) the \emph{coordinates} of \(v\) in \(B\).
 \end{definition}
 
 \begin{example}[The two bases in constant use]\label{linalg:exa-bases}
@@ -6315,8 +6315,11 @@ list, a basis of \(\{\mathbf 0\}\) with
 \(\operatorname{span}(\varnothing) = \{\mathbf 0\}\); the dimension is
 \(0\).)
 
-\emph{Invariance.} Let \(b_1, \dots, b_m\) and \(b_1', \dots, b_n'\) be
-bases. Applying Lemma~\ref{linalg:lem-exchange} with the first list as
+\emph{Invariance.} Every basis is finite: if a basis contained more than
+the \(n\) elements of a finite spanning list, any \(n+1\) of its elements
+would contradict Lemma~\ref{linalg:lem-exchange}. Let
+\(b_1, \dots, b_m\) and \(b_1', \dots, b_n'\) be bases. Applying
+Lemma~\ref{linalg:lem-exchange} with the first list as
 the independent one and the second as the spanning one gives
 \(m \le n\); exchanging the roles gives \(n \le m\). Hence \(m = n\).
 
@@ -6703,7 +6706,7 @@ least \(n - 1\). Collisions exist in abundance; binding is the claim
 that they cannot be \emph{found}, a computational rather than
 information-theoretic statement. The classical Pedersen commitment to a
 single value \(a\) with randomness \(\rho\) is the special case
-\(n = 2\),
+\(n = 2\), with \(H\neq\mathcal O\),
 \[
 [a]G + [\rho]H = \ip{(a, \rho)}{(G, H)} ,
 \]
@@ -7843,11 +7846,11 @@ and the butterflies give
 (Note the output indexing: outputs \(j\) and \(j + m\) pair up, per
 \eqref{rootsofunity:eq-fftbutter1}--\eqref{rootsofunity:eq-fftbutter2}.)
 This uses \(2\) subtransforms of \(2\) additions each plus \(2\)
-butterflies (\(n/2 = 2\) per level,
+butterflies of \(2\) additions each (\(n/2 = 2\) per level,
 \cref{rootsofunity:rem-butterfly})---together \(2\) twiddle
-multiplications and \(4\) additions---versus the \(16\) products of the
-direct \(4 \times 4\) matrix multiply; and the gap widens as \(n\)
-grows.
+multiplications and \(8\) additions---versus \(16\) coefficient-products
+and \(12\) additions for the direct \(4 \times 4\) matrix multiply; and the
+gap widens as \(n\) grows.
 \end{example}
 
 % FIGURE PLACEHOLDER (figures pass): radix-2 butterfly diagram for the
@@ -7950,12 +7953,11 @@ into primes, to solve the problem in subexponential time. The practical
 consequence is severe. To push the cheapest known attack on
 \(\Fp^\times\) beyond \(2^{128}\) operations, the prime \(p\) must run to
 \emph{thousands} of bits, and every exponentiation drags that bulk along.
-What cryptography wants instead is a group of about \(2^{256}\) elements
-in which \emph{nothing} beats the square-root bound---a group with no
-exploitable arithmetic behind its elements, where the generic
-\(O(\sqrt{N})\) attacks of \cref{numbertheory:rem:dlp-generic} are also
-the best attacks. This section constructs the standard supplier of such
-groups.
+What cryptography wants instead is a group of roughly \(2^{255}\) elements
+for which no attack faster than the square-root bound is known---a group
+without known exploitable arithmetic behind its elements, where the generic
+\(O(\sqrt{N})\) attacks of \cref{numbertheory:rem:dlp-generic} remain the
+best known. This section constructs the standard supplier of such groups.
 
 An \emph{elliptic curve} is, concretely, the solution set of a certain
 cubic equation in two variables, together with one extra ``point at
@@ -8015,9 +8017,10 @@ Over a field of characteristic \(\neq 2, 3\), an invertible affine
 change of variables always reduces the most general cubic of this shape,
 \(y^2 + a_1 xy + a_3 y = x^3 + a_2 x^2 + a_4 x + a_6\), to the
 form~\eqref{ellipticcurves:eq-weierstrass}: completing the square in
-\(y\) (possible since \(2 \neq 0\)) removes the \(xy\) and \(y\) terms,
-and the shift \(x \mapsto x - a_2/3\) (possible since \(3 \neq 0\))
-removes the \(x^2\) term. This is precisely why characteristics \(2\)
+\(y\) (possible since \(2 \neq 0\)) removes the \(xy\) and \(y\) terms
+but changes the quadratic coefficient to \(a_2+a_1^2/4\); translating
+with the substitution \(x=X-(a_2+a_1^2/4)/3\) (possible since
+\(3 \neq 0\)) removes the \(X^2\) term. This is precisely why characteristics \(2\)
 and \(3\) are excluded: those cases require the longer Weierstrass form,
 and they are not relevant to the Pasta curves, which live over large
 prime fields.
@@ -8459,20 +8462,16 @@ rational-function identities. We sketch the conceptual proof, which
 exhibits the reason associativity holds.
 
 \begin{proof}[Proof of associativity (sketch)]
-The key tool is a \emph{Cayley--Bacharach}-type fact from the geometry
-of cubic curves: if two cubics \(C_1, C_2\) in \(\mathbb{P}^2\) meet in
-exactly nine points, and a third cubic \(C\) passes through eight of
-those nine points, then \(C\) passes through the ninth as well. (This
-follows from a dimension count: cubics form a \(9\)-dimensional
-projective space of coefficients, and passing through a given point is
-one linear condition; eight points in general position impose
-independent conditions, pinning down the pencil of cubics through
-them.) To prove \((P + Q) + R = P + (Q + R)\), one writes both sides
-via the chord-and-tangent construction and arranges eight common
-intersection points among the curve \(E\) and two degenerate
-cubics---each a product of three suitably chosen lines; the
-Cayley--Bacharach principle then forces the two candidate sums to
-coincide at the ninth point, hence to be equal. Translating ``reflect
+The key tool is the classical \emph{Cayley--Bacharach theorem} for plane
+cubics: if two cubics with no common component meet in nine points counted
+with intersection multiplicity, then any third cubic passing through eight
+of them with the required multiplicities also passes through the ninth. To
+prove \((P + Q) + R = P + (Q + R)\), one writes both sides via the
+chord-and-tangent construction and arranges the relevant intersections among
+the curve \(E\) and two degenerate cubics, each a product of three suitably
+chosen lines. Cayley--Bacharach forces the two candidate sums to coincide;
+its intersection-multiplicity formulation includes tangencies and coincident
+points. Translating ``reflect
 across the \(x\)-axis'' into ``the three points of any line sum to
 \(\mathcal{O}\)'' renders the bookkeeping uniform.
 
@@ -8552,26 +8551,28 @@ Computing this by \(n - 1\) successive additions is infeasible when
 algorithm is the following.
 
 \begin{definition}[Double-and-add]\label{ellipticcurves:def-dbladd}
-Write \(n = \sum_{i=0}^{k-1} n_i 2^i\) with digits
+If \(n=0\), return \(\mathcal O\). Otherwise write
+\(n = \sum_{i=0}^{k-1} n_i 2^i\) with digits
 \(n_i \in \{0, 1\}\) and top digit \(n_{k-1} = 1\). The
 \emph{left-to-right double-and-add} algorithm computes \([n]P\) as
-follows: set \(R \leftarrow \mathcal{O}\); for \(i = k-1\) down to
-\(0\), set \(R \leftarrow [2]R\), and if \(n_i = 1\) set
+follows: set \(R \leftarrow P\); for \(i = k-2\) down to \(0\), set
+\(R \leftarrow [2]R\), and if \(n_i = 1\) set
 \(R \leftarrow R + P\); return \(R\).
 \end{definition}
 
 \begin{proposition}\label{ellipticcurves:prop-dbladd}
-Double-and-add returns \([n]P\) using at most \(k - 1\) doublings and
-at most \(k - 1\) additions, where
-\(k = \floor{\log_2 n} + 1\) is the bit length of \(n\).
+For \(n\geq1\), double-and-add returns \([n]P\) using exactly \(k - 1\)
+doublings and at most \(k - 1\) additions, where
+\(k = \floor{\log_2 n} + 1\) is the bit length of \(n\). For \(n=0\),
+it returns \(\mathcal O\) without a group operation.
 \end{proposition}
 
 \begin{proof}
-Let \(R_j\) denote the value of \(R\) after the iterations for bits
-\(n_{k-1}, \ldots, n_j\) have run. We claim
-\(R_j = [\floor{n/2^j}]P\), by downward induction on \(j\). For the top
-bit, the first iteration computes
-\(R = [2]\mathcal{O} + [n_{k-1}]P = [1]P = [\floor{n/2^{k-1}}]P\).
+The case \(n=0\) is immediate. Let \(n\geq1\), and let \(R_j\) denote the
+value of \(R\) after bits \(n_{k-1}, \ldots, n_j\) have been incorporated.
+We claim \(R_j = [\floor{n/2^j}]P\), by downward induction on \(j\). At
+initialization, \(R_{k-1}=P=[\floor{n/2^{k-1}}]P\) because the top bit is
+\(1\).
 Assuming \(R_{j+1} = [\floor{n/2^{j+1}}]P\), the next iteration
 computes
 \[
@@ -8583,10 +8584,8 @@ where the last step is the digit identity
 \(2\floor{n/2^{j+1}} + n_j = \floor{n/2^j}\): stripping the last bit of
 \(\floor{n/2^j}\) and re-appending it recovers the number. At \(j = 0\)
 the invariant reads \(R_0 = [n]P\), which is what the algorithm
-returns. For the counts: the loop body runs \(k\) times, but the first
-iteration's doubling acts on \(\mathcal{O}\) and its addition merely
-installs \(P\), both trivial; the remaining \(k - 1\) iterations
-perform one doubling each and at most one addition each.
+returns. For the counts, the loop has exactly \(k-1\) iterations, each
+performing one doubling and at most one addition.
 \end{proof}
 
 Scalar multiplication by an \(n\)-bit scalar therefore costs \(O(n)\)
@@ -8929,12 +8928,12 @@ borne out in practice. Both algorithms run in time exponential in the
 bit length \(\log_2 r\).
 \end{proof}
 
-\begin{remark}[Absence of better attacks]
+\begin{remark}[Best known attacks on well-chosen curves]
 \label{ellipticcurves:rem-ecdlp-hardness}
-That nothing beats the square-root bound on a well-chosen curve is an
-\emph{empirical} claim, not a theorem: after four decades of study, no
-algorithm faster than \(O(\sqrt{r})\) is known for general elliptic
-curves. For \(r \approx 2^{254}\)---the \(255\)-bit Pasta orders---this
+For well-chosen curves, the square-root bound is the best \emph{known}
+generic attack cost, not a proved lower bound: after four decades of study,
+no general algorithm faster than \(O(\sqrt{r})\) is known. For
+\(r \approx 2^{254}\)---the \(255\)-bit Pasta orders---this
 is about \(2^{127}\) operations, infeasible. Curves with special
 structure can be weaker, and the known weak classes are avoided by
 design. \emph{Anomalous} curves, those with \(\#E(\Fp) = p\), admit a
@@ -8992,7 +8991,7 @@ Two elliptic curves over \(\overline{K}\) are isomorphic over
 \(\overline{K}\) if and only if they have the same \(j\)-invariant.
 The admissible coordinate changes preserving short Weierstrass form are
 \((x, y) \mapsto (u^2 x, u^3 y)\) for \(u \in \overline{K}^\times\),
-under which \((a, b) \mapsto (u^{-4} a, u^{-6} b)\); the combination
+under which \((a, b) \mapsto (u^{4} a, u^{6} b)\); the combination
 \(j\) is invariant.
 \end{proposition}
 
@@ -9001,11 +9000,10 @@ A direct computation shows that the only isomorphisms between short
 Weierstrass curves fixing \(\mathcal{O}\) are the scalings
 \((x, y) \mapsto (u^2 x, u^3 y)\). Substituting \(x = u^{-2} x'\),
 \(y = u^{-3} y'\) into \(y^2 = x^3 + ax + b\) and clearing
-\(u^6\) gives \(y'^2 = x'^3 + u^4 a\, x' + u^6 b\); read against the
-stated normalisation this is the action
-\((a, b) \mapsto (u^{-4} a, u^{-6} b)\) on coefficients. Under it,
+\(u^6\) gives \(y'^2 = x'^3 + u^4 a\, x' + u^6 b\), which is the stated
+action on coefficients. Under it,
 numerator and denominator of \(4a^3/(4a^3 + 27b^2)\) both scale by
-\(u^{-12}\), so \(j\) is unchanged. Conversely, given two curves with
+\(u^{12}\), so \(j\) is unchanged. Conversely, given two curves with
 equal \(j\)-invariants one solves for a suitable \(u\) transforming one
 coefficient pair into the other, with separate easy cases \(j = 0\)
 (both \(a\) vanish) and \(j = 1728\) (both \(b\) vanish).
@@ -9311,9 +9309,9 @@ security level targeted by Halo~2 and Zcash Orchard.
 \end{example}
 
 The cheque from the section's opening is hereby cashed. The demand was
-a group of about \(2^{256}\) elements in which nothing beats the
-square-root bound, and each Pasta curve supplies one: a cyclic group of
-prime \(255\)-bit order (\cref{ellipticcurves:thm-hasse} and
+a roughly \(255\)-bit group for which no attack faster than the square-root
+bound is known, and each Pasta curve supplies one: a cyclic group of prime
+\(255\)-bit order (\cref{ellipticcurves:thm-hasse} and
 \cref{groups:cor-prime-cyclic}), carrying a fast forward map
 (\cref{ellipticcurves:prop-dbladd}, accelerated by
 \cref{ellipticcurves:rem-glv-speedup}) whose inversion---the
@@ -10547,7 +10545,7 @@ machine an auxiliary tape of independent uniform random bits (the
 A \emph{probabilistic} (or \emph{randomised}) algorithm \(M\) is a
 Turing machine with an additional read-only \emph{random tape}
 initialised with independent uniformly random bits
-\(r \in \{0,1\}^*\). For a fixed input \(x\), the output \(M(x)\) is
+\(r \in \{0,1\}^{\mathbb N}\). For a fixed input \(x\), the output \(M(x)\) is
 a random variable over the choice of \(r\); write \(M(x; r)\) to
 display the coins explicitly, and then \(M(x; \cdot)\) is a
 deterministic function. The algorithm runs in \emph{probabilistic
@@ -10575,10 +10573,12 @@ definitions in the Halo~2/Orchard setting typically state security
 against non-uniform PPT adversaries, the more conservative choice.
 \end{remark}
 
-With efficiency pinned down, we can state what it means for a
-computational task to be hard. The guiding principle is the
-Cobham--Edmonds thesis: ``efficiently computable'' means ``computable
-in polynomial time''. Its negation gives infeasibility.
+With efficiency pinned down, we can state the strong hardness notion used in
+cryptography. The guiding principle is the Cobham--Edmonds thesis:
+``efficiently computable'' means ``computable in polynomial time''.
+Feasibility and the infeasibility notion below are useful opposite regimes,
+but they are not logical negations: intermediate success probabilities can
+fall into neither class.
 
 \begin{definition}[Computational infeasibility]
 \label{probability:def-infeasible}
@@ -10607,17 +10607,17 @@ the discrete-logarithm assumption in a family of groups
 \]
 the probability taken over a uniformly chosen generator \(g\) of
 \(\G_\lambda\), a uniform \(x \gets \Z/q\Z\), and \(\Adv\)'s coins.
-The entire edifice of Halo~2 and Orchard rests on such infeasibility
-statements, which one makes true in practice by choosing \(\lambda\)
-(and hence the group size \({\approx}2^{2\lambda}\)) large enough
-that the best known attack --- running in time
-\(\Theta(\sqrt{q}) = \Theta(2^{\lambda})\) by the birthday/rho
-phenomenon of \cref{probability:rem-birthday} --- is astronomically
-slow. The asymptotic language of this section is what permits the
-terms ``negligible'' and ``polynomial'' without committing to a
-particular \(\lambda\); the concrete-security viewpoint then
-instantiates \(\lambda\) (e.g.\ \(\lambda = 128\)) to read off actual
-bit-counts.
+The entire edifice of Halo~2 and Orchard rests on such asymptotic
+infeasibility assumptions; choosing a parameter size does not prove them.
+Separately, concrete analysis asks how much work the best known attacks need
+at one fixed size. Generic discrete-log attacks take
+\(\Theta(\sqrt{q})\) group operations by the birthday/rho phenomenon of
+\cref{probability:rem-birthday}; absent a faster structure-specific attack,
+an order near \(2^{2\lambda}\) therefore targets about \(\lambda\) bits of
+generic-group security. The Pasta orders are just above \(2^{254}\), giving
+roughly \(2^{127}\) generic work. The asymptotic language permits the terms
+``negligible'' and ``polynomial''; concrete estimates remain conditional on
+the attacks presently known.
 \end{remark}
 
 \subsection{The security parameter}\label{probability:sub-secparam}
@@ -10632,9 +10632,9 @@ scheme, conventionally in unary as the string \(1^\lambda\) (so that
 ``polynomial in the input length'' coincides with ``polynomial in
 \(\lambda\)''). It governs simultaneously:
 \begin{itemize}
-\item the \emph{sizes} of objects --- key lengths and the encodings
-  of group and field elements (\({\approx}2\lambda\) bits, the group
-  order being \({\approx}2^{2\lambda}\)) --- each \(\poly(\lambda)\);
+\item the \emph{sizes} of objects --- key lengths and encodings, each
+  \(\poly(\lambda)\); in a generic discrete-log instantiation one commonly
+  chooses a group order near \(2^{2\lambda}\);
 \item the \emph{running time} of honest algorithms, which must be
   \(\poly(\lambda)\); and
 \item the \emph{security level}: every PPT adversary's advantage must
@@ -10649,15 +10649,16 @@ Passing \(1^\lambda\) (a string of \(\lambda\) ones, of length
 \(\log_2 \lambda\)) is a deliberate convention: it forces
 ``polynomial time in the input length'' to mean polynomial in
 \(\lambda\) itself, so an honest key generator may take time
-\(\poly(\lambda)\) to produce \(\lambda\)-bit keys. As \(\lambda\)
-grows, two things happen in lockstep: honest parties pay a polynomial
-cost, while every adversary's success probability falls negligibly
-and (concretely) the best attack's running time grows exponentially.
+\(\poly(\lambda)\) to produce \(\lambda\)-bit keys. In a scheme satisfying
+the security definition, increasing \(\lambda\) raises honest cost only
+polynomially while every PPT adversary's success remains negligible; in
+common concrete families, the best known attack cost grows exponentially.
 Asymptotic security is the statement that this gap holds for all
 sufficiently large \(\lambda\); the practitioner then fixes a single
 value (commonly \(\lambda = 128\), targeting
-\(2^{128}\)-operation attacks) and verifies that the concrete sizes
-deliver it --- a \({\sim}255\)-bit Pallas/Vesta scalar field
+\(2^{128}\)-operation attacks) and checks the concrete estimates against that
+target --- the just-over-\(2^{254}\) Pallas/Vesta group orders give roughly
+\(2^{127}\) generic group operations
 (\cref{sec:ellipticcurves}; Zcash protocol specification \S5.4.9.6;
 the \texttt{pasta\_curves} crate, \texttt{src/fields/}), hash
 outputs of \({\ge}256\) bits per the birthday bound of
@@ -10668,22 +10669,19 @@ outputs of \({\ge}256\) bits per the birthday bound of
 remainder of the series is implicitly a function of this \(\lambda\).
 \end{remark}
 
-The opening cheque can now be cashed. ``128-bit security'' is a
-statement about \emph{every} adversary, not any particular one.
-Asymptotically it asserts infeasibility
-(\cref{probability:def-infeasible}): every probabilistic
-polynomial-time forger --- uniform or hard-wired with advice
-(\cref{probability:rem-nonuniform}) --- wins the forgery game with
-probability negligible in \(\lambda\), a bound that no polynomial
-number of repetitions can amplify to a noticeable chance
-(\cref{probability:rem-negl}). Concretely it instantiates
-\(\lambda = 128\) and asserts that the cheapest known attack costs
-about \(2^{128}\) elementary operations --- the sizes of
-\cref{probability:rem-unary} having been chosen, via the birthday and
-modular-bias bounds of this section, precisely so. The forger of the
-opening paragraph may still guess a key, and with astronomical luck
-may win; what the phrase promises is that the probability of that
-event, over the scheme's randomness and the forger's own coins, is
-too small to matter, for every forger anyone can run.
+The opening cheque can now be cashed, with its two layers kept separate.
+Asymptotic infeasibility (\cref{probability:def-infeasible}) quantifies over
+every probabilistic polynomial-time forger --- uniform or hard-wired with
+advice (\cref{probability:rem-nonuniform}) --- and requires its success to be
+negligible in \(\lambda\), a bound that no polynomial number of repetitions
+amplifies to a noticeable chance (\cref{probability:rem-negl}). A concrete
+``128-bit'' estimate instead says that the best known applicable attack at a
+fixed parameter size costs on the order of \(2^{128}\) operations; it is an
+attack estimate, not a theorem about every possible algorithm. Pasta's
+just-over-\(2^{254}\) group orders give roughly \(2^{127}\) generic group
+operations and are conventionally placed near that target. The forger of the
+opening paragraph may still guess a key and win with astronomical luck; the
+formal promise is negligible success against every PPT forger, conditional on
+the stated cryptographic assumptions.
 
 \end{document}
