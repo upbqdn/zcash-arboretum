@@ -2,6 +2,7 @@
 """Site tooling for the Zcash Arboretum.
 
 Modes:
+  volumes  Print the volumes included in the Arboretum.
   render   Pre-render every tikzpicture in each volume to SVG (needs
            tectonic + pdftocairo; run locally, commit the SVGs).
   webprep  Write build/web/<vol>.tex with tikzpictures replaced by
@@ -33,12 +34,9 @@ VOLUME_META = [
     ("wallet-guide", "Deployed protocol", "deployed"),
     ("sync-guide", "Deployed protocol", "deployed"),
     ("flyclient-guide", "Deployed protocol", "deployed"),
-    ("voting-guide", "Frontier", "frontier"),
     ("zsa-guide", "Frontier", "frontier"),
-    ("tachyon-guide", "Frontier", "design-stage"),
     ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
-    ("pq-guide", "Frontier", "design-stage"),
 ]
 VOLUMES = [v for v, _, _ in VOLUME_META]
 
@@ -55,8 +53,8 @@ remain authoritative.
 The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
 Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
 \emph{Wallet}, \emph{Sync}, and \emph{FlyClient} Guides explain the deployed
-system and its boundaries.  The remaining parts examine applications,
-proposals, threshold authorization, and the post-quantum migration surface.
+system and its boundaries.  The remaining parts examine shielded assets,
+trailing finality, and threshold authorization.
 
 Three reading paths cover most uses.  For prerequisites, begin with the first
 three parts and use the Halo~2 companion as the worked example.  For the life
@@ -607,7 +605,9 @@ document.querySelector('details.arb-search').addEventListener('toggle',
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
-    if mode == "render":
+    if mode == "volumes":
+        print(*VOLUMES)
+    elif mode == "render":
         render()
     elif mode == "webprep":
         webprep()

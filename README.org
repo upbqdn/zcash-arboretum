@@ -52,27 +52,25 @@ Layered; read each atop the ones it names.
    ZIP-221 chain-history commitment, and the unbuilt bridge between them.
 
 ** Frontier
-9. *Voting Guide* (=voting-guide.tex=) — the May--June 2026 snapshot of the
-   shielded coin-voting protocol deployed in Zashi.
-10. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
+9. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
     transfer, and the counterfeiting boundary.
-11. *Tachyon Guide* (=tachyon-guide.tex=) — the Tachyon scaling architecture:
-    proof-carrying wallet state, out-of-band payments, oblivious
-    synchronisation. Every claim is classified as /specified/,
-    /designed-but-unspecified/, or /open problem/.
-12. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
+10. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
     ebb-and-flow model, the Crosslink construction, stake and delegation,
     and the wallet-visible contract two ledgers create.
-13. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
+11. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
     paper constructs it and RFC 9591 standardises it, the rerandomized form,
     and the surfaces that use it.
-14. *PQ Guide* (=pq-guide.tex=) — the cross-layer post-quantum picture: the
-    assumption inventory sorted by reversibility, quantum mining, ZIP-2005's
-    recoverability-not-resistance strategy, and the migration surface.
 
 Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
 combines every volume into one document; the landing page publishes it in Web
 and PDF formats.
+
+* Parked research
+
+The repository retains the *Voting Guide* (=voting-guide.tex=), *Tachyon Guide*
+(=tachyon-guide.tex=), and *PQ Guide* (=pq-guide.tex=), with their compiled
+PDFs. They are research snapshots outside the Arboretum and are not published
+on its website or included in its concordance or complete edition.
 
 * Website
 
@@ -110,7 +108,8 @@ Each volume compiles independently with
 tectonic -Z shell-escape <volume>.tex
 #+end_src
 
-The =-Z shell-escape= flag is required. CI builds every volume on push.
+The =-Z shell-escape= flag is required. CI builds every =*-guide.tex= document
+on push, including the parked research.
 
 * License
 

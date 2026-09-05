@@ -29,8 +29,7 @@ jobs:
         run: |
           set -e
           mkdir -p _site/pdf
-          for f in *-guide.tex; do
-            vol="${f%.tex}"
+          for vol in $(python3 site/tools/sitegen.py volumes); do
             echo "=== $vol ==="
             latexmlc --dest="_site/$vol/index.html" \
                      --splitat=section --format=html5 \

@@ -9,6 +9,10 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent))
 import sitegen  # noqa: E402
 
+PARKED = ("pq-guide", "tachyon-guide", "voting-guide")
+assert all((sitegen.ROOT / f"{vol}.tex").is_file() for vol in PARKED)
+assert set(PARKED).isdisjoint(sitegen.VOLUMES)
+
 
 with tempfile.TemporaryDirectory() as tmp:
     out = Path(tmp)
@@ -24,6 +28,10 @@ with tempfile.TemporaryDirectory() as tmp:
         assert ">Warm dark</option>" in html
 
     landing = (out / "index.html").read_text()
+    concordance = (out / "concordance.html").read_text()
+    for vol in PARKED:
+        assert f'href="{vol}/"' not in landing
+        assert f'href="{vol}/"' not in concordance
     assert landing.count('href="complete/"') == 2
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
@@ -38,6 +46,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" in complete_tex
+    for vol in PARKED:
+        title, subtitle = sitegen.vol_title(vol)
+        assert f"\\part{{{title}: {subtitle}}}" not in complete_tex
 
     webdir = out / "web"
     webdir.mkdir()
