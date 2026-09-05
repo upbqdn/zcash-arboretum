@@ -27,9 +27,8 @@ Layered; read each atop the ones it names.
    upper volumes require.
 3. *Halo 2 Guide* (=halo2-guide.tex=) — PLONKish arithmetisation, the
    permutation, lookup, and vanishing arguments, the inner-product polynomial
-   commitment, the Halo accumulation trick, and recursive proof composition.
-   - *How Halo 2 Proves* (=halo2-intuition-guide.tex=) — companion: one worked
-     statement carried end to end, every number real.
+   commitment, the Halo accumulation trick, and recursive proof composition,
+   closing with one worked statement carried end to end, every number real.
 
 ** Deployed protocol
 4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the

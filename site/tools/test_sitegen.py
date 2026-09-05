@@ -10,8 +10,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 import sitegen  # noqa: E402
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide")
+MERGED = "halo2-intuition-guide"
 assert all((sitegen.ROOT / f"{vol}.tex").is_file() for vol in PARKED)
 assert set(PARKED).isdisjoint(sitegen.VOLUMES)
+assert MERGED not in sitegen.VOLUMES
+assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
+assert not (sitegen.ROOT / f"{MERGED}.pdf").exists()
 
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -32,6 +36,8 @@ with tempfile.TemporaryDirectory() as tmp:
     for vol in PARKED:
         assert f'href="{vol}/"' not in landing
         assert f'href="{vol}/"' not in concordance
+    assert f'href="{MERGED}/"' not in landing
+    assert f'href="{MERGED}/"' not in concordance
     assert landing.count('href="complete/"') == 2
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
@@ -45,7 +51,8 @@ with tempfile.TemporaryDirectory() as tmp:
     assert sitegen.OMNIBUS_INTRO in complete_tex
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
-    assert "\\part*{How Halo 2 Proves:" in complete_tex
+    assert "\\part*{How Halo 2 Proves:" not in complete_tex
+    assert "\\section{Worked example: one computation," in complete_tex
     for vol in PARKED:
         title, subtitle = sitegen.vol_title(vol)
         assert f"\\part{{{title}: {subtitle}}}" not in complete_tex

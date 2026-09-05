@@ -28,7 +28,6 @@ VOLUME_META = [
     ("math-guide", "Foundations", "stable"),
     ("crypto-guide", "Foundations", "stable"),
     ("halo2-guide", "Foundations", "stable"),
-    ("halo2-intuition-guide", "Foundations", "companion"),
     ("consensus-guide", "Deployed protocol", "deployed"),
     ("ironwood-guide", "Deployed protocol", "deployed"),
     ("wallet-guide", "Deployed protocol", "deployed"),
@@ -57,11 +56,12 @@ system and its boundaries.  The remaining parts examine shielded assets,
 trailing finality, and threshold authorization.
 
 Three reading paths cover most uses.  For prerequisites, begin with the first
-three parts and use the Halo~2 companion as the worked example.  For the life
-of a shielded payment, read \emph{Ironwood}, then \emph{Wallet}, \emph{Sync},
-and \emph{Consensus}.  For proposed changes, read the relevant frontier part
-only after its lower-layer dependencies.  Each part restarts its own section
-numbering so that citations agree with the separately published volume.
+three parts; readers new to proof systems may start with the worked example
+that closes the Halo~2 Guide.  For the life of a shielded payment, read
+\emph{Ironwood}, then \emph{Wallet}, \emph{Sync}, and \emph{Consensus}.  For
+proposed changes, read the relevant frontier part only after its lower-layer
+dependencies.  Each part restarts its own section numbering so that citations
+agree with the separately published volume.
 """
 
 THEME_INIT = """<script>
@@ -300,8 +300,6 @@ def omnibus(srcdir=ROOT, out=None):
     srcdir = Path(srcdir)
     out = Path(out) if out else ROOT / "arboretum-complete.tex"
     vols = [v for v in VOLUMES if (srcdir / f"{v}.tex").exists()]
-    companions = {v for v, _group, chip in VOLUME_META
-                  if chip == "companion"}
     seen, macro_free = set(), []
     for vol in vols:
         pre = preamble_of((srcdir / f"{vol}.tex").read_text())
@@ -334,7 +332,7 @@ def omnibus(srcdir=ROOT, out=None):
     for vol in vols:
         text = (srcdir / f"{vol}.tex").read_text()
         title, sub = vol_title(vol)
-        short = vol.replace("-guide", "").replace("halo2-intuition", "h2i")
+        short = vol.replace("-guide", "")
         macros = []
         for ln in preamble_of(text).splitlines():
             m = MACRO_RE.match(ln.strip())
@@ -358,16 +356,12 @@ def omnibus(srcdir=ROOT, out=None):
             body)
         body = re.sub(r"(\\hyperref\[)([^\]]+)\]",
                       lambda m: f"{m.group(1)}{short}:{m.group(2)}]", body)
-        heading = (f"\\part*{{{title}: {sub}}}\n"
-                   f"\\phantomsection\\addcontentsline{{toc}}{{part}}"
-                   f"{{{title}: {sub}}}"
-                   if vol in companions else f"\\part{{{title}: {sub}}}")
         parts.append(
             "\\clearpage\n"
             "\\stepcounter{arbvolume}\n"
             "\\setcounter{section}{0}\\setcounter{equation}{0}"
             "\\setcounter{figure}{0}\\setcounter{table}{0}\n"
-            f"{heading}\n" + "\n".join(macros) + "\n" + body)
+            f"\\part{{{title}: {sub}}}\n" + "\n".join(macros) + "\n" + body)
     parts.append("\\end{document}")
     out.write_text("\n".join(parts))
     print(f"wrote {out} ({len(vols)} parts)")
@@ -379,13 +373,9 @@ def landing(outdir):
         if not (ROOT / f"{vol}.tex").exists():
             continue
         title, sub = vol_title(vol)
-        if chip == "companion":
-            acc = f"vol. {ROMANS[n - 1]} · companion"
-            plaque = ""
-        else:
-            n += 1
-            acc = f"vol. {ROMANS[n - 1]}"
-            plaque = f'<span class="plaque">{chip}</span>'
+        n += 1
+        acc = f"vol. {ROMANS[n - 1]}"
+        plaque = f'<span class="plaque">{chip}</span>'
         groups.setdefault(group, []).append(f"""<li class="plate">
 <div class="label"><span class="acc">{acc}</span>
 {plaque}</div>
