@@ -7304,8 +7304,11 @@ If \(n \mid k\), then \(\omega^{ki} = (\omega^n)^{ki/n} = 1\) for each
 \(i\), so the sum is \(n\). If \(n \nmid k\), set
 \(\zeta = \omega^k \ne 1\) (since \(\omega\) has order \(n\), we have
 \(\omega^k = 1 \iff n \mid k\) by
-\cref{rootsofunity:lem-orderdivides}), and the finite geometric series
-gives
+\cref{rootsofunity:lem-orderdivides}), and the finite geometric
+series---valid over any field: multiplying
+\(S = \sum_{i=0}^{n-1} \zeta^i\) by \(\zeta\) shifts each term one slot,
+so \((\zeta - 1)\,S = \zeta S - S\) telescopes to \(\zeta^n - 1\), and
+for \(\zeta \ne 1\) one may divide---gives
 \[
 \sum_{i=0}^{n-1} \zeta^i
 = \frac{\zeta^n - 1}{\zeta - 1}
