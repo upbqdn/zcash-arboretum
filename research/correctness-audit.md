@@ -1,0 +1,715 @@
+# Correctness audit — historical guide-fix record
+
+This is a dated audit history, not a current patch queue. Findings and line
+numbers refer to the revisions examined in each wave; later waves supersede
+earlier conclusions. In particular, absence of a release tag from a local
+clone does not establish that the release did not exist (G2/G8 below).
+The latest review is recorded in [the 2026-09-05 three-pass audit](audit-2026-09-05.md).
+
+Wave-0, 2026-07-16.
+
+## Method
+
+A model-diff pass: each guide's factual claims were diffed against ground truth
+(zcash/zips `69610984`, protocol.tex `662dc87`; orchard HEAD `bef8a27`;
+librustzcash `e30517e4`; zebra-crosslink `6d02a1b`; tfl-book `fe6e1d6f`;
+voting-circuits `4c39abd`, vote-sdk `cb915f5`; RFC 9591; ePrint 2024/436). Each
+divergence is sorted into one of two bins:
+
+- **guide-fix** — the guide is wrong; correct the guide. Tracked here.
+- **upstream defect** — the guide is right, the upstream source is wrong.
+  Tracked in `upstream-defects.md`.
+
+This file is the guide-fix bin only. Findings are firsthand-cited but this wave
+is breadth-first (a shallow diff, not a per-volume grid), so absence of a finding
+in a volume is not evidence of correctness there.
+
+## This wave's coverage
+
+Volumes touched: Ironwood, ZSA, Wallet, Crosslink, FROST, Voting.
+Bin totals: **3 guide-fixes** (1 medium, 2 low), 11 upstream defects (2 medium,
+9 low — see the other file).
+
+All three guide-fixes are localized citation/scope errors, not structural
+rewrites; the guide reasoning is sound in each case and the surrounding text
+already states the correct fact, so these are one- to three-line edits.
+
+## Priority worklist
+
+| # | Sev | Volume : section | Area |
+|---|-----|------------------|------|
+| G1 | medium | Ironwood : `sec:action-stmt` (Def A8/A9) | `enableSpends` rule for `flagsIronwood` phrased as universal, not coinbase-only |
+| G2 | low | Ironwood : `sec:action-stmt` (`rem:action-versions`) | `orchard 0.15.0` conflated with local development commit `bef8a27` |
+| G3 | low | ZSA : `sec:zsa-v6` (Action Groups) | ZIP-230 `nAGExpiryHeight` MUST mis-attributed to the rationale section |
+
+---
+
+### G1 — `enableSpends` consensus rule for `flagsIronwood` reads as universal (medium)
+
+**Volume : section.** Ironwood Guide, `sec:action-stmt`, Definition "Orchard
+Action statement" A8/A9 — `ironwood-guide.tex:1512-1514`.
+
+**What's wrong.** The clause "and from NU6.3 the `enableSpends` bit of
+`flagsIronwood` MUST be 0 --- ZIP-229" has its own subject and a temporal
+("from NU6.3") rather than coinbase scope, so it asserts a *universal* NU6.3
+rule. ZIP-229 forces `enableSpends = 0` on `flagsIronwood` only **for coinbase
+transactions** (`zip-0229.md:256-257`); ZIP-258's NU6.3 universal consensus list
+(`zip-0258.md:88-99`) carries no such blanket rule — only coinbase-empty-Orchard,
+`enableCrossAddress = 0`, and `valueBalanceOrchard >= 0`. Read literally the
+guide forbids ever spending an Ironwood note, inverting the purpose of the pool
+value flows into. Contradicted directly by `protocol.tex:13574` (permits
+`nActionsIronwood > 0` with `enableSpendsIronwood = 1`) and
+`protocol.tex:13579-13580` ("at least one of `enableSpendsIronwood` and
+`enableOutputsIronwood` MUST be 1" from NU6.3).
+
+**The fix.** Re-scope the second clause to coinbase, or drop it. Correct
+statement: coinbase must set `enableSpendsIronwood = 0` (the v5
+`enableSpendsOrchard = 0` analog, `protocol.tex:13654`); non-coinbase Ironwood
+actions may set `enableSpends = 1`. If a universal NU6.3 line is wanted, cite the
+real ones from `zip-0258.md:88-99`.
+
+---
+
+### G2 — `orchard 0.15.0` does not identify the inspected development commit (low)
+
+**Volume : section.** Ironwood Guide, `sec:action-stmt`, Remark
+`rem:action-versions` — `ironwood-guide.tex:1535`; recurs at `:1986` and `:2472`.
+
+**Corrected scope.** Body text conflated the release "crate `orchard`
+0.15.0 `src/circuit.rs`" with the local development tree on 0.14.0.
+orchard HEAD `bef8a27` (`git describe` = `0.14.0-18-gbef8a27`): `Cargo.toml:3`
+`version = "0.14.0"`, no `0.15.0` tag and no `0.15.0` string anywhere;
+`CHANGELOG.md` top section is `[Unreleased]` and its body is exactly the Ironwood
+circuit / `enableCrossAddress` work. The cited symbol names are all correct
+(`supports_cross_address_restriction` at `circuit.rs:147`; the
+`InsecurePreNu6_2` / `FixedPostNu6_2` / `Ironwood` enum at this pin).
+The earlier version of this finding itself mixed in the release variant
+`PostNu6_3`; G5 below records the development-tree names. The guide's methodology note at
+`ironwood-guide.tex:2470-2473` pins "crate orchard at git commit `bef8a27e`
+(v0.14.0, 2026-06-16)" for the same circuit claims.
+
+**Resolution.** Distinguish the inspected development commit from the published
+release, then verify each claim against the artifact actually cited. G8 confirms
+that librustzcash pins published 0.15.0; the original claim that no such release
+existed was an inference from an incomplete local clone and was incorrect.
+Later waves re-grounded the guide in the released crate.
+
+---
+
+### G3 — ZIP-230 `nAGExpiryHeight` MUST mis-attributed to the rationale section (low)
+
+**Volume : section.** ZSA Guide, `sec:zsa-v6` (Orchard fields: Action Groups) —
+`zsa-guide.tex:2955-2957`.
+
+**What's wrong.** After citing "(ZIP-230, Rationale for `nAGExpiryHeight`)", the
+guide writes "The same rationale section states ``In NU7, `nExpiryHeight` MUST be
+set to 0''", attributing the sentence to the rationale section. The sentence is
+verbatim in ZIP-230 (`zip-0230.rst:321-322`) but lives in the **normative MUST
+bullet list** that *precedes* the rationale heading (heading at `zip-0230.rst:324`);
+the rationale body (`:327-329`) only introduces `nAGExpiryHeight` for ZIP-228
+forward compatibility and draws a ZIP-203 analogy — it never contains the "In NU7
+... MUST be set to 0" sentence (grep confirms the sentence occurs once, at line
+321). The mis-attribution also demotes a normative MUST to non-normative
+rationale prose.
+
+**The fix.** Attribute the sentence to ZIP-230's normative consensus-rule bullet
+list (`zip-0230.rst:315-322`), not "Rationale for `nAGExpiryHeight`", and label
+it normative. Keep the separate, correct citation of the rationale section for
+the `nAGExpiryHeight = 0`-by-consensus convention.
+
+---
+
+## Wave 1
+
+Wave-1, 2026-07-16. Same model-diff method as Wave-0.
+
+Volumes touched (guide-fix bin): Ironwood, ZSA. Bin totals: **3 guide-fixes**
+(1 high, 1 medium, 1 low). Two are Ironwood `DEPLOYED-at-bef8a27` attribution
+errors — the guide paraphrases the spec correctly but attributes note-format
+code and a version model to orchard `bef8a27` that do not exist there; the
+circuit/cross-address side it also cites *is* deployed, which is what makes the
+false half plausible. The third is an isolated off-by-79-lines citation in ZSA.
+
+### Priority worklist
+
+| # | Sev | Volume : section | Area |
+|---|-----|------------------|------|
+| G4 | high | Ironwood : "The Ironwood note…" / `rem:iw-legacy-rcm` | ZIP-2005 recoverable note format claimed DEPLOYED at orchard `bef8a27`; none of the note-format code exists there |
+| G5 | medium | Ironwood : `sec:iw-pools` "One circuit, one verifying key" | Fabricated orchard bundle/circuit version model (`ValuePool`/`ProtocolVersion` enums, `permits_cross_address_transfers`) — not the deployed enums |
+| G6 | low | ZSA : Orchard fields (AssetId subscript note) | `zip-0227.rst` subscript-omission citation off by ~79 lines (points at a figure) |
+
+---
+
+### G4 — ZIP-2005 recoverable note format claimed DEPLOYED at orchard `bef8a27`; the note-format code does not exist there (high)
+
+**Volume : section.** Ironwood Guide, §"The Ironwood note: lead byte 0x03 and
+the hashed trapdoor" / Remark `rem:iw-legacy-rcm` — `ironwood-guide.tex:2180-2182`,
+`2252-2261`, `2270-2273` (headline ~`2255`).
+
+**What's wrong.** The guide presents the ZIP-2005 quantum-recoverable Ironwood
+note format as *deployed in crate `orchard` @ `bef8a27`*: a note-version tag
+`NoteVersion {V2, V3}` with `Note::from_parts` "now taking one" (`2181-2182`,
+"crate orchard at bef8a27 src/note.rs"); a `Note::rcm()` dispatching on
+`NoteVersion` — "V2 to `rcm_v2`, V3 to `rcm_v3`", the latter one BLAKE2b-512 call
+over the 137-byte `pre_rcm` `rseed || 0x0B || gd* || pkd* || LE64(v) ||
+LE256(rho) || LE256(psi)` ("crate orchard at bef8a27 src/note.rs, `rcm_v3`,
+domain separator constant `0x0B`", `2255-2261`); and note encryption where
+"sealed marker types give `OrchardDomain` (expects `0x02`) and `IronwoodDomain`
+(expects `0x03`) … src/note_encryption.rs" (`2270-2273`). At `bef8a27`
+(`git describe` = `0.14.0-18-gbef8a27`) **none** of this note-format code exists.
+The deployed `rcm()` is the legacy single-tag trapdoor: `src/note.rs:132-136`
+`NoteCommitTrapdoor(to_scalar(PrfExpand::ORCHARD_RCM.with(&self.0,
+&rho.to_bytes())))`, with `ORCHARD_RCM = 0x05` (`zcash_spec-0.2.1
+src/prf_expand.rs:88`), i.e. `rcm = ToScalar(PRFexpand_rseed(0x05 || rho))` — no
+`pre_rcm`, no 137-byte BLAKE2b, no `0x0B`. `from_parts` (`:182-187`) takes four
+args, no version. `note_encryption.rs:63` hardcodes `if plaintext[0] != 0x02 {
+return None; }` and `:172` `np[0] = 0x02;` — one `OrchardDomain` (`:84`), no
+`0x03` branch, no `IronwoodDomain`, no sealed marker pair. Crate-wide grep of
+`src/`: `NoteVersion`, `rcm_v3`, `rcm_v2`, `IronwoodDomain`, `pre_rcm` all zero
+hits. The circuit/cross-address side the guide cites *is* genuinely deployed
+(`OrchardCircuitVersion::Ironwood`, `DISABLE_CROSS_ADDRESS`), and the spec
+paraphrase (Definition `iw-derive`) correctly matches ZIP-2005 §4.7.3 /
+`protocol.tex`; only the "deployed at `bef8a27`" attribution is false.
+
+**The fix.** Re-scope the three note-format passages from DEPLOYED to
+spec/planned. Drop the "crate orchard at bef8a27 src/note.rs /
+src/note_encryption.rs" attributions at `2181-2182`, `2255-2261`, `2270-2273`
+(and the "Every Ironwood-pool output note is a recoverable note" headline
+~`2255`), or replace them with the ZIP-2005 spec citation. Keep Definition
+`iw-derive` as the (correct) spec statement it already is. State that the
+deployed `rcm()` at `bef8a27` is the legacy single-tag trapdoor
+(`note.rs:132-136`), not `rcm_v3`.
+
+---
+
+### G5 — fabricated orchard bundle/circuit version model (medium)
+
+**Volume : section.** Ironwood Guide, §`sec:iw-pools` "One circuit, one verifying
+key" — `ironwood-guide.tex:2162-2172`.
+
+**What's wrong.** The paragraph describes orchard's version model as "the pair of
+a `ValuePool {Orchard, Ironwood}` and a `ProtocolVersion {InsecureV1, V2, V3}`;
+`circuit_version()` maps V3 to `PostNu6_3` for both pools, `note_version()` maps
+Orchard to V2 and Ironwood to V3, and `permits_cross_address_transfers()` is
+false exactly for the pair `(V3, Orchard)`". None of these enums/methods exist at
+`bef8a27`. The real model: `BundleFormat {PreNu6_3, Nu6_3}` (`src/bundle.rs:89-93`);
+`OrchardCircuitVersion {InsecurePreNu6_2, FixedPostNu6_2, Ironwood}`
+(`src/circuit.rs:125-135`); `circuit_version()` returns an `OrchardCircuitVersion`
+(`Ironwood` for NU6.3, not "PostNu6_3", `src/builder.rs:1251`); the cross-address
+predicate is `OrchardCircuitVersion::supports_cross_address_restriction()`
+(`src/circuit.rs:147`) / `Flags::cross_address_enabled()` (`src/bundle.rs:283-284`).
+Crate-wide grep of `src/`: `ValuePool`, `enum ProtocolVersion`, `InsecureV1`,
+`PostNu6_3`, `note_version`, `permits_cross_address_transfers` all zero hits. The
+paragraph is internally inconsistent with the guide's own text: `:1536` correctly
+names `OrchardCircuitVersion::supports_cross_address_restriction` and `1530-1544`
+gives the real three-version model (insecure NU5 / NU6.2 correction / NU6.3
+Ironwood). Possible dedup with G2 (the `0.15.0` version-pin error) — same
+"orchard version" area, but distinct: G2 is a wrong version *number*, G5 a wholly
+fabricated enum/method *model*.
+
+**The fix.** Rewrite `2162-2172` to the deployed model — `BundleFormat
+{PreNu6_3, Nu6_3}`, `OrchardCircuitVersion {InsecurePreNu6_2, FixedPostNu6_2,
+Ironwood}`, `circuit_version()` → `Ironwood` at NU6.3, cross-address gated by
+`supports_cross_address_restriction()` / `Flags::cross_address_enabled()` —
+matching the guide's own correct `1530-1544`.
+
+---
+
+### G6 — ZSA `AssetId`-subscript citation off by ~79 lines (low)
+
+**Volume : section.** ZSA Guide, Orchard fields (the `AssetId` subscript
+convention) — `zsa-guide.tex:689-690`.
+
+**What's wrong.** The guide writes "The subscript $\mathsf{AssetId}$ may be
+omitted when clear from context (`zip-0227.rst:303--308`)." At the guide's target
+commit `69610984` (anchored `zsa-guide.tex:118`), `zip-0227.rst:303-308` is the
+OrchardZSA asset-identifier-relation *figure* block (`:303` `.. figure::
+../rendered/assets/images/zip-0227-asset-identifier-relation-orchard-zsa.png`,
+`:304-306` `:width:`/`:align:`/`:figclass:` directives, `:308` the "Diagram
+relating the Issuer identifier, asset description, asset description hash, Asset
+Identifier, Asset Digest, and Asset Base for the OrchardZSA Protocol." caption).
+The actual subscript-omission note is at `zip-0227.rst:224`: "**Note:** To keep
+notations light and concise, we may omit $\mathsf{AssetId}$ in the subscript when
+the Asset Identifier is clear from the context." (grep confirms it is the only
+such note in the file). Off by ~79 lines. Isolated: ~15 other zip-0227/0226/0230
+line citations in the same guide spot-checked correct.
+
+**The fix.** Change the citation at `zsa-guide.tex:690` from `zip-0227.rst:303--308`
+to `zip-0227.rst:224`.
+
+---
+
+## Wave 2
+
+Wave-2, 2026-07-16. Same model-diff method as Wave-0/1.
+
+Volumes touched (guide-fix bin): Ironwood. Bin totals: **2 guide-fixes** (1 high,
+1 medium). Both are Ironwood `DEPLOYED-at-bef8a27` over-attributions in the same
+class as Wave-1 G4/G5: the guide's spec paraphrase and reasoning are sound, but it
+pins v6-digest and provenance facts to orchard `bef8a27` (v0.14.0) that are not true
+at that commit. G7 continues the finding that the Ironwood NU6.3 API is unreleased
+dev on 0.14.0; G8 corrects the "version librustzcash pins" provenance (librustzcash
+actually pins the published orchard **0.15.0** crate, not `bef8a27`). Both firsthand
+re-confirmed: orchard `bef8a27` = `0.14.0-18-gbef8a27`, zero `_v6`/Ironwood
+personalization strings in `src/`; librustzcash `e30517e4` `Cargo.lock` and workspace
+`Cargo.toml` both pin `orchard = 0.15.0`.
+
+### Priority worklist
+
+| # | Sev | Volume : section | Area |
+|---|-----|------------------|------|
+| G7 | high | Ironwood : `sec:iw` "The Ironwood pool" (v6 digest ¶) | Full NU6.3 v6/Ironwood txid+auth BLAKE2b personalizations claimed DEPLOYED at orchard `bef8a27`; none exist there (introduced in 0.15.0) |
+| G8 | medium | Ironwood : `sec:iw-pools` provenance sentence | "orchard `bef8a27` … the version librustzcash pins" — librustzcash pins orchard 0.15.0; `bef8a27` is 0.14.0 |
+
+---
+
+### G7 — v6/Ironwood txid+auth personalizations claimed DEPLOYED at orchard `bef8a27`; none exist there (high)
+
+**Volume : section.** Ironwood Guide, §`sec:iw` "The Ironwood pool", the v6-digest
+paragraph — `ironwood-guide.tex:2146-2155`.
+
+**What's wrong.** The paragraph lists the full NU6.3 v6/Ironwood BLAKE2b txid+auth
+personalizations — `ZTxIdIronwd_H_v6`, `ZTxIdIrnActCH_v6`, `ZTxIdIrnActMH_v6`,
+`ZTxIdIrnActNH_v6`, `ZTxAuthIrnwdH_v6`, plus revised Sapling/Orchard-branch
+`ZTxIdSSpendNH_v6`, `ZTxAuthSapliH_v6`, `ZTxIdOrchardH_v6`, `ZTxAuthOrchaH_v6` — and
+attributes them all as "deployed in crate `orchard` at `bef8a27`,
+`bundle/commitments.rs`, and in `zcash_primitives`, `transaction/txid.rs`". At
+`bef8a27` (`git describe` = `0.14.0-18-gbef8a27`) **none** of these strings exist.
+`src/bundle/commitments.rs` there defines only five non-versioned 16-byte
+personalizations — `ZTxIdOrchardHash`, `ZTxIdOrcActCHash`, `ZTxIdOrcActMHash`,
+`ZTxIdOrcActNHash`, `ZTxAuthOrchaHash` — and `hash_bundle_txid_data(bundle, format)`
+applies no per-pool/version personalization dispatch (`format` feeds only the flags
+byte). No Ironwood txid function exists; `git grep _v6 bef8a27 -- src/` and
+`git grep 'ZTxIdIronwd\|ZTxIdIrnAct\|ZTxAuthIrnwd' bef8a27 -- src/` both return zero
+hits (re-confirmed); there is no 0.15.0 tag in the local repo. Secondary: in
+librustzcash `zcash_primitives/src/transaction/txid.rs` @ `e30517e4` only the two
+Sapling v6 personalizations are production (`ZTxIdSSpendNH_v6:44`,
+`ZTxAuthSapliH_v6:54`); the Orchard/Ironwood `_v6` strings appear only as expected
+literals in `tests.rs` (`ZTxAuthOrchaH_v6:125`, `ZTxIdOrchardH_v6:159`,
+`ZTxIdIronwd_H_v6:160`), never in production code. Same class as Wave-1 G4/G5
+(Ironwood `DEPLOYED-at-bef8a27` over-attribution), distinct passage (the v6 digest
+personalizations rather than note format / version enums).
+
+**The fix.** Re-scope the v6-digest paragraph from DEPLOYED to spec/planned: keep the
+ZIP-229 personalization list as the spec statement it is, but drop the "deployed in
+crate `orchard` at `bef8a27`, `bundle/commitments.rs`" attribution (the five strings
+there are the non-versioned `ZTxIdOrchardHash` set, not the `_v6` set), and scope the
+`zcash_primitives`/`txid.rs` cite to the two Sapling `_v6` personalizations that are
+actually production — noting the Orchard/Ironwood `_v6` strings exist there only as
+test vectors.
+
+---
+
+### G8 — "orchard `bef8a27`, the version librustzcash pins" — librustzcash pins 0.15.0 (medium)
+
+**Volume : section.** Ironwood Guide, `sec:iw-pools` provenance sentence —
+`ironwood-guide.tex:2043-2045`, echoed at `2481-2483`.
+
+**What's wrong.** The provenance sentence grounds Ironwood-pool "deployed behaviour"
+on "crate `orchard` at `bef8a27` (crates.io; the version `librustzcash` pins)", and
+`2481-2482` confirms the pin as "crate `orchard` at git commit `bef8a27e` (v0.14.0,
+2026-06-16)". But `bef8a27` is not the orchard version librustzcash `e30517e4` depends
+on: that tree's `Cargo.lock` pins `orchard` `version = "0.15.0"` from
+`registry+…crates.io` (checksum `cca2ede6…`), and its workspace `Cargo.toml` requires
+`orchard = { version = "0.15.0", … }` (both re-confirmed firsthand). Meanwhile orchard
+`bef8a27` is `version = "0.14.0"` (`git describe` = `0.14.0-18-gbef8a27`), with the
+NU6.3/Ironwood API staged in `CHANGELOG.md` `[Unreleased]`, not a release. So the git
+commit the guide cites (0.14.0 + unreleased Ironwood) and the crate librustzcash
+actually pins (published 0.15.0) are different artifacts; the parenthetical "the
+version librustzcash pins" is false. Interacts with Wave-0 G2: G2 flagged the guide's
+bare "orchard 0.15.0" citation as pointing at a release absent from the *local orchard
+repo* — this finding shows the complement, that 0.15.0 *was* published (librustzcash's
+lockfile references it with a checksum) and is the true pin, while the `bef8a27` git
+commit the guide equates with that pin is the separate unreleased 0.14.0 tree.
+
+**The fix.** Correct the parenthetical: `bef8a27` is orchard **0.14.0 + unreleased
+Ironwood dev**, *not* the version librustzcash pins (that is the published **0.15.0**
+crate on crates.io). Either cite `bef8a27` as the unreleased dev tree the guide reads
+the Ironwood code from and separately note librustzcash pins the released 0.15.0, or
+drop the "the version librustzcash pins" clause. Apply at `2043-2045` and `2481-2483`,
+and reconcile with G2's fix so the guide's orchard-version story is internally
+consistent.
+
+---
+
+## Wave 3
+
+Wave-3, 2026-07-16. Same model-diff method as Wave-0/1/2, run as the **new-axis
+pass**: deliberately aimed at surfaces no prior wave touched — Zaino's gRPC service
+backends, the FROST crates (reddsa / frost-core), and the QED-it ZSA fork's flags
+parser — instead of re-diffing Ironwood/Crosslink.
+
+Volumes touched (guide-fix bin): Sync. Bin totals: **1 guide-fix** (low), plus 5
+upstream defects (2 medium, 3 low — see the other file). The lone guide-fix is a
+Zaino `DEPLOYED-at-0e057e22` over-attribution in the same class as Wave-1/2's orchard
+`bef8a27` errors: the Sync Guide's wire/divergence reasoning is sound, but it credits
+deployed Zaino with a `protoVersion` value that lives only in dead code. One- to
+three-line edit; the surrounding text already states the correct wire facts.
+
+### Priority worklist
+
+| # | Sev | Volume : section | Area |
+|---|-----|------------------|------|
+| G9 | low | Sync : `sec:sync-compact-wire` / `sec:sync-compact-divergences` | "Zaino sets `protoVersion` to 1 (`block.rs:218`)" — deployed Zaino serves `proto_version: 0` on every path; the `=1` literal is unreachable dead code |
+
+---
+
+### G9 — "Zaino sets protoVersion to 1" credits a dead-code literal as deployed behaviour (low)
+
+**Volume : section.** Sync Guide, `sec:sync-compact-wire` — the "three deployed
+behaviours" list, `sync-guide.tex:270-273` — echoed in `sec:sync-compact-divergences`
+at `:713-714` and `:731-733`. The guide pins Zaino `0e057e22` at `:206` and `:842`.
+
+**What's wrong.** The guide lists as one of "three deployed behaviours" for
+`protoVersion` that "`Zaino` sets it to~1 (`zaino-fetch`, `src/chain/block.rs`,
+line~218)" (`:272-273`), and the divergences section repeats "`Zaino` sets~1"
+(`:713-714`) and concludes "`Zaino` still sets a field the canonical proto reserves"
+(`:731-733`) — all framed as deployed-server behaviour. At the pinned commit
+`0e057e22`, every compact-block *serving* path emits `proto_version: 0`. The
+`proto_version: 1` at `block.rs:218` sits inside `FullBlock::into_compact_block` (def
+`:186`), whose only caller (`git grep -nw into_compact_block` → def + one hit) is
+`block.rs:177`, a `format!(…)` debug string in the `ParseError::InvalidData` branch of
+`parse_from_hex` — the CompactBlock it builds is `Debug`-formatted into an error
+message and dropped, never serialized. No serving path and no test call it. Every
+serving builder emits `0`: `IndexedBlock::to_compact_block` (`legacy.rs:1113`),
+finalized-V1 `get_compact_block` (`compact_block.rs:285`), and `get_compact_block_stream`
+(`compact_block.rs:1201`); both gRPC-facing backends route through `chain_index`
+(`fetch.rs:965`; `NodeBackedChainIndexSubscriber::get_compact_block`,
+`chain_index.rs:1711-1752`) to exactly those three. `git grep -n proto_version` over
+all of zaino returns only these CompactBlock literals, and `block.rs:218` is the sole
+non-zero one — the dead one. Because the vendored proto declares a plain proto3 scalar
+`uint32 protoVersion = 1;` (`compact_formats.proto:28`; generated `pub proto_version:
+u32`), the served `0` is omitted on the wire — byte-indistinguishable from
+lightwalletd's unset field.
+
+**The fix.** Two edits. (1) In `sec:sync-compact-wire`, drop Zaino from the "sets it
+to~1" branch: deployed Zaino serves `proto_version: 0` on every path
+(`compact_block.rs:285`, `legacy.rs:1113`); mention `block.rs:218`'s `=1` only as
+unreachable dead code (a `Debug` string in a parse-error branch) if at all. The list
+then has two on-wire behaviours — lightwalletd's absent field and Zaino's `0` — which
+for a proto3 scalar serialize identically. (2) In `sec:sync-compact-divergences`,
+correct "`Zaino` sets~1" (`:713-714`) to "Zaino serves 0 (byte-identical to
+lightwalletd's unset field)", and delete the clause "`Zaino` still sets a field the
+canonical proto reserves" (`:731-733`) — false at the pin, since serving `0` is
+wire-indistinguishable from not setting it. The vendored-changelog-skew observation in
+the same bullet (`:729-732`) is independent and stands.
+
+## Wave 4
+
+Wave-4, 2026-07-16. The **bounded zaino-backend final probe** — the agreed last
+probe of the audit, tightly scoped to the `zaino-state` gRPC service backends
+(`StateService` vs `FetchService`, at zaino `0e057e22`) and their shared helpers,
+model-diffed against lightwalletd `61fee32`. Same method as Wave-0/1/2/3.
+
+**Guide-fix bin: empty (0).** No Sync/Ironwood/ZSA/Crosslink/FROST guide passage is
+implicated by this probe — the whole yield is upstream code behaviour, not guide
+text. All findings are recorded in `upstream-defects.md` §Wave-4 (entries 45-57).
+
+Upstream yield (see the other file): **15 raw findings → 13 distinct** after dropping
+two exact duplicates (`get_transaction` mempool-height twice → #48; `get_block`
+unknown-hash status twice → #49). Of the 13, **12 are genuine zaino behavioural
+roots** and **one (#57) is a latent lightwalletd-only bug with no zaino defect**.
+Severity spread of the 12 zaino roots: **4 medium, 8 low — no high**. Folding the two
+shared-cause pairs (unspecified-`BlockId`→`Height(0)` across `get_block` #50 /
+`get_tree_state` #51; the two `get_taddress_txids_helper` range bugs #46 / #53) leaves
+~10 independent root causes. The four mediums are `get_block_range` silent-empty
+during sync (#45), the taddr-range clamp/swap rewrite (#46), FetchService
+`get_mempool_tx` dropping the `pool_types` filter (#47), and the `get_transaction`
+mempool-height State-vs-Fetch split (#48).
+
+### STOP verdict — AUDIT CONVERGED
+
+The probe's hard gate was: ≤1 non-cosmetic root → declare converged; ≥2 → a Wave-5
+confined to the remaining zaino methods is *defensible* (the density shows the zaino
+gRPC backend layer is systematically under-tested), but default to STOP unless the
+roots are HIGH severity.
+
+This probe returned **~10-12 non-cosmetic roots, ceiling MEDIUM, zero HIGH**. So the
+gate resolves to **STOP**. The finding density does confirm the zaino backend surface
+is under-tested and a bounded Wave-5 on the untouched zaino methods would be
+defensible — but no root is high-severity, and per the June lesson we do not continue
+on momentum. **The entire audit is declared CONVERGED and CLOSED at Wave 4.** No
+Wave-5 is proposed. Remaining action is owner review of the DRAFT entries (11-57)
+before any upstream filing.
+
+## Overhaul wave (deep per-volume grid), 2026-07-29
+
+Method: per-volume finder grid (two lenses: recompute / conform, half-file
+splits) -> paired default-refute juries (2 per candidate batch, both must
+confirm) -> per-volume third-layer re-verification emitting byte-exact edits.
+Ground truth: zips `69610984`, orchard `bef8a27`, librustzcash `e30517e433`
+(pczt 0.7.0 / orchard 0.15.0 / zip321 0.8.0 per Cargo.lock), tfl-book
+`fe6e1d6`, zebra-crosslink `6d02a1b`, arXiv:2009.04987v3 (fetched), NIST SP
+800-38G (published version).
+
+Coverage this wave: math-guide (full), crypto-guide (full), wallet-guide
+(part b: PCZT / lifecycle / ZIP-321), crosslink-guide (full). NOT covered
+(finders starved; residual work): ironwood, sync, zsa, tachyon, frost,
+flyclient, voting, halo2, halo2-intuition, wallet part a, cross-volume
+sweeps. consensus-guide excluded (had its own 7-reviewer verify at ship).
+
+Result: 76 deduped candidates -> 71 confirmed by both jurors, 4 refuted,
+1 split (Pedersen H = identity, measure-zero; dropped). Applied as 67 edits
+(dedup of repeated-root findings). Root causes, largest first:
+
+- **Wallet PCZT staleness (15 findings).** The section documented pczt
+  0.5.1 as deployed; the workspace ships pczt 0.7.0 (v1 only) and
+  carries v2 (Ironwood bundle, empty-bundle omission, non-negative-zero
+  value_sum) as unreleased 0.8.0-PLANNED changes at the workspace head,
+  plus orchard 0.15.0, sapling-crypto 0.7.0, zip321 0.8.0. The
+  "specified-not-deployed" / "version skew" / "negative-zero divergence"
+  claims were true at drafting and are now stale: upstream landed the
+  fixes at head, with v2 unreleased. Section re-grounded at the new
+  baseline.
+- **Pasta magnitude (5 sites, crypto + math).** Fields stated as
+  "~2^255"; the moduli are 2^254 + eps (255-bit primes, sqrt q ~ 2^127).
+- **Accumulation misattribution (4 sites, crypto).** Deployed Orchard
+  verification amortises by plain batch verification (one merged MSM),
+  not by Halo accumulation/recursion.
+- **Diversified base (3 sites, crypto).** Note-encryption key agreement
+  runs over the per-address base g_d, not a fixed generator; DerivePublic
+  takes a base argument.
+- **Commit^ivk (2 sites, crypto).** It is SinsemillaShortCommit
+  (ExtractP composed with SinsemillaCommit), base-field-valued.
+- **Crosslink proof-status overstatements (4 findings).** The Final
+  Agreement branch has no correct written proof (the book pastes the
+  Prefix Agreement proof verbatim); intro and finality-status sections
+  now match the volume's own remark. Plus citation and verbatim-quote
+  repairs (Pi_lc, Fig. 5 caption vs body, five-epoch citation, reward
+  slices dimensional fix, RPC placeholder count).
+- 12 further localized fixes (ChaCha counter convention, FF1 minimum
+  domain per published SP 800-38G, prefix-freeness scoped to idiom (a),
+  Lagrange identity n >= 2 hypothesis, expiry-0 polling semantics,
+  tx_modifiable bit provenance, zip321 release history, ZIP-315 title).
+
+Upstream candidates (11, UNVERIFIED, in
+`.wip/overhaul-findings-banked.json`): not filed; user reviews firsthand
+per standing rule.
+
+## Residual wave (grid completion), 2026-08-18
+
+Completes the overhaul: 31 finders over the nine previously unaudited
+volumes, wallet part a, both cross-volume sweeps, and a landing check on the
+first wave's 67 edits. Pipeline as before: bounded finders -> paired
+default-refute juries (26 jurors, all pairs complete) -> per-volume
+third-layer re-verification emitting byte-exact edits. Ground truth: zips
+`69610984`; librustzcash `e30517e433` (pczt 0.7.0 released = v1 only, v2 in
+0.8.0-PLANNED; orchard 0.15.0 released; zip321 0.8.0); zebra `fa7657f1c`
+(NU6.3 Mainnet 3,428,143 shipped in 6.2.2); zips-zsa `fd71419`; orchard-zsa
+`cf801a5`; tachyon book `26fdcl65`/ragu `830bbcda`; voting pins per volume.
+
+Result: 153 deduped candidates -> 148 confirmed by both jurors, 5 split
+(all dropped on review: two truncated-title style calls matching corpus
+practice; one refuted firsthand -- ZIP-316 does state the 0x2000000 MUST
+bound, zip-0316.rst:435; two wallet part-a "drift" findings whose citations
+are exact at the pin part a declares, 62ee526), 0 rejected. Applied as 205
+edit sites across 12 volumes + this file. Root clusters:
+
+- **Ironwood NU6.3 staleness (activation + v6 + note-version, ~12
+  findings).** Mainnet activation height 3,428,143 shipped in Zebra 6.2.x
+  (due late July 2026 by schedule); the released orchard 0.15.0 carries the
+  full v6 digest machinery, versioned notes (NoteVersion), and the ZIP-2005
+  rcm dispatch that the volume described as specified-but-undeployed at the
+  bef8a27 dev tree. Re-grounded; bef8a27 kept as history.
+- **Sync zcashd recast (~10 findings).** Present-tense
+  zcashd-as-running claims recast historically; post-NU6.3 the retired
+  zcashd would compute divergent chain-history roots.
+- **Wallet part a (~30 findings).** Version-pin and API staleness
+  (sapling-crypto 0.6.0 -> 0.7.0 cites, Orchard Guide -> Ironwood Guide
+  renames, zip321 API forms), aligned with part b's baseline.
+- **FlyClient bagging order (medium).** ZIP-221 bags peaks
+  left-fold-leftmost, the opposite of the paper's implicit right fold;
+  "costs and proofs identical across all three presentations" was false
+  for three or more peaks. Also the difficulty-direction inversion
+  ("raising the target" vs the paper's raising the difficulty) and a
+  registered inconsistency in the paper's own Table 1 (the 1,275x cell).
+- **Layering repairs (crypto).** The birthday bound and the
+  statistical-distance theorem were re-proved in crypto-guide; proofs
+  replaced by citations to the Math Guide per the proved-once rule.
+- **First-wave register correction (from the edit check).** The wave-1
+  entry overstated "pczt 0.7.0 implements v1 AND v2"; v2 sits in
+  0.8.0-PLANNED at the workspace head. Corrected above in place.
+- Remainder: per-volume citation, quantitative, and internal-consistency
+  repairs across zsa (20), tachyon (10), halo2 (9), frost (5), voting (2),
+  halo2-intuition (3), math (2), crypto (7).
+
+Residual register: wallet part a remains pinned at 62ee526 while part b is
+at e30517e433 (citations exact at each declared pin; a future re-pin pass
+would unify). Upstream candidates now 47 total (11 + 36), UNVERIFIED, in
+`.wip/overhaul-findings-banked.json` and `.wip/residual-upstream.json`;
+user reviews firsthand per standing rule. With this wave the overhaul
+covers every volume, both cross-volume sweeps, and an edit-landing check;
+the campaign's guide-fix track is CLOSED.
+
+## Undefined-terms wave (2026-08-29)
+
+New binding rule (CONVENTIONS.org, Register): no undefined terms —
+define before first use, cite the lower volume that does, or omit the
+name and state the substance. Trigger: the probability section's
+sigma-algebra name-drop (fixed same day).
+
+Method: 15 per-volume finders (candidates to
+`.wip/undefined-terms/findings/`), paired default-refute jurors in
+batches of 10 (both-keep = confirmed), 15 per-volume apply-preps
+emitting byte-exact edits (`.wip/undefined-terms/edits/`). 188
+candidates, 94 confirmed, 93 edits applied (one finding produced no
+edit). Seven prep edits corrected before apply: five nonstandard
+`\S\,` citation shapes in halo2-intuition (two pointing at nonexistent
+titles, retargeted to "The Pedersen commitment" and real titles), one
+new Heartwood activation height (dropped per the same-day no-heights
+rule), one Canopy date. Orphan check: removed first-use name-drops of
+PLONKish and semantic security leave the later defining occurrences as
+first use; BFT/ECB/CTR were single-use and are gone. Full-series gate:
+15/15 compile, zero overfull, zero unresolved refs (crypto's 8 log hits
+are pre-existing `TU/lmr/m/scit` font-shape warnings, count unchanged
+from HEAD).
+
+## Rewrite pilot: ironwood-guide (2026-09-02)
+
+First volume of the from-scratch rewrite campaign (plan of record:
+`.wip/rewrite/PLAN.md`; baseline tag `pre-rewrite`). Method: 246-claim
+audited inventory as the spec → judged lifecycle-led architecture
+(claim-map an exact partition: 241 mapped, 5 duplicate/superseded drops)
+→ six-wave draft with compute-scripted numbers → full battery: 28
+coverage jurors (union-of-pair recall), seam/number/citation agents, two
+concept-inversion hunters with paired default-refute confirmation.
+Battery yield: 86 coverage repairs applied, 35 flags rejected with
+reasons, 12 seams and 6 number findings fixed, 8 confirmed inversions
+surgically corrected (inverted Merkle layer tag + propagations, false
+x-coordinate collision bridge, OR-as-AND unlinkability assumption,
+Sinsemilla CR theorem/proof scope mismatch, broken discharge promise,
+misattributed watermark soundness ×2, Poseidon/QROM discharge mismatch)
+and re-verified by two independent agents against ground truth, zero
+failures. Swapped in gate-clean (51 pp, 0 overfull, 0 unresolved, 0
+zcashd, no activation heights). Rewrite text never mentions zcashd per
+the standing rule.
+
+## Rewrite: math-guide (2026-09-02)
+
+Second volume of the campaign. 457-claim inventory (145 theorems with
+proof ideas) → dependency-led architecture, both judges, with
+problem-hook openings grafted; 457/457 mapped, 0 drops; the 12 section
+titles other volumes cite preserved verbatim (citable surface). Draft:
+scripts-first (all 22 worked numbers regenerated, plus a new
+Euler-criterion proof that 13 is a non-square in both Pasta fields),
+then eight dependency waves. Battery: 22 coverage jurors, seam/number
+agents, statement-correctness hunter (all candidates refuted), and a
+proof-validity hunt that needed sharding per section after twice
+exceeding the output cap monolithically — 24 candidates, 17
+refuter-confirmed proof defects, among them a false order-3 argument
+(counterexample y^2 = x^3 + 4 over F_7), an unproved two-torsion
+trichotomy, wrong Tonelli–Shanks failure detection, a splitting-field
+existence circularity, a UFD-uniqueness induction gap, missing
+generalized associativity, Wald-identity interchange gaps, and two
+overclaimed complexity bounds. All 33 surgical findings repaired to
+mathematical validity and re-verified by two independent agents, zero
+failures; 32 coverage repairs, 49 flags rejected with reasons. Swapped
+in gate-clean: 120 pp (grew from 91 by carrying full proofs;
+subject-driven, no length targets), 0 overfull, 0 unresolved. The
+architecture's eight planned figures remain a logged follow-up pass.
+
+## Fresh whole-corpus audit (2026-09-03)
+
+This pass restarted from the 15 published source volumes and treated the
+earlier claim-ledger work as evidence to recheck, not as a substitute for a
+fresh gate.  Time-sensitive protocol statements were differentially checked
+against current primary trees: `zips` `dd1667ff` (2026-09-01),
+`librustzcash` `bb1ca12`, `orchard` `be4f659`, and `zebra` `0881709`.
+Pinned historical and frontier claims remain explicitly pinned.
+
+Two substantive drift defects were found and corrected.  ZIP-258 now records
+both activation heights and minimum network protocol version 170160, so the
+claim that those fields were still undetermined was removed.  ZIP-318 is now a
+Draft wallet specification rather than a Reserved stub; the Ironwood volume
+now states its canonical denominations and residual, transaction shapes,
+anchor/expiry grids, scheduling, consent, and optional network-privacy rules.
+A separate integration defect affected prose citations after the Ironwood
+rewrite: dependent volumes still named headings from the replaced edition.
+Those citations were retargeted to the exact current citable surface.
+
+Three independent closing checks passed:
+
+1. **Source and claim invariants.**  All 15 volumes contain one abstract;
+   1,697 labels and 2,658 local references resolve without duplicates or
+   missing targets.  The generated complete edition contains the same 1,697
+   prefixed labels and 2,661 resolving references.  A separate title-level
+   check found 1,972 citable headings and verified all 272 cross-volume prose
+   citations.  Every explicit ZIP status assertion was checked against the
+   current ZIP headers.  All 31 retained numerical verification programs
+   passed, including exact recomputation of all 250 cells in each of the two
+   consensus tables.
+2. **PDF gate.**  Tectonic rebuilt all 15 standalone volumes and the complete
+   edition.  All 16 logs are free of errors, undefined references, duplicate
+   destinations, missing glyphs, and overfull boxes.  Text extraction found no
+   unresolved `??` markers; all fonts in all 16 PDFs are embedded, subset, and
+   Unicode-mapped.
+3. **Web gate.**  The site-generator regression suite passed.  It produced 16
+   web sources with no residual TikZ or PDF-only font preambles; every
+   generated label and reference resolves.  The generated-site controls,
+   complete-edition structure, theorem/proof postprocessing, local MathJax,
+   theme selector, landing links, and feedback links all passed their
+   assertions.
+
+Result: no remaining published-corpus correctness defect was found by the
+closing gates.  Literal TODO/FIXME text that remains in the rendered volumes is
+quoted evidence of known incompleteness in upstream drafts or implementations,
+not unfinished Arboretum prose.
+
+## Active-corpus rebuild and independent audit (2026-09-05)
+
+This pass restarted from the rewritten sources and fixed the publication scope
+at eleven volumes: Math, Crypto, Halo 2, Consensus, Ironwood, Wallet, Sync,
+FlyClient, ZSA, Crosslink, and FROST.  PQ, Tachyon, and Voting remain in the
+repository as research snapshots, but are excluded from the website,
+concordance, and complete edition.  FlyClient is classified as a frontier
+design: its chain-history commitment is deployed, but the proof-serving and
+sampling bridge is not.
+
+Every active volume received a fresh claim-level review, followed by
+independent adversarial passes over the frontier material and a separate
+whole-series integration review.  Current protocol claims were checked against
+primary specifications, ZIPs (including `zcash/zips` at `e753a6a3`), and the
+named implementation snapshots.  The resulting corrections include
+probability-model boundaries and consensus implementation divergences; a
+replacement of FlyClient's invalid Poisson stopping-time argument by the exact
+negative-binomial MGF and Chernoff bound; ZSA issuance, split-note, carrier, and
+status corrections; Crosslink model, proof, staking, finality, and deployment
+corrections; and FROST RFC-status, protocol, domain-separation, and printed
+reduction corrections.  Cross-volume dependency declarations and cited
+heading names were then reconciled with the rewritten volumes.
+
+Three closing checks passed:
+
+1. **Source and claim gate.**  The eleven standalone sources each have exactly
+   one abstract.  All 1,595 labels are unique and all 2,529 local references
+   resolve; the generated eleven-part complete source has the same counts and
+   no missing target.  The integration pass verified all 29 lower-volume
+   dependency edges and 217 quoted cross-volume titles, with no undeclared,
+   upward, or parked-volume edge.  All 30 retained numerical verification
+   programs passed; the consensus closed and direct forms agree within
+   `3.331e-16`, and both 250-cell paper tables reproduce with zero mismatch.
+2. **PDF gate.**  Tectonic rebuilt all fourteen retained standalone guides and
+   the 586-page complete edition out of tree.  All fifteen logs are free of
+   errors, unresolved references, duplicate destinations, missing glyphs,
+   underfull boxes, and overfull boxes.  Ghostscript accepted every PDF;
+   extracted text contains no unresolved marker or raw reference macro; every
+   font is embedded, subset, and Unicode-mapped.
+3. **Web gate.**  The generator regression suite passed and produced exactly
+   twelve web sources: the eleven active volumes and the complete edition.
+   They contain no residual TikZ, PDF-only font preamble, or unexpanded
+   reference glue.  All ten active figures were regenerated without page
+   furniture; the thirty section references inside the two reference-bearing
+   figures resolve to their final numbers.  The landing roster, concordance,
+   complete-edition order, status groups, PDF links, theme controls, theorem
+   permalinks, proof endings, and mobile math-overflow controls pass their
+   assertions.
+
+The remaining uncertainty is upstream and is labelled where it occurs rather
+than converted into an assurance: the FlyClient paper leaves proof obligations
+and the Zcash bridge open; the ZSA carrier and parts of its design are not
+settled; Crosslink has no normative deployment specification and its source
+proofs do not all establish their printed claims; and the examined
+re-randomised-FROST preprint has material reduction gaps.  A case-insensitive
+raw-content and path exclusion sweep, including hidden and ignored generated
+files but excluding version-control object storage, found zero hits.  No
+remaining Arboretum defect was found by the three closing gates.

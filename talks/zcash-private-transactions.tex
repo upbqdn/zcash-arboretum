@@ -1,3 +1,8 @@
+%% Talk: "How Zcash Hides a Transaction — and what the zero-knowledge proofs
+%% actually prove". ~40–45 min, technical audience, no ZK background assumed.
+%% All formulas sourced from the Arboretum volumes via .wip/talk-notes/ (s1–s6,
+%% citation-anchored, extracted 2026-07-19 at commit 537e184).
+%% Compile: tectonic -Z shell-escape talks/zcash-private-transactions.tex
 \documentclass[aspectratio=169,11pt]{beamer}
 \usetheme{default}
 \setbeamertemplate{navigation symbols}{}
@@ -7,6 +12,8 @@
 \renewcommand{\appendixname}{Appendix}
 \usepackage{amsmath,amssymb,mathtools}
 \usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
 
 \definecolor{arb}{RGB}{27,94,52}
 \definecolor{arbred}{RGB}{150,40,40}
@@ -16,6 +23,12 @@
 \setbeamercolor{alerted text}{fg=arbred}
 
 \newcommand{\F}{\mathbb{F}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\Ep}{\ensuremath{\mathcal{E}}}
+\newcommand{\Pallas}{\ensuremath{\mathsf{Pallas}}}
+\newcommand{\Vesta}{\ensuremath{\mathsf{Vesta}}}
+\newcommand{\Fpp}{\ensuremath{\F_{p_{\Pallas}}}}
+\newcommand{\Fpv}{\ensuremath{\F_{p_{\Vesta}}}}
 \newcommand{\nfsym}{\ensuremath{\mathsf{nf}}}
 \newcommand{\cmsym}{\ensuremath{\mathsf{cm}}}
 \newcommand{\cmx}{\ensuremath{\mathsf{cmx}}}
@@ -27,554 +40,1059 @@
 \newcommand{\nksym}{\ensuremath{\mathsf{nk}}}
 \newcommand{\asksym}{\ensuremath{\mathsf{ask}}}
 \newcommand{\ivk}{\ensuremath{\mathsf{ivk}}}
+\newcommand{\fvk}{\ensuremath{\mathsf{fvk}}}
+\newcommand{\ovk}{\ensuremath{\mathsf{ovk}}}
+\newcommand{\dk}{\ensuremath{\mathsf{dk}}}
 \newcommand{\rcm}{\ensuremath{\mathsf{rcm}}}
 \newcommand{\rcv}{\ensuremath{\mathsf{rcv}}}
+\newcommand{\rivk}{\ensuremath{\mathsf{r_{ivk}}}}
 \newcommand{\rsk}{\ensuremath{\mathsf{rsk}}}
 \newcommand{\esk}{\ensuremath{\mathsf{esk}}}
 \newcommand{\epk}{\ensuremath{\mathsf{epk}}}
+\newcommand{\Extract}{\ensuremath{\mathsf{Extract}}}
 \newcommand{\NoteCommit}{\ensuremath{\mathsf{NoteCommit}}}
+\newcommand{\GroupHash}{\ensuremath{\mathsf{GroupHash}}}
+\newcommand{\CommitIvk}{\ensuremath{\mathsf{Commit}^{\mathsf{ivk}}}}
+\newcommand{\Comm}{\ensuremath{\mathsf{Commit}}}
+\newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
 
-\title{A Private Zcash Payment, End to End}
-\subtitle{What is constructed, what is proved, and what the ledger checks}
+\newcommand{\divider}[1]{\begin{frame}[plain]\vfill\centering
+  {\usebeamercolor[fg]{structure}\Huge #1}\vfill\end{frame}}
+\newcommand{\prevents}[1]{{\small\alert{Prevents:} #1}}
+
+\title{How Zcash Hides a Transaction}
+\subtitle{and what the zero-knowledge proofs actually prove}
 \author{m@rek.onl}
 \date{}
-\newcommand{\source}[1]{\par\smallskip{\scriptsize\color{arbdim}#1}}
+
 \begin{document}
 
 \begin{frame}[plain]
 \titlepage
 \end{frame}
 
-\begin{frame}{One payment, in indivisible units}
-The \emph{ledger} is the accepted record of value transfers.
-A \emph{transaction} proposes a change to that record.
-One \emph{zatoshi} is $10^{-8}$ ZEC; amounts are integers.
-\[
- \underbrace{80{,}000}_{\text{existing value}}
- =
- \underbrace{50{,}000}_{\text{payment}}
- +\underbrace{20{,}000}_{\text{change}}
- +\underbrace{10{,}000}_{\text{fee}}.
-\]
+%% ---------------------------------------------------------------- Part I
+
+\begin{frame}{What a transparent ledger publishes}
 \begin{itemize}
-\item A \emph{note} privately describes an amount and receiving capability.
-\item \emph{Change} is an output returned to the sender.
-\item The \emph{fee} is publicly accounted value available to the
-  producer who includes the transaction.
+  \item A transparent ledger (Bitcoin, Zcash's transparent pool) records, for
+    every output, \emph{its spending conditions and its amount}; spending
+    publicly links it to the outputs of another transaction.
+  \item Identifying the people behind addresses needs further information.
+  \item That is enough raw material for address clustering, amount tracing,
+    and the full transaction graph.
 \end{itemize}
-Create two new notes without publicly identifying the old note.
-This is checked payment arithmetic, not a generated transaction.
-\end{frame}
-
-\begin{frame}{A private note needs a public representative}
-A \emph{commitment} conceals a message while binding its creator
-to that message, under the construction's security assumptions.
-The message and randomness together are its \emph{opening}.
-\[
- \cmsym=\NoteCommit(\text{receiver, value, creation data};\rcm).
-\]
-Here $\rcm$ is fresh commitment randomness. The ledger stores a
-public value $\cmx$ derived from $\cmsym$, not the private note.
-
-\medskip
-A \emph{hash} maps data to a fixed-size summary, called a \emph{digest}.
-Finding different inputs with the same digest is assumed infeasible
-for the hashes used here.
-
-\medskip
-A hash is not automatically a hiding commitment: hashing a
-small predictable amount would permit guessing it.
-\end{frame}
-
-\begin{frame}{Prove existence without revealing the position}
-A \emph{hash tree} repeatedly hashes pairs of child values.
-Its top value, the \emph{root}, commits to the leaves below it.
-New note commitments are appended as leaves.
-
-\medskip
-A \emph{membership witness} contains the leaf position and the
-sibling hashes needed to recompute the root. More generally, a
-\emph{witness} is private data supporting a public claim.
-\[
- \text{private old commitment}
- \longrightarrow \text{private path}
- \longrightarrow \text{public anchor}.
-\]
-An \emph{anchor} is an eligible earlier root.
-A \emph{proof} lets a verifier check a claim about a witness;
-the proof system used here is designed not to reveal that witness.
-
-\medskip
-Each \emph{shielded pool} maintains its own note tree, spent-tag set
-and public aggregate balance.
-\end{frame}
-
-\begin{frame}{Prevent a second spend without removing a leaf}
-Removing the old commitment would identify the spent note.
-Instead, publish a \emph{nullifier}: its deterministic spend tag.
-\[
- \nfsym=\mathsf{Nullifier}(\nksym,\text{old note}).
-\]
-The function uses a private nullifier key $\nksym$ and the note's
-committed creation data.
-\begin{itemize}
-\item The same note and key give the same tag.
-\item The proof connects the tag to the privately identified note.
-\item The ledger rejects a repeated tag within that pool.
-\end{itemize}
-The tag is designed not to reveal which commitment was spent.
-The tree keeps its old leaf; the ledger adds a spent tag.
-
-\source{Functional interfaces here use the security assumptions;
-the companion books specify the complete relations and exceptional cases.}
-\end{frame}
-
-\begin{frame}{Receiving, viewing and spending are different permissions}
-A \emph{signature} is an approval of a message made with a secret
-signing key and checked using its public verification key.
+\bigskip
 \begin{center}
-\begin{tabular}{p{0.29\linewidth}p{0.60\linewidth}}
+\emph{A shielded payment must achieve the same effects --- transfer of value,
+prevention of double-spending, conservation of supply --- \\ without disclosing
+the individual notes, their recipients, or their hidden amounts.}
+\end{center}
+\end{frame}
+
+\begin{frame}{Four requirements, four mechanisms \hfill\normalsize(the talk's roadmap)}
+\begin{enumerate}
+  \item Represent value hidden yet provable
+    \hfill $\rightarrow$ notes + note commitments
+  \item Prove possession of a committed note without identifying which
+    \hfill $\rightarrow$ the commitment tree
+  \item Prevent double-spending without identifying the spent notes
+    \hfill $\rightarrow$ nullifiers
+  \item Prove no value created without revealing amounts
+    \hfill $\rightarrow$ value commitments + binding signature
+\end{enumerate}
+\bigskip
+One zero-knowledge proof per bundle binds the per-Action facts together.
+Signatures, public balance checks, and the node's nullifier set complete
+the guarantees.
+\end{frame}
+
+\divider{The data model}
+
+\begin{frame}{A note}
+\[
+\mathbf{n} := (\mathsf{addr},\ v,\ \rho,\ \psi,\ \rcm)
+\]
+\begin{itemize}
+  \item Address $\mathsf{addr} = (d, \pkd)$ --- an 88-bit diversifier and a
+    transmission key; value $v \in \{0,\dots,2^{64}{-}1\}$ zatoshi.
+  \item The uniqueness seed $\rho \in \Fpp$ is public: it is the paired
+    spend's nullifier. The secret $\psi \in \Fpp$ helps mask the eventual
+    nullifier; $\rcm \in \Fpv$ is the commitment trapdoor.
+  \item All three are bound into the note commitment.
+\end{itemize}
+\bigskip
+\alert{The note itself never touches the chain.}
+\end{frame}
+
+\begin{frame}{The chain stores a sealed envelope}
+\[
+\cmsym := \NoteCommit_{\rcm}\bigl(\gd^\star \,\|\, \pkd^\star \,\|\,
+  \mathrm{LE}_{64}(v) \,\|\, \mathrm{LE}_{255}(\rho) \,\|\,
+  \mathrm{LE}_{255}(\psi)\bigr) \in \Ep(\Fpp)
+\]
+\smallskip
+\begin{itemize}
+  \item The commitment field is $\cmx := \Extract(\cmsym)$, the
+    $x$-coordinate; ciphertexts and other Action fields are also public.
+  \item With an independent uniform blinder, the commitment is
+    \emph{perfectly hiding}. Actual seed-derived blinders and ciphertexts
+    require their own security assumptions.
+  \item \emph{Computationally binding}: reopening one commitment as two notes
+    yields a discrete-log solver under the binding reduction. No nontrivial
+    commitment scheme is both perfectly hiding and perfectly binding.
+  \item The hash is Sinsemilla, chosen for \emph{in-circuit} cost: one table
+    lookup per 10-bit chunk --- because the spender must recompute
+    $\cmsym$ inside the proof.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{One tree hides them all}
+\vspace*{-3pt}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\begin{itemize}
+  \item Each pool appends every $\cmx$ in creation order to its own
+    Merkle tree of fixed depth 32.
+  \item Each block's final root is an \emph{anchor}.
+  \item The private path hides the leaf among those under that anchor;
+    external information may narrow this set.
+  \item Anchors have no age limit; their blocks must remain on the main
+    chain. Nullifiers prevent double-spends.
+  \item Recent anchors offer larger trees; unusual choices can fingerprint
+    wallets.
+\end{itemize}
+\end{column}
+\begin{column}{0.41\textwidth}
+\centering
+\begin{tikzpicture}[scale=0.93,transform shape,every node/.style={font=\scriptsize},level distance=7mm,
+  level 1/.style={sibling distance=27mm},
+  level 2/.style={sibling distance=13.5mm},
+  level 3/.style={sibling distance=6.8mm}]
+\node[draw,rounded corners,fill=arb!15] (rt) {anchor}
+  child {node[draw,circle,inner sep=1.5pt,fill=arb!15] {}
+    child {node[draw,circle,inner sep=1.5pt] {}
+      child {node[draw] {\cmx} }
+      child {node[draw] {\cmx} }}
+    child {node[draw,circle,inner sep=1.5pt,fill=arb!15] {}
+      child {node[draw,fill=arb!30] {\cmx} }
+      child {node[draw] {\cmx} }}}
+  child {node[draw,circle,inner sep=1.5pt] {}
+    child {node[draw,circle,inner sep=1.5pt] {}
+      child {node[draw] {\cmx} }
+      child {node[draw] {\cmx} }}
+    child {node[draw,circle,inner sep=1.5pt] {}
+      child {node[draw] {\cmx} }
+      child {node[draw,dashed] {$\varnothing$} }}};
+\end{tikzpicture}
+\par
+{\scriptsize private path, public root}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{The nullifier: a one-time serial number}
+\[
+\nfsym := \Extract\bigl(\,[\,F_{\nksym}(\rho) + \psi\,]\,G^{\mathsf{nf}}
+  + \cmsym\,\bigr) \in \Fpp
+\]
+{\small with $F_{\nksym}(\rho) = \mathsf{PoseidonHash}(\nksym, \rho)$ and
+$G^{\mathsf{nf}}$ a nothing-up-my-sleeve generator.}
+\begin{itemize}
+  \item Two requirements that pull in opposite directions:
+  \item \emph{Deterministic for a given note} --- every ingredient is fixed once
+    the note exists, so spending twice yields the same \nfsym{} twice, and the
+    network rejects the second.
+  \item \emph{Unlinkable without the nullifier key} --- under the Poseidon
+    PRF assumption, or DDH with the output-range condition stated in the
+    Orchard Book. A full viewing key can recognise spends.
+  \item Chained uniqueness: each new note is created with
+    $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$, so nullifier uniqueness on
+    chain forces $\rho$-uniqueness within that pool (Faerie resistance).
+  \item The nullifier key \nksym{} is deliberately not the spend key: viewing
+    can be delegated without spending.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The mental model: spend = prove membership + reveal serial}
+\[
+\mathcal{R}_{\mathsf{mem}} = \bigl\{\, (\,\underbrace{\mathsf{rt}}_{\text{public}};\
+  \underbrace{(v,\ i,\ \pi)}_{\text{private}}\,) \ :\
+  \mathsf{Verify}(\mathsf{rt}, i, v, \pi) = \mathsf{accept} \,\bigr\}
+\]
+\begin{enumerate}
+  \item Locate your leaf, its path, its position in the public tree.
+  \item Choose a recent anchor that contains it.
+  \item Prove in zero knowledge: membership under the anchor, note
+    well-formedness, correct nullifier derivation.
+  \item Publish the proof and the nullifier --- \emph{but neither the leaf,
+    nor its position, nor the path}.
+\end{enumerate}
+\bigskip
+The root must be public --- everyone verifies against agreed state. \\
+The path must be private --- nobody links the spend to a leaf.
+\end{frame}
+
+\begin{frame}{Anatomy of an Action}
+Every Action spends \emph{one} old note and creates \emph{one} new note ---
+a deliberately fixed shape that conceals whether it is ``really'' a spend, an
+output, or both.
+\medskip
+\begin{columns}[t]
+\begin{column}{0.47\textwidth}
+\textbf{Hidden} (witness)
+\begin{itemize}\small
+  \item the old note and the new note
+  \item keys, Merkle path + position
+  \item randomisers $\alpha$, \rcv
+\end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}
+\textbf{Public} (per Action)
+\[
+(\mathsf{anchor},\ \cvsym^{\mathsf{net}},\ \nfsym_{\mathrm{old}},\
+ \rksym,\ \cmx)
+\]
+plus the ciphertexts $(\epk,\ C_{\mathrm{enc}},\ C_{\mathrm{out}})$
+\end{column}
+\end{columns}
+\bigskip
+Per \emph{bundle}: one anchor shared by every Action, one aggregate
+Halo~2 proof over all Actions, one SpendAuthSig per Action, one declared
+net flow $v_{\mathrm{balance}}$ + one binding signature.
+\end{frame}
+
+%% ---------------------------------------------------------------- Part III
+
+\divider{What the proof actually proves}
+
+\begin{frame}{The Action statement}
+The SNARK proves, with \textbf{public inputs}
+\[
+(\mathsf{anchor},\ \cvsym^{\mathsf{net}},\ \nfsym_{\mathrm{old}},\ \rksym,\
+ \cmx,\ \mathsf{enableSpends},\ \mathsf{enableOutputs},\
+ \mathsf{disableCrossAddress})
+\]
+and the note, keys, Merkle path, randomiser $\alpha$, and trapdoor \rcv{} as
+\textbf{private witness}, the conjunction $\mathrm{A1}$--$\mathrm{A10}$.
+\bigskip
+\begin{itemize}
+  \item These circuit inputs occupy \emph{ten field elements}; the remaining
+    circuit data are witness. (Points enter as coordinate pairs.) Other
+    transaction fields, including ciphertexts and signatures, are public too.
+  \item Checks A1--A9 are the NU5 statement; A10 arrives with NU6.3
+    (\emph{Ironwood}).
+  \item The next six slides summarise the checks. The protocol and
+    \emph{Ironwood Guide}, ``The Action statement'', also specify canonical
+    encodings, non-identity requirements, and exceptional cases.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A1/A2 --- both notes really are notes}
+Old note opens the commitment used by the membership check:
+\[
+\NoteCommit_{\rcm_{\mathrm{old}}}\!\bigl(
+ \gd^\star \,\|\, \pkd^\star \,\|\, \mathrm{LE}_{64}(v_{\mathrm{old}}) \,\|\,
+ \mathrm{LE}_{255}(\rho_{\mathrm{old}}) \,\|\, \mathrm{LE}_{255}(\psi_{\mathrm{old}})\bigr)
+ \in \{\cmsym_{\mathrm{old}},\bot\}
+\]
+New note, with $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$:
+\[
+\Extract\bigl(\NoteCommit_{\rcm_{\mathrm{new}}}(\ldots)\bigr) \in \{\cmx, \bot\}
+\]
+{\small (Both checks allow a $\bot$ escape for Sinsemilla's
+incomplete-addition exceptions --- a disjunction costing only a negligible
+soundness term.)}
+\begin{itemize}
+  \item \prevents{opening one leaf as two different notes (binding = DL), and
+    publishing a $\cmx$ that opens to nothing.}
+  \item The forced chaining $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$
+    makes output $\rho$ values unique within each pool --- the chain
+    already enforces nullifier uniqueness there.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A3 --- the spent note is a real leaf}
+Recompute the root from $\Extract(\cmsym_{\mathrm{old}})$ up the witnessed
+path of length 32; then
+\[
+v_{\mathrm{old}} \cdot (\mathsf{root} - \mathsf{anchor}) = 0
+\]
+\begin{itemize}
+  \item \prevents{spending positive value from a note nobody ever created.}
+  \item The gate by $v_{\mathrm{old}}$ permits a \emph{zero-value dummy} spend
+    to skip membership --- how an Action pads with no real input.
+  \item \alert{The escape hatch is arithmetic, not a flag}: value zero
+    \emph{is} the permission to skip, and a zero-value note mints nothing.
+  \item Each tree layer is hashed with its height tag, so a path at one
+    height cannot replay at another.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A5 --- the published serial number is the right one}
+\[
+\nfsym_{\mathrm{old}} = \Extract\bigl(\,[\,F_{\nksym}(\rho_{\mathrm{old}})
+  + \psi_{\mathrm{old}}\,]\,G^{\mathsf{nf}} + \cmsym_{\mathrm{old}}\,\bigr)
+\]
+\begin{itemize}
+  \item \prevents{emitting a fresh random ``nullifier'' per spend ---
+    which would allow unlimited double-spending.}
+  \item A1, A5, and A7 bind the note and its nullifier key, so a second
+    spend yields the same tag and the network rejects it.
+  \item Faerie resistance for distinct notes relies on discrete log on
+    Pallas; it does not require collision resistance of Poseidon.
+\end{itemize}
+\bigskip
+The double-spend \emph{lookup} is not here: whether \nfsym{} was already seen
+concerns global history. This circuit delegates the lookup to the node;
+other protocols can prove non-membership against a public set commitment.
+\end{frame}
+
+\begin{frame}{A6/A7 --- one identity signs, views, and nullifies}
+Spend authority: the published signature key is a fresh blinding of the
+owner's,
+\[
+\rksym = \aksym + [\alpha]\, G^{\mathsf{SpendAuth}}
+\]
+Address integrity: the keys, the address, and the nullifier key belong to one
+identity,
+\[
+\CommitIvk_{\rivk}\bigl(\Extract(\aksym),\ \nksym\bigr)
+\in\{\ivk,\bot\},\qquad \pkd = [\ivk]\,\gd
+\]
+{\small (The $\bot$-weakened form again, as in A1/A2.)}
+\begin{itemize}
+  \item With SpendAuthSig, \prevents{spending someone else's note; it also
+    prevents substituting an unrelated \nksym{} to obtain new nullifiers.}
+  \item The same \aksym{} that A6 re-randomises is welded, through a binding
+    commitment, to the \nksym{} of A5 and to the address of the spent note.
+  \item Independent uniform $\alpha$ per Action makes \rksym{} \emph{statistically}
+    unlinkable across spends.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A4 --- the value delta is committed, in range}
+\[
+\cvsym^{\mathsf{net}} = [\,v_{\mathrm{old}} - v_{\mathrm{new}}\,]\,
+  V^{\mathsf{Orchard}} + [\rcv]\,R^{\mathsf{Orchard}},
+\qquad v_{\mathrm{old}}, v_{\mathrm{new}} \in [0, 2^{64})
+\]
+{\small with $V, R$ independent nothing-up-my-sleeve base points.}
+\begin{itemize}
+  \item \prevents{committing to anything but the true net change --- and
+    \emph{overflow minting}: the sums to come live in a 255-bit field, so
+    unconstrained values could wrap subtraction into free money. The 64-bit
+    range checks close that.}
+  \item Each Action publishes one Pedersen envelope holding its value delta;
+    nobody can read it, \emph{everyone can add them} --- the balance story,
+    two slides ahead.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{A8/A9/A10 --- consensus gates}
+\[
+v_{\mathrm{old}} \cdot (1 - \mathsf{enableSpends}) = 0
+\qquad
+v_{\mathrm{new}} \cdot (1 - \mathsf{enableOutputs}) = 0
+\]
+\begin{itemize}
+  \item \prevents{smuggling real value through a context that forbids it ---
+    a coinbase must set $\mathsf{enableSpends} = 0$, so only zero-value
+    dummies pass.}
+  \item From NU6.3, four more product gates of the same shape
+    ($\delta := \mathsf{disableCrossAddress}$) force the new note's receiver
+    to equal the spent note's when $\delta=1$, as full curve points --- sealing the legacy
+    Orchard pool to self-transfers and turnstile exits.
+\end{itemize}
+\bigskip
+Statement map: A1--A2 represent notes, A3 proves membership, A5 (with the
+chain's nullifier set) prevents double-spending, A4 conserves value, A6--A7
+bind the authorising key to the note (SpendAuthSig supplies authority);
+A8--A10 are consensus-level gating.
+\end{frame}
+
+\begin{frame}{What the statement does \emph{not} include}
+\begin{itemize}
+  \item \textbf{Double-spend freshness} --- the nullifier-set lookup concerns
+    global history; the node does it.
+  \item \textbf{Anchor validity} --- the proof ties root to leaf; the node
+    checks the root was ever a main-chain anchor.
+  \item \textbf{Balance across Actions, fees, transparent flows} --- pure
+    public-key arithmetic, next slide.
+  \item \textbf{Authority at spend time} --- the SpendAuthSig verifies outside
+    the circuit, under \rksym, over the transaction digest.
+  \item \textbf{The ciphertexts} --- entirely unproven; the recipient's own
+    trial-decryption checks close forgery there.
+\end{itemize}
+\bigskip
+\begin{center}
+\emph{The circuit proves per-Action consistency; signatures, balance checks,
+and state lookups complete transaction validation.}
+\end{center}
+\end{frame}
+
+%% ---------------------------------------------------------------- Part IV
+
+\divider{Balance without amounts}
+
+\begin{frame}{A public key only a balanced transaction can know}
+Envelopes add. Consensus value and transaction-size bounds prevent modular
+wraparound. Summing the Action commitments in a bundle:
+\[
+\sum_{i=1}^{m} \cvsym^{\mathsf{net},i}
+= \Bigl[\textstyle\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i})\Bigr]
+  V^{\mathsf{Orchard}} + [\mathsf{bsk}]\,R^{\mathsf{Orchard}},
+\qquad \mathsf{bsk} := \sum_i \rcv_i
+\]
+The network subtracts the \emph{declared} net flow:
+\[
+\mathsf{bvk} := \sum_i \cvsym^{\mathsf{net},i}
+ - [\,v_{\mathrm{balance}}\,]\,V^{\mathsf{Orchard}}
+\qquad\text{balanced} \iff
+\mathsf{bvk} = [\mathsf{bsk}]\,R^{\mathsf{Orchard}}
+\]
+\begin{itemize}
+  \item If the books balance, the $V$-component cancels and \textsf{bvk} is a
+    key whose secret the author knows; if not, knowing its discrete log would
+    break independence of $V$ and $R$.
+  \item Balance is proved by \emph{signing} with it: the 64-byte binding
+    signature is a Schnorr proof of knowledge of \textsf{bsk}.
+  \item \textsf{bvk} is not independently chosen: the commitments determine
+    it, and the verifier recomputes it from public data.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The signature layer: one scheme, two meanings}
+Both signatures are RedPallas --- verify $[s]P = R + [c]X$ with
+$c = H^*(R \,\|\, X \,\|\, \mathsf{sighash})$ --- differing only in the base
+point and in what knowing the secret \emph{means}:
+\medskip
+\begin{center}
+\begin{tabular}{@{}llll@{}}
 \toprule
-Capability & What it permits\\
+ & base $P$ & key $X$ & knowing the secret means \\
 \midrule
-Public receiver & Construct an output for the recipient.\\
-Incoming viewing key & Discover and reconstruct matching incoming notes.\\
-Full viewing key & Also compute known notes' nullifiers and derive
-outgoing recovery keys.\\
-Outgoing viewing key & Recover outputs whose sender actually enabled
-recovery with that key.\\
-Spending key & Approve spending; viewing alone does not grant this.\\
+SpendAuthSig (per Action) & $G^{\mathsf{SpendAuth}}$ & \rksym &
+  authority over the spent note \\
+binding sig (per bundle) & $R^{\mathsf{Orchard}}$ & \textsf{bvk} &
+  the accounts balance \\
 \bottomrule
 \end{tabular}
 \end{center}
-A valid receiver does not prove that anyone possesses its spending key.
-\end{frame}
-
-\begin{frame}{Just enough algebra to explain delivery and balance}
-The protocol uses a \emph{group}: a set of points with addition,
-a zero point and subtraction, obeying the usual addition rules.
-A \emph{scalar} is a number multiplying a point:
-\[
- [a]P=\underbrace{P+\cdots+P}_{a\text{ additions}},\qquad
- [a+b]P=[a]P+[b]P.
-\]
-There are $r$ points, with $r$ a large prime: divisible only by $1$ and
-itself. Scalar sums wrap around at $r$.
-Recovering $a$ from $P$ and $[a]P$ is assumed hard for suitable points.
-
 \medskip
-A receiver contains a public \emph{diversifier} $d$, an address-variation
-identifier, and a public transmission point $\pkd$:
-\[
- \gd=\mathsf{DiversifyHash}(d),\qquad \pkd=[\ivk]\gd.
-\]
-DiversifyHash deterministically derives the public base point $\gd$.
-The incoming viewing scalar $\ivk$ remains private.
-\end{frame}
-
-\begin{frame}{Deliver the note, then check what arrived}
-For a fresh temporary scalar $\esk$, the sender publishes
-$\epk=[\esk]\gd$ and obtains the shared point
-\[
- S=[\esk]\pkd
-   =[\esk][\ivk]\gd
-   =[\ivk]\epk.
-\]
-The recipient computes the same point using $\ivk$.
-A prescribed hash derives an encryption key from $S$ and $\epk$.
-
 \begin{itemize}
-\item Encryption turns note-reconstruction data and a \emph{memo},
-  a sender-chosen message, into a \emph{ciphertext}, readable with that key.
-\item An \emph{integrity tag} detects changes under the same key.
-\item The recipient decrypts, checks the tag, reconstructs the note,
-  and checks its derived temporary key and published commitment.
+  \item Re-randomisation: $\rsk := \asksym + \alpha$,
+    $\rksym = [\rsk]\,G^{\mathsf{SpendAuth}}$ --- for uniform $\alpha$ the
+    published key is uniform \emph{independently} of \aksym: the \emph{key's}
+    unlinkability is information-theoretic (the full spend also needs the
+    proof and signature to leak nothing, and $\alpha$ to stay secret). The
+    circuit (A6/A7) vouches the shift started from the note owner's key.
+  \item Both sign the ZIP-244 sighash --- a digest covering every Action, the
+    flags, the balance, the anchor, and the network-upgrade ID (ZIP-244 for
+    v5; ZIP-229 extends the digest to v6 and Ironwood). This binds the signed
+    fields and prevents replay across different consensus branch IDs.
 \end{itemize}
-A valid payment proof does \emph{not} guarantee delivery:
-a malicious sender can attach unrelated ciphertexts.
 \end{frame}
 
-\begin{frame}{Our payment uses two Actions}
-An \emph{Action} pairs one old side with one new side.
-A \emph{bundle} collects one pool's Actions and their shared data.
+\begin{frame}{Three layers of trust}
 \begin{center}
-\begin{tabular}{lrrr}
+\small
+\begin{tabular}{@{}p{0.30\textwidth}p{0.30\textwidth}p{0.32\textwidth}@{}}
 \toprule
-Action & Old value & New value & Net value\\
+\textbf{Halo 2 circuit} & \textbf{homomorphic sum} & \textbf{RedPallas signatures} \\
 \midrule
-Real input to payment & $80{,}000$ & $50{,}000$ & $+30{,}000$\\
-Dummy input to change & $0$ & $20{,}000$ & $-20{,}000$\\
-\midrule
-Total & $80{,}000$ & $70{,}000$ & $+10{,}000$\\
+per-Action facts A1--A10 & hidden deltas $=$ declared flow &
+  authority + balance-knowledge \\
+cannot see across Actions & cannot tell deltas are well-formed &
+  cannot trace \rksym{} to an owner \\
 \bottomrule
 \end{tabular}
 \end{center}
-A \emph{dummy input} has zero value and need not demonstrate old membership,
-but still supplies a nullifier and a spend signature.
-The public count does not identify which input is the dummy.
-
 \medskip
-Each new note's creation identifier is its paired old nullifier.
-The pairing is protocol structure, not a public input-to-output link.
+Illustrative ordinary shielded checks (not all transaction consensus rules):
+proof \ $\cdot$ \ anchor is a known main-chain root \ $\cdot$ \
+\nfsym{} not in the nullifier set \ $\cdot$ \ one SpendAuthSig per Action
++ the binding signature.
+Then two state changes: the nullifier set gains
+$\nfsym_{\mathrm{old}}$, the tree gains $\cmx_{\mathrm{new}}$.
+\bigskip
+\begin{center}
+\emph{The chain gains a nullifier and a commitment per Action. Notes stay
+hidden, but action counts, timing, fees, and net pool flows remain public.}
+\end{center}
 \end{frame}
 
-\begin{frame}{Hide net values and randomise signing keys}
-Let $V,R,G$ be prescribed public base points whose relative
-multipliers are not known.
-For Action $i$, choose fresh scalar randomness $\rcv_i$ and commit
-to its private net value:
-\[
- d_i=v_{{\rm old},i}-v_{{\rm new},i},\qquad
- \cvsym_i^{\rm net}=[d_i]V+[\rcv_i]R.
-\]
-Negative net values use group subtraction.
+%% ---------------------------------------------------------------- Part V
 
-\medskip
-Let $\asksym$ be the spend-authorising scalar and
-$\aksym=[\asksym]G$ its public point.
-Fresh scalar $\alpha_i$ randomises the signing key:
-\[
- \rsk_i=\asksym+\alpha_i,\qquad
- \rksym_i=\aksym+[\alpha_i]G=[\rsk_i]G.
-\]
-The public $\rksym_i$ verifies this Action's spend signature.
-Value commitments and signing keys serve different purposes.
+\divider{Keys: who can see what}
+
+\begin{frame}{The key ladder: one secret, graded capabilities}
+\centering
+\begin{tikzpicture}[node distance=3mm and 8mm,
+  every node/.style={font=\small},
+  k/.style={draw,rounded corners,fill=arb!10,inner sep=4pt},
+  lbl/.style={font=\scriptsize\itshape,text=arbdim},
+  arr/.style={-{Stealth},thick}]
+\node[k] (sk) {$\mathsf{sk}$ (32 bytes)};
+\node[k,below=of sk] (mid) {$\asksym \quad \nksym \quad \rivk$};
+\node[k,below=of mid] (fvk) {$\fvk = (\aksym, \nksym, \rivk)$};
+\node[k,below=of fvk] (ivkn) {$\ivk \quad (\dk, \ovk)$};
+\node[k,below=of ivkn] (addr) {$\mathsf{addr} = (d, \pkd)$};
+\node[lbl,right=of sk] {spend};
+\node[lbl,right=of fvk] {incoming + spent-status; recoverable outgoing};
+\node[lbl,right=of ivkn] {detect + read incoming (\ivk); read outgoing (\ovk)};
+\node[lbl,right=of addr] {receive only --- the sole \emph{public} artifact};
+\draw[arr] (sk) -- (mid);
+\draw[arr] (mid) -- (fvk);
+\draw[arr] (fvk) -- (ivkn);
+\draw[arr] (ivkn) -- (addr);
+\node[lbl,left=of mid,align=right] {every downward step\\across a tier is one-way};
+\end{tikzpicture}
+\par\medskip
+The full viewing key sees incoming notes and \emph{spent-status}: holding
+\nksym{} it computes each note's nullifier and matches the chain --- full
+balance history, no spend authority. Outgoing recovery requires the sender
+to have used the corresponding \ovk.
 \end{frame}
 
-\begin{frame}{What the private relation must connect}
-The public claim names the anchor, nullifier, new commitment,
-net value commitment and randomised signing key.
-The witness supplies old/new note data, the old path, viewing-key
-components and the required randomness.
-
+\begin{frame}{One key, $2^{88}$ unlinkable addresses}
+\begin{gather*}
+d_j := \mathsf{FF1\text{-}AES256}_{\dk}(j), \qquad \pkd := [\ivk]\,\gd,\\
+\gd := \mathsf{DiversifyHash}(d_j)
+\end{gather*}
 \begin{itemize}
-\item The old commitment exists under the anchor when its value is nonzero.
-\item The old receiver matches the viewing-key components, and the
-  nullifier and randomised signing key follow from those same components.
-\item The new commitment contains the intended new note data.
-\item Both amounts satisfy $0\le v<2^{64}$.
-\item Their difference opens the published net value commitment.
-\item Nonzero old and new values are allowed by the selected pool rules.
+  \item A keyed permutation of the index space, not a counter and not a hash:
+  \item \emph{unlinkable} --- consecutive indices scatter over
+    $\{0,1\}^{88}$; consecutive diversifiers would reveal a shared owner;
+  \item \emph{bijective} --- never collides, and the wallet inverts it to
+    recover the index behind any of its addresses, storing no per-address
+    state;
+  \item \emph{total} --- every one of the $2^{88}$ diversifiers is valid
+    (a specified fallback replaces a hash-to-identity result).
+  \item Give each payer their own address; all funds land in one wallet;
+    linking two addresses of one owner is a DDH problem.
 \end{itemize}
-The proof does not itself supply the spending-key signature,
-check previous spends, or authenticate note delivery.
 \end{frame}
 
-\begin{frame}{1. Turn a computation into equations}
-Arithmetic modulo $97$ identifies integers that differ by a multiple
-of $97$. The resulting \emph{field} $\F_{97}$ supports addition,
-multiplication and division by every nonzero value.
+\begin{frame}{How the recipient finds the money}
+Nothing on chain marks whose output is whose --- \emph{detection is
+successful decryption}.
+\[
+\epk := [\esk]\,\gd,
+\qquad
+[\ivk]\,\epk = [\ivk][\esk]\,\gd = [\esk]\,\pkd = \mathsf{s}
+\quad\rightarrow\quad K_{\mathrm{enc}}
+\]
+\begin{itemize}
+  \item A fresh one-shot Diffie--Hellman per note; the wallet trial-decrypts
+    each relevant pool's outputs. Full ciphertexts carry an AEAD tag;
+    compact prefixes instead rely on commitment and ephemeral-key checks.
+  \item Before accepting, the wallet re-derives \esk{} and checks
+    $[\esk]\gd = \epk$, then recomputes the commitment against the on-chain
+    $\cmx$ --- forgery closes here, outside the SNARK.
+  \item A second ciphertext $C_{\mathrm{out}}$, sealed under a key derived
+    from \ovk, lets the \emph{sender or an auditor} recover the same note
+    when outgoing recovery was enabled.
+  \item Light clients scan on 52-byte compact prefixes --- lead byte,
+    diversifier, value, note seed.
+\end{itemize}
+\end{frame}
 
+\begin{frame}{The privacy sliders}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+slider & artifact & grants \\
+\midrule
+spend & $\mathsf{sk}$ & move the money \\
+full view & \fvk & incoming + spent-status; recoverable outgoing \\
+incoming view & \ivk & detect and read incoming only (processor) \\
+address & $(d, \pkd)$ & receive; $2^{88}$ unlinkable ones per key \\
+\bottomrule
+\end{tabular}
+\end{center}
+\bigskip
+\begin{itemize}
+  \item ``Viewing'' names a \emph{capability}, not publicity: every viewing
+    key is secret material, disclosed deliberately, to confer exactly that
+    visibility. Only the address is public.
+  \item Validation needs no viewing key. This hides ordinary shielded note
+    contents under the cryptographic assumptions; coinbase outputs and
+    public transaction metadata are exceptions.
+\end{itemize}
+\end{frame}
+
+%% ---------------------------------------------------------------- Part VI
+
+\divider{The proving machine}
+
+\begin{frame}{What a zk-SNARK promises}
+\begin{itemize}
+  \item \emph{Complete} --- an honest prover who knows the witness always
+    convinces the verifier.
+  \item \emph{Knowledge sound} --- ``knowledge'' is meant literally: a
+    satisfying witness can be \emph{extracted} from an adversarial prover
+    that succeeds above the knowledge-error bound, under the assumptions.
+  \item \emph{Zero-knowledge} --- the verifier finishes convinced yet learns
+    nothing beyond the bare truth of the claim.
+\end{itemize}
+\bigskip
+\begin{center}
+\emph{``Soundness protects against false statements; knowledge soundness
+protects against provers who do not actually know what they claim.''}
+\end{center}
+\bigskip
+For Zcash: a prover knows the witness for each enabled, nonzero spend.
+The separate SpendAuthSig supplies spend authority; a delegated prover
+need not hold the spending key.
+\end{frame}
+
+\begin{frame}{The trusted-setup problem}
+A powers-of-$\tau$ example of structured parameters (not the complete
+BCTV14 or Groth16 parameter set):
+\[
+\mathsf{pp} = \bigl(\,[\tau^0]G,\ [\tau^1]G,\ \dots,\ [\tau^d]G,\
+  \widehat{G},\ [\tau]\widehat{G}\,\bigr),
+\qquad \tau \text{ discarded}
+\]
+\begin{itemize}
+  \item Retaining the relevant setup trapdoors can undermine soundness:
+    \alert{forged proofs could counterfeit ZEC without detection}.
+  \item Ceremony trapdoors alone do not decrypt Zcash notes. Soundness and
+    zero knowledge are separate guarantees; this is not a claim that every
+    pairing-based scheme remains private under a malicious setup.
+  \item Mitigation: multi-party ceremonies --- six parties for Sprout;
+    Powers of Tau plus a per-circuit phase for Sapling. Each phase needs an
+    honest contribution with its secret erased.
+  \item The setup assumption: at least one participant contributed honest
+    randomness and destroyed their secret. Correct circuits, sound proofs,
+    and the remaining consensus checks are still necessary.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Three eras}
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & Sprout (2016) & Sapling (2018) & Orchard (2022--) \\
+\midrule
+SNARK & BCTV14 & Groth16 & Halo 2 \\
+curve & BN254 & BLS12-381 + Jubjub & Pallas + Vesta \\
+trusted setup & per-circuit (6-party) & per-circuit (large MPC) & \alert{none} \\
+in-circuit hash & SHA-256 & Pedersen & Sinsemilla \\
+proof size & 296 B & 192 B & ${\sim}5$ kB (one-Action bundle) \\
+verification & constant & constant (3 pairings) & shared linear MSM \\
+curve cycle & no & no & yes (unused by Orchard) \\
+\bottomrule
+\end{tabular}
+\end{center}
 \medskip
-An \emph{arithmetic circuit} is a fixed collection of cells connected
-by equations. A private witness fills some cells; the public claim
-fixes others. Consider
-\[
- s^3+s+5=t\quad\text{in }\F_{97},\qquad s=3,\ t=35.
-\]
-Break the computation into rows:
-\[
- s^2=9,\qquad s^3=27,\qquad s^3+s=30,\qquad 30+5=35.
-\]
-The same private $s$ must be used throughout: equality between
-reused cells must also be enforced.
+\begin{itemize}
+  \item A flaw in BCTV14 discovered in 2018 would have allowed undetected
+    counterfeiting; Sapling activation replaced the vulnerable Sprout
+    proving system with Groth16. This did not automatically migrate funds.
+  \item The vulnerability came from a \emph{proof-system bug}, not from toxic
+    waste --- even a perfectly honest ceremony would not have prevented it.
+\end{itemize}
+\end{frame}
 
+\begin{frame}{Halo 2 intuition: one secret becomes four rows}
+\[
+\text{Public claim: ``I know }x\text{ such that }x^3+x+5=35\text{.''}
+\]
+\begin{columns}[c]
+\begin{column}{0.43\textwidth}
+Peek at the prover's private work:
+\begin{align*}
+x &= 3, & x^2 &= x\cdot x,\\
+x^3 &= x^2\cdot x, & s &= x^3+x,\\
+&& 35 &= s+5.
+\end{align*}
+Each elementary operation becomes one gate row.
+\end{column}
+\begin{column}{0.53\textwidth}
+\begin{center}
+\small
+\begin{tabular}{@{}cccc@{}}
+\toprule
+row & $a$ & $b$ & $c$ \\
+\midrule
+$x\cdot x=x^2$   & 3  & 3 & 9 \\
+$x^2\cdot x=x^3$ & 9  & 3 & 27 \\
+$x^3+x=s$         & 27 & 3 & 30 \\
+$s+5=35$          & 30 & 5 & 35 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{column}
+\end{columns}
 \medskip
-This small-field example explains arithmetic, not cryptographic security.
+The values are private \emph{advice}; the gate rules and $35$ are public.
+Copy constraints force every repeated $x$, $x^2$, $x^3$, and $s$ to agree ---
+turning four local facts into one computation.
 \end{frame}
 
-\begin{frame}{2. A complete four-row circuit}
-Use columns $a,b,c$ for computed values.
-Fixed coefficient columns $q$ select the equation on each row;
-the public column $\pi$ supplies the claimed result.
+\begin{frame}{Halo 2 intuition: rows become one identity}
+Label the four rows by the fourth roots of unity in $\F_{97}$:
 \[
- q_Mab+q_La+q_Rb+q_Oc+q_C+\pi=0.
+H=\{1,22,96,75\}, \qquad Z_H(X)=\prod_{h\in H}(X-h)=X^4-1.
 \]
+Interpolate each column into a low-degree polynomial. Combining those
+polynomials with the fixed gate selectors gives $G(X)$, whose value at each
+row label is exactly that row's gate equation:
 \[
-\begin{array}{c|rrr|rrrrr|r}
- i&a&b&c&q_M&q_L&q_R&q_O&q_C&\pi\\ \hline
- 0&3&3&9&1&0&0&-1&0&0\\
- 1&9&3&27&1&0&0&-1&0&0\\
- 2&27&3&30&0&1&1&-1&0&0\\
- 3&30&0&0&0&1&0&0&5&-35
-\end{array}
+G(h)=0\ \text{for every }h\in H
+\quad\Longleftrightarrow\quad
+G(X)=t(X)\,Z_H(X).
 \]
-The required equalities are
-\[
- a_0=b_0=b_1=b_2,\qquad c_0=a_1,\quad c_1=a_2,\quad c_2=a_3.
-\]
-Negative entries are residues modulo $97$.
-\end{frame}
-
-\begin{frame}{3. Columns become polynomials}
-A \emph{polynomial} is a sum of coefficients times powers of $X$.
-\emph{Interpolation} chooses its coefficients to match prescribed values.
-Use row points $H=\{1,22,96,75\}\subset\F_{97}$:
-\[
- \begin{aligned}
- a(X)&=90+61X+22X^2+24X^3,\\
- b(X)&=75+32X+25X^2+65X^3,\\
- c(X)&=65+16X+3X^2+22X^3.
- \end{aligned}
-\]
-Interpolate the fixed and public columns too.
-Their equation becomes a polynomial $g(X)$.
-The \emph{vanishing polynomial} $Z_H(X)=X^4-1$ is zero at every row point.
-\[
- g(X)=(X^4-1)
- (61+70X+43X^2+47X^3+81X^4+46X^5).
-\]
-Every row satisfies the equation exactly when $Z_H$ divides $g$.
-\end{frame}
-
-\begin{frame}{4. Check the quotient at a new point}
-The \emph{quotient} $q(X)$ is the second factor in $g(X)=Z_H(X)q(X)$.
-At $x=20$, outside the row points,
-\[
- Z_H(20)=46,\qquad q(20)=67,\qquad g(20)=75,
- \qquad 46\cdot67=75\pmod{97}.
-\]
-Change only $c_0$ from $9$ to $10$.
-Polynomial division now leaves a nonzero \emph{remainder}:
-\[
- r(X)=24(1+X+X^2+X^3).
-\]
-At $20$, the new numerator is $20$ while its quotient times $Z_H$ is
-$64$: the identity test rejects.
-
+\begin{center}
+\alert{A correct gate trace is a polynomial identity; a bad trace leaves a
+non-zero remainder.}
+\end{center}
 \medskip
-A nonzero polynomial has at most as many roots as its highest exponent.
-Fixing the polynomials \emph{before} an unpredictable test point makes
-a false identity hard to hide in a sufficiently large field.
+The Orchard Action circuit is the same machine at scale: $2^{11}=2048$ rows,
+ten advice columns, copy constraints, and a lookup table for Sinsemilla's
+10-bit chunks.
 \end{frame}
 
-\begin{frame}{Halo authenticates the claimed evaluations}
-A \emph{polynomial commitment} binds a hidden polynomial.
-An \emph{opening proof} checks its claimed value at a chosen point
-without sending all its coefficients.
-
+\begin{frame}{Halo 2 intuition: one random point catches a lie}
 \begin{enumerate}
-\item Commit to the circuit columns with the prescribed privacy randomness.
-\item Prove the equalities between reused cells and membership in
-  required tables.
-\item Combine the equations and commit to the quotient's pieces.
-\item Derive later test points by hashing the preceding public record.
-\item Check authenticated evaluations, ending in a checked group equation.
+  \item The prover commits to the advice and quotient polynomials.
+  \item The transcript supplies a random challenge $z$.
+  \item The prover opens the commitments at $z$; the verifier checks only
+    \[
+    G(z)\stackrel{?}{=}t(z)\,Z_H(z).
+    \]
 \end{enumerate}
-That ordered record is the \emph{transcript}.
-Its order prevents choosing earlier commitments after seeing later
-challenges. A quotient identity with unauthenticated evaluations
-would not be a proof.
+If one row lies, then $D(X):=G(X)-t(X)Z_H(X)$ is a fixed, non-zero,
+low-degree polynomial. It can vanish only at a few points:
+\[
+\Pr_z[D(z)=0]\leq \frac{\deg D}{|\F|}.
+\]
+Changing only the first row's $c$ to $10$ gives remainder
+$24(1+X+X^2+X^3)$: three roots out of 97. This bounds one idealised
+polynomial test; the full proof also needs binding, transcript security,
+copy constraints, and public-input checks.
 \end{frame}
 
-\begin{frame}{What the proof contract promises}
+\begin{frame}{Halo 2: why there is no ceremony}
+Commit with Pedersen over publicly derived generators (hash-to-curve --- no
+ceremony secret is generated):
+\[
+\Comm(p;\, r) := \ip{\vec{a}}{\vec{G}} + [r]\,H
+\]
 \begin{itemize}
-\item \emph{Completeness}: honest valid inputs produce accepting proofs,
-  subject to the construction's stated exceptional events.
-\item \emph{Knowledge soundness}: a sufficiently successful prover can
-  be converted, under the theorem's conditions, into an algorithm
-  recovering a satisfying witness.
-\item \emph{Zero knowledge}: the verifier's complete view can be
-  simulated from public inputs alone.
+  \item Opening proofs by logarithmic halving: $O(\log d)$ group elements,
+    assumption discrete log only.
+  \item The price: one linear-time multi-scalar multiplication sits at the
+    end of verification.
+  \item The Halo trick (\emph{accumulation}): that check is itself a
+    commitment opening of a structured polynomial --- so defer it into a
+    running accumulator and decide once. Deployed Orchard uses ordinary
+    randomised batch verification with a shared MSM, not recursive Halo
+    accumulation.
+  \item Causality, precisely: \alert{transparency comes from the IPA's
+    public-coin parameters; batching shares verification work.}
+  \item Each Pasta curve's base field is the other's scalar field. This
+    enables efficient alternating-curve recursion; Orchard does not use it.
 \end{itemize}
-These are complete proof-system claims under stated assumptions.
-Commitment binding alone does not imply witness recovery.
-Separately random-looking messages do not establish privacy of their
-joint transcript.
+\end{frame}
 
+\begin{frame}[plain]
+\vfill\centering
+\begin{minipage}{0.85\textwidth}
+\centering\large\itshape
+``A Zcash full node checks committed polynomial identities, openings,
+signatures, and public state. Together, under the protocol's security
+assumptions, these establish a valid transfer without exposing its private
+notes.''
+\end{minipage}
+\vfill
+\end{frame}
+
+%% ---------------------------------------------------------------- Part VII
+
+\divider{Honest limits}
+
+\begin{frame}{What is still printed on the envelope}
+For a \emph{fully shielded} transaction, an on-chain observer still sees:
+\begin{itemize}
+  \item \textbf{Action counts} --- visible separately for Orchard and
+    Ironwood. Cross-address-enabled bundles pad to a floor of 2 and then
+    reveal $\max(2,\text{spends},\text{outputs})$; the restricted post-NU6.3
+    Orchard builder instead needs separate spend and output actions;
+  \item \textbf{fee} --- derived from public value balances and transparent
+    inputs/outputs. ZIP-317's recommended fee reduces arbitrary fee
+    fingerprints but still depends on the transaction's shape;
+  \item \textbf{expiry height} --- the ordinary builder default is target
+    $+\,40$; callers and specialised transaction policies may choose others;
+  \item \textbf{anchor and timing} --- which tree, when mined, when it hit
+    the mempool.
+\end{itemize}
+\bigskip
+A sealed envelope with the postmark, weight class, postage, and sell-by date
+printed on the outside --- uniform \emph{only if} every wallet uses the same
+defaults. The deployed anti-fingerprinting strategy is \emph{conformity}.
+\end{frame}
+
+\begin{frame}{The boundary is metered}
+\begin{itemize}
+  \item Amounts are hidden \emph{inside} a pool; every crossing is a public
+    signed field: the net flow $v_{\mathrm{balance}}$ (positive $=$ value
+    leaving the pool) is exact, per transaction.
+  \item Pool migrations (Sprout retirement then, Orchard $\to$ Ironwood at
+    NU6.3) pass through the same public turnstile: per-transaction amounts
+    remain clear. ZIP-318 mitigates linkage with canonical denominations,
+    transaction shapes, shared anchor buckets, and randomised delays; it does
+    not hide a crossing amount.
+  \item Paying a transparent-only recipient from shielded funds (ZIP-320)
+    transits funds through an ephemeral transparent output; both that output
+    and the subsequent transparent payment are publicly visible.
+  \item The default change strategy can retain a zero-valued change output
+    at exact balance, obscuring an exact-sum guess. Dust-to-fee and other
+    policies are exceptions; this is not a consensus guarantee.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The server sees your requests}
+Light-wallet keys never leave the device --- \emph{requests do}. The deployed
+sync protocol leaks, to the server:
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+observable & reveals & mitigation status \\
+\midrule
+lowest historic range & approximate birthday & no default padding at pin \\
+range boundaries & scan state and progress & bucketing proposed \\
+full-tx fetches & \alert{transactions of interest} & ZIP-307 cover recommendations \\
+submission channel & full tx pre-broadcast, peer IP & Tor capability, deployment unknown \\
+transparent-address RPCs & addresses outright & jitter (ephemeral only) \\
+\bottomrule
+\end{tabular}
+\end{center}
 \medskip
-The private relation is one part of transaction validity,
-not a substitute for the ledger's other checks.
-\end{frame}
-
-\begin{frame}{Conservation needs a binding signature}
-For public pool withdrawal $b$, form the
-\emph{binding verification key}
-\[
- \mathsf{bvk}=\sum_i\cvsym_i^{\rm net}-[b]V.
-\]
-When the net private values sum to $b$, the value terms cancel:
-\[
- \mathsf{bvk}=[\mathsf{bsk}]R,\qquad
- \mathsf{bsk}=\sum_i\rcv_i\pmod r.
-\]
-The \emph{binding signature} approves the transaction digest
-using this aggregate randomness and base $R$.
-For our payment,
-\[
- 30{,}000-20{,}000-10{,}000=0,\qquad
- \mathsf{bvk}=[\rcv_0+\rcv_1]R.
-\]
-Spend signatures approve use of individual spending authority.
-The binding signature enforces aggregate conservation together with
-the proof and signature assumptions. Amount and transaction-size bounds
-exclude wraparound by a multiple of $r$.
-\end{frame}
-
-\begin{frame}{The signer must approve the user's payment}
-The signature message is a prescribed digest of transaction data,
-not a wallet's informal label for that data.
 \begin{itemize}
-\item The constructor selects the notes, recipients, change, fee
-  and randomness.
-\item The prover receives the private witness and therefore learns it.
-\item The signer checks the intended recipient and amount,
-  independently recognises change, and approves the exact effects.
-\item The completed transaction is checked again before submission.
+  \item Without cover traffic, requested txids expose wallet interests;
+    these may include sent transactions and transparent-graph dependencies.
+  \item Structural, not accidental: a client that must ask for ranges reveals
+    where it stopped; a client that must fetch what it detected reveals what
+    it detected.
 \end{itemize}
-The approved effects include the ciphertexts: delivery data cannot
-simply be replaced after signing.
-A valid signature does not show that a user interface described
-those effects honestly.
-
 \end{frame}
 
-\begin{frame}{The node checks the whole transaction}
-A \emph{node} is a participating computer.
-A validating node checks the applicable rules, not merely one proof.
+\begin{frame}{Frontier (design-stage, one line each)}
+\begin{itemize}
+  \item \textbf{Tachyon} --- remove wallet scanning instead of patching its
+    leaks: detection moves to the payment channel, absence-tracking to an
+    oblivious service. The designers' own flagged risk: timing correlation of
+    proof updates --- ``fatal to the entire approach'' if unsolved.
+  \item \textbf{Crosslink} --- a finality layer under the PoW chain; about
+    settlement assurance, not privacy.
+\end{itemize}
+\bigskip
+Neither is deployed; neither has a complete consensus specification.
+The earlier slides distinguish protocol rules from wallet policy.
+\end{frame}
+
+\begin{frame}{Takeaways}
 \begin{enumerate}
-\item Decode the transaction, enforce allowed operations and amount limits.
-\item Verify its proof against the correct public inputs and the circuit's
-  prescribed verification data.
-\item Recompute the signature digest; verify spend and binding signatures.
-\item Check eligible anchors and unused nullifiers, including duplicates
-  inside this transaction and the containing block.
-\item Validate any other transaction components and validity deadlines.
-\item Check the public fee and resulting pool balances.
+  \item A shielded payment publishes commitments, nullifiers, ciphertexts,
+    proofs, signatures, and metadata; ordinary note contents remain hidden.
+  \item ``What do the ZKPs prove?'' has a concrete, finite answer: ten
+    checks --- note integrity, gated membership, nullifier integrity, value
+    integrity, key consistency, address binding, consensus gates.
+  \item Balance combines a Pedersen sum and one Schnorr signature whose
+    secret key the builder can efficiently derive if the books balance,
+    leaning on the circuit's range checks to keep the sum honest.
+  \item Keys grade visibility: spend, view-all, view-incoming, receive ---
+    auditability is deliberate key handover.
+  \item Orchard removed the ceremony: public-coin commitments generate no
+    toxic waste; batch verification shares the expensive group arithmetic.
+  \item The proofs hide the graph; the \emph{systems around them} --- fees,
+    boundaries, sync servers --- are where privacy actually leaks.
 \end{enumerate}
-For our all-shielded payment, the public withdrawal is the fee:
-$b=f=10{,}000$.
-Accepting it appends two commitments and inserts two nullifiers.
 \end{frame}
 
-\begin{frame}{A block gives the transaction its context}
-A \emph{block} contains an ordered transaction list.
-Its \emph{header} is a public summary naming the previous block
-by hash and committing to the block's data.
+%% ---------------------------------------------------------------- Backup
 
-\begin{itemize}
-\item A \emph{branch} follows those parent links from the prescribed
-  starting block. Its ledger state belongs to that branch.
-\item A node validates the complete body and its header commitments,
-  not an isolated list of transaction identifiers.
-\item It checks the block's permitted new issuance, fees and allocations.
-\item Transactions are checked against branch-local state, including
-  changes from earlier transactions where the rules permit them.
-\end{itemize}
-A hash authenticates data; it does not validate the arithmetic
-or authorisation inside that data.
-\end{frame}
+\appendix
+\divider{Backup}
 
-\begin{frame}{Confirmation is confidence in a branch}
-\emph{Proof of work} is a publicly checkable result of computational
-search. Zcash requires both its prescribed search solution and a
-header hash no larger than the required difficulty target.
-
-\medskip
-\emph{Work} is the numerical score assigned from that target.
-A node selects a visible, fully validated branch with the greatest
-accumulated work, not merely the greatest number of blocks.
-
-\begin{itemize}
-\item Work does not excuse invalid transactions or a missing block body.
-\item More work after a payment makes replacing its branch more demanding.
-\item A competing valid branch can still remove a previously mined payment.
-\end{itemize}
-Confirmation confidence depends on assumptions about adversarial
-computing power and network communication; it is not absolute finality.
-\end{frame}
-
-\begin{frame}{Discovery can use less than a full transaction}
-A \emph{compact block} is a service's reduced representation
-for wallet scanning, not a different block validated by nodes.
-It carries nullifiers, new commitments, temporary public keys
-and a prefix of each incoming ciphertext.
-
-\begin{itemize}
-\item Incoming viewing keys discover candidate receipts.
-\item The wallet reconstructs each candidate note and checks its
-  derived temporary key and commitment.
-\item The compact prefix omits the memo and integrity tag.
-  This is not full ciphertext authentication.
-\item A full viewing key also computes known notes' nullifiers
-  and matches them against observed spends.
-\end{itemize}
-Successful reconstruction identifies relevant data.
-It does not prove that the server supplied a valid or complete chain.
-\end{frame}
-
-\begin{frame}{Discovery is not yet spendability}
-To spend a discovered note, retain its content, pool, branch,
-leaf position and path to an eligible anchor.
-
-\begin{itemize}
-\item Every Action appends a commitment, even if this wallet
-  detects no receipt or the output has zero value.
-\item After $n$ earlier commitments, the next $c$ outputs occupy
-  positions $n,\ldots,n+c-1$.
-\item Later appends change the sibling hashes needed by owned notes.
-\item A small append summary suffices to compute future roots,
-  but cannot recover arbitrary old membership paths.
-\end{itemize}
-Retain the additional tree data needed for owned notes,
-and tie saved states to block identities.
-
-\medskip
-A root supplied by an untrusted server is not its own authentication.
-\end{frame}
-
-\begin{frame}{A reorganisation changes more than confirmations}
-A \emph{reorganisation} switches the selected branch.
-Suppose the shared ancestor has $11$ commitments.
-Our outputs occupy positions $11,12$ on one branch.
-
-\medskip
-If a replacement branch adds three others before including the same
-payment, its outputs instead occupy $14,15$.
-\begin{itemize}
-\item Roll back received-note locations, observed spends, tree state,
-  retained paths and confirmations together.
-\item Make corresponding database changes all visible together,
-  or none of them.
-\item Preserve the user's intention and retained transaction separately;
-  recheck whether the payment is valid, conflicted or expired.
-\end{itemize}
-Re-labelling an old path with a new height does not make it valid.
-\end{frame}
-
-\begin{frame}{The privacy boundary includes the wallet service}
-\begin{itemize}
-\item A chain observer sees Action counts, pools, public balances,
-  anchors, nullifiers, randomised public keys, commitments and ciphertexts.
-\item A recipient learns its note and sender-chosen memo, not a
-  cryptographic guarantee of the sender's real-world identity.
-\item Viewing-key disclosure grants the corresponding viewing capability.
-\item A wallet service can observe requests, connection metadata,
-  relevant-transaction retrievals and broadcasts.
-\item A server can omit relevant data; note reconstruction alone
-  does not establish completeness or best-branch selection.
-\end{itemize}
-Zero knowledge protects the proof's private witness from its verifier.
-It does not erase public inputs, network observations or information
-deliberately shared with a prover.
-\end{frame}
-
-\begin{frame}{One payment, several distinct responsibilities}
+\begin{frame}{Backup: Sinsemilla}
+\begin{align*}
+Q(D) &:= \GroupHash^{\G}(\texttt{z.cash:SinsemillaQ},\, D)\\
+P[m] &:= \GroupHash^{\G}(\texttt{z.cash:SinsemillaS},\, \mathrm{LE}_{32}(m))
+\end{align*}
 \[
- \begin{gathered}
- \text{user-approved recipient, change and fee}\\
- \downarrow\\
- \text{notes, commitments, nullifiers and encrypted delivery}\\
- \downarrow\\
- \text{private proof, spend signatures and binding signature}\\
- \downarrow\\
- \text{transaction checks, block checks and branch selection}\\
- \downarrow\\
- \text{wallet discovery, retained paths and reversible state}.
- \end{gathered}
+\mathsf{Sinsemilla}_D(M) := \mathsf{Acc}_\ell, \qquad
+\mathsf{Acc}_0 := Q(D), \qquad
+\mathsf{Acc}_{i+1} := (\mathsf{Acc}_i \dotplus P[m_{i+1}]) \dotplus \mathsf{Acc}_i
 \]
-No single accepting proof replaces the rest.
-\source{The Zcash Arboretum supplies the complete constructions,
-source pins and executable examples.}
+\begin{gather*}
+\mathsf{SinsemillaCommit}_r(D, M) := \mathsf{Sinsemilla}_{D\|\texttt{-M}}(M)
+  + [r]\,H_D,\\
+H_D:=\GroupHash^{\G}(D\,\|\,\texttt{-r},\varepsilon).
+\end{gather*}
+\begin{itemize}
+  \item Each 10-bit chunk costs one table lookup + two incomplete additions;
+    a 510-bit message costs 51 rounds --- the chunk-table structure maps
+    directly onto Halo 2's lookup argument.
+  \item Collision resistance (for fixed-length inputs) reduces to discrete
+    log on Pallas, with generator derivation modelled as a random oracle;
+    hiding comes from the uniform $[r]H_D$ term, unconditionally.
+\end{itemize}
 \end{frame}
+
+\begin{frame}{Backup: circuit and proof numbers}
+\begin{itemize}
+  \item One fixed PLONKish circuit, native field \Fpp; $2^{11}$ rows, ten
+    advice columns, Sinsemilla lookup table.
+  \item One aggregate proof per bundle: $2720 + 2272 \cdot n$ bytes for $n$
+    Actions --- $4992$ bytes for one Action, including the
+    $2\log_2 2^{11} = 22$ IPA round elements.
+  \item Action encoding 820 bytes; each signature 64 bytes.
+  \item Proving uses FFTs and multi-scalar multiplications. For row count
+    $d=2^{11}$, an IPA has $O(\log d)$ rounds but a linear MSM remains;
+    batching shares its fixed-base work. Bundle work also grows with $n$.
+  \item The Merkle gadget stacks 32 layer-tagged hashes; Poseidon's only
+    non-linearity is $x \mapsto x^5$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: field discipline}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+lives in & elements & role \\
+\midrule
+$\Fpv$ (Pallas \emph{scalar} field) & $\asksym, \rcm, \rcv, \rivk, \alpha, \esk, \mathsf{bsk}$ & scalars \\
+$\Fpp$ (Pallas \emph{base} field) & $\nksym, \rho, \psi, \ivk, \cmx, \nfsym$ & field elements \\
+$\Ep(\Fpp)$ (Pallas points) & $\aksym, \pkd, \gd, \epk, \cmsym, \cvsym, \rksym$ & group elements \\
+raw 256-bit strings & $\mathsf{sk}, \dk, \ovk, \mathsf{rseed}$ & keys/seeds \\
+\bottomrule
+\end{tabular}
+\end{center}
+\medskip
+The circuit's native field is \Fpp; the containment $p_{\Pallas} < p_{\Vesta}$
+is what lets base-field elements act as scalars where needed.
+\end{frame}
+
+\begin{frame}{Backup: the note plaintext and \textsf{rseed}}
+\[
+\mathsf{np} = (\mathsf{lead},\ d,\ v,\ \mathsf{rseed},\ \mathsf{memo})
+\]
+{\small Lead byte: $\mathtt{0x02}$ for Orchard, $\mathtt{0x03}$ for Ironwood.}
+{\small lead byte + 11-byte diversifier + 64-bit value + 32-byte seed +
+512-byte memo = the 564-byte plaintext; compact prefix = first 52 bytes.}
+\begin{align*}
+\esk &:= \mathrm{ToScalar}\bigl(\mathsf{PRFexpand}_{\mathsf{rseed}}(\texttt{0x04} \,\|\, \rho)\bigr) \\
+\psi &:= \mathrm{ToBase}\bigl(\mathsf{PRFexpand}_{\mathsf{rseed}}(\texttt{0x09} \,\|\, \rho)\bigr) \\
+\rho &:= \nfsym_{\mathrm{old}} \ \text{(of the note spent in the same Action)}
+\end{align*}
+\begin{itemize}
+  \item The seed and paired nullifier derive note randomness. The recipient
+    also needs the transmitted diversifier and value, and its viewing key.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: the ZIP-244 v5 shielded sighash}
+\[
+\mathsf{sighash} := \mathrm{BLAKE2b\text{-}256}\bigl(
+ \texttt{ZcashTxHash\_} \,\|\, \mathsf{branchid},\
+ d_{\mathrm{hdr}} \,\|\, d_{\mathrm{trans}} \,\|\, d_{\mathrm{Sap}} \,\|\,
+ d_{\mathrm{Orch}}\bigr)
+\]
+\begin{itemize}
+  \item The 4-byte consensus branch ID keys the personalisation: a signature
+    is bound to that consensus branch ID; competing chains sharing an ID
+    do not gain replay protection from this field alone.
+  \item The Orchard branch digests every Action's nullifier, commitment,
+    value commitment, \rksym, and ciphertexts, plus flags, balance, anchor.
+  \item Altering these signed fields invalidates the signatures, barring a
+    forgery or hash collision. For a purely shielded v5 transaction the sighash
+    coincides with the txid. ZIP-229 extends the digest to v6 with a
+    separate Ironwood branch; authorising data is excluded from the txid.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: a pedagogical IPA fold}
+{\small Symmetric, unmasked fold; deployed Halo~2 also uses a masking
+commitment and a different folding convention.}
+\[
+\mathcal{R}_{\mathrm{IPA}} := \Bigl\{\bigl((P, x, v);\ (\vec{a}, r)\bigr) :
+P = \ip{\vec{a}}{\vec{G}} + [r] H,\ \
+v = \ip{\vec{a}}{\vec{b}(x)},\ \ \deg p \le d-1\Bigr\}
+\]
+$k = \log_2 d$ halving rounds; final check
+\[
+P + [v]\,U + \sum_{j=1}^{k} \bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
+\stackrel{?}{=} [a]\,G^{(0)} + [r^*]\,H + [a \cdot b^{(0)}]\,U
+\]
+\begin{itemize}
+  \item The verifier evaluates the structured polynomial
+    $g(X; u_1, \dots, u_k)$ in $O(\log d)$ --- but computing
+    $G^{(0)} = \Comm(g; 0)$ is an $O(d)$ MSM. That asymmetry is the seed of
+    accumulation: $G^{(0)}$ is itself a \emph{commitment} to a structured
+    polynomial, so the deferred check is itself an opening claim that folds
+    into a running accumulator, decided once.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: NU6.3 pool sealing}
+\begin{itemize}
+  \item Two pools, one protocol: the Orchard \emph{protocol} (curves, hashes,
+    circuit, keys) is shared; the Orchard and Ironwood \emph{pools} each have
+    their own tree, anchor, and nullifier set. Addresses work in both.
+  \item From NU6.3 the legacy Orchard pool is sealed: coinbase must carry an
+    empty Orchard component; every Orchard-pool Action must disable
+    cross-address transfers (A10); and per transaction
+    $v_{\mathrm{balance}}^{\mathsf{Orchard}} \ge 0$ --- value exits, never
+    enters.
+  \item The cross-address rule is enforced via the verifying key consensus
+    selects by branch (v5 transactions cannot bypass it); the coinbase and
+    turnstile rules are checked outside the proof (the coinbase restriction
+    applies specifically to coinbase transactions).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: quantum footnote}
+\begin{itemize}
+  \item A future discrete-log-breaking adversary who \emph{knows an address}
+    $(d, \pkd)$ computes $\ivk = \log_{\gd} \pkd$ and replays the
+    trial-decryption loop over the recorded chain: full receiving history for
+    every diversified address sharing that incoming viewing key, past and
+    future, for ciphertexts encrypted by this scheme.
+  \item Recovering \ivk{} alone does not reveal the spending key. The
+    specific attack above requires a known address; its absence is not a
+    proof of unconditional chain privacy. Ciphertexts and finite secrets
+    remain computationally protected, and Shor also breaks proof soundness
+    and signatures.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Sources and scope}
+\small
+This talk summarises the \emph{Ironwood}, \emph{Halo 2}, \emph{Wallet},
+and \emph{Sync} Guides. The specification and ZIPs are authoritative.
+\begin{itemize}
+  \item \href{https://zips.z.cash/protocol/protocol.pdf}{Zcash Protocol
+    Specification}: Action statement, Sinsemilla, note encryption, RedDSA.
+  \item \href{https://zips.z.cash/zip-0229}{ZIP-229} and
+    \href{https://zips.z.cash/zip-0258}{ZIP-258}: v6, Ironwood, pool rules;
+    \href{https://zips.z.cash/zip-0244}{ZIP-244}: v5 digests.
+  \item \href{https://zcash.github.io/orchard/design/nullifiers.html}{Orchard
+    Book, ``Nullifiers''}: separate privacy and uniqueness assumptions.
+  \item \href{https://zips.z.cash/zip-0307}{ZIP-307},
+    \href{https://zips.z.cash/zip-0317}{ZIP-317}, and
+    \href{https://zips.z.cash/zip-0318}{ZIP-318}: sync, fees, migration policy.
+  \item Implementation snapshots follow the guides: Orchard 0.15.0;
+    librustzcash \texttt{e30517e4}; Halo 2 \texttt{261faacc}.
+    Wallet defaults describe these snapshots, not every wallet.
+\end{itemize}
+The four-row example isolates polynomial constraints; it is not a complete
+Halo 2 transcript or an overall soundness estimate.
+\end{frame}
+
 \end{document}

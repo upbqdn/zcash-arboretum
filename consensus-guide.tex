@@ -117,798 +117,1435 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
-\title{\textbf{\Huge Consensus Guide}\\[6pt]\large Ledger state, block validation, and the meaning of confirmation}
+\title{\textbf{\Huge Consensus Guide}\\[6pt]\large Nakamoto consensus: the double-spend race, the arithmetic of confirmations, and the deployed most-work rule}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-This volume of \emph{The Zcash Arboretum} explains how computers agree on
-an ordered record of payments, check proposed additions, and account for
-the money those additions create or transfer.
-It assumes the \emph{Math Guide}, especially ``Language, integers, and
-encodings'' and ``Probability and computation'', and the \emph{Crypto
-Guide}, ``Hash functions and key derivation'' and ``Authenticated trees
-and append-only histories''. The payment's private computations enter
-through explicit contracts specifying what their evidence must establish.
-The exposition does not implement
-the internals of every historical transaction format. It is
-non-normative: the protocol specification and the applicable consensus
-ZIPs determine the rules.
+Assuming the \emph{Math Guide}'s probability foundations and the hash and
+commitment foundations of the \emph{Crypto Guide}, this volume of \emph{The
+Zcash Arboretum} constructs Nakamoto consensus from first principles and
+quantifies the security it buys. It states the
+block tree and the most-work rule as the protocol specification defines
+them and as the deployed \textsf{zebra} implements them; builds, on the
+\emph{Math Guide}'s foundations, the race-specific probability the
+analysis needs (memoryless clocks, the biased random walk, the negative
+binomial law); develops the exact first-seen-model
+double-spending analysis of Rosenfeld's \emph{Analysis of hashrate-based
+double-spending} --- the catch-up theorem, the confirmation formula, and
+the economics of the attack --- with every derived number recomputed by script
+and the results instantiated for Zcash's 75-second blocks; and closes
+with the deployed safety rails (per-block difficulty adjustment, reorg
+windows, coinbase maturity, wallet confirmation policy) that frame the
+model's assumptions. Where the specification, the paper, and the
+deployed nodes disagree, the divergence is stated.
 \end{abstract}
 \clearpage
 \tableofcontents
 \clearpage
 
-\section{Ledger state and transaction acceptance}\label{sec:cons-scope}
+\section{Scope, sources, and the two double-spends}\label{sec:cons-scope}
 
-A payment changes who can spend value. It does not move a physical object
-between machines. The \emph{ledger} is the accepted record of such
-changes. A \emph{transaction} is one proposed change, with the data needed
-to check it. A \emph{node} is a participating computer; a validating node
-checks the rules itself. Each validating node maintains a public state, receives
-a proposed change, and checks that the change follows the rules. Privacy
-changes the evidence used in that check; it does not remove the need for
-a public decision about whether a particular change has already occurred.
+The protocol layers above this one take a working ledger for granted. This
+volume documents the mechanism that selects that ledger: Nakamoto consensus
+--- proof of work, the most-work rule, and the probabilistic finality they
+purchase. The treatment is quantitative
+throughout. Its spine is Meni Rosenfeld's \emph{Analysis of
+hashrate-based double-spending} (11~December 2012; latest version
+12~February 2014; arXiv:1402.2009), which gives an exact counterpart to
+the approximate analysis in Satoshi Nakamoto's whitepaper; we reprove its
+results in full, recompute its tables by script, and
+instantiate its conclusions for the deployed Zcash parameters.
 
-A \emph{transparent output} publicly records an amount and conditions
-for spending it. A \emph{shielded note} instead describes an amount and
-receiving capability privately; the chain records a commitment to that
-description. A \emph{shielded pool} is a separately accounted collection
-of such notes. Commitment hiding and binding have their security
-definitions in the \emph{Crypto Guide}, ``Groups, commitments, and
-Sinsemilla''; this volume uses the interface without assuming any one
-payment construction.
+Two distinct attacks are both called ``double-spending'', and this
+volume treats exactly one of them. Two spends of the same shielded note
+reveal the same nullifier, and the protocol specification's
+\S``Nullifier Sets'' forbids a repeated nullifier within a transaction or
+valid block chain; such a same-chain attempt is therefore invalid under
+the consensus rules. What consensus must prevent is the chain-level attack:
+paying a merchant on the chain everyone sees, then replacing that chain
+wholesale with another in which the payment never happened. No
+zero-knowledge proof (\emph{Crypto Guide}, \S``Interactive proofs, zero
+knowledge, and SNARKs'') rules this out; under the model developed here,
+the proof-of-work race gives the attack its probabilistic bound.
 
-One \emph{zatoshi} is the indivisible accounting unit, and
-$10^8$ zatoshis equal one ZEC. All consensus amounts are integers. A
-negative public balance will mean a transfer \emph{into} a shielded pool,
-not a negative-valued private note. The distinction between integer
-arithmetic and arithmetic modulo a prime is developed in the
-\emph{Math Guide}, ``Prime fields and modular arithmetic''.
+The quantitative argument assumes the \emph{Math Guide}'s probability section
+(\S``Probability, asymptotics, and computation''), which constructs
+probability from its definition ---
+finite spaces, conditioning, independence, random variables, expectation
+--- and extends it to the three rungs used here: countable additivity,
+continuity along monotone events, and density-defined laws
+(\S``Beyond finite spaces: countable additivity, limits, and
+densities''). The block and anchor vocabulary uses the \emph{Crypto Guide}'s
+hash and commitment sections. On that base,
+Section~\ref{sec:cons-toolkit} constructs
+the race-specific instruments no lower volume owns --- memoryless
+clocks, random walks, the negative binomial law; the algebra used is
+elementary. Readers wanting only the results can read
+Sections \ref{sec:cons-chain}, \ref{sec:cons-analysis},
+and~\ref{sec:cons-deployed} and take the theorems on faith.
 
-\subsection{State belongs to a branch}\label{sec:cons-chain}
+\subsection{Sources and their standing}\label{sec:cons-sources}
 
-A \emph{block} contains an ordered list of transactions and a
-\emph{header}, a fixed-format summary naming its parent block by hash.
-The \emph{genesis block} is the prescribed starting block. Starting there,
-these parent links form a tree. A \emph{branch} is one path through
-that tree. Its height counts edges from genesis; competing blocks can
-therefore have the same height without being the same block.
+Table~\ref{tab:cons-sources} lists the sources. The analysis (the paper
+and the whitepaper) is not normative for anything; the protocol
+specification and the deployed nodes are the ground truth for what Zcash
+actually does, and where the model's assumptions and the deployment
+diverge, Section~\ref{sec:cons-deployed} says so explicitly. The probability
+and economic tables and the plotted or simulated coordinates were recomputed
+by script; the same calculation reproduces
+both of the paper's printed tables cell-for-cell --- Table~1 to its
+three-decimal rounding, Table~2 to its floored thousands-and-millions
+convention --- before departing from them.
 
-An \emph{anchor} is a previously accepted note-tree root against which a
-private existence proof is checked. A \emph{nullifier} is a deterministic
-public spend tag whose repetition is forbidden within its pool.
-The note tree is an append-only tree of note commitments; the generic
-tree and its root are constructed in the \emph{Crypto Guide},
-``Authenticated trees and append-only histories''.
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Source & Role & Pin \\
+\midrule
+Rosenfeld, arXiv:1402.2009 & primary analysis & v1, 2014-02-09 \\
+Nakamoto whitepaper, \S11 & historical analysis & 2008 \\
+Zcash protocol specification & normative & \texttt{zips} \texttt{69610984} \\
+ZIP-208 (Blossom) & normative & same pin \\
+\textsf{zebra} & deployed validator & \texttt{fa7657f1c}%
+\footnotemark \\
+\textsf{zcashd} v6.10.0 & retired validator & \texttt{16ac74376} \\
+\textsf{librustzcash} & deployed wallet layer & \texttt{e30517e43} \\
+\bottomrule
+\end{tabular}
+\caption{Sources. The paper is analysis, not specification: nothing in
+it binds the protocol. Deployed-behaviour claims cite crate, file, and
+line at the pinned commits. The retired \textsf{zcashd} is cited as
+history: its choices explain constants that survive it
+(Section~\ref{sec:cons-rails}).}
+\label{tab:cons-sources}
+\end{table}
+\footnotetext{A working-branch checkout; every file cited in this volume
+was verified byte-identical to \texttt{ZcashFoundation/zebra} main at
+\texttt{74cef5e6d}, so the citations hold for both.}
 
-For a branch tip $b$, write its state schematically as
+\paragraph{Current-head boundary (2026-09-05).}
+The normative and deployed claims were rechecked at \textsf{zips}
+\texttt{e753a6a3}, \textsf{zebra} \texttt{d1fd7adfd366}, and
+\textsf{librustzcash} \texttt{5e770a91ad0d}:
+Zebra still uses the tip hash for equal-work ties and a $1000$-block local
+rollback window, its per-block difficulty constants are unchanged, and the
+wallet backend still defaults to three trusted and ten untrusted
+confirmations. The earlier pins in Table~\ref{tab:cons-sources} remain the
+targets of its file-and-line citations.
+
+\begin{remark}[The paper's own condition]\label{rem:cons-paper}
+The arXiv v1 PDF of the paper is lightly broken: it contains exactly two
+citations, both rendered as ``[?]'' (in the abstract and in \S1), and no
+References section at all. Both plainly intend the Nakamoto whitepaper,
+and we read them so. The paper numbers only two of its displayed
+equations --- its equation~(1) is our
+Theorem~\ref{thm:cons-r}, its equation~(2) our
+equation~\eqref{eq:cons-vmax} --- and sets its two model assumptions
+as a bare numbered list; the \emph{Assumption} environments of
+Section~\ref{sec:cons-race} are ours.
+\end{remark}
+
+\section{The block tree and the most-work rule}\label{sec:cons-chain}
+
+Zcash transactions are grouped into blocks, and every block names its
+parent by including the parent header's hash (\emph{Crypto Guide},
+\S``Hash functions and the random oracle model''); the genesis block
+alone has no parent. Blocks therefore form a tree rooted at genesis, and
+each root-to-leaf path --- each \emph{branch} --- is one internally
+consistent version of history. Branches need not be consistent with one
+another: one branch can contain a transaction that conflicts with a
+transaction in a sibling branch, and that freedom is exactly the attack
+surface this volume quantifies.
+
+\subsection{Work, and the best chain}\label{sec:cons-bestchain}
+
+A single coherent history requires a rule every node can apply locally
+and use to converge once one valid branch is strictly preferred. The rule
+is not simply ``longest'': it weighs each block by the computational effort
+represented by its header target.
+
+\begin{definition}[Work of a block]\label{def:cons-work}
+Let $\mathsf{ToTarget}$ be the conversion from the header's
+\texttt{nBits} field to its 256-bit target threshold (specification
+\S7.7.4). The \emph{work} of a block is
 \[
- S_b=(h,U,\{T_P,A_P,N_P,B_P\}_{P\in\mathcal P},D,\mathcal H).
+  \mathsf{work} \;=\;
+  \left\lfloor \frac{2^{256}}{\mathsf{ToTarget}(\texttt{nBits}) + 1}
+  \right\rfloor
 \]
-Here $h$ is the height; $U$ is the map of unspent transparent outputs;
-$\mathcal P$ is the set of shielded pools recognised by the active rules;
-$T_P$ is pool $P$'s append-only note-commitment tree; $A_P$ records roots
-eligible as anchors; $N_P$ is its set of revealed nullifiers; and $B_P$ is
-its public chain value pool balance. The \emph{deferred development pool}
-is publicly tracked value set aside under prescribed allocation rules;
-its balance is $D$. The authenticated block-history state is $\mathcal H$.
-
-The state stores commitments and spend tags, not private note amounts or
-owners. The commitment and nullifier mechanisms must be provided by the
-payment protocol. The ledger needs their interfaces: append a commitment,
-recognise an eligible root, and reject a repeated tag.
-
-A state indexed only by height is ambiguous. If blocks $b$ and $b'$ have
-the same height, their output maps, nullifier sets and note trees can
-differ. Every state-dependent query must identify a branch, either
-explicitly by hash or implicitly by a stable branch snapshot.
-
-\subsection{A typed payment-validation contract}
-
-An \emph{ordinary transaction} transfers existing value; it is not the
-special transaction permitted to issue the block's subsidy, or newly
-created money. It supplies transparent input references and
-outputs, zero or more shielded components, and \emph{authorising data}:
-proofs and signatures used to validate the proposed effects. A proof's
-private input is its \emph{witness}; its public inputs are visible to the
-verifier. Their security contracts and signatures are introduced in the
-\emph{Crypto Guide}, ``Knowledge, simulation, and Schnorr'' and
-``RedPallas signatures''.
-For each
-shielded component its public interface contains:
-\begin{itemize}[leftmargin=*]
-\item an ordered commitment list $C_P(t)$ to append;
-\item a nullifier list $N_P(t)$ to insert;
-\item any required anchor or anchors;
-\item a signed public balance $b_P(t)$, positive for net value leaving
-  the pool;
-\item a proof and signatures establishing the protocol-specific
-  relationship between these public objects and private witnesses.
-\end{itemize}
-A list, unlike a set, retains order and multiplicity. Checking only that
-$N_P(t)\cap N_P=\varnothing$ is insufficient: the list itself must not
-contain a repeated nullifier.
-
-The payment mechanism must establish that nonzero private inputs existed
-under the claimed anchors, that their spend tags were computed correctly,
-that the spender authorised this transaction, and that private input
-value minus private output value equals $b_P(t)$. A zero-knowledge proof
-alone need not establish all these claims. A design may divide them
-between a proof, signatures approving spends and a separate signature
-enforcing the combined value balance. The ledger
-invokes the complete specified verifier, not whichever subset is easiest
-to batch.
-
-The network parameters specify which rules apply at each height.
-A format's \emph{version} and \emph{version-group identifier} select its
-byte layout and interpretation. Its \emph{consensus branch identifier}
-separates cryptographic computations belonging to different upgrade rules;
-it does not name a block-tree branch. A \emph{verification key} is the
-public circuit-specific input to proof verification, not a spending key.
-Field and point encodings use the \emph{Math Guide}, ``Prime fields and
-modular arithmetic'' and ``Pasta curves and their encodings''.
-An input is \emph{mature} when its required waiting interval has elapsed.
-A transaction's lock time limits when it can begin to be accepted;
-its expiry condition limits how late it can be accepted.
-
-\begin{definition}[Ordinary transaction acceptance]
-\label{def:cons-accept}
-For network parameters $\theta$, candidate block height $h$ and a
-branch-local state $S$, transaction acceptance is the conjunction of:
-\begin{enumerate}[leftmargin=*]
-\item \emph{Well-formedness:} canonical parsing, bounded lengths, valid
-  field and point encodings, supported version and version-group
-  combination, and the branch identifier required at height $h$.
-\item \emph{Context-independent validity:} all applicable proof,
-  signature, range and component-consistency checks.
-\item \emph{Context-dependent validity:} unspent and mature transparent
-  inputs, eligible pool-specific anchors, unused nullifiers, applicable
-  lock-time and expiry conditions, and upgrade-specific restrictions.
-\item \emph{Accounting:} the ordinary fee is nonnegative and all required
-  individual and aggregate money ranges hold.
-\end{enumerate}
-Acceptance produces a proposed state delta. No part of that delta becomes
-committed state if any required check fails.
+(specification \S7.7.5, ``Definition of Work''). A lower target admits
+fewer valid headers, so a block meeting it certifies proportionally more
+expected hashing; work is that certificate made additive.
 \end{definition}
 
-The ordinary fee is determined by public quantities:
-\begin{equation}
- f(t)=v_{\rm in}^{\rm transparent}(t)
-      -v_{\rm out}^{\rm transparent}(t)
-      +\sum_{P\in\mathcal P} b_P(t)\geq0.
- \label{eq:cons-fee}
-\end{equation}
-An absent component contributes zero. A \emph{JoinSplit} is an earlier
-shielded transfer component. Its formats have their own public transfer
-fields; at a compatibility boundary their net
-contribution must enter this equation with the specified sign. This
-formula is not permission to skip their own proofs or signatures.
+The deployed Zebra validator computes this quantity with a 256-bit in-word
+trick: \textsf{zebra} evaluates
+\verb|(!expanded.0 / (expanded.0 + 1)) + 1|
+(\texttt{zebra-chain/src/work/\allowbreak difficulty.rs:401}); the retired
+\textsf{zcashd} computed the identical
+expression on \texttt{arith\_uint256}, with \texttt{\textasciitilde}
+spelling the complement (\texttt{src/pow.cpp:144--157}). The form
+agrees with
+Definition~\ref{def:cons-work} exactly: writing $t$ for the target and
+$A = 2^{256}$, the complement is $\lnot t = A - 1 - t$, and
+\begin{gather*}
+\left\lfloor \frac{A-1-t}{t+1} \right\rfloor + 1
+= \left\lfloor \frac{A - (t+1)}{t+1} \right\rfloor + 1
+= \left\lfloor \frac{A}{t+1} \right\rfloor,
+\end{gather*}
+so the in-word computation equals the out-of-word quotient (checked by
+script over random targets).
 
-\begin{example}[The continuing payment]
-An existing shielded note holds $80{,}000$ zatoshis. The transaction pays
-$50{,}000$, creates $20{,}000$ of change and leaves $10{,}000$ as a fee.
-There are no transparent inputs or outputs. Thus
+\begin{definition}[Best valid block chain]\label{def:cons-best}
+Specification \S3.3 (``The Block Chain''): a node ``sums the work, as
+defined in \S7.7.5, of all blocks in each valid block chain, and
+considers the valid block chain with greatest total work to be best. To
+break ties between leaf blocks, a node will prefer the block that it
+received first.''
+\end{definition}
+
+Rosenfeld's paper states the same rule for Bitcoin --- ``the branch
+representing the most proof of work'', with first-seen tie-breaking ---
+so the model uses the same selection rule. The shorthand ``longest
+chain'' is exact only while difficulty is constant, which is precisely the paper's
+Assumption~\ref{ass:cons-difficulty} and not a property of the deployed
+chain (Section~\ref{sec:cons-difficulty}). Note also what the rule does
+\emph{not} say: nothing marks a chain as permanently chosen. A node that
+learns of a heavier branch switches to it, however deep the fork point
+--- subject only to the node-local rails of
+Section~\ref{sec:cons-rails}. Consensus is a standing competition, not
+an election with a winner.
+
+\begin{definition}[Confirmations]\label{def:cons-conf}
+A transaction has $n$ \emph{confirmations} if it is included in a block
+of the best chain and there are $n$ blocks on the path from that block
+to the chain's leaf, inclusive. The block containing the transaction is
+its first confirmation.
+\end{definition}
+
+Different nodes may briefly disagree on the best chain when two blocks
+of equal cumulative work arrive in different orders. Absent a concurrent
+extension of the other branch, a later block makes one branch strictly
+heavier, and nodes converge on it once that block propagates
+(Figure~\ref{fig:cons-tree}). Such ties are the benign case. The attack
+of Section~\ref{sec:cons-confirm} is the malicious one: a fork
+manufactured in private and released only when it wins.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  blk/.style={draw, rectangle, minimum width=5.5mm, minimum height=5.5mm,
+    inner sep=0pt, fill=white},
+  hon/.style={blk, fill=tierin!25},
+  att/.style={blk, fill=tierspend!25},
+  lnk/.style={-{Stealth[length=2mm]}, thick},
+  lbl/.style={font=\scriptsize, text=black!60},
+]
+% panel (a): a tie
+\begin{scope}
+\node[blk] (g) at (0,0) {};
+\node[blk] (b1) at (1,0) {};
+\node[blk] (b2) at (2,0) {};
+\node[hon] (c1) at (3,0.55) {};
+\node[att] (d1) at (3,-0.55) {};
+\draw[lnk] (b1) -- (g);
+\draw[lnk] (b2) -- (b1);
+\draw[lnk] (c1) -- (b2);
+\draw[lnk] (d1) -- (b2);
+\node[lbl, anchor=north] at (1.5,-1.15) {(a) tied branches: nodes
+  disagree};
+\end{scope}
+% panel (b): resolution
+\begin{scope}[xshift=7.2cm]
+\node[blk] (g) at (0,0) {};
+\node[blk] (b1) at (1,0) {};
+\node[blk] (b2) at (2,0) {};
+\node[hon] (c1) at (3,0.55) {};
+\node[hon] (c2) at (4,0.55) {};
+\node[att] (d1) at (3,-0.55) {};
+\draw[lnk] (b1) -- (g);
+\draw[lnk] (b2) -- (b1);
+\draw[lnk] (c1) -- (b2);
+\draw[lnk] (c2) -- (c1);
+\draw[lnk] (d1) -- (b2);
+\node[lbl, anchor=north] at (2,-1.15) {(b) one more block makes the
+  upper branch heavier};
+\end{scope}
+\end{tikzpicture}
+\caption{Branch selection. Arrows point from child to parent. In
+panel~(a) two blocks extend the same parent and the branches carry equal
+work; each node keeps the one it saw first. In panel~(b) a new block
+lands on the upper branch, which now has strictly more cumulative work;
+during propagation, every node that knows this state selects the upper
+branch, unless the lower branch has meanwhile been extended. At constant
+difficulty ``more work'' and ``longer'' coincide, which is how the
+paper, and this volume's figures, may draw block counts.}
+\label{fig:cons-tree}
+\end{figure}
+
+\subsection{The attack}\label{sec:cons-attack}
+
+The double-spend attack, as the paper lays it out (\S3):
+
+\begin{enumerate}[itemsep=1pt]
+\item broadcast a transaction paying the merchant;
+\item secretly mine a branch from the last pre-transaction block,
+  containing instead a conflicting transaction paying the attacker
+  himself;
+\item wait until the merchant's transaction has $n$ confirmations and
+  the merchant, satisfied, hands over the goods;
+\item in the paper's first-seen tie model, keep extending the secret branch
+  until it carries more work than the public one, then broadcast it. Every
+  node that sees it switches to it, the
+  payment to the merchant is no longer part of history, and the
+  attacker has both the goods and the coins.
+\end{enumerate}
+
+Nothing in step~4 violates any validity rule --- the released branch is
+a perfectly well-formed chain, merely a different one. The only
+question is probabilistic: with what probability does the secret branch
+ever get ahead? Answering it exactly in that first-seen model is the business of
+Sections~\ref{sec:cons-race} and~\ref{sec:cons-confirm}; the toolkit
+comes first.
+
+\section{A probability toolkit}\label{sec:cons-toolkit}
+
+The analysis ahead needs four tools: memoryless clocks (to model block
+discovery), a reduction from continuous time to a coin sequence, the
+negative binomial distribution (to count the attacker's progress), and
+one normalisation lemma about races. Their foundations are the
+\emph{Math Guide}'s: probability spaces, conditioning, independence,
+random variables, and expectation are constructed there from the
+definition of probability onward (\S``Probability, asymptotics, and
+computation''), and the extension beyond finite spaces --- countable
+additivity, continuity along monotone events, density-defined laws, and
+infinite sequences of independent trials --- is its
+\S``Beyond finite spaces: countable additivity, limits, and densities''.
+What no lower volume owns are the four instruments themselves; each is
+constructed here on that base, only as far as the critical path
+requires.
+
+\subsection{Memoryless clocks and the attribution
+sequence}\label{sec:cons-clocks}
+
+\begin{definition}[Exponential clock]\label{def:cons-exp}
+A random variable $X$ is \emph{exponential with rate} $\lambda > 0$ if
+$\Pr[X > t] = e^{-\lambda t}$ for all $t \geq 0$ --- a law defined by
+the density $\lambda e^{-\lambda t}$ on $t \geq 0$ in the sense of the
+\emph{Math Guide}'s density definition, with mean $1/\lambda$.
+\end{definition}
+
+\begin{lemma}[Memorylessness]\label{lem:cons-memoryless}
+An exponential $X$ satisfies
+$\Pr[X > s + t \mid X > s] = \Pr[X > t]$ for all $s, t \geq 0$: having
+waited without success teaches nothing about the remaining wait.
+\end{lemma}
+
+\begin{proof}
+$\Pr[X > s+t \mid X > s]
+ = e^{-\lambda(s+t)} / e^{-\lambda s} = e^{-\lambda t}$.
+\end{proof}
+
+\begin{lemma}[Race of two clocks]\label{lem:cons-race}
+Let $X$ and $Y$ be independent exponentials with rates $\lambda$ and
+$\mu$. Then
 \[
- b_P=80{,}000-50{,}000-20{,}000=10{,}000=f.
+  \Pr[X < Y] \;=\; \frac{\lambda}{\lambda + \mu},
 \]
-The pool loses $10{,}000$ zatoshis of publicly accounted value. The payment
-and change amounts remain private. A transaction's fee is therefore
-public even when every payment component is shielded.
-\end{example}
+and the winning time $\min(X, Y)$ is exponential with rate
+$\lambda + \mu$.
+\end{lemma}
 
-\subsection{Rules, implementations and activation}\label{sec:cons-sources}
+\begin{proof}
+Integrating over the time at which $X$ fires,
+\[
+  \Pr[X < Y]
+  = \int_0^\infty \lambda e^{-\lambda t}\, \Pr[Y > t] \,dt
+  = \int_0^\infty \lambda e^{-(\lambda+\mu)t} \,dt
+  = \frac{\lambda}{\lambda + \mu}.
+\]
+For the minimum,
+$\Pr[\min(X,Y) > t] = \Pr[X > t]\Pr[Y > t] = e^{-(\lambda+\mu)t}$.
+Moreover, the joint density that $X$ wins at time $t$ factors as
+\[
+  \lambda e^{-(\lambda+\mu)t}
+  = \frac{\lambda}{\lambda+\mu}\,
+    (\lambda+\mu)e^{-(\lambda+\mu)t},
+\]
+and similarly for $Y$. Thus the winner is independent of the winning time.
+\end{proof}
 
-A \emph{network upgrade} changes the rules at a network-specific height.
-The rule-selection function $\mathsf{Rules}_{\theta}(h)$ determines
-allowed formats, branch identifiers, verification keys, pool restrictions
-and block-accounting parameters. The branch identifier is a
-domain-separation value; it is not a block hash or a replacement for the
-height test.
+\begin{proposition}[The attribution sequence]\label{prop:cons-attrib}
+Model the honest network and attacker as independent exponential clocks
+with rates $p/T_0$ and $q/T_0$, restarting when either fires
+(Section~\ref{sec:cons-race}). Successive block attributions form an
+infinite sequence of independent, identically distributed Bernoulli trials
+in the \emph{Math Guide}'s sense: attacker with probability $q$, honest
+network with probability $p$, independent of all earlier attributions
+and all elapsed times.
+\end{proposition}
 
-The normative baseline used here is
-\texttt{zips} commit \texttt{69610984}, notably the protocol specification
-sections ``Transaction Encoding and Consensus'', ``Block Header Encoding
-and Consensus'', ``Proof of Work'', and ``Chain Value Pool Balances''.
-The implementation cross-check is \texttt{zebra} commit
-\texttt{ef6325c0}, principally \texttt{zebra-consensus/\allowbreak
-src/block.rs}, \texttt{zebra-consensus/\allowbreak src/transaction.rs}
-and \texttt{zebra-state/\allowbreak src/service/check.rs}.
-References to later rule sets
-are conditional descriptions of their specified activation rules.
-The presence of code, a release number, or a ZIP marked Draft or Proposed
-does not establish activation on a network.
+\begin{proof}
+By Lemma~\ref{lem:cons-race} the first block is the attacker's with
+probability $(q/T_0)/(p/T_0 + q/T_0) = q$. When a block is found, the
+finder's clock restarts by construction, and the loser's remaining wait
+is distributed as a fresh clock by Lemma~\ref{lem:cons-memoryless}; the
+state after each block is therefore probabilistically identical to the
+start, independent of the past. The density factorisation in
+Lemma~\ref{lem:cons-race} also makes each winner independent of that race's
+elapsed time. The claim follows by induction.
+\end{proof}
 
-The compatibility boundary is deliberate. A complete node must also
-validate the active transparent and earlier shielded formats. This volume
-constructs the common ledger contract; it does not substitute that
-contract for their complete validation algorithms.
+Proposition~\ref{prop:cons-attrib} is the paper's bridge (its \S3,
+with footnote~1 supplying the clock rates) from physical time to
+combinatorics: since the question
+``does the attacker ever get ahead?''\ concerns only the \emph{order}
+of block discoveries, not their times, every result below is a
+statement about a $p$/$q$ coin sequence, and the time constant $T_0$
+disappears from the answers. Where the exponential model itself comes
+from --- and how well Zcash's Equihash fits it --- is a deployment
+question, taken up in Section~\ref{sec:cons-equihash}.
 
-\section{Blocks and branch-local validation}\label{sec:cons-blocks}
+\subsection{The negative binomial law}\label{sec:cons-negbin}
 
-A transaction valid by itself may conflict with another transaction in
-the same block. A block valid on one branch may be invalid on another.
-These are not failures of a signature or proof. They are consequences of
-the state to which the transaction proposes to apply.
+\begin{proposition}[Progress of the loser]\label{prop:cons-negbin}
+In an attribution sequence with attacker probability $q = 1 - p$, let
+$m$ be the number of attacker blocks found strictly before the honest
+network's $n$-th block. Then
+\[
+  P(m) \;=\; \binom{m + n - 1}{m}\, p^n q^m,
+  \qquad m = 0, 1, 2, \ldots
+\]
+--- the \emph{negative binomial} distribution.
+\end{proposition}
 
-\subsection{Header and body}
+\begin{proof}
+The event fixes the first $m + n$ trials exactly this far: the
+$(m+n)$-th trial is honest (the $n$-th honest success), and among the
+first $m + n - 1$ trials exactly $m$ are the attacker's, in any of
+$\binom{m+n-1}{m}$ orders. Each such order has probability
+$p^{n-1} q^m \cdot p$.
+\end{proof}
 
-Producing a block requires finding an \emph{Equihash solution}, a string
-meeting prescribed collision conditions, and making the whole header's
-hash no larger than an integer \emph{target}. These constitute its
-\emph{proof of work}: a publicly checkable result of a computational
-search. The \emph{nonce} is a header field varied during that search.
-A \emph{transaction identifier} is its format's prescribed transaction
-digest. The first transaction, called the \emph{coinbase}, is the special
-transaction permitted to claim new issuance and the block's fees.
-The modern header retains the following byte layout:
+\begin{lemma}[First-to-$n$ race]\label{lem:cons-racenorm}
+In the same sequence, let $H_n$ be the event that the honest network
+reaches $n$ blocks before the attacker does, and $A_n$ the reverse.
+Then $H_n$ and $A_n$ partition the sample space, and
+\[
+  \Pr[H_n] = \sum_{m=0}^{n-1} \binom{m+n-1}{m} p^n q^m,
+  \qquad
+  \Pr[A_n] = \sum_{h=0}^{n-1} \binom{h+n-1}{h} q^n p^h,
+  \qquad
+  \Pr[H_n] + \Pr[A_n] = 1.
+\]
+\end{lemma}
+
+\begin{proof}
+Among the first $2n - 1$ trials one side already has $n$ successes, so
+the race terminates; a tie is impossible because block counts advance
+one at a time. The event $H_n$ says the $n$-th honest block arrives
+while the attacker holds $m \leq n - 1$; summing
+Proposition~\ref{prop:cons-negbin} over those $m$ gives the first sum,
+and $A_n$ is the same computation with the roles of $p$ and $q$
+swapped.
+\end{proof}
+
+\begin{remark}[From hash trials to exponential clocks]%
+\label{rem:cons-hashtrials}
+The exponential model is itself a limit, not an axiom. A miner's work is
+modelled as a stream of candidate evaluations, each an independent Bernoulli
+trial with a tiny success probability; the number of trials to the
+first success is geometric, and a geometric law with small success
+probability, viewed at the scale of its mean, converges to the
+exponential of Definition~\ref{def:cons-exp}. The step that matters is
+\emph{progress-freeness}: a candidate that fails must carry no
+information usable by the next one. Whether Zcash's Equihash satisfies
+this is examined with the deployed parameters in
+Section~\ref{sec:cons-equihash}.
+\end{remark}
+
+\section{Playing catch-up}\label{sec:cons-race}
+
+The attacker of Section~\ref{sec:cons-attack} finds himself, at the
+moment the merchant ships, some number of blocks behind the public
+chain, and wins if his branch ever overtakes it. This section computes
+the probability of that event as a function of the deficit; the next
+section supplies the distribution of the deficit itself.
+
+Both computations run under the paper's two standing assumptions,
+stated here nearly verbatim (the environment form is ours,
+Remark~\ref{rem:cons-paper}):
+
+\begin{assumption}[Constant hashrates]\label{ass:cons-hashrate}
+The total hashrate of the honest network and the attacker is constant.
+Combined they have a hashrate of $H$, of which $pH$ belongs to the
+honest network and $qH$ to the attacker, where $0 < p,q < 1$ and
+$p + q = 1$.
+\end{assumption}
+
+\begin{assumption}[Constant difficulty]\label{ass:cons-difficulty}
+The mining difficulty is constant, and such that with hashrate $H$ the
+average time to find a block is $T_0$.
+\end{assumption}
+
+Under Assumption~\ref{ass:cons-difficulty} every block carries equal
+work, so ``most work'' and ``longest'' coincide and the race can be
+scored in block counts. Section~\ref{sec:cons-difficulty} explains how
+the deployed chain departs from these assumptions --- difficulty adjusts
+after every block and hashrate drifts --- and why the formulas should be
+read as an equal-difficulty baseline rather than an exact deployment model.
+
+\begin{definition}[The deficit walk]\label{def:cons-walk}
+Let $z$ denote the honest chain's lead in blocks over the attacker's
+branch. By Proposition~\ref{prop:cons-attrib}, each newly found block
+moves $z$ up by $1$ with probability $p$ (honest block) or down by $1$
+with probability $q$ (attacker block), independently of the past:
+\[
+  z_{i+1} \;=\;
+  \begin{cases}
+    z_i + 1 & \text{with probability } p,\\
+    z_i - 1 & \text{with probability } q.
+  \end{cases}
+\]
+The attack succeeds the moment $z$ reaches $-1$: the secret branch is
+then strictly ahead, and releasing it rewrites history.
+\end{definition}
+
+\begin{theorem}[Catch-up probability; Rosenfeld \S3]\label{thm:cons-catchup}
+Let $a_z$ be the probability that the walk of
+Definition~\ref{def:cons-walk}, started at deficit $z$, ever reaches
+$-1$. Then
+\begin{equation}\label{eq:cons-az}
+  a_z \;=\; \min(q/p,\, 1)^{\max(z+1,\,0)} \;=\;
+  \begin{cases}
+    1 & \text{if } z < 0 \text{ or } q \geq p,\\
+    (q/p)^{z+1} & \text{if } z \geq 0 \text{ and } q < p.
+  \end{cases}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+For $z < 0$ the walk has already succeeded, so $a_z = 1$; assume
+$z \geq 0$. Fix an integer $N > z$ and absorb the walk at both $-1$ and
+$N$; let $h_N(z)$ be the probability of reaching $-1$ before $N$.
+Conditioning on the first step,
+\[
+  h_N(z) = p\, h_N(z+1) + q\, h_N(z-1)
+  \qquad (0 \leq z \leq N - 1),
+  \qquad h_N(-1) = 1, \quad h_N(N) = 0,
+\]
+a second-order linear recurrence. The trial solution $h_N(z) = t^z$
+satisfies it exactly when $t$ is a root of the \emph{characteristic
+polynomial} $p t^2 - t + q = p(t - 1)(t - q/p)$.
+
+If $q \neq p$ the roots $1$ and $q/p$ are distinct, so
+$h_N(z) = A + B (q/p)^z$; the boundary conditions give
+\[
+  h_N(z) \;=\;
+  \frac{(q/p)^z - (q/p)^N}{(q/p)^{-1} - (q/p)^N}.
+\]
+If $q = p$ the root is double and $h_N(z) = A + Bz$, giving
+$h_N(z) = (N - z)/(N + 1)$.
+
+Now let $N \to \infty$. The events $E_N = \{\text{reach } -1 \text{
+before } N\}$ are nondecreasing in $N$, and their union is the event
+that the walk ever reaches $-1$: a walk that does so does it at a
+finite time, having visited finitely many states, so $E_N$ holds for
+every $N$ above the largest state visited. By continuity along
+monotone events (\emph{Math Guide}, \S``Beyond finite spaces: countable
+additivity, limits, and densities''),
+$a_z = \lim_{N\to\infty} h_N(z)$. For $q < p$ the term
+$(q/p)^N$ vanishes and the quotient tends to $(q/p)^{z+1}$; for
+$q = p$, $(N-z)/(N+1) \to 1$; for $q > p$, dividing numerator and
+denominator by $(q/p)^N$ sends both to $-1$, so the quotient tends to
+$1$.
+\end{proof}
+
+\begin{corollary}[Half or more always catches up]\label{cor:cons-majority}
+When $q \geq p$, the attacker overtakes the public chain with
+probability $1$ from any finite deficit. No confirmation count defends
+when the attacker controls at least half of the hashrate.
+\end{corollary}
+
+\begin{corollary}[Geometric decay in the deficit]\label{cor:cons-decay}
+When $q < p$, each additional block of deficit multiplies the catch-up
+probability by $q/p$. Concretely (script-computed): at $q = 10\%$,
+$a_0 = 1/9 \approx 0.1111$ and $a_5 \approx 1.88 \times 10^{-6}$; at
+$q = 30\%$, $a_0 = 3/7 \approx 0.4286$ and
+$a_5 \approx 6.20 \times 10^{-3}$.
+\end{corollary}
+
+\begin{corollary}[Blocks, not time]\label{cor:cons-timefree}
+Equation~\eqref{eq:cons-az} contains neither $T_0$ nor any other time
+scale: the security of a deficit is a function of block \emph{counts}
+alone. Two chains with different block spacings but the same $q$ offer
+identical security per confirmation --- and therefore different
+security per minute (Section~\ref{sec:cons-zcashtime}).
+\end{corollary}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=0.42cm, y=0.30cm]
+% axes
+\draw[-{Stealth[length=2mm]}] (0,-2) -- (0,14.5)
+  node[left, font=\scriptsize] {$z$};
+\draw[-{Stealth[length=2mm]}] (0,0) -- (26.5,0)
+  node[above left, font=\scriptsize] {blocks found};
+\foreach \y in {-1, 0, 2, 4, 6, 8, 10, 12}
+  \draw (0.15,\y) -- (-0.15,\y)
+    node[left, font=\tiny] {$\y$};
+\foreach \x in {5, 10, 15, 20, 25}
+  \draw (\x,0.2) -- (\x,-0.2) node[below, font=\tiny] {$\x$};
+% success threshold
+\draw[dashed, thick, tierspend]
+  (0,-1) -- (26,-1) node[below left, font=\scriptsize, text=tierspend]
+  {attack succeeds};
+% success walk, q=0.45 seed 0
+\draw[thick, tierspend]
+  plot coordinates {(0,2) (1,1) (2,0) (3,1) (4,2) (5,3) (6,4) (7,3)
+  (8,4) (9,5) (10,4) (11,3) (12,4) (13,5) (14,4) (15,3) (16,4) (17,3)
+  (18,2) (19,1) (20,0) (21,1) (22,0) (23,-1)};
+\node[font=\scriptsize, text=tierspend, anchor=south west] at (9,5.4)
+  {$q = 0.45$: overtook at block $23$};
+% failure walk, q=0.20 seed 0
+\draw[thick, tierin]
+  plot coordinates {(0,2) (1,1) (2,2) (3,3) (4,4) (5,5) (6,6) (7,7)
+  (8,8) (9,9) (10,10) (11,9) (12,10) (13,11) (14,12) (15,13) (16,14)
+  (17,13) (18,12) (19,11) (20,10) (21,11) (22,12) (23,11) (24,12)
+  (25,13)};
+\node[font=\scriptsize, text=tierin, anchor=south west] at (16.5,14.2)
+  {$q = 0.20$: the deficit runs away};
+\end{tikzpicture}
+\caption{Two runs of the deficit walk from $z = 2$, simulated by script
+with fixed seeds. At $q = 0.45$ the drift is weak and this run reaches
+$-1$ after $23$ blocks --- the attack succeeds; at $q = 0.20$ the
+deficit grows roughly linearly, and by Theorem~\ref{thm:cons-catchup}
+the chance of ever returning from deficit $13$ is
+$(1/4)^{14} \approx 3.7 \times 10^{-9}$.}
+\label{fig:cons-walk}
+\end{figure}
+
+\FloatBarrier
+
+\section{Waiting for confirmations}\label{sec:cons-confirm}
+
+The merchant's defence is patience: ship only after the paying
+transaction has $n$ confirmations (Definition~\ref{def:cons-conf}).
+This section computes exactly how much that patience buys in the paper's
+first-seen model. The paper's
+model of the attack timeline has one convention worth surfacing before
+the theorem.
+
+\begin{remark}[The pre-mined block]\label{rem:cons-premine}
+The paper assumes the attacker banks one block before the race is
+scored: ``we assume one block was pre-mined by the attacker before
+commencing the attack'' (\S4). The attacker forks from the public leaf
+at the moment the merchant's transaction is broadcast, and a patient
+attacker times the broadcast to coincide with a private block he has
+just found but not announced. At the moment the honest chain reaches
+$n$ confirmations, the attacker who has found $m$ further blocks
+therefore holds $m + 1$, and the deficit walk of
+Definition~\ref{def:cons-walk} starts at
+\[
+  z \;=\; n - m - 1.
+\]
+The convention is a modelling choice, not a law: an attacker with no
+banked block starts at $z = n - m$, and every probability below
+shrinks accordingly. It is also, as
+Theorem~\ref{thm:cons-r} shows, precisely the choice that makes the
+final formula collapse into a symmetric race.
+\end{remark}
+
+By Proposition~\ref{prop:cons-negbin}, the number $m$ of attacker
+blocks found while the honest network finds its $n$ is negative
+binomial. Averaging the catch-up probability of
+Theorem~\ref{thm:cons-catchup} over $m$ gives the central result for the
+specification and Rosenfeld first-seen tie rule. Section~\ref{sec:cons-selection}
+explains the additional success opportunity supplied by Zebra's tie-break.
+The model is not an exact deployed rollback probability.
+
+\begin{theorem}[Double-spend success probability; Rosenfeld
+eq.~(1)]\label{thm:cons-r}
+Let the merchant wait for $n \geq 1$ confirmations, under
+Assumptions \ref{ass:cons-hashrate} and~\ref{ass:cons-difficulty} and
+the convention of Remark~\ref{rem:cons-premine}, with a private branch
+accepted only after it becomes strictly heavier. The probability that
+the attacker's branch eventually overtakes the public chain is
+$r(q, n) = 1$ if $q \geq p$, and otherwise
+\begin{equation}\label{eq:cons-r}
+  r(q, n)
+  \;=\; 1 - \sum_{m=0}^{n-1} \binom{m+n-1}{m}
+        \left( p^n q^m - p^m q^n \right)
+  \;=\; 2 \sum_{m=0}^{n-1} \binom{m+n-1}{m} p^m q^n .
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Conditioning on $m$ and applying Theorem~\ref{thm:cons-catchup} at
+$z = n - m - 1$,
+\[
+  r \;=\; \sum_{m=0}^{\infty} P(m)\, a_{n-m-1}
+  \;=\; \underbrace{\sum_{m=0}^{n-1} P(m) \left( \frac{q}{p}
+        \right)^{\!n-m}}_{\text{behind: must catch up}}
+  \;+\; \underbrace{\sum_{m=n}^{\infty} P(m)}_{\text{already ahead}},
+\]
+valid for $q < p$; when $q \geq p$ every $a_{n-m-1} = 1$ and $r =
+\sum_m P(m) = 1$ immediately. For the first sum, each term transforms
+exactly:
+\[
+  \binom{m+n-1}{m} p^n q^m \left( \frac{q}{p} \right)^{\!n-m}
+  \;=\; \binom{m+n-1}{m} p^m q^n ,
+\]
+which by Lemma~\ref{lem:cons-racenorm} is the probability that the
+attacker's $n$-th block arrives while the honest network holds $m$;
+summed over $m \leq n - 1$, the first sum is $\Pr[A_n]$, the
+probability that the attacker wins the first-to-$n$ race. The
+second sum is $\Pr[m \geq n] = 1 - \Pr[H_n] = \Pr[A_n]$ by the same
+lemma. Hence $r = 2 \Pr[A_n]$, the right-hand form
+of~\eqref{eq:cons-r}; the middle form follows from
+$\Pr[A_n] = 1 - \Pr[H_n]$ applied to one of the two copies. The
+printed upper limit in the paper's equation~(1) is $n$ rather than
+$n - 1$; the $m = n$ term is identically zero, so the forms agree.
+\end{proof}
+
+\begin{remark}[The race doubling]\label{rem:cons-doubling}
+The proof exposes a structure the paper's algebra passes through
+silently: under the one-pre-mined-block convention, the
+\emph{catch-up half} --- the honest chain reaches $n$ first and the attacker
+later overtakes --- has exactly the same probability as the
+\emph{already-ahead half}, in which the attacker reaches $n$ first. A
+first-to-$n$ winner may have fallen behind and recovered along the way; neither
+half asserts otherwise. Thus the double-spend probability is twice the chance
+of winning a first-to-$n$ race. The
+identity also absorbs the boundary case: at $q = p$ each race half is
+exactly $\tfrac12$, giving $r = 1$ with no case split, continuously
+with the $q > p$ regime. The algebra here is the paper's; reading its
+two sums as the two halves of one race, and the observation that the
+pre-mine convention is what makes them equal, are this volume's
+presentational additions (verified by script over random $(q, n)$; the
+two sums agree to floating-point precision).
+\end{remark}
+
+\begin{example}[A full race, exactly]\label{ex:cons-worked}
+Take $q = 1/5$ (a twenty-percent attacker) and $n = 6$. The deficit
+starts at $z = 5 - m$, the catch-up factor is
+$(q/p)^{6-m} = 4^{-(6-m)}$, and every quantity below is an exact
+rational, printed to six decimals (script-computed):
 \begin{center}
-\begin{tabular}{@{}lr@{}}
+\small
+\begin{tabular}{@{}rrrr@{}}
 \toprule
-Field & Bytes\\
+$m$ & $P(m)$ & $a_{5-m} = 4^{-(6-m)}$ & product \\
 \midrule
-Signed version & 4\\
-Parent hash & 32\\
-Transaction Merkle root & 32\\
-Block commitments & 32\\
-Timestamp & 4\\
-Compact target, \texttt{nBits} & 4\\
-Nonce & 32\\
-Canonical encoded solution length & 3\\
-Equihash solution & 1344\\
+$0$ & $0.262144$ & $0.000244$ & $0.000064$ \\
+$1$ & $0.314573$ & $0.000977$ & $0.000307$ \\
+$2$ & $0.220201$ & $0.003906$ & $0.000860$ \\
+$3$ & $0.117441$ & $0.015625$ & $0.001835$ \\
+$4$ & $0.052848$ & $0.062500$ & $0.003303$ \\
+$5$ & $0.021139$ & $0.250000$ & $0.005285$ \\
+\midrule
+\multicolumn{3}{@{}l}{catch-up half (sum of products)} & $0.011654$ \\
+\multicolumn{3}{@{}l}{already-ahead half, $\Pr[m \geq 6]$} & $0.011654$ \\
+\midrule
+\multicolumn{3}{@{}l}{$r(0.2,\, 6)$} & $0.023308$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-Fixed-width integer fields are little-endian. The length is a canonical
-\emph{CompactSize} integer: values below $253$ use one byte; otherwise
-prefixes $\mathtt{0xfd}$, $\mathtt{0xfe}$ and $\mathtt{0xff}$ select
-two-, four- and eight-byte little-endian payloads, respectively, and a
-longer-than-necessary representation is rejected. Here the payload value
-is $1344$, so its encoded length occupies three bytes.
+The two halves agree to every printed digit --- they are equal exactly,
+by Remark~\ref{rem:cons-doubling} --- and the closed
+form~\eqref{eq:cons-r} evaluates to the same $0.023308$. A merchant
+facing a possible twenty-percent adversary who ships after six
+confirmations is assigned a $2.33\%$ strict-overtake probability by this
+model.
+\end{example}
 
-The block hash is double SHA-256 of the complete header encoding,
-including the solution length and solution. Display conventions that
-reverse hash bytes must not leak into internal hash preimages. The
-transaction Merkle root commits to transaction identifiers in block
-order. Its binary tree duplicates the final child at a level having an
-odd number of children. This is not the zero-leaf padding rule of the
-authorising-data tree in \S\ref{sec:cons-history}.
+\begin{remark}[Satoshi's approximation]\label{rem:cons-satoshi}
+The whitepaper's \S11 computes the same quantity with one
+approximation and two offsetting conventions: the attacker's progress
+is approximated as Poisson with mean $\lambda = n q / p$ (the law
+$\Pr[k] = e^{-\lambda} \lambda^k / k!$ on the nonnegative integers);
+no block is pre-mined, but success is scored at \emph{breakeven}
+rather than
+strictly ahead, and those two conventions cancel exactly --- the
+whitepaper's catch-up factor for $m$ attacker blocks is
+$(q/p)^{n-m}$, term for term the factor of
+Remark~\ref{rem:cons-premine}. The Poisson approximation is the
+entire gap. In each of the following script-computed comparisons it pushes
+the estimate down: at $q = 10\%$, $n = 6$, the whitepaper's formula gives
+$0.0243\%$ against the exact $0.0591\%$ --- an understatement by a
+factor of about $2.4$; at $q = 30\%$, $n = 6$: $13.211\%$ against
+$15.645\%$; at $q = 10\%$, $n = 10$: $0.0001\%$ against $0.0008\%$.
+The direction is not uniform over all $(q,n)$; the reason to prefer the
+negative binomial model is that it is exact under the stated assumptions, not
+that the approximation is always one-sided.
+\end{remark}
 
-The header is not the whole block. A header can satisfy proof of work
-while its body contains an invalid proof, a double spend, a wrong
-coinbase amount, or no available transactions. A node must obtain and
-validate the body before calling the block fully valid.
+\begin{table}[ht]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4.4pt}
+\begin{tabular}{@{}r rrrrrrrrrr@{}}
+\toprule
+$q$ & $n{=}1$ & $2$ & $3$ & $4$ & $5$ & $6$ & $7$ & $8$ & $9$ & $10$ \\
+\midrule
+$2\%$ & $4.000$ & $0.237$ & $0.016$ & $0.0011$ &
+  $8\!\cdot\!10^{-5}$ & \multicolumn{5}{c}{$< 10^{-5}$} \\
+$5\%$ & $10.000$ & $1.450$ & $0.232$ & $0.039$ & $0.0066$ &
+  $0.0012$ & $2.1\!\cdot\!10^{-4}$ & $4\!\cdot\!10^{-5}$ &
+  \multicolumn{2}{c@{}}{$< 10^{-5}$} \\
+$10\%$ & $20.000$ & $5.600$ & $1.712$ & $0.546$ & $0.178$ & $0.059$ &
+  $0.020$ & $0.0067$ & $0.0023$ & $0.0008$ \\
+$20\%$ & $40.000$ & $20.800$ & $11.584$ & $6.669$ & $3.916$ & $2.331$ &
+  $1.401$ & $0.848$ & $0.516$ & $0.316$ \\
+$30\%$ & $60.000$ & $43.200$ & $32.616$ & $25.207$ & $19.762$ &
+  $15.645$ & $12.475$ & $10.003$ & $8.055$ & $6.511$ \\
+$40\%$ & $80.000$ & $70.400$ & $63.488$ & $57.958$ & $53.314$ &
+  $49.300$ & $45.769$ & $42.621$ & $39.787$ & $37.218$ \\
+$45\%$ & $90.000$ & $85.050$ & $81.375$ & $78.342$ & $75.716$ &
+  $73.375$ & $71.252$ & $69.299$ & $67.487$ & $65.793$ \\
+$48\%$ & $96.000$ & $94.003$ & $92.508$ & $91.264$ & $90.177$ &
+  $89.201$ & $88.307$ & $87.478$ & $86.703$ & $85.972$ \\
+$50\%$ & \multicolumn{10}{c@{}}{$100$ for every $n$} \\
+\bottomrule
+\end{tabular}
+\caption{The double-spend success probability $r(q, n)$, in percent,
+computed by script from Theorem~\ref{thm:cons-r}. On the rows the
+paper's Table~1 also prints ($q \in \{2, 10, 20, 30, 40, 48, 50\}\%$),
+the script reproduces its values cell-for-cell; the $5\%$ and $45\%$
+rows are this volume's additions.}
+\label{tab:cons-r}
+\end{table}
 
-\subsection{A validation algorithm}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=17.5cm, y=1.02cm]
+% frame and grid
+\draw[black!15] (0,-5) grid[xstep=0.1, ystep=1] (0.6,0);
+\draw[-{Stealth[length=2mm]}] (0,-5.15) -- (0,0.35);
+\draw[-{Stealth[length=2mm]}] (0,-5) -- (0.625,-5);
+\foreach \y/\l in {0/{1}, -1/{10^{-1}}, -2/{10^{-2}}, -3/{10^{-3}},
+  -4/{10^{-4}}, -5/{10^{-5}}}
+  \node[left, font=\tiny] at (0,\y) {$\l$};
+\foreach \x in {0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
+  \node[below, font=\tiny] at (\x,-5) {$\x$};
+\node[below, font=\scriptsize] at (0.3,-5.55) {attacker hashrate $q$};
+\node[left, font=\scriptsize, rotate=90, anchor=south] at (-0.045,-2.5)
+  {$r(q,n)$, log scale};
+\draw[dashed, black!50] (0.5,-5) -- (0.5,0);
+% n = 1
+\draw[thick, black!45] plot coordinates {(0.005,-2.000) (0.020,-1.398)
+(0.035,-1.155) (0.050,-1.000) (0.065,-0.886) (0.080,-0.796)
+(0.095,-0.721) (0.110,-0.658) (0.125,-0.602) (0.140,-0.553)
+(0.155,-0.509) (0.170,-0.469) (0.185,-0.432) (0.200,-0.398)
+(0.215,-0.367) (0.230,-0.337) (0.245,-0.310) (0.260,-0.284)
+(0.275,-0.260) (0.290,-0.237) (0.305,-0.215) (0.320,-0.194)
+(0.335,-0.174) (0.350,-0.155) (0.365,-0.137) (0.380,-0.119)
+(0.395,-0.102) (0.410,-0.086) (0.425,-0.071) (0.440,-0.056)
+(0.455,-0.041) (0.470,-0.027) (0.485,-0.013) (0.500,0.000)
+(0.600,0.000)};
+\node[font=\tiny, text=black!45, anchor=west] at (0.006,-2.12)
+  {$n{=}1$};
+% n = 2
+\draw[thick, tierrecv] plot coordinates {(0.005,-3.825) (0.020,-2.626)
+(0.035,-2.144) (0.050,-1.839) (0.065,-1.615) (0.080,-1.439)
+(0.095,-1.295) (0.110,-1.172) (0.125,-1.066) (0.140,-0.972)
+(0.155,-0.889) (0.170,-0.813) (0.185,-0.745) (0.200,-0.682)
+(0.215,-0.624) (0.230,-0.571) (0.245,-0.521) (0.260,-0.475)
+(0.275,-0.431) (0.290,-0.390) (0.305,-0.352) (0.320,-0.316)
+(0.335,-0.282) (0.350,-0.249) (0.365,-0.218) (0.380,-0.189)
+(0.395,-0.161) (0.410,-0.135) (0.425,-0.110) (0.440,-0.086)
+(0.455,-0.063) (0.470,-0.041) (0.485,-0.020) (0.500,0.000)
+(0.600,0.000)};
+\node[font=\tiny, text=tierrecv, anchor=west] at (0.006,-3.95)
+  {$n{=}2$};
+% n = 4
+\draw[thick, tierfull] plot coordinates {(0.020,-4.972) (0.035,-4.016)
+(0.050,-3.412) (0.065,-2.973) (0.080,-2.628) (0.095,-2.347)
+(0.110,-2.109) (0.125,-1.904) (0.140,-1.724) (0.155,-1.565)
+(0.170,-1.422) (0.185,-1.293) (0.200,-1.176) (0.215,-1.069)
+(0.230,-0.970) (0.245,-0.879) (0.260,-0.795) (0.275,-0.717)
+(0.290,-0.644) (0.305,-0.576) (0.320,-0.513) (0.335,-0.454)
+(0.350,-0.398) (0.365,-0.346) (0.380,-0.297) (0.395,-0.252)
+(0.410,-0.208) (0.425,-0.168) (0.440,-0.130) (0.455,-0.094)
+(0.470,-0.061) (0.485,-0.029) (0.500,0.000) (0.600,0.000)};
+\node[font=\tiny, text=tierfull, anchor=south west] at (0.021,-4.95)
+  {$n{=}4$};
+% n = 6
+\draw[thick, tierin] plot coordinates {(0.050,-4.935) (0.065,-4.281)
+(0.080,-3.770) (0.095,-3.352) (0.110,-3.000) (0.125,-2.698)
+(0.140,-2.433) (0.155,-2.200) (0.170,-1.991) (0.185,-1.803)
+(0.200,-1.632) (0.215,-1.477) (0.230,-1.335) (0.245,-1.205)
+(0.260,-1.084) (0.275,-0.973) (0.290,-0.870) (0.305,-0.775)
+(0.320,-0.686) (0.335,-0.603) (0.350,-0.527) (0.365,-0.455)
+(0.380,-0.389) (0.395,-0.327) (0.410,-0.269) (0.425,-0.216)
+(0.440,-0.166) (0.455,-0.119) (0.470,-0.076) (0.485,-0.037)
+(0.500,0.000) (0.600,0.000)};
+\node[font=\tiny, text=tierin, anchor=south west] at (0.051,-4.91)
+  {$n{=}6$};
+% n = 8
+\draw[thick, tierspend] plot coordinates {(0.080,-4.889)
+(0.095,-4.336) (0.110,-3.871) (0.125,-3.471) (0.140,-3.123)
+(0.155,-2.815) (0.170,-2.541) (0.185,-2.295) (0.200,-2.072)
+(0.215,-1.869) (0.230,-1.684) (0.245,-1.514) (0.260,-1.359)
+(0.275,-1.215) (0.290,-1.083) (0.305,-0.960) (0.320,-0.847)
+(0.335,-0.742) (0.350,-0.645) (0.365,-0.555) (0.380,-0.472)
+(0.395,-0.395) (0.410,-0.324) (0.425,-0.258) (0.440,-0.197)
+(0.455,-0.141) (0.470,-0.090) (0.485,-0.043) (0.500,0.000)
+(0.600,0.000)};
+\node[font=\tiny, text=tierspend, anchor=south west] at (0.081,-4.86)
+  {$n{=}8$};
+% n = 10
+\draw[thick, black] plot coordinates {(0.110,-4.730) (0.125,-4.234)
+(0.140,-3.801) (0.155,-3.420) (0.170,-3.080) (0.185,-2.776)
+(0.200,-2.501) (0.215,-2.251) (0.230,-2.023) (0.245,-1.815)
+(0.260,-1.624) (0.275,-1.448) (0.290,-1.287) (0.305,-1.138)
+(0.320,-1.001) (0.335,-0.874) (0.350,-0.757) (0.365,-0.649)
+(0.380,-0.550) (0.395,-0.458) (0.410,-0.374) (0.425,-0.297)
+(0.440,-0.226) (0.455,-0.161) (0.470,-0.102) (0.485,-0.048)
+(0.500,0.000) (0.600,0.000)};
+\node[font=\tiny, anchor=south west] at (0.111,-4.70) {$n{=}10$};
+\end{tikzpicture}
+\caption{The success probability $r(q, n)$ against the attacker's
+hashrate share $q$, for $n \in \{1, 2, 4, 6, 8, 10\}$ confirmations,
+logarithmic vertical scale clipped at $10^{-5}$; coordinates computed
+by script from Theorem~\ref{thm:cons-r}. Every curve reaches $1$ at
+$q = \tfrac12$ (dashed) and stays there: beyond the majority line,
+confirmations are worthless. Below it, each added confirmation drops
+$r$ by a roughly constant factor --- the curves are near-equally
+spaced in log scale --- and the factor improves as $q$ falls.}
+\label{fig:cons-rq}
+\end{figure}
 
-The following sequential algorithm defines a simple correctness model.
-An implementation may verify independent proofs concurrently, provided
-its final state and rejection conditions are equivalent.
-\begin{enumerate}[leftmargin=*]
-\item Locate the candidate's parent and obtain that parent's validated
-  state. Unknown ancestry is missing context, not evidence of validity.
-\item Select the rules at the candidate height. Check header format,
-  target, timestamp constraints and proof of work.
-\item Parse the bounded body. Require at least one transaction, with
-  coinbase first and no later coinbase. Check body commitments and all
-  block-wide resource and encoding limits.
-\item Evaluate ordinary transactions against a temporary view of the
-  parent state. Consume transparent outputs and reserve nullifiers so
-  that conflicts within the block are visible. Earlier transparent
-  outputs in the block may become available subject to the applicable
-  rules. Do not thereby make a newly computed note-tree root an eligible
-  shielded anchor: modern shielded anchors refer to earlier blocks'
-  final treestates.
-\item Sum ordinary fees, validate the coinbase and prescribed allocations,
-  and check all resulting chain pool balances. Append shielded
-  commitments in transaction order and each component's output order. Check tree
-  capacities and derive final treestates.
-\item Construct the applicable history and authorising-data commitments.
-  Compare every header commitment with its independently derived value.
-\item Atomically store---make visible all together or not at all---the
-  accepted block, its state delta and sufficient
-  rollback information. Only then make this branch eligible for
-  chain selection.
-\end{enumerate}
+\FloatBarrier
 
-This algorithm names two different validation orderings. Ledger effects
-have a logical order fixed by the transaction sequence. CPU work such as
-signature checks can be reordered without changing that sequence.
-Batch verification therefore does not mean applying a transaction before
-all checks have completed.
+\section{What the numbers say}\label{sec:cons-analysis}
 
-A memory pool of unmined transactions is a node's local proposal set. It
-may reject transactions for fee, resource or expiry-risk policy beyond
-consensus validity. Acceptance into that set is neither inclusion in a
-block nor a promise that another node will relay the transaction.
+Theorem~\ref{thm:cons-r} compresses the security of Nakamoto consensus
+into one two-parameter function, and its qualitative lessons are all
+visible in Table~\ref{tab:cons-r} and Figure~\ref{fig:cons-rq}. This
+section states them precisely, then instantiates the one lesson that is
+specific to Zcash.
 
-\subsection{Time and resource boundaries}
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}r rrr@{}}
+\toprule
+$q$ & $r < 10\%$ & $r < 1\%$ & $r < 0.1\%$ \\
+\midrule
+$2\%$ & $1$ & $2$ & $3$ \\
+$5\%$ & $2$ & $3$ & $4$ \\
+$8\%$ & $2$ & $3$ & $5$ \\
+$10\%$ & $2$ & $4$ & $6$ \\
+$15\%$ & $3$ & $6$ & $9$ \\
+$20\%$ & $4$ & $8$ & $13$ \\
+$25\%$ & $5$ & $12$ & $20$ \\
+$30\%$ & $9$ & $20$ & $32$ \\
+$35\%$ & $15$ & $36$ & $58$ \\
+$40\%$ & $34$ & $82$ & $133$ \\
+$45\%$ & $135$ & $331$ & $539$ \\
+\bottomrule
+\end{tabular}
+\caption{The least number of confirmations pushing $r(q, n)$ below
+three targets, computed by script. The growth is logarithmic in the
+inverse target risk but explosive in $q$: a $10\%$ attacker is answered by $6$
+confirmations, a $45\%$ attacker by $539$ --- more than eleven hours of
+Zcash blocks --- and at $50\%$ by no number at all.}
+\label{tab:cons-nreq}
+\end{table}
 
-The \emph{median} here means: sort the $n>0$ observations in increasing
-order and choose the element at zero-based index $\lfloor n/2\rfloor$.
-For even $n$, this selects the upper of the two middle elements, not
-their average. This matters during the shorter initial windows.
+\begin{proposition}[No finite count is final]\label{prop:cons-nozero}
+For every $0 < q < p$ and every $n$,
+$r(q, n) \geq 2 q^n > 0$.
+\end{proposition}
 
-In the pinned modern Mainnet rules, a header version must be at least
-$4$, and a block is at most $2{,}000{,}000$ bytes. A non-genesis timestamp
-must exceed the median of the preceding eleven timestamps, or all
-preceding timestamps if fewer exist. For the modern range it must also
-be at most that median plus $90$ minutes. These are branch-computable
-rules. The extra rejection of a block more than two hours ahead of the
-node's own clock is time-dependent: the same block may become acceptable
-as the clock advances.
+\begin{proof}
+By Theorem~\ref{thm:cons-r}, $r = 2 \Pr[A_n]$, and one way for the
+attacker to win the first-to-$n$ race is to find the first $n$ blocks
+outright, an event of probability $q^n$.
+\end{proof}
 
-Transaction expiry and lock-time are independent of the header timestamp
-bounds. Their precise interpretation depends on format and rules. A
-wallet must not infer that a recent-looking timestamp makes an expired
-transaction valid, or that a transaction's expiry height determines the
-height at which it will be mined.
+\begin{proposition}[Divergence at the majority line]%
+\label{prop:cons-divergence}
+Fix a target $0 < \varepsilon < 1$. For $0 < q < \tfrac12$, let
+$n_\varepsilon(q)$ be the least $n$ with $r(q, n) < \varepsilon$. Then
+$n_\varepsilon(q) \to \infty$ as $q \uparrow \tfrac12$.
+\end{proposition}
 
-\section{Work, difficulty, and chain selection}\label{sec:cons-deployed}
-
-Proof of work gives a publicly checkable cost signal for a block. It
-does not prove its transactions valid, and it does not make the producer's
-identity or motives visible.
-
-\subsection{Equihash and the difficulty filter}\label{sec:cons-equihash}
-
-Zcash uses Equihash with $(n,k)=(200,9)$. A candidate solution selects
-$2^9=512$ distinct indices from $2^{21}$ possible indices. Each index
-selects a $200$-bit string derived from the header prefix including its
-nonce. The selected strings must XOR to zero. Further conditions bind
-the solution to a binary collision tree: for every consecutive aligned
-group of $2^r$ indices, $1\leq r\leq8$, its XOR has $20r$ leading zero
-bits; for every level $1\leq r\leq9$, each left index sequence is
-lexicographically smaller than the corresponding right sequence.
-
-For a zero-based index $j$, let $a=\lfloor j/2\rfloor$ and $b=j\bmod2$.
-Compute the $50$-byte BLAKE2b digest of the $140$-byte header prefix
-followed by the four-byte little-endian encoding of $a$, personalised by
+\begin{proof}
+First, $n_\varepsilon(q)$ exists. The event $A_n$ that the attacker reaches
+$n$ blocks first is the event that at least $n$ of the first $2n-1$ block
+discoveries are the attacker's. Since $q<p$, each such length-$(2n-1)$
+sequence has probability at most $q^n p^{n-1}$, and there are fewer than
+$2^{2n-1}$ sequences. Hence
 \[
- \texttt{ZcashPoW}\ \|\ \mathrm{LE}_{32}(200)\
-                       \|\ \mathrm{LE}_{32}(9).
+  r(q,n)=2\Pr[A_n] \leq \frac{(4pq)^n}{p} \longrightarrow 0,
 \]
-The selected string is bytes $25b$ through $25b+24$ of that digest.
-The $512$ indices are encoded as consecutive $21$-bit big-endian strings,
-giving $512\cdot21/8=1344$ bytes. Endianness here differs from the fixed
-integer header fields. These constructions instantiate the protocol
-specification's ``Equihash'' and ``EquihashGen'' sections; the
-\texttt{equihash} crate's verification algorithm is an implementation
-reference.
+because $4pq<1$.
 
-An Equihash solution must additionally pass the difficulty filter:
+For fixed $n$ the function $q \mapsto r(q, n)$ is a polynomial on
+$[0, \tfrac12]$, hence continuous, and $r(\tfrac12, n) = 1$: at
+$q = p$ each half of the race of Remark~\ref{rem:cons-doubling} has
+probability exactly $\tfrac12$ by Lemma~\ref{lem:cons-racenorm} and
+symmetry. Given any $N$, for each $1\leq n\leq N$ there is a
+$\delta_n > 0$ with $r(q, n) > \varepsilon$ whenever
+$q > \tfrac12 - \delta_n$. Taking
+$\delta=\min_{1\leq n\leq N}\delta_n>0$ excludes every
+$n\leq N$ throughout that neighbourhood, so
+$n_\varepsilon(q)>N$. Since $N$ was arbitrary, the claimed divergence
+follows.
+\end{proof}
+
+\begin{remark}[Nothing is special about six]\label{rem:cons-six}
+The paper (\S5): ``There is nothing special about the default,
+often-cited figure of 6 confirmations. It was chosen based on the
+assumption that an attacker is unlikely to amass more than 10\% of the
+hashrate, and that a negligible risk of less than 0.1\% is acceptable.
+Both these figures are arbitrary''\ --- six confirmations are
+``overkill for casual attackers, and at the same time powerless against
+more dedicated attackers''. Table~\ref{tab:cons-nreq} is the honest
+replacement: pick the adversary you defend against and the risk you
+accept, and read off $n$; the pair $(q, \varepsilon)$ is a policy, not
+a law of nature.
+\end{remark}
+
+\subsection{Zcash time: 75-second blocks}\label{sec:cons-zcashtime}
+
+Corollary~\ref{cor:cons-timefree} says security is purchased in
+blocks, so the wall-clock price of a confirmation count is set by the
+target spacing --- for Zcash, $75$ seconds since the Blossom upgrade
+(ZIP-208; \textsf{PostBlossomPoWTargetSpacing}, specification \S5.3),
+against Bitcoin's $600$. Thirty minutes of waiting therefore buys
+$3$ Bitcoin confirmations or $24$ Zcash confirmations in nominal expected
+time when all hashpower publishes on the public chain. Under the modelled
+$10\%$ withholding attack, either policy instead takes $30/0.9 \approx
+33.3$ minutes in expectation, because public confirmations arrive at rate
+$p/T_0$. Conditional on the respective confirmation counts, the
+strict-overtake probabilities are $r = 1.712\%$ and
+$r \approx 3.2 \times 10^{-12}$ (script-computed): nine orders of
+magnitude at the same nominal wait. ZIP-208 makes precisely this
+argument for the spacing change --- ``the number of confirmations
+needed increases more slowly than the decrease in block time''.
+
+The comparison holds $q$ fixed, and that is its honest limit: the
+model contains no network, so nothing in it prices the disadvantage
+faster blocks impose on the \emph{honest} side, whose blocks are
+found closer together and are therefore likelier to race one another
+and self-orphan. Quantifying that effect requires a measured propagation
+distribution and mining topology; neither is supplied by this model.
+
+\begin{remark}[Where the model bends]\label{rem:cons-modellimits}
+Three assumptions do not survive contact with the deployed chain; they
+determine how cautiously the calculations may be transferred to it.
+(i)~\emph{Difficulty is not constant}: Zcash retunes the target after
+every block (Section~\ref{sec:cons-difficulty}). The race is scored in
+work, not block counts, and $q$ may be interpreted approximately as the
+attacker's share of work production while the branches' block weights
+remain close; once their difficulty schedules diverge, the equal-step
+random-walk formula is no longer exact.
+(ii)~\emph{Hashrate is not constant}: $q$ in the theorems is whatever
+share the attacker sustains for the attack's duration; the paper's own
+caveat is that $T_0$ re-enters only if the attacker cannot sustain his
+hashrate long enough, which it judges unlikely for a serious attacker.
+(iii)~\emph{Propagation is not instantaneous}: honest self-orphaning
+wastes honest work and thereby raises the attacker's effective share;
+its size is not quantified here. A fourth gap is not the model's: the
+attacker of this volume follows the
+protocol's validity rules perfectly and attacks only the
+\emph{choice} between valid histories. Attacks on the rules themselves
+are other volumes' subjects.
+\end{remark}
+
+\section{The economics of the attack}\label{sec:cons-econ}
+
+The probabilities of Section~\ref{sec:cons-confirm} answer the
+adversarial merchant, who assumes the customer is an attacker. The
+paper's \S6 answers the realistic one: when is the attack worth
+mounting at all? Throughout this section $q < p$ --- ``[o]therwise,
+all bets are off'' (\S6) --- and the model is deliberately stylised;
+its own caveats close the section.
+
+The attacker targets $k$ merchants simultaneously with payments of $v$
+each, all invalidated by the same secret branch; the goods are worth
+$\alpha v$ to him, $0 < \alpha \leq 1$; he gives up after mining $o$
+blocks in vain; and each of his blocks would earn the block income $B$
+if it ended up in the accepted chain. If the attack succeeds his
+blocks are all accepted (he keeps goods \emph{and} coins \emph{and}
+rewards); if it fails he has paid $kv$, keeps goods worth
+$k \alpha v$, and his $o$ orphaned blocks forfeit $oB$.
+For an exact finite-stop profit calculation, $r$ would have to be the
+success probability of that stopping policy. Following the paper, the
+tables below instead insert the unlimited-horizon $r(q,n)$ as a heuristic
+proxy. They are not an exact evaluation of a strategy that always stops
+after $o=20$ private blocks.
+
+\begin{proposition}[Profitability; Rosenfeld \S6]\label{prop:cons-profit}
+Given success probability $r$ and these stipulated payoffs, the
+attacker's expected profit over not attacking is
 \[
- \operatorname{LEInt}(\mathsf{SHA256d}(\mathsf{header}))\leq T.
+  k \alpha v - (1 - r)(k v + o B)
+  \;=\; k v (\alpha + r - 1) - (1 - r)\, o B ,
 \]
-The target $T$ comes from the required \texttt{nBits}, not from a value
-freely chosen by the miner. Under the idealised uniform-hash model, one
-independent complete-header trial passes this inequality with probability
-$(T+1)/2^{256}$. This model motivates the assigned work
-\begin{equation}
- w(B)=\left\lfloor\frac{2^{256}}{T(B)+1}\right\rfloor.
- \label{eq:cons-work}
+positive if and only if
+\[
+  v \;>\; \frac{(1 - r)\, o B}{k (\alpha + r - 1)}
+\]
+(when $\alpha + r > 1$; when $\alpha + r \leq 1$ the modeled attack is
+never strictly profitable). This modeled attack is not strictly profitable
+whenever
+\begin{equation}\label{eq:cons-vmax}
+  v \;\leq\; \frac{o (1 - r) B}{k (\alpha + r - 1)}
+  \;\overset{\alpha = 1}{=}\;
+  \frac{o}{k} \cdot \frac{B (1 - r)}{r},
 \end{equation}
-The actual computational cost of generating Equihash candidates is not
-measured by this formula; work is the protocol's comparison unit.
+which with the paper's choices $o = 20$, $k = 5$, $\alpha = 1$,
+$B = 25$~BTC is its equation~(2), $v \leq 100 (1/r - 1)$~BTC.
+\end{proposition}
 
-\subsection{Targets and compact representation}\label{sec:cons-difficulty}
+\begin{proof}
+The gain $k \alpha v$ is certain (the goods are obtained either way);
+the loss $k v + o B$ is paid exactly when the attack fails, with
+probability $1 - r$. Rearranging the positivity condition gives the
+threshold; substituting the paper's constants gives
+$20 \cdot 25 \cdot (1-r) / (5r) = 100(1-r)/r$.
+\end{proof}
 
-In the $32$-bit integer \texttt{nBits}, bits $24$--$31$ give the
-\emph{exponent} $e$, bit $23$ is the sign bit $s$, and bits $0$--$22$
-give the \emph{mantissa} $m$. These names describe the scale and leading
-integer digits in the compact representation, not floating-point values.
-A nonnegative target decodes as $m\,256^{e-3}$, with an integer right shift
-when $e<3$. A set sign bit decodes to zero under the specification's
-conversion; valid proof-of-work targets must satisfy the additional
-nonzero and limit rules. Target parsing is not floating-point arithmetic.
+\subsection{Instantiation in ZEC}\label{sec:cons-econzec}
 
-To encode a positive integer target $x$, first set
+The block income that an orphaned block forfeits is what the miner
+would have collected: the miner subsidy plus fees. For Mainnet heights in
+the funding-stream interval $3{,}146{,}400 \leq \mathit{height} <
+4{,}406{,}400$, the block subsidy is $1.5625$~ZEC
+($156{,}250{,}000$~zatoshi, specification \S7.8;
+\texttt{zebra-chain/src/parameters/network/\allowbreak subsidy.rs:447}),
+of which the two active funding streams take $20\%$ --- $8\%$ to the
+Zcash Community Grants stream and $12\%$ to the coinholder-controlled
+fund, both running to the third halving at height $4{,}406{,}400$
+(specification \S7.10.1; ZIP-1016;
+\texttt{subsidy.rs:338}) --- leaving the miner
 \[
- e=\left\lceil\frac{\operatorname{bitlength}(x)}8\right\rceil,
- \qquad m=\left\lfloor x\,256^{3-e}\right\rfloor.
+  B \;=\; 1.25 \text{ ZEC} + \text{fees}
 \]
-If $m\geq2^{23}$, divide $m$ by $256$ with truncation and increment $e$.
-Return $m+2^{24}e$. Lower bits can be discarded, so encoding and then
-decoding generally rounds a target down. Consensus compares the required
-compact encoding; retaining extra precision locally must not create a
-different accepted target.
+per block (\texttt{miner\_subsidy}, \texttt{subsidy.rs:480}). The
+funding-stream portion is not the attacker's under either outcome, so
+$B = 1.25$~ZEC is the subsidy-only forfeiture figure. Actual foregone
+fees raise $B$, and hence the profitability threshold, linearly.
+Table~\ref{tab:cons-vmax} evaluates
+bound~\eqref{eq:cons-vmax} with the paper's $o = 20$, $k = 5$,
+$\alpha = 1$.
 
-For modern Mainnet blocks well beyond the initial bootstrap range, let
-$T_i$ and $t_i$ be previous decoded targets and timestamps. The averaging
-window is $17$ blocks; target spacing after Blossom is $75$ seconds.
-Define
-\begin{align*}
- A&=17\cdot75=1275,\\
- M(h)&=\operatorname{median}(t_{h-11},\ldots,t_{h-1}),\\
- E(h)&=M(h)-M(h-17),\\
- D(h)&=A+\operatorname{trunc}_0((E(h)-A)/4),\\
- C(h)&=\max(1071,\min(1683,D(h))),\\
- \overline T(h)&=\frac1{17}\sum_{i=h-17}^{h-1}T_i.
-\end{align*}
-Truncation $\operatorname{trunc}_0$ is towards zero, not towards negative
-infinity. The bounds are
-$\lfloor0.84A\rfloor=1071$ and $\lfloor1.32A\rfloor=1683$.
-The next unencoded threshold is
-\[
- T_{\rm next}
- =\min\left(T_{\rm limit},
-       \left\lfloor\frac{\overline T(h)}A\right\rfloor C(h)\right),
- \qquad T_{\rm limit}=2^{243}-1.
-\]
-Encoding this threshold produces the required \texttt{nBits}. Notice the
-division is rounded \emph{before} multiplication by $C(h)$. Moving the
-floor can change consensus.
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}r rrrrrr@{}}
+\toprule
+$q$ & $n{=}1$ & $2$ & $4$ & $6$ & $8$ & $10$ \\
+\midrule
+$5\%$ & $45$ & $339$ & $12{,}909$ & $430{,}929$ &
+  $13{,}664{,}382$ & $420{,}922{,}251$ \\
+$10\%$ & $20$ & $84$ & $911$ & $8{,}449$ & $74{,}344$ & $636{,}146$ \\
+$20\%$ & $7$ & $19$ & $69$ & $209$ & $584$ & $1{,}578$ \\
+$30\%$ & $3$ & $6$ & $14$ & $26$ & $44$ & $71$ \\
+$40\%$ & $1$ & $2$ & $3$ & $5$ & $6$ & $8$ \\
+\bottomrule
+\end{tabular}
+\caption{The largest whole-ZEC transaction value with non-positive heuristic
+expected profit,
+$\lfloor 4 B (1 - r)/r \rfloor$ with $B = 1.25$~ZEC, computed by
+script; the analogue of the paper's Table~2, which used
+$B = 25$~BTC. Values are floored and inherit every assumption of the
+model; the caveats of Remark~\ref{rem:cons-econcaveats} apply in
+full.}
+\label{tab:cons-vmax}
+\end{table}
 
-For example, if $\overline T=1{,}275{,}000$, an observed interval of
-$1275$ seconds leaves this illustrative unencoded threshold unchanged.
-Extreme short and long intervals saturate at $1{,}071{,}000$ and
-$1{,}683{,}000$. The numbers illustrate the arithmetic, not a network
-difficulty estimate. The executable check also exercises negative
-truncation and compact-target round trips.
+Within the model, a handful of confirmations makes the attack unprofitable
+against small attackers at any plausible payment size; against a $30\%$
+attacker, six confirmations make modeled expected profit non-positive only
+up to about $26$~ZEC. The required count grows only logarithmically in the
+value at stake, by the geometric decay of Theorem~\ref{thm:cons-r}. These are
+neither exact finite-stop profit calculations nor bounds on deployed
+rollback risk; the deployed tie-break, changing difficulty, and rollback
+rails require separate modelling.
 
-At the chain's start, the specification uses available shorter medians,
-a proof-of-work-limit mean through the averaging-window bootstrap, and
-a special genesis threshold. Pre-Blossom blocks use their own spacing;
-Testnet has additional minimum-difficulty exceptions. An independent
-historical validator must use those branches rather than extrapolating
-the modern formula backwards.
+\begin{remark}[Majority is a different problem]\label{rem:cons-majority}
+At $q=p$, eventual strict overtake has probability $1$, but the walk has zero
+drift; that fact alone does not give the attacker a lasting monopoly. When
+$q>p$, the economics change character entirely: the paper notes a strict
+majority attacker can double-spend at no cost beyond normal
+mining, reject every other miner's blocks to take the whole issuance,
+and exclude transactions at will, driving honest miners out and
+entrenching himself --- so a majority attack ``is best seen as an
+attempt to destroy'' the currency, motivated from outside it (a short
+position, a competing system), not an attempt to profit inside it.
+Confirmation policy is not the defence at that point; the defence is
+the cost of assembling the majority, which lies outside this model.
+\end{remark}
 
-\subsection{Selecting a validated branch}\label{sec:cons-selection}
+\begin{remark}[The model's own caveats]\label{rem:cons-econcaveats}
+The paper flags each stylisation itself. The give-up point $o = 20$
+``is a significant simplification'' (an optimal attacker balances
+completion against compounding losses); the safe values ``should be
+taken with a grain of salt, because of the many modeling
+assumptions''; and a model resting on mining \emph{costs} rather than
+forfeited \emph{rewards} would make the required confirmations linear,
+not logarithmic, in the transaction value --- ``very poor security,
+hence in a situation where this is relevant, we have already lost
+anyway'' (\S6). The bound's role is the shape it reveals ---
+logarithmic patience buys exponential safety --- not its third
+significant digit.
+\end{remark}
 
-For a chain $C=(B_0,\ldots,B_h)$, total work is
-$W(C)=\sum_i w(B_i)$. A node selects a fully valid visible branch with
-greatest total work. Height alone is not the comparison: many easier
-blocks can represent less work than fewer harder blocks. A branch does
-not become preferable merely because its header declares small targets;
-its blocks must actually satisfy the targets and the difficulty
-adjustment rules.
+\FloatBarrier
 
-Equal-work ties need not produce instantaneous global agreement. Nodes
-can temporarily select different visible tips; block propagation and
-further work can resolve the tie. The rule says what a node does with its
-information. It does not promise that every node has identical
-information at every instant.
+\section{The deployed rule and its safety rails}\label{sec:cons-deployed}
 
-\section{Supply and pool accounting}\label{sec:cons-supply}
+The model of Sections \ref{sec:cons-race}--\ref{sec:cons-econ} is
+clean; the deployment is not. This section walks the distance between
+them: how the best chain is actually chosen, how difficulty actually
+moves, how well Equihash fits the memoryless model, and the node-local
+rails --- reorg windows, maturity, wallet policy --- that bound the
+theory's tail risks in practice.
 
-The proof system checks hidden transfers. Pool accounting checks the
-public boundary around those transfers. Neither replaces the other.
+\subsection{Chain selection in code}\label{sec:cons-selection}
 
-For a shielded pool initialised at zero, its branch balance is
-\begin{equation}
- B_P(C)=-\sum_{t\in C}b_P(t).
- \label{eq:cons-pool}
-\end{equation}
-Thus an ordinary transaction updates $B_P$ by $-b_P(t)$.
-A migration between pools $P$ and $Q$, with amount $v$ and fee $f$ drawn
-from $P$, can have
-\[
- b_P=v+f,\qquad b_Q=-v,\qquad \sum_R b_R=f.
-\]
-The amounts crossing each pool boundary are public. The accounting does
-not identify which input notes financed them.
+In \textsf{Zebra}, candidate chains live in the non-finalized state as
+a set ordered by \verb|impl Ord for Chain|
+(\texttt{zebra-state/src/service/non\_finalized\_state/\allowbreak
+chain.rs:2623--2696}); the best chain is the set's maximum. The
+ordering's doc comment is exact about its two criteria: ``Chains with
+higher cumulative Proof of Work are [\texttt{Ordering::Greater}],
+breaking ties using the tip block hash.'' Cumulative work is the sum of
+Definition~\ref{def:cons-work} over the chain's blocks
+(\texttt{chain.rs:1803--1809}).
 
-A required nonnegative pool balance prevents withdrawals beyond the
-pool's publicly recorded total. It does not prove that the remaining
-private notes are all valid. In particular, an invalid private creation
-could stay below that aggregate ceiling. Supply integrity still requires
-sound payment proofs, correct authorisation and uniqueness checks.
+\begin{remark}[The specified tie-break is not deployed]\label{rem:cons-tiebreak}
+The specification's tie-break is first-seen
+(Definition~\ref{def:cons-best}), and it is also Rosenfeld's
+(``the one of which the node learnt first''). The retired
+\textsf{zcashd} implemented it: its comparator sorted by
+\texttt{nChainWork}, then by \texttt{nSequenceId} --- ``[s]equential id
+assigned to distinguish order in which blocks are received''
+(\texttt{src/main.cpp:194--213}, \texttt{src/chain.h:363--364}) --- so
+at equal work the incumbent tip stayed. \textsf{Zebra} does not: blocks
+are downloaded in parallel and arrival times are not tracked, so it
+breaks work ties by the larger tip hash, and its own doc comment calls
+this a ``departure from the consensus rules'' that ``may delay network
+convergence, for as long as the greater hash belongs to the later mined
+block'' (\texttt{chain.rs:2629--2636}). Thus Zebra does not implement the
+specification's first-seen rule.
 
-\subsection{Coinbase and prescribed allocation}
+The divergence matters to the attack model. At equal work, an attacker can
+compare its private tip hash with the public tip and reveal immediately when
+its hash wins the deployed deterministic tie-break; the strict-overtake
+boundary $z=-1$ used above does not count that success opportunity. Therefore
+$r(q,n)$ is exact for the stated strict-overtake model and is a lower
+bound if only its tie-break is replaced by Zebra's, keeping equal
+difficulty, unlimited rollback, and the other assumptions fixed.
+It is not thereby a lower bound on the full deployed process: changing
+difficulty and rollback limits also change the success event. Quantifying the
+extra probability, including any scope to choose among candidate private tips,
+requires a different stopping rule and is outside this volume.
+\end{remark}
 
-The first transaction is the \emph{coinbase}. It claims the permitted
-block subsidy and ordinary transaction fees; it does not need ordinary
-spendable inputs to justify new issuance. It is subject to special
-format, destination and shielded-output rules. The ordinary fee equation
-must therefore not be applied to it as though it were an ordinary
-payment.
+\subsection{Difficulty in motion}\label{sec:cons-difficulty}
 
-For the modern post-Blossom subsidy, let $h_B$ be Blossom's activation
-height and define
-\[
- H(h)=\left\lfloor
-   \frac{h_B-10{,}000}{840{,}000}
-   +\frac{h-h_B}{1{,}680{,}000}
- \right\rfloor,\qquad
- s(h)=\left\lfloor\frac{1{,}250{,}000{,}000}
-                             {2\cdot2^{H(h)}}\right\rfloor .
-\]
-This is the specification's time-spacing-adjusted halving formula after
-the slow-start and pre-Blossom intervals. It is a height function, not an
-estimate obtained from a calendar date.
+Assumption~\ref{ass:cons-difficulty} freezes difficulty; Zcash does
+not. The specification (\S7.7.3) adopts ``a difficulty adjustment
+algorithm based on DigiShield v3/v4'', and --- ``[u]nlike Bitcoin, the
+difficulty adjustment occurs after every block''. Each block's target
+is recomputed from the mean target of the last
+$\textsf{PoWAveragingWindow} = 17$ blocks and the actual timespan of
+that window measured between medians of $\textsf{PoWMedianBlockSpan} =
+11$ timestamps; the timespan is dampened towards nominal by a factor
+of $\textsf{PoWDampingFactor} = 4$ and clamped to
+$[\,\lfloor \mathsf{AWT}(1 - 16\%) \rfloor,\,
+\lfloor \mathsf{AWT}(1 + 32\%) \rfloor\,]$
+($\textsf{PoWMaxAdjustUp} = 16\%$, $\textsf{PoWMaxAdjustDown} =
+32\%$, $\mathsf{AWT} = 17 \times 75$~s), with the target capped at
+$\textsf{PoWLimit} = 2^{243} - 1$ (all constants: specification
+\S5.3; \texttt{zebra-state/src/service/check/\allowbreak
+difficulty.rs}).
 
-A funding stream active over $[a,b)$ with prescribed numerator $u$ and
-denominator $v$ receives
-$\lfloor s(h)u/v\rfloor$ in that interval and zero outside it. The active
-rule set supplies the stream list and recipient rules. Amounts directed
-to the deferred pool are added to $D$; an authorised disbursement removes
-its prescribed amount from $D$ and permits the corresponding coinbase
-allocation. Such a release is not new issuance. The miner's subsidy
-share is the block subsidy less required allocations; fees are
-additionally claimable as specified.
+\begin{remark}[What per-block retargeting changes]
+\label{rem:cons-difffidelity}
+Three observations delimit the equal-weight model. First, the target uses a
+$17$-block averaging window, fourfold dampening, and asymmetric clamp bounds.
+Those mechanisms constrain one-step movement, but do not prove that two forked
+branches retain close targets: their block times and timestamp choices may
+diverge. Secondly, the secret branch computes its own schedule: the
+adjustment ``use[s] only information from blocks preceding the given
+block height'' (\S7.7.3), so the attacker's chain retunes from the
+attacker's own timestamps, subject to the timestamp rules ---
+\texttt{nTime} strictly above the median of the preceding $11$, at
+most $90 \times 60$ seconds above it (\S7.6), and at most two hours
+ahead of a validator's clock on receipt (a non-consensus check).
+Thirdly --- and here the model genuinely bends --- the comparison is
+by summed \emph{work}, and work per block moves inversely with the
+target (Definition~\ref{def:cons-work}). A branch's timestamps can
+therefore change both its future block rate and the work carried by each
+block, within the timestamp and retargeting limits. Equal expected work
+production does not make the first-passage probability invariant to the
+sizes of its jumps. The tables in this volume are consequently an
+equal-weight baseline only; they do not quantify a strategy that causes
+the two branches to follow materially different difficulty schedules.
+\end{remark}
 
-A validator must check both the aggregate amount claim and required
-payments. Knowing only the total subsidy is not enough to validate a
-coinbase. The full recipient schedules are compatibility data owned by
-the applicable funding ZIPs, not an alternative mathematical rule.
+\subsection{Equihash and the memoryless model}\label{sec:cons-equihash}
 
-\subsection{Maturity and spendability}
+Zcash's proof of work is Equihash with parameters $n = 200$, $k = 9$
+(specification \S7.7, \S7.7.1; the algorithm is Biryukov and
+Khovratovich's, ePrint~2015/946), but the quantity the race counts is
+gated one step later: ``[t]he difficulty filter is unchanged from
+Bitcoin, and is calculated using SHA-256d on the whole block header
+(including \texttt{solutionSize} and \texttt{solution})'', required to
+be at most $\mathsf{ToTarget}(\texttt{nBits})$ (\S7.7.2). Each
+candidate Equihash solution therefore faces a fresh SHA-256d lottery.
+Treating distinct headers as independent trials is the usual random-function
+model for SHA-256d, not a property asserted by the specification; under that
+model these are the Bernoulli trials of Remark~\ref{rem:cons-hashtrials}.
 
-Transparent coinbase outputs have a $100$-block maturity rule.
-That rule should not be carelessly asserted for every kind of shielded
-coinbase output. The shielded protocols have their own coinbase
-construction and public-recovery requirements; the commitment format
-does not itself carry an ordinary transparent-output maturity flag.
-A wallet's chosen confirmation delay is another, separate condition.
-Distinguish node acceptance from the wallet's choice to risk a spend.
+The specification nowhere asserts progress-freeness --- the argument
+is this volume's, not a citation. What Equihash changes is the
+granularity: candidates arrive in batches, one batch per memory-hard
+solver run.
+Progress within a run is discarded when a competing block arrives. Under
+independent identically distributed runs, the number of runs until an accepted
+header is geometric; replacing those discrete completion times by an
+exponential clock is a further approximation, coarse within one run and good
+only when a run is short relative to the $75$-second spacing. Run duration is
+implementation- and hardware-dependent and is not quantified here. A
+proof-of-work whose solve time were comparable to the spacing would make block
+discovery visibly non-exponential and pull the attribution sequence away from
+Proposition~\ref{prop:cons-attrib}.
 
-\section{Authenticated block history}\label{sec:cons-history}
+\subsection{Reorg rails, maturity, and the finality
+floor}\label{sec:cons-rails}
 
-A header's parent hash links one block. A commitment to a structured
-history makes selected statements about earlier blocks efficiently
-checkable. The generic binary-tree and append-only-forest constructions
-are in the \emph{Crypto Guide}, ``Authenticated trees and append-only
-histories''. This section fixes Zcash's concrete metadata, encodings and
-header commitments. No sampling protocol is needed to construct or
-validate them.
+Nothing in consensus caps how deep a reorganisation may reach --- by
+Proposition~\ref{prop:cons-nozero} no depth is truly final --- but
+the examined validator implementations bolt rails onto the theory, and the
+specification acknowledges them: ``A full validator MAY impose a limit
+on the number of blocks it will `roll back' when switching from one
+best valid block chain to another that is not a descendent. For
+\texttt{zcashd} and \texttt{zebra} this limit is 100 blocks'' (\S3.3).
+Neither half of that sentence matches deployment.
 
-\subsection{An epoch-scoped Merkle mountain range}
+The retired \textsf{zcashd} enforced
+$\texttt{MAX\_REORG\_LENGTH} = {}$
+$\texttt{COINBASE\_MATURITY} - 1 = 99$
+(\texttt{src/main.h:66}): a would-be reorganisation deeper than $99$
+blocks did not fail over to the heavier chain --- the node refused and
+halted, logging ``[a] block chain reorganization has been detected
+that would roll back \%d blocks! This is larger than the maximum of
+\%d blocks, and so the node is shutting down for your safety''
+(\texttt{src/main.cpp:4331--4350}).
 
-For a candidate block $B_n$, let $x<n$ be the most recent network-upgrade
-activation height strictly below $n$. ZIP~221's history tree commits to
-\[
- B_x,B_{x+1},\ldots,B_{n-1}.
-\]
-It excludes $B_n$ itself. The delay avoids asking a block hash to commit
-to a structure containing that same hash.
+The deployed \textsf{Zebra} keeps a rolling window of
+$\texttt{MAX\_BLOCK\_REORG\_HEIGHT} = 1000$ blocks
+(\texttt{zebra-chain/src/parameters/constants.rs:30}): while the best
+chain exceeds that length its root blocks are committed to the
+finalized state
+(\texttt{zebra-state/src/\allowbreak service/write.rs:455--467}), and
+any later block at or below the finalized tip is rejected as an
+\texttt{OrphanedBlock}
+(\texttt{zebra-state/src/\allowbreak service/check.rs:224--238}) --- a
+fork rooted
+below the window cannot be followed at all. The constant's own
+documentation is careful about its standing: ``[t]his is a local-only
+node policy; it is not part of consensus. The window is sized as a
+defence-in-depth measure against sustained consensus splits.''
 
-The history is a forest of perfect binary trees, one per set bit of the
-leaf count. Its roots are called \emph{peaks}. Append a new leaf as a
-height-zero peak; while the two rightmost peaks have equal height, replace
-them with their parent. Number stored nodes in creation order, placing a
-leaf before the parents completed by its append. The independent
-eleven-leaf example produces $19$ stored nodes, with peak positions
-$14,17,18$ and heights $3,1,0$.
+\begin{remark}[A three-way divergence, and what the rails
+buy]\label{rem:cons-railsregister}
+The specification says $100$ for \textsf{zcashd} and \textsf{zebra};
+\textsf{zcashd} enforced $99$; Zebra enforces $1000$ and flags the gap
+itself, quoting the specification's $100$ next to its own constant
+(\texttt{zebra-state/src/request.rs:819--827}). ZIP-307's security
+model inherits the stale figure (``no full Zcash node will roll back
+the chain by more than 100 blocks''), which does not describe Zebra;
+light-client specifications and implementations must account for that
+divergence. For this volume's subject,
+the confirmation counts in Tables \ref{tab:cons-r}
+and~\ref{tab:cons-nreq} are below $1000$ ($1000$ blocks is about
+$21$ hours), but an eventual-success path can still reach the rollback
+limit before overtaking. The value $r(q,n)$ remains the strict-overtake
+probability in the unlimited-rollback, equal-work model; the tie-break-only
+comparison of Remark~\ref{rem:cons-tiebreak} does not account for these
+rails. What the rails cap is
+automatic rollback by nodes enforcing the policy: following a secret branch
+rooted below the window requires operator intervention or a different local
+state. The specification adds one more socially anchored floor: a full
+validator that risks
+Mainnet funds or displays transaction information ``MUST do so only
+for a block chain that includes the activation block of the most
+recent settled network upgrade'' (\S3.3) --- history
+behind a settled upgrade's activation is treated as a checkpoint by that
+rule.
+\end{remark}
 
-To obtain one root, combine peaks from left to right:
-\[
- R=\mathsf{Parent}(\mathsf{Parent}(P_0,P_1),P_2)
-\]
-for three peaks. These extra \emph{bagging} combinations need not be
-stored as ordinary mountain nodes. A right fold would be a different
-root when there are at least three peaks. For one peak, the root node
-is that peak; its final root \emph{digest} is still computed as below.
+The protocol itself hard-codes one confirmation count. A
+\emph{transparent} output is the Bitcoin-inherited kind, its value and
+destination in cleartext on chain. ``A transaction
+MUST NOT spend a transparent output of a coinbase transaction from a
+block less than 100 blocks prior to the spend'' (\S7.1.2;
+\texttt{MIN\_TRANSPARENT\_COINBASE\_MATURITY} $= 100$,
+\texttt{zebra-chain/src/transparent.rs:54}) --- miners wait $n = 100$
+on their own income. Read through Theorem~\ref{thm:cons-r}
+(script-computed): $r(0.3, 100) \approx 3.7 \times 10^{-9}$ and
+$r(0.4, 100) \approx 0.43\%$, but $r(0.45, 100) \approx 15.7\%$ ---
+the first-seen-model baseline becomes small at moderate $q$ yet remains
+porous near the majority line, as
+Proposition~\ref{prop:cons-divergence} says every fixed count must
+be. Since the Heartwood network upgrade (ZIP-213) a coinbase may shield its outputs, and the maturity rule binds
+only the transparent ones.
 
-\subsection{The complete node record}
+\subsection{What wallets actually wait for}\label{sec:cons-walletpolicy}
 
-Every node is a canonical record, not just a hash. The initial record
-serialises the following fields in order:
-\begin{enumerate}[leftmargin=*]
-\item $32$-byte subtree commitment.
-\item Earliest and latest timestamps, each unsigned $32$-bit little-endian.
-\item Earliest and latest compact targets, with the same integer encoding.
-\item Earliest and latest final Sapling note-tree roots, each $32$ bytes.
-\item Total work, an unsigned $256$-bit little-endian integer.
-\item Earliest height, latest height and number of Sapling-bearing
-  transactions, each canonical CompactSize.
-\end{enumerate}
-The NU5 record appends earliest and latest final Orchard note-tree roots,
-then a CompactSize count of transactions with a nonempty Orchard
-component. The specified NU6.3 extension appends the analogous Ironwood
-root pair and transaction count. A count is of transactions, not Actions,
-notes or nonzero payments.
+Deployed confirmation policy lives in \textsf{librustzcash}. Structure
+\texttt{ConfirmationsPolicy} defaults to $3$ confirmations for
+\emph{trusted} outputs --- normally TXOs created by the wallet's own internal
+handling, with externally received transactions trusted only by explicit user
+policy --- and $10$ for \emph{untrusted} ones, with zero-confirmation
+shielding of transparent funds allowed
+(\texttt{zcash\_client\_backend/src/data\_api/\allowbreak
+wallet.rs:444--455}, citing the draft ZIP-315); the spend anchor ---
+the note-commitment-tree root against which a spend proves its note
+exists (\emph{Crypto Guide}, \S``Privacy-preserving membership via
+zero-knowledge paths'') --- sits $3$ blocks below the target height
+(\texttt{wallet.rs:574--576}). The
+Android SDK passes exactly these defaults for transfers, and for
+shielding the minimum policy, under which the transparent funds being
+shielded need no confirmations at all
+(\texttt{backend-lib/src/main/rust/lib.rs:2096},
+\texttt{:2158}, \texttt{:2192}); its UI reports a transaction
+\emph{confirmed} at $10$ confirmations
+(\texttt{TransactionOverview.kt:89}). These constants are wallet policy
+rather than consensus rules.
 
-At a leaf, both endpoints of every pair come from that leaf's block.
-The subtree commitment is the ordinary block hash in internal byte order.
-Work is \eqref{eq:cons-work}; each count is computed from the block body.
-For a parent, earliest fields come from the left child, latest fields
-from the right child, and work and counts are summed. Earliest means
-leftmost in chain order, not the numerically smallest timestamp:
-timestamps need not increase at every block.
+Table~\ref{tab:cons-r} prices the defaults in the first-seen model. Three
+confirmations assign a $10\%$ adversary $r = 1.712\%$, while ten assign the
+same adversary $0.0008\%$ and a $20\%$ adversary $0.316\%$. ZIP-315 permits
+the lower threshold because value from a trusted TXO remains recoverable
+after a rollback --- the wallet can recreate its transaction --- whereas an
+untrusted external payment may require the sender to resend it. Both rows,
+like every fixed count, are
+a $(q, \varepsilon)$ policy in the sense of
+Remark~\ref{rem:cons-six}, not a guarantee.
 
-For branch identifier $\beta$ belonging to this history epoch, define
-\[
- H_\beta(m)=\mathsf{BLAKE2b}_{256}
-   (\texttt{ZcashHistory}\,\|\,\mathrm{LE}_{32}(\beta),m).
-\]
-A parent's subtree commitment is
-\[
- H_\beta(\mathsf{Serialize}(L)\,\|\,\mathsf{Serialize}(R)),
-\]
-using the \emph{entire} child records in the fixed order above.
-The final chain-history root is
-\[
- H_\beta(\mathsf{Serialize}(R_{\rm root})).
-\]
-Hashing only child digest
-fields omits the authenticated metadata and produces the wrong tree.
+\section{Layer boundary}\label{sec:cons-relations}
 
-The base record contains $144$ fixed bytes and three CompactSize fields,
-so its length ranges from $147$ to $171$ bytes. The NU5 record contains
-$208$ fixed bytes and four such fields, giving $212$ to $244$ bytes.
-The specified Ironwood extension gives $272$ fixed bytes and five such
-fields, or $277$ to $317$ bytes. These are encoding bounds, not a claim
-that every extreme combination can occur in a real chain.
+Every theorem above rests on the \emph{Math Guide}'s probability section:
+the definition of probability, its extension beyond finite spaces, and the
+continuity theorem used in the catch-up proof. This volume supplies the
+best-chain model and the quantitative bounds in
+Tables~\ref{tab:cons-r}, \ref{tab:cons-nreq}, and~\ref{tab:cons-vmax}.
+Policies that decide which chain view to trust or when to treat a transaction
+as final lie above that boundary.
 
-\subsection{Upgrade boundaries and authenticated meaning}
-
-At the block activating the history-tree rule, Heartwood, the designated
-header field is the zero sentinel, not a root of an empty ordinary tree.
-At a later upgrade's activation block, the history commitment completes
-the preceding epoch. The next block commits to a single-leaf tree
-beginning with the activation block. The tree's hashing uses the branch
-identifier of the epoch represented by its nodes, including when the
-header carrying its completed root belongs to the next epoch.
-The history implementation and the upgrade selection together determine
-this boundary; applying a new personalisation to old-epoch nodes would
-change their committed root.
-
-A valid inclusion path authenticates the supplied records against a
-chosen root under collision resistance. It does not, by itself, prove
-that every concealed subtree's declared work sum or count was honestly
-computed. Fully validating nodes recompute the metadata from accepted
-blocks. A client trusting only a root needs an additional reason to trust
-the relevant aggregate semantics. Hash binding is not arithmetic
-validation or proof of a best chain.
-
-\subsection{Authorising-data and block commitments}
-
-Transaction identifiers in version~5 commit to \emph{effecting data},
-the data specifying the transaction's effects. They exclude proofs and
-signatures. Each transaction therefore also has an authorising-data
-digest. ZIP~244 constructs that digest with branch-separated BLAKE2b
-from the format's transparent, Sapling and Orchard authorising-data
-component digests. The specified version~6 extension adds Ironwood and
-moves the affected anchors into authorising data. The payment-format
-verifier must compute the exact version's digest; an arbitrary hash of
-serialised transaction bytes is not a replacement.
-
-Build the authorising-data tree in transaction order. A pre-v5
-transaction has the prescribed leaf of $32$ bytes of $\mathtt{0xff}$.
-For versions defining an authorising digest, use that digest. Pad to the
-next power of two with $32$-byte zero leaves. Since coinbase is mandatory,
-the leaf count is positive. Internal nodes are
-\[
- H_{\rm auth}(L,R)=
- \mathsf{BLAKE2b}_{256}(\texttt{ZcashAuthDatHash},L\|R).
-\]
-With one transaction there is no internal hash: the root is its leaf.
-For $m$ transactions the tree height is $\lceil\log_2m\rceil$.
-
-From the ZIP~244 activation block, the header field is
-\begin{equation}
- \mathsf{hashBlockCommitments}=
- \mathsf{BLAKE2b}_{256}\bigl(\texttt{ZcashBlockCommit},
-          R_{\rm history}\|R_{\rm auth}\|0^{256}\bigr).
- \label{eq:cons-blockcommit}
-\end{equation}
-The final $32$ bytes are an extension terminator. A later activated rule
-may replace that terminator with a further defined commitment structure;
-a full node must verify the complete active structure. It must not
-accept an arbitrary terminator because an older light client could
-treat it as an opaque extension.
-
-There are now three distinct questions. A note-tree anchor can support
-a private input-existence proof. A transaction digest binds authorised
-transaction data. A block-history root authenticates selected earlier
-block records. Sharing a $32$-byte representation does not make these
-objects interchangeable.
-
-\section{Reorganisation and confirmation confidence}
-\label{sec:cons-confirm}
-
-A transaction's cryptographic validity is stable under unrelated
-extensions, but its inclusion and contextual validity are branch
-dependent. Chain selection can therefore change a wallet's apparent
-balance without breaking a commitment or forging a signature.
-
-\subsection{Rollback to a common ancestor}\label{sec:cons-reorg}
-
-Suppose the selected branch changes from $C$ to $C'$, with last common
-ancestor $a$. Reconstruct $S_a$ by undoing the removed suffix of $C$ or
-loading its retained snapshot. Apply and validate $C'$'s suffix in order.
-Undo data must cover transparent outputs, nullifier insertions,
-commitment appends, anchor availability, pool balances and history state.
-A note created only on the removed suffix is no longer an accepted
-input. A nullifier revealed only there is no longer spent on the new
-branch.
-
-A transaction from the removed branch may be valid again, invalid because
-of a conflict, or expired. It is a candidate for re-evaluation, not an
-automatically accepted member of the new branch or memory pool.
-Likewise, a proof with an anchor existing only on the removed branch may
-need to be rebuilt. Persistence must not leave a mixture of old-branch
-nullifiers and new-branch roots.
-
-Implementations can retain only a bounded rollback window or use
-checkpoints as safety and storage mechanisms. Such operational bounds
-are not a theorem that a deeper competing chain is cryptographically
-impossible. The protocol's most-work criterion and a program's recovery
-policy are different statements.
-
-\subsection{An explicit probabilistic model}
-
-Consider an idealised two-producer model with $0<p<1$ and a positive
-integer confirmation count $z$. Independent block arrivals
-belong to an honest branch with probability $p$ and an adversarial branch
-with probability $q=1-p$. Both branches have equal per-block work; network
-delays, changing hash rates and difficulty feedback are ignored.
-The attacker begins from the same fork point as the payment. Ties count
-as attacker success. These assumptions define the calculation; they are
-not observations guaranteed by a real network. The separate endpoint
-$p=1,q=0$ has no adversarial arrivals and reversal probability zero.
-
-For a current honest lead $d>0$, let $u_d$ be the probability that the
-attacker ever reaches a tie. First-step conditioning gives
-\[
- u_d=p\,u_{d+1}+q\,u_{d-1},\qquad u_0=1.
-\]
-When $q<p$, solve first on the finite interval $0,\ldots,M$, with failure
-at $M$. Substitution verifies
-\[
- u_d^{(M)}
- =\frac{(q/p)^d-(q/p)^M}{1-(q/p)^M}.
-\]
-As $M$ increases, the events of reaching zero before $M$ increase to the
-event of ever reaching zero: any finite successful path has a finite
-maximum. Taking the limit proves $u_d=(q/p)^d$.
-For $q=p$, the finite-interval solution is $1-d/M$ and the limit is one;
-for $q>p$, the same finite-interval formula tends to one. A strict
-overtake convention instead requires a different boundary; silently
-switching between tie and overtake changes the answer.
-
-Waiting for $z$ honest blocks does not give the attacker zero blocks.
-Let $K$ be their block count when the $z$th honest block arrives. For
-$k\geq0$,
-\[
- \Pr[K=k]=\binom{z+k-1}{k}p^zq^k.
-\]
-Indeed, the last arrival is honest, while the preceding $z+k-1$ arrivals
-contain $z-1$ honest arrivals and $k$ adversarial arrivals. Their possible
-orders give the binomial coefficient.
-
-Conditioning on $K$ and using the catch-up probability gives, for $q<p$,
-\begin{equation}
- P_z=1-\sum_{k=0}^{z-1}
-       \binom{z+k-1}{k}p^zq^k\bigl(1-(q/p)^{z-k}\bigr).
- \label{eq:cons-risk}
-\end{equation}
-The finite sum combines the $K<z$ cases; $K\geq z$ already reaches a tie.
-At $q=0.1$ and $z=6$, it evaluates exactly to
-$0.00059141216$, approximately $0.059141216\%$. At $z=1$ it gives $0.2$,
-not $q/p$: the latter assumes a fixed known deficit and ignores the
-attacker's work during the wait. The draft's numerical check uses exact
-rational arithmetic.
-
-\subsection{What a confirmation means}
-
-A confirmation policy selects an acceptable risk under assumptions about
-the adversary and network. It cannot turn \eqref{eq:cons-risk} into an
-unconditional finality guarantee. The model also says nothing about a
-client whose peers control and restrict its entire network view
-(an \emph{eclipse}), or about a
-transaction that fails its payment proof.
-
-The complete chain of reasoning is therefore conditional and layered:
-validated transactions produce valid branch-local state; valid blocks
-supply admissible work; the most-work rule selects among visible valid
-branches; a stated network and adversary model supports a probability
-of later reversal. Each layer answers a different question.
-
-\paragraph{Evidence and executable checks.}
-The concrete history rules are ZIP~221, ZIP~244 and the conditional
-Ironwood extension in ZIP~258; implementation checks use
-\texttt{zcash\_history} and
-\texttt{zebra-chain/src/history\_tree.rs}.
-The public specifications are available at
-\href{https://zips.z.cash/zip-0221}{ZIP~221},
-\href{https://zips.z.cash/zip-0244}{ZIP~244} and
-\href{https://zips.z.cash/zip-0258}{ZIP~258}.
-The companion \texttt{check\_deployed.py} checks payment signs, compact
-integers, target rounding, difficulty examples, the confirmation sum,
-history positions and record-size arithmetic. These checks do not prove
-hash hardness, honest-majority assumptions, or the correctness of every
-implementation of the consensus rules.
 \end{document}

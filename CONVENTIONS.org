@@ -52,10 +52,12 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
   this volume or in a lower one cited at the point of use. A term the
   critical path does not need is omitted, not name-dropped -- state the
   substance in plain language instead of naming the machinery.
-- First-use order is a release gate: a forward reference, later glossary
-  entry, or assumed specialist background does not replace an earlier
-  explanation. Check fresh rewrites for prerequisite gaps as strictly as
-  existing prose.
+- First-use order is a release gate; a forward reference or later glossary
+  entry does not replace an earlier explanation.
+- Retain the symbol-reading and Greek-alphabet pronunciation tables in the
+  Math Guide. They are required reading aids, not off-path material.
+- There is no length target. Remove unused subjects and redundancy, not
+  the definitions, derivations and worked examples needed to teach a subject.
 - Claims about deployed behaviour cite the implementation (crate and file)
   and the spec section; claims about design-stage protocols are classified
   /specified/ | /designed-but-unspecified/ | /open problem/.

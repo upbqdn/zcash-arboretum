@@ -10,7 +10,7 @@ Modes:
            stripped (run in CI before latexml).
   landing  Write the landing page index.html from the volumes' \\title
            lines into the directory given by --out.
-  concordance  Index ZIP citations into --out.
+  concordance  Index ZIP and protocol-section citations into --out.
   omnibus  Generate the complete edition's LaTeX source.
   postprocess  Finish the generated HTML pages in --out.
 """
@@ -31,12 +31,12 @@ VOLUME_META = [
     ("math-guide", "Foundations", "stable"),
     ("crypto-guide", "Foundations", "stable"),
     ("halo2-guide", "Foundations", "stable"),
-    ("consensus-guide", "Core protocol", "consensus"),
-    ("ironwood-guide", "Core protocol", "versioned rules"),
-    ("wallet-guide", "Core protocol", "wallet"),
-    ("sync-guide", "Core protocol", "wallet"),
+    ("consensus-guide", "Deployed protocol", "deployed"),
+    ("ironwood-guide", "Deployed protocol", "deployed"),
+    ("wallet-guide", "Deployed protocol", "deployed"),
+    ("sync-guide", "Deployed protocol", "deployed"),
     ("flyclient-guide", "Frontier", "design-stage"),
-    ("zsa-guide", "Frontier", "draft"),
+    ("zsa-guide", "Frontier", "frontier"),
     ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
 ]
@@ -49,26 +49,22 @@ OMNIBUS_INTRO = r"""\phantomsection
 \emph{The Zcash Arboretum} is a non-normative guide to the mathematics,
 cryptography, and engineering of the Zcash protocol.  It covers the
 foundations of Halo~2 and Orchard, deployed consensus and wallet protocols,
-and separately identified frontier designs.  The protocol specification,
+and designs being explored beyond them.  The protocol specification,
 applicable ZIPs, and consensus rules remain authoritative.
 
-Read the parts in dependency order.  The \emph{Math Guide} constructs
-the required mathematical language; the \emph{Crypto Guide} constructs
-the primitives; the \emph{Halo 2 Guide} connects circuit constraints
-to a proof and its explicitly stated security contract.
+The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
+Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
+\emph{Wallet}, and \emph{Sync} Guides explain the deployed system and its
+boundaries.  The remaining parts examine the unbuilt FlyClient bridge,
+shielded assets, trailing finality, and threshold authorization.
 
-The \emph{Consensus}, \emph{Ironwood}, \emph{Wallet}, and \emph{Sync}
-Guides then follow one shielded payment through ledger validation,
-cryptographic construction, authorisation and recovery.  Specified upgrade
-profiles are distinguished from activated network rules.  The four remaining
-parts are independent destinations: FlyClient, shielded assets, Crosslink
-and threshold signing.  None is required for the core payment.
-
-Each technical term must be explained before use, either locally or in an
-identified prerequisite section.  Every part distinguishes mathematical
-identities, computational assumptions, imported results and unresolved
-interfaces.  The checked small-field examples are not production proofs.
-Each part restarts its section numbering to agree with the separate volume.
+Three reading paths cover most uses.  For prerequisites, begin with the first
+three parts; readers new to proof systems may start with the worked example
+that closes the Halo~2 Guide.  For the life of a shielded payment, read
+\emph{Ironwood}, then \emph{Wallet}, \emph{Sync}, and \emph{Consensus}.  For
+proposed changes, read the relevant frontier part only after its lower-layer
+dependencies.  Each part restarts its own section numbering so that citations
+agree with the separately published volume.
 """
 
 THEME_INIT = """<script>
@@ -343,7 +339,7 @@ def omnibus(srcdir=ROOT, out=None):
              "\\setlength{\\headheight}{20pt}",
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
-             "\\large Foundations, core protocol, and frontier designs}",
+             "\\large Foundations, deployed protocol, and frontier designs}",
              ("\\author{}\n\\date{}" if srcdir == WEBDIR
               else "\\author{m@rek.onl}\n\\date{}"),
              "\\newcounter{arbvolume}\n"
@@ -422,7 +418,7 @@ def landing(outdir):
 <div class="label"><span class="acc">all volumes</span>
 <span class="plaque">complete</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
-<p class="sub">Foundations, core protocol, and frontier designs</p>
+<p class="sub">Foundations, deployed protocol, and frontier designs</p>
 <div class="links"><a href="complete/">Web</a>
 <a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
@@ -439,14 +435,15 @@ def landing(outdir):
 <div class="arb-heading"><h1>The Zcash Arboretum</h1>
 {THEME_PICKER}</div>
 <hr class="stem">
-<p class="tag">Self-contained, non-normative documentation of shielded Zcash
-payments and their prerequisites, with separate frontier designs. The
+<p class="tag">Non-normative documentation of the deployed Zcash protocol
+and designs being built on top of it. The
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
 applicable ZIPs, and consensus rules remain authoritative.</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{
-  new PagefindUI({{ element: '#search', showSubResults: true }});
+  new PagefindUI({{ element: '#search', showSubResults: true,
+    showImages: false }});
 }});
 </script>
 {chr(10).join(cards)}
@@ -472,12 +469,14 @@ def concordance(outdir):
     """ZIP number -> (volume, section) index, scanned from the sources."""
     import collections
     zips = collections.defaultdict(set)
+    specs = collections.defaultdict(set)
     for vol, _g, _c in VOLUME_META:
         p = ROOT / f"{vol}.tex"
         if not p.exists():
             continue
         title, _ = vol_title(vol)
         sec = "front matter"
+        prev = ""
         for ln in p.read_text().splitlines():
             if ln.lstrip().startswith("%"):
                 continue
@@ -486,12 +485,27 @@ def concordance(outdir):
                 sec = m.group(1)
             for z in re.findall(r"ZIP[-~ ]?(\d{2,4})\b", ln):
                 zips[int(z)].add((vol, title, sec))
+            # protocol-spec sections; skip cross-volume cites ("... Guide"
+            # on the same line) and internal \S\ref uses
+            if not re.search(r"\\emph\{[^}]*Guide", prev + " " + ln):
+                for sp in re.findall(r"\\S[~ ]?(\d+(?:\.\d+)+)", ln):
+                    specs[tuple(int(x) for x in sp.split("."))].add(
+                        (vol, title, sec))
+            prev = ln
     rows = []
     for z in sorted(zips):
         refs = "; ".join(
             f'<a href="{v}/">{t}</a> &mdash; {s}'
             for v, t, s in sorted(zips[z], key=lambda x: (x[1], x[2])))
         rows.append(f'<tr><td class="zk">ZIP {z}</td><td>{refs}</td></tr>')
+    srows = []
+    for sp in sorted(specs):
+        dotted = ".".join(str(x) for x in sp)
+        refs = "; ".join(
+            f'<a href="{v}/">{t}</a> &mdash; {s}'
+            for v, t, s in sorted(specs[sp], key=lambda x: (x[1], x[2])))
+        srows.append(f'<tr><td class="zk">&sect; {dotted}</td>'
+                     f'<td>{refs}</td></tr>')
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Concordance &mdash; The Zcash Arboretum</title>
@@ -509,14 +523,16 @@ def concordance(outdir):
 <div class="arb-heading"><h1>Concordance</h1>
 {THEME_PICKER}</div>
 <hr class="stem">
-<p class="tag">ZIP references across the volumes, grouped by guide section.
-Generated from the sources.</p>
+<p class="tag">Every ZIP and protocol-specification section cited across
+the volumes, and where each is treated. Generated from the sources.</p>
 <table>{"".join(rows)}</table>
+<h2>Protocol specification</h2>
+<table>{"".join(srows)}</table>
 <p class="foot"><a href="./">The Zcash Arboretum</a></p>
 </main></body></html>"""
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     (out / "concordance.html").write_text(html)
-    print(f"concordance: {len(zips)} ZIPs")
+    print(f"concordance: {len(zips)} ZIPs, {len(specs)} spec sections")
 
 
 def postprocess(outdir):
@@ -550,13 +566,25 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
 <link href="../pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="../pagefind/pagefind-ui.js"></script>
 <script>
-document.querySelector('details.arb-search').addEventListener('toggle',
-  function (e) {{
-    if (e.target.open && !window.__arbSearch) {{
+(function () {{
+  const search = document.querySelector('details.arb-search');
+  search.addEventListener('toggle', function () {{
+    if (search.open && !window.__arbSearch) {{
       window.__arbSearch = new PagefindUI({{ element: '#arb-search-ui',
-        showSubResults: true }});
+        showSubResults: true, showImages: false }});
     }}
   }});
+  document.addEventListener('click', function (e) {{
+    if (!search.contains(e.target)) search.open = false;
+  }});
+  document.addEventListener('keydown', function (e) {{
+    if (e.key === 'Escape' && search.open) {{
+      if (search.contains(e.target))
+        search.querySelector('summary').focus();
+      search.open = false;
+    }}
+  }});
+}})();
 </script>"""
         n = 0
         for page in vdir.glob("*.html"):

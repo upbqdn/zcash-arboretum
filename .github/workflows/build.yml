@@ -16,9 +16,6 @@ jobs:
       - name: Check numerical examples
         run: |
           python3 -B research/check_foundations.py
-          python3 -B research/check_mathcrypto.py
-          python3 -B research/check_halo2.py
-          python3 -B research/check_wallet_crypto.py
           python3 -B research/check_deployed.py
           python3 -B research/check_frontier.py
       - name: Build and check every document

@@ -48,6 +48,8 @@ for warning in (r"Overfull \hbox (2.0pt too wide)",
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide")
 MERGED = "halo2-intuition-guide"
+assert all((sitegen.ROOT / "parked" / f"{vol}.tex").is_file()
+           for vol in PARKED)
 assert set(PARKED).isdisjoint(sitegen.VOLUMES)
 assert MERGED not in sitegen.VOLUMES
 assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
@@ -71,9 +73,12 @@ with tempfile.TemporaryDirectory() as tmp:
 
     landing = (out / "index.html").read_text()
     concordance = (out / "concordance.html").read_text()
+    assert landing.count("showImages: false") == 1
+    assert "details.arb-search" not in landing
     assert "ZIP 316" in concordance
     assert "<table></table>" not in concordance
-    assert "<h2>Protocol specification</h2>" not in concordance
+    assert "<h2>Protocol specification</h2>" in concordance
+    assert "&sect; 4.2.3" in concordance
     for vol in PARKED:
         assert f'href="{vol}/"' not in landing
         assert f'href="{vol}/"' not in concordance
@@ -81,7 +86,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert f'href="{MERGED}/"' not in concordance
     assert landing.count('href="complete/"') == 2
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
-    assert "Foundations, core protocol, and frontier designs" in landing
+    assert "Foundations, deployed protocol, and frontier designs" in landing
     assert landing.index('<h3 class="grp">Frontier</h3>') < landing.index(
         '<h3 class="grp">Complete edition</h3>')
     assert (out / "pdf" / "arboretum-complete.pdf").is_file()
@@ -97,7 +102,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
-    assert "\\section{From a relation to a circuit}" in complete_tex
+    assert "\\section{Worked example: one computation," in complete_tex
     for title in ("PQ Guide", "Tachyon Guide", "Voting Guide"):
         assert f"\\part{{{title}:" not in complete_tex
 
@@ -163,6 +168,9 @@ Volume summary.
     html = page.read_text()
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
     assert html.count('class="arb-theme"') == 1
+    assert html.count("showImages: false") == 1
+    assert "if (!search.contains(e.target)) search.open = false" in html
+    assert "e.key === 'Escape' && search.open" in html
     assert '<body data-arb="vol">' in html
     assert html.count("window.MathJax") == 1
     assert 'href="../arboretum.css?v=' in html

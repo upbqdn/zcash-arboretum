@@ -1,117 +1,137 @@
-# Working on the Zcash Arboretum
+# CLAUDE.md
 
-This repository contains eleven LaTeX volumes and a companion Beamer talk,
-plus the static-site and verification tools that publish them. It is
-non-normative documentation, not a Zcash validator implementation.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Read `README.org` for the scope and reading order and `CONVENTIONS.org` for
-the binding notation, first-use and style rules before changing prose.
+## What this repository is
 
-## Editorial acceptance
+The Zcash Arboretum: a series of standalone LaTeX volumes documenting the Zcash
+protocol (non-normative — the protocol spec and ZIPs are authoritative), plus a
+static website generated from those sources, plus a research/audit sidecar.
+There is no application code; the "build" is LaTeX compilation and site
+generation.
 
-Every technical term is explained before first use. A later glossary,
-forward reference or presumed specialist background does not repair a missing
-prerequisite. Construct standard mathematics once in its lowest required
-volume; cite the exact named section when applying it above.
+`README.org` owns the volume roster and reading order. `CONVENTIONS.org` is the
+binding style/notation contract for all volumes — read it before writing volume
+prose; deviations from it are bugs.
 
-Retain only the critical path to the selected endpoints. Core payment
-volumes do not depend on frontier volumes. Earlier shielded and transparent
-formats appear only at necessary compatibility boundaries. Do not add
-historical surveys or unused alternatives.
+## Building
 
-Distinguish a mathematical identity, a proved reduction, a computational
-assumption, an imported theorem and an unresolved interface. In particular,
-binding is not extraction, marginal hiding is not joint simulation, a hash
-of metadata is not validation of its arithmetic, and an implementation pin
-is not evidence of network activation.
-
-Verify protocol claims firsthand against the relevant primary sources.
-The local source collection is `/home/m/zcash`; upstream repositories there
-are reference material, not part of this project's write scope. Record source
-revisions and distinguish later published specifications from older local
-pins. Independently compute examples, review changed arguments adversarially,
-and check their actual consumers before integrating substantive changes.
-
-## Source and design conventions
-
-British prose wraps at 80 columns. Follow the notation and label registry
-in `CONVENTIONS.org`. Cross-volume references use the italic guide name and
-exact section title, never a cross-document `\ref`. A forward reference within
-one volume may navigate already introduced concepts, not introduce an
-unexplained prerequisite.
-
-Preserve the shared STIX Two font, theorem bars, colours and running headers.
-The web preparation code strips those design blocks by exact pattern; a
-preamble change must update the matching logic and regression check together.
-Other packages and local macros need not be identical across volumes.
-
-The title shape is parsed by the site:
-`\title{\textbf{\Huge Name}\\[6pt]\large Subtitle}`.
-The author line is `\author{m@rek.onl}` and is removed from web editions.
-Talks use Beamer with `aspectratio=169`.
-
-## Verification
+Each volume compiles independently. The `-Z shell-escape` flag is required (TikZ
+externalisation); without it the build fails.
 
 ```sh
-python3 -B site/tools/test_sitegen.py
-python3 -B research/check_foundations.py
-python3 -B research/check_mathcrypto.py
-python3 -B research/check_halo2.py
-python3 -B research/check_wallet_crypto.py
-python3 -B research/check_deployed.py
-python3 -B research/check_frontier.py
-python3 -B site/tools/check_build.py
+tectonic -Z shell-escape <volume>.tex
 ```
 
-The PDF gate builds the eleven volumes, every retained talk and the generated
-complete edition. It rejects overfull boxes, unresolved references, duplicate
-labels/destinations, missing glyphs and compilation failures. Logs and PDFs
-remain in `build/pdf/`. `--update-pdfs` copies passing PDFs beside their
-sources only after every document passes. PDFs are deliberately tracked;
-update them with their sources.
+CI (`.github/workflows/build.yml`) runs `python3 -B site/tools/check_build.py`
+on push and PR, compiling active volumes, parked guides, talks, and the complete
+edition. It checks the final logs and retains PDFs and logs under `build/pdf/`.
+Compiled PDFs are committed deliberately (`.gitignore` keeps `*.aux`/`*.log`/…
+out but not `*.pdf`) — recompile and commit the PDF alongside any source change.
+Use `--update-pdfs` with the gate to copy the PDFs back after every build passes.
 
-To compile one document:
-`tectonic -Z shell-escape <source>.tex`.
-The flag preserves compatibility with the shared figure tooling.
+**The pre-commit gate (from CONVENTIONS.org):** a volume must compile with **zero
+overfull hboxes and zero unresolved references** before commit. `??` in output or
+an "Overfull \hbox" warning is a failure, not a nuisance. Diagnose overfull boxes
+with `--keep-logs` and fix with `\allowbreak` on long identifiers/paths, or by
+converting inline math to `gather*`/`align*` displays.
 
-A clean build is not proof of the prose. A changed mathematical claim needs
-an independent argument review; a changed concrete algorithm needs a
-runnable example or primary-vector check. Keep the smallest useful check
-rather than adding a test framework.
+Talk decks live in `talks/` (Beamer, `aspectratio=169`); same `tectonic`
+invocation.
 
-## Site
+## The shared-preamble contract
 
-`site/tools/sitegen.py` owns the roster and reading order in `VOLUME_META`.
-Its modes are:
+Volumes share the STIX Two font and PDF design blocks: the font setup
+(`fontspec` + `unicode-math`, OTFs in `fonts/`; no `amssymb`), theorem
+environments, the mdframed kind-coded theorem bars and fancyhdr running
+heads, the `\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*`
+figure colours, and the redefined `abstract` environment. Packages, local macros,
+and some theorem declarations vary by volume; the entire preamble is not
+byte-identical. Preserve the shared font/design blocks when creating a volume,
+and follow the fixed notation registry in `CONVENTIONS.org`.
+`sitegen.py webprep` strips the font/design block for
+LaTeXML by exact string match — editing that block in the volumes requires
+updating `FONT_BLOCK`/`DESIGN_BLOCK_RE` in `sitegen.py` in the same commit.
 
-- `volumes`: print the eleven publication names.
-- `render`: render any source TikZ figures to SVG and PNG in `site/figures/`.
-- `webprep`: prepare `build/web/` for LaTeXML.
-- `omnibus`: regenerate `arboretum-complete.tex`; do not hand-edit that file.
-- `landing`, `concordance`, `postprocess`: finish the generated website.
+Two preamble lines are parsed by tooling and must match exactly:
 
-When adding or changing a figure, run `render` and retain the generated assets
-with its source. No obsolete figure is kept merely because it was once used.
-Keep the compatible font/design processing and browser controls shared across
-volumes; fix a shared defect at its common implementation.
+- `\author{m@rek.onl}` — `sitegen.py` webprep strips this literal string for the
+  web build. A different author line silently breaks web rendering.
+- The title, which **must** fit the regex in `sitegen.py:vol_title`:
+  `\title{\textbf{\Huge <Name>}\\[6pt]\large <subtitle>}`. The landing page and
+  per-volume nav bar extract name + subtitle from this shape; a differently
+  formatted title falls back to the filename.
 
-The website workflow converts sources to per-section HTML, builds Pagefind
-search and runs `site/tools/check_site.py` for local links, anchors and error
-markup. Check actual rendered mathematics and navigation after structural
-changes. Against a locally served generated site:
+## Site generation (`site/tools/sitegen.py`)
 
-```sh
-uv run --with playwright python -B site/tools/check_search.py BASE_URL
-```
+The website is built by `sitegen.py` and published by
+`.github/workflows/site.yml` (LaTeXML → per-section HTML → Pagefind search →
+GitHub Pages). Modes:
 
-The optional second argument selects `firefox` or `webkit`; those engines
-need their Playwright binaries and runtime libraries. The check exercises
-search reachability at phone, tablet and desktop sizes; emulation does not
-certify every physical device or untested input method.
+- `render` — pre-renders every `tikzpicture` to SVG **and** PNG under
+  `site/figures/`. **Run locally and commit the outputs** (needs `tectonic` +
+  `pdftocairo`/`pdftoppm`); CI does not render. LaTeXML can't ingest TikZ, so it
+  consumes these images.
+- `webprep` — CI-side; rewrites each volume into `build/web/` with figures
+  swapped for `\includegraphics` and TikZ stripped.
+- `landing` / `concordance` / `postprocess` — generate the index page, the
+  ZIP↔section concordance (scanned from the sources), and inject the site bar.
 
-## Workspace boundaries
+`VOLUME_META` in `sitegen.py` is the site registry: `(volume, group, chip)`
+tuples in reading order, where group ∈ {Foundations, Deployed protocol,
+Frontier} and chip is the status badge. `VOLUMES` and the roman-numeral
+accession numbers derive from it.
 
-`research/` contains executable checks and current verification evidence.
-Ignored `.wip/` and `build/` hold working drafts, temporary primary-source
-material and generated output. Preserve unrelated user changes and backups.
-Do not commit, push, publish or edit upstream repositories unless requested.
+### Adding a new volume
+
+1. Create `<name>-guide.tex` with the shared font/design blocks and a
+   title matching the regex above.
+2. Append a `(<name>-guide, <group>, <chip>)` tuple to `VOLUME_META` at the
+   correct reading position.
+3. Extend `ROMANS` in `sitegen.py` if the count now exceeds the list.
+4. Add the volume to the `README.org` roster.
+5. If it has figures, run `python3 site/tools/sitegen.py render` and commit the
+   new `site/figures/*.svg` + `*.png`.
+6. Compile clean (zero overfull, zero unresolved refs) and commit the PDF.
+
+Cross-volume citations are by *italic volume name and section title* only —
+PDFs are separate documents, so there is **no** cross-document `\ref`. A volume
+may forward-reference only its own later sections, never a volume above it in
+the layering.
+
+## Conventions that bite
+
+- **Prose wraps at 80 columns** in `.tex` sources (not 100 — that 100-col rule
+  is for Rust elsewhere). British spelling ("synchronisation", "colour").
+- Never start a sentence with a bare symbol or code identifier; lead with its
+  kind ("The trapdoor `\rcv` …", "Function `foo()` …").
+- Label prefixes: `sec:`, `def:`, `thm:`, `lem:`, `eq:`, `fig:`, `tab:`, `rem:`.
+  Theorem environments number within sections.
+- Every relied-upon quantity is constructed in place or cited to the exact
+  volume+section that constructs it ("derived from X" with no formula is a
+  defect — the "psi rule").
+- No undefined terms: define every technical term before first use (or cite
+  the lower volume that does). Off-critical-path machinery is omitted, not
+  name-dropped.
+- Deployed-behaviour claims cite the implementation (crate + file) and spec
+  section; design-stage claims are classified *specified* /
+  *designed-but-unspecified* / *open problem*.
+
+## Verification method
+
+Ground truth lives under `~/zcash`: `zips/protocol/protocol.tex`, the ZIPs, and the
+deployed sources (librustzcash, orchard, zebra, wallet SDKs). Verify claims
+firsthand against these before writing; record commit hashes for design-stage
+sources. Worked-example numbers are computed by script (the script's output is
+the source of the numbers in the text), never by hand. Substantial additions
+pass an adversarial review — independent recomputation of numbers, a
+concept-inversion hunt, and a cross-reference check — before merging.
+
+## Non-source directories
+
+- `research/` — committed audit and design notes (`upstream-defects.md`,
+  `correctness-audit.md`, `tachyon.md`, …). Findings about upstream bugs stay in
+  draft until confirmed firsthand.
+- `.wip/` — gitignored working drafts and staged source papers, grouped per
+  volume.
+- `build/` — gitignored generated web sources.

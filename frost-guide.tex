@@ -117,760 +117,2176 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
-\title{\textbf{\Huge FROST Guide}\\[6pt]\large Threshold custody for randomised RedPallas keys}
+\title{\textbf{\Huge FROST Guide}\\[6pt]\large Threshold RedPallas: FROST and its Zcash integration surfaces}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
 \thispagestyle{empty}
 \begin{abstract}
-This volume of \emph{The Zcash Arboretum} constructs threshold spend
-authorisation: several holders of key shares produce one ordinary
-RedPallas signature without reconstructing the spending key during
-signing. It assumes interpolation from the \emph{Math Guide}, Schnorr
-and RedPallas from the \emph{Crypto Guide}, Action authorisation from the
-\emph{Ironwood Guide}, and separated transaction-building roles from the
-\emph{Wallet Guide}. The construction includes share provisioning,
-transcript encodings, nonce state, randomisation and the final signing
-workflow. Algebraic correctness, imported unforgeability results and
-unproved composition requirements are distinguished explicitly.
+Assuming Schnorr signatures from the \emph{Crypto Guide}, RedPallas from the
+\emph{Ironwood Guide}, PCZT from the \emph{Wallet Guide}, and the finalizer
+model from the \emph{Crosslink Guide}, this volume of \emph{The Zcash
+Arboretum} documents threshold signing for Zcash. It constructs FROST as
+specified in RFC~9591, then its re-randomised form for Zcash
+spend authorisation and recoverability custody. The re-randomised Zcash stack
+is outside the completed cryptographic-library audits identified here; each
+design-stage claim is classified by the rigour of its source.
 \end{abstract}
 \clearpage
 \tableofcontents
 \clearpage
+%% FROST Guide, section "Scope, sources, and deployment surfaces": the
+%% volume opener --- the RedPallas scope restriction, the pinned source
+%% ladder, the three-bin rule, and the three custody surfaces.
+%% Body-only LaTeX; labels sec:fr-context, sec:fr-scope, sec:fr-sources,
+%% sec:fr-bins, sec:fr-surfaces, tab:fr-sources. Register per
+%% ironwood-guide; 80 cols.
+%%
+%% Sources (verified firsthand; repository heads rechecked 2026-09-05):
+%%   - RFC 9591, "The Flexible Round-Optimized Schnorr Threshold (FROST)
+%%     Protocol for Two-Round Schnorr Signatures", Connolly/Komlo/
+%%     Goldberg/Wood, IRTF (CFRG stream), Category Informational, ISSN
+%%     2070-1721, June 2024. https://www.rfc-editor.org/rfc/rfc9591.html;
+%%     local copy .wip/frost-drafts/sources/rfc9591.txt.
+%%   - C. P. L. Gouvea, C. Komlo, "Re-Randomized FROST", IACR ePrint
+%%     2024/436, https://eprint.iacr.org/2024/436 (received 2024-03-13,
+%%     approved 2024-03-15; publication info "Preprint", no venue). Read
+%%     in full; local copies sources/rerand-2024-436.pdf/.txt. eprint's
+%%     .pdf endpoint was intermittently behind a Cloudflare challenge when
+%%     archived (the abstract page remained reachable).
+%%   - zcash/zips @ 69610984109078075e7e64989ecf89d63a259b97 (2026-07-09):
+%%     zip-0312.rst (Draft), zip-2005.md (Proposed), zip-0271.md,
+%%     zip-0326.md, zip-0374.md; zip-0313.rst checked and excluded.
+%%   - ZcashFoundation/frost @ 2016e44ba4a4757a996300350063b937a2ad33e8
+%%     (2026-04-23), workspace 3.0.0, rust-version 1.81.
+%%   - ZcashFoundation/reddsa @ 3792daa95e588c1af6bd4805105bfb6ea7e9ad49
+%%     (2026-05-22), crate 0.5.2.
+%%   - Antecedents: IACR ePrint 2020/852 (Komlo--Goldberg, SAC 2020) and
+%%     2022/833 (Bellare--Crites--Komlo--Maller--Tessaro--Zhu, CRYPTO
+%%     2022); local copies under sources/.
+%%   - Sibling volumes: ironwood-guide.tex sec:redpallas (line 1308),
+%%     sec:redpallas-sec (line 1742); wallet-guide.tex sec:pczt (line
+%%     2882); crosslink-guide.tex sec:xl-stake-keys (line 2889).
+%%
+%% Notes:
+%%   - The volume brief said "likely zip-0312/0313"; ZIP 313 is the
+%%     obsolete fee ZIP (obsoleted by ZIP 317). The FROST ZIP is 312
+%%     alone; the second FROST-bearing ZIP is 2005. Footnoted in body.
+%%   - The randomizer wire-object discrepancy (paper sends alpha-hat,
+%%     ZIP 312 sends the HR output, frost-rerandomized 3.0.0 sends a
+%%     seed) is NOT touched here; it is resolved in sec:fr-deploy-rand.
 
-\section{Threshold custody and its contract}\label{sec:fr-context}
+\section{Scope, sources, and deployment surfaces}\label{sec:fr-context}
 
-\emph{Math Guide}, \S\emph{Groups and scalar multiplication} and
-\S\emph{Prime fields and modular arithmetic}, supplies the group and
-scalar language used here. \emph{Crypto Guide},
-\S\emph{Security contracts and reductions}, defines signature
-unforgeability and the adversarial experiments used to state it.
+This volume documents threshold custody of Zcash spend authority: how $t$
+of $n$ parties jointly produce, without reconstructing the signing key during
+signing, a signature that consensus accepts as an ordinary RedPallas
+spend-authorisation signature. Three layers carry the construction.
+The base scheme is FROST, the two-round threshold Schnorr protocol of
+Komlo and Goldberg, specified in RFC 9591 (\S\ref{sec:fr-frost}). The
+Zcash layer is Re-Randomized FROST (Gouv\^ea--Komlo, IACR ePrint
+2024/436), which shifts every share by a common randomizer so that the
+aggregate signature verifies under the per-Action randomised key; ZIP 312
+specifies it for Zcash, and the \texttt{frost-rerandomized} and
+\texttt{reddsa} crates ship it (\S\ref{sec:fr-rerand}). The deployment
+picture --- the shipped stack, the proposed uses, and the gaps --- closes
+the volume (\S\ref{sec:fr-deploy}).
 
-A spending key normally belongs to one signer. Threshold custody replaces
-that signer by \(n\) participants with a threshold \(t\): any authorised
-set of at least \(t\) participants can cooperate, while fewer than \(t\)
-should not be able to forge a signature. The chain still sees one public
-key and one signature. It does not learn the threshold or the selected
-participants from an additional on-chain list of signatures.
+Three custody surfaces anchor the treatment, one per rigour bin
+(\S\ref{sec:fr-bins}): spend-authorisation custody for Orchard, where the
+construction is specified and shipped; custody of the ZIP-2005 quantum
+spending key $\mathsf{qsk}$, where a Proposed consensus ZIP constrains a
+FROST ceremony whose recovery protocol it defers; and Crosslink finalizer
+keys, for which no threshold design was identified in the cited Crosslink
+corpus. The surfaces and their bins are fixed in \S\ref{sec:fr-surfaces}.
 
-This volume selects the signing mechanism of
-\href{https://www.rfc-editor.org/rfc/rfc9591.html}{RFC 9591}, Sections 4--5,
-and its Pallas integration in \texttt{frost} at
-\texttt{2016e44b} and \texttt{reddsa} at \texttt{3792daa9}.
-The exact randomizer construction is the seed-and-commitments API in
-\texttt{frost-rerandomized/\allowbreak src/\allowbreak lib.rs}; the group
-and hash functions are in
-\texttt{reddsa/\allowbreak src/\allowbreak frost/\allowbreak redpallas.rs}.
-\href{https://zips.z.cash/zip-0312}{ZIP 312} supplies the Zcash
-compatibility requirements, but its direct-randomizer helper is not
-silently substituted for this selected implementation.
+\subsection{Scope}\label{sec:fr-scope}
 
-The endpoint is threshold authorisation of an Orchard-style Action.
-No Crosslink, voting or future recovery protocol is needed to understand
-that endpoint.
+The object under study is a $t$-of-$n$ signing protocol whose output has the
+same format and verification rule as single-party spend authorisation. ZIP 312
+states the requirements directly: the signatures must verify as Sapling or
+Orchard spend-authorisation signatures, and should meet the protocol
+specification's ``Signature with Re-Randomizable Keys'' criteria. Plain
+FROST fails the first clause --- it signs for a fixed group key, and
+consensus verifies only per-Action randomised keys --- and closing that
+gap is the volume's central construction (\S\ref{sec:fr-rerand}).
 
-\subsection{The selected group, encodings, and hashes}
+The volume develops RedPallas only, per its title. ZIP 312 itself defines
+two ciphersuites --- FROST(Jubjub, BLAKE2b-512) for Sapling RedJubjub and
+FROST(Pallas, BLAKE2b-512) for Orchard RedPallas --- and we cite the
+Jubjub suite where the ZIP fixes both at once, but develop only the
+Pallas suite (\S\ref{sec:fr-rerand-suite}).
 
-A \emph{ciphersuite} is a fixed choice of group, encodings, and hash
-functions. \emph{Crypto Guide}, \S\emph{Hash functions and key derivation},
-constructs the BLAKE2b operation used in this suite. We fix the
-functions before using them in the protocol equations.
+ZIP 312's stated non-requirements bound the scope from below: it does not
+remove the Coordinator role; it defines no key-generation procedure (out
+of scope there, exactly as in RFC 9591); and it provides no network
+privacy. Key generation nevertheless appears twice in this volume, both
+times forced by sources: once as published with the base scheme
+(\S\ref{sec:fr-keygen}), and once as the unspecified-but-shipped DKG
+surface of the \texttt{reddsa} crate, binned in \S\ref{sec:fr-bins}.
 
-The group is Pallas, with order \(q=p_{\Vesta}\) and base
-\(G=G^{\mathsf{SpendAuth}}\), as constructed in \emph{Crypto Guide},
-\S\emph{RedPallas signatures}. Canonical compressed points occupy
-32 bytes. Scalar encoding is a 32-byte little-endian integer strictly
-less than \(q\); decoding rejects an out-of-range integer rather than
-reducing it. Participant identifiers additionally reject zero.
+One altitude note governs every deployment claim. Availability is
+library-level, not consensus-level: no consensus rule names FROST, and none
+needed to change. The verifier accepts the aggregate
+because it is a valid RedPallas signature; as ZIP 312's rationale puts
+it, the method by which the commitment $R$ was generated is irrelevant to
+the verifier.
 
-The group decoder rejects malformed points and the identity at FROST
-input positions that require non-identity elements. Algebraic identities
-below still hold when a group sum is the identity, but the concrete
-ciphersuite's serialisation and validation errors govern whether that
-rare session can be completed. It must fail cleanly, not reinterpret an
-invalid encoding.
+\subsection{The source ladder}\label{sec:fr-sources}
 
-For a 64-byte string \(b\), write
-\(\operatorname{Wide}(b)=\operatorname{LEInteger}(b)\bmod q\).
-The scalar-valued hashes apply this map to BLAKE2b-512's output.
-The complete personalised functions are:
+Table~\ref{tab:fr-sources} pins the primary sources used for the full
+review. Repository heads were rechecked on 2026-09-05: the FROST-facing
+protocol text is unchanged at \texttt{zcash/zips} \texttt{e753a6a3},
+and the algorithms and Zcash ciphersuite behaviour described below remain
+unchanged at \texttt{ZcashFoundation/frost} \texttt{0966bd1} and
+\texttt{ZcashFoundation/reddsa} \texttt{63c6ac0}. Local copies of the papers
+and RFC are archived with the volume's drafts.
 
-\begin{center}
+\begin{table}[htbp]
+\centering
+\small
 \begin{tabular}{@{}lll@{}}
 \toprule
-Function & Output & BLAKE2b personalisation\\
+Artefact & Pin / date & Evidence status \\
 \midrule
-\(H_1\) & scalar & \texttt{FROST\_RedPallasR}\\
-\(H_2\) & scalar & \texttt{Zcash\_RedPallasH}\\
-\(H_3\) & scalar & \texttt{FROST\_RedPallasN}\\
-\(H_4\) & 64 bytes & \texttt{FROST\_RedPallasM}\\
-\(H_5\) & 64 bytes & \texttt{FROST\_RedPallasC}\\
-\(H_R\) & scalar & \texttt{FROST\_RedPallasA}\\
-\(H_D\) & scalar & \texttt{FROST\_RedPallasD}\\
+RFC 9591 (IRTF CFRG)
+  & June 2024                      & Informational; CFRG consensus \\
+ePrint 2024/436 (Gouv\^ea--Komlo)
+  & recv.\ 2024-03-13              & preprint; no venue \\
+ZIP 312
+  & \texttt{6961098410}, 2026-07-09 & Draft (Wallet category) \\
+ZIP 2005
+  & \texttt{6961098410}, 2026-07-09 & Proposed (Consensus category) \\
+\texttt{ZcashFoundation/frost}
+  & \texttt{2016e44ba4}, 2026-04-23 & shipped code; workspace 3.0.0 \\
+\texttt{ZcashFoundation/reddsa}
+  & \texttt{3792daa95e}, 2026-05-22 & shipped code; crate 0.5.2 \\
+\texttt{ZcashFoundation/frost-tools}
+  & \texttt{06c0dbdb}, 2026-08-12 & demos; not for production \\
+ePrint 2020/852; 2022/833
+  & SAC 2020; CRYPTO 2022          & peer-reviewed antecedents \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Primary FROST sources used for the full review. Current heads
+rechecked 2026-09-05.}
+\label{tab:fr-sources}
+\end{table}
 
-The hash \(H_D\) supports participants jointly generating shares of
-a key without giving any participant the complete secret. It is an
-additional library function, not an RFC signing hash.
-Identifiers may simply be assigned as distinct nonzero scalars;
-no identifier hash is needed for that choice. We write
-\(P^\star\) for the canonical encoding of a point \(P\), and
-\(\operatorname{enc}(x)\) for a scalar or identifier encoding.
-The selected key-generation
-API takes 16-bit participant counts and requires \(2\leq t\leq n\),
-although the mathematical sharing construction also makes sense at
-\(t=1\).
+\paragraph{The RFC.} RFC 9591, ``The Flexible Round-Optimized
+Schnorr Threshold (FROST) Protocol for Two-Round Schnorr Signatures''
+(D. Connolly, Zcash Foundation; C. Komlo, University of Waterloo and
+Zcash Foundation; I. Goldberg, University of Waterloo; C. A. Wood,
+Cloudflare; IRTF CFRG stream, Category Informational, June 2024), records
+CFRG consensus on the base two-round protocol and leaves key generation out
+of scope. It explicitly says that it is not an Internet Standard and that
+IRTF results might not be suitable for deployment. Two of its four authors
+are Zcash Foundation, so the RFC and Zcash implementation share provenance.
+Its deltas against the SAC 2020 paper are catalogued in
+\S\ref{sec:fr-rfc}.
 
+\paragraph{The paper.} ``Re-Randomized FROST'', by Gouv\^ea and Komlo
+(both Zcash Foundation), is IACR ePrint 2024/436
+(\texttt{https://eprint.iacr.org/2024/436}): received 2024-03-13,
+approved 2024-03-15, publication info ``Preprint'', no peer-reviewed
+venue as of 2026-09-05. We read it in full and work from it throughout
+\S\ref{sec:fr-rerand}. Its headline Theorem~1 claims unforgeability in the
+random-oracle model under AOMDL\@. That game restricts oracle queries to
+declared algebraic combinations, unlike the OMDL game used for plain FROST
+in BCKMTZ\@. The printed reduction has
+material gaps documented in \S\ref{sec:fr-rerand-sec}; this volume therefore
+does not treat that claim as an established security theorem.
 
-\subsection{Public and secret objects}
+\paragraph{The ZIP.} ZIP 312, ``FROST for Spend Authorization
+Multisignatures'' (owners Conrado Gouv\^ea, Chelsea Komlo, and Deirdre
+Connolly; Status Draft, Category Wallet; Discussions-To zcash/zips\#382,
+pull request zcash/zips\#662), is the Zcash specification of the
+construction.\footnote{The FROST ZIP is ZIP 312 alone. ZIP 313, its
+numeric neighbor, is ``Reduce Conventional Transaction Fee to 1000
+zatoshis'' --- Status Obsolete, obsoleted by ZIP 317 --- and has nothing
+to do with FROST.} It is visibly unfinished --- its Created field still
+reads \texttt{2022-08-dd}, day unfilled --- so we cite it as a moving
+object, by repository commit (\texttt{zcash/zips} @
+\texttt{6961098410}, 2026-07-09) and Draft status, never as a stable
+specification. Its threat model trusts the Coordinator and every
+key-share holder with transaction privacy and unlinkability, but its
+security requirement says that a rogue Coordinator must not be able to
+create a signed transaction without the approval of
+\texttt{MIN\_PARTICIPANTS} participants. What it
+specifies --- the unlinkability requirement, the randomizer flow, and the
+two ciphersuites --- is developed in \S\ref{sec:fr-rerand-zip} and
+\S\ref{sec:fr-rerand-suite}.
 
-Work in an additive prime-order group \(\G=\langle G\rangle\) of order
-\(q\). Scalars belong to \(\F_q\). The Pallas instantiation will set
-\(q=p_{\Vesta}\). The \emph{Crypto Guide}, \S\emph{Knowledge, simulation,
-and Schnorr}, constructs the verification equation
+\paragraph{The crates.} Repository \texttt{ZcashFoundation/frost}
+(@ \texttt{2016e44ba4}, 2026-04-23) is a Rust workspace at version 3.0.0
+(\texttt{rust-version} 1.81): crate \texttt{frost-core} carries the
+ciphersuite-generic protocol; five ciphersuite crates instantiate the RFC
+(ed25519, ed448, P-256, ristretto255, and secp256k1), while the separate
+\texttt{frost-secp256k1-tr} crate implements a Taproot-oriented suite;
+\texttt{frost-rerandomized} carries the re-randomised layer, and
+\texttt{gencode} generates the per-suite code. The repository also
+vendors an audit report dated 2021-03-23
+(\texttt{zcash-frost-audit-\allowbreak report-20210323.pdf}) and the source of the ZF
+FROST book (published at \texttt{frost.zfnd.org}), whose ``FROST with
+Zcash'' chapters (zcash-devtool demo, Ywallet demo, FROST server) and
+serialisation-format page --- the page ZIP 312 cites for
+\texttt{encode\_signing\_package} --- feed \S\ref{sec:fr-deploy}.
+Repository \texttt{ZcashFoundation/reddsa} (@ \texttt{3792daa95e},
+2026-05-22; crate version 0.5.2) holds the Zcash ciphersuites: its
+\texttt{frost} feature enables \texttt{frost-rerandomized} 3.0.0, and
+\texttt{src/frost/redpallas.rs} defines FROST(Pallas, BLAKE2b-512) as
+struct \texttt{PallasBlake2b512}, ZIP 312's reference implementation
+surface (\S\ref{sec:fr-rerand-impl}). Crate \texttt{reddsa} also ships
+machinery ZIP 312 does not specify --- DKG hash personalisations and
+even-$Y$ normalisation hooks --- binned in \S\ref{sec:fr-bins}. Its README
+marks the \texttt{frost} feature experimental while ZIP 312 remains Draft
+and explicitly excludes that feature from the crate's SemVer and MSRV
+guarantees.
+
+\paragraph{The antecedent papers.} FROST itself is Komlo--Goldberg, IACR
+ePrint 2020/852 (SAC 2020); the security analysis the re-randomised
+extraction argument extends is Bellare--Crites--Komlo--Maller--Tessaro--%
+Zhu, ``Better than Advertised Security for Non-Interactive Threshold
+Signatures'' (CRYPTO 2022; ePrint 2022/833). They are the paper's
+references [10] and [1] respectively; \S\ref{sec:fr-frost} works from
+both.
+
+\subsection{The three-bin rule}\label{sec:fr-bins}
+
+The series rule is binary for implementation behaviour and ternary for design.
+A claim about implementation behaviour cites the implementation --- crate and
+file --- and the specification section it realises; a claim about a
+design-stage protocol is classified \emph{specified}, \emph{designed but
+unspecified}, or an \emph{open problem}, and the bin stays visible in the
+prose. This volume sits astride the boundary: one surface is shipped
+code, one is a consensus proposal, one is an acknowledged gap. Applied
+once, here, for the whole volume:
+\begin{enumerate}
+\item Re-Randomized FROST for spend-authorisation custody is
+  \emph{specified}: RFC 9591 published June 2024, ZIP 312 in Draft,
+  ePrint 2024/436, and shipped code --- \texttt{frost-rerandomized}
+  3.0.0 and \texttt{reddsa} 0.5.2. The latter's FROST feature is explicitly
+  experimental. Availability is library-level, not consensus-level
+  (\S\ref{sec:fr-scope}).
+\item Custody of the ZIP-2005 quantum spending key is specified at the
+  ZIP level (Status Proposed, Category Consensus), but the Recovery
+  Protocol it exists to serve is ``to be introduced, potentially, in a
+  future upgrade'' --- \emph{designed but unspecified}.
+\item Crosslink finalizer threshold custody is an \emph{open problem}:
+  the \emph{Crosslink Guide}'s own classification, which we adopt.
+\end{enumerate}
+
+One surface refuses the clean split, and we bin it here once. No ZIP
+specifies FROST key generation: ZIP 312 declares it out of scope (as does
+RFC 9591), and ZIP 271's May-2025 note confirms the gap --- ZIP 312's
+missing key-generation text is its stated reason not to couple
+disbursement of the \emph{lockbox} (the in-protocol reserve that has
+accrued a portion of each block subsidy since NU6, per ZIP 2001) to
+that specification. Yet crate \texttt{reddsa}
+ships DKG support: hash personalisations \texttt{FROST\_RedPallasD}
+(HDKG) and \texttt{FROST\_RedPallasI} (HID), beyond ZIP 312's H1--H5 and
+HR, plus even-$Y$ normalisation hooks
+(\texttt{post\_generate}/\texttt{post\_dkg}, applying
+\texttt{into\_even\_y} to secret shares and the public key package) so
+that the group verifying key meets the encoding constraint of Orchard's
+spend validating key. Deployed code with no specification above it: we
+classify the DKG surface \emph{designed but unspecified} and cite the
+crate at commit \texttt{3792daa95e} wherever we rely on it.
+%% DKG bin rechecked 2026-09-05: zips PR #895 (key generation for ZIP
+%% 312) is still open, so no merged ZIP or RFC specifies a DKG for Zcash
+%% custody; #895's merge is the revisit trigger.
+
+\subsection{The three deployment surfaces}\label{sec:fr-surfaces}
+
+\paragraph{Spend-authorisation custody (specified).} The product ZIP 312
+promises is signatures ``indistinguishable from RedPallas Orchard Spend
+Authorization Signatures''. The single-party object being imitated is
+settled in the \emph{Ironwood Guide}: \S``Spend authorisation: RedPallas
+re-randomisation'' constructs $\rsk := \ask + \alpha$ and
+$\rk := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}} =
+[\rsk]\,G^{\mathsf{SpendAuth}}$, with $\mathsf{GenRandom}$
+hashing $80$ uniform bytes through $H^{\circledast}$, and \S``RedPallas
+unforgeability'' proves EUF-CMA from discrete log in
+the random-oracle model. Per the layering rule we cite both and re-prove
+neither; this volume's work begins where the single signer ends, at
+splitting $\ask$ into shares that a signing coalition need not
+reassemble (\S\ref{sec:fr-rerand}). The wallet-side integration path is
+likewise on the record: the \emph{Wallet Guide}, \S``Partially created
+transactions (PCZT)'', records ZIP 374's motivation (iii), threshold
+signing (for example FROST, RFC 9591) --- the multiparty transaction
+format FROST signing rides in \S\ref{sec:fr-deploy-pczt}.
+
+\paragraph{Custody of the quantum spending key (designed but
+unspecified).} ZIP 2005, ``Ironwood Quantum Recoverability'' (owners
+Daira-Emma Hopwood and Jack Grigg; Status Proposed, Category Consensus;
+created 2025-03-31), writes FROST into its requirements twice: the design
+should be fully compatible with FROST threshold multisignatures (citing
+ZIP 312), and should lose no pre-quantum security when FROST and/or
+hardware wallets are used. Its ``Usage with FROST'' section then
+constrains the ceremony: the point $\aksym$ is derived jointly, via
+the FROST DKG, from shares of $\ask$; the participants must
+privately agree on a value $\mathsf{sk}$ and use it with
+$\mathsf{use\_qsk} = \mathsf{true}$ to derive $\nksym$,
+$\mathsf{qsk}$, $\mathsf{qk}$, and $\mathsf{rivk\_ext} =
+\mathsf{H}^{\mathsf{rivk\_ext}}_{\mathsf{qk}}
+(\Extract_{\mathbb P}(\aksym), \nksym)$;
+all participants must obtain the same extracted key
+$\Extract_{\mathbb P}(\aksym)$, $\nksym$, and $\mathsf{rivk\_ext}$. Subject
+to the specified derivations, the ZIP says that this also implies equal
+$\mathsf{qsk}$ and $\mathsf{qk}$ under collision resistance of
+$\mathsf{H}^{\mathsf{qk}}$ and $\mathsf{H}^{\mathsf{rivk\_ext}}$. Each
+participant must hold $\mathsf{qsk}$ at least as
+securely as $\ask$. The outlined Recovery Protocol would require a
+RedDSA signature under $\aksym$ --- preserving $t$-of-$n$ for as
+long as discrete log on Pallas stands --- together with a proof
+$\mathrm{SoK}^{\mathsf{qsk}}$ of knowledge of a $\mathsf{qsk}$ with
+$\mathsf{H}^{\mathsf{qk}}(\mathsf{qsk}) = \mathsf{qk}$. The asymmetry is
+the point to retain: the key $\mathsf{qsk}$ is held by \emph{every}
+participant, so a quantum adversary with $\mathsf{qsk}$ and the ability to
+solve discrete logarithms on Pallas no longer faces a threshold; the ZIP
+accordingly recommends moving funds
+to a fully post-quantum threshold protocol once one is available. The
+deferred Recovery Protocol is what parks this surface in the middle bin;
+the full treatment is \S\ref{sec:fr-deploy-qsk}.
+
+\paragraph{Crosslink finalizer keys (open problem).} The \emph{Crosslink
+Guide}, \S``Finalizer keys'', records the prototype state: one ed25519
+key per finalizer (\texttt{ed25519-zebra}), a $76$-byte vote format
+signed by appending a $64$-byte ed25519 signature over those $76$
+bytes, and --- by negative search over the four
+Crosslink repositories (tfl-book, crosslink-protocol-guide,
+crosslink-spec, zebra-crosslink), dated 2026-07-15 there --- no FROST or
+threshold-signing design for finalizer keys sourced anywhere in the
+corpus. That guide's classification bins threshold custody, key
+rotation, revocation, and initial-roster formation as open problems, and
+observes that FROST's presence in the PCZT flow makes the absence ``a
+visible gap rather than an exotic ask''. We adopt the classification and
+return to the surface in \S\ref{sec:fr-deploy-crosslink}.
+
+\paragraph{Adjacent surfaces, cited but not developed.} Three further
+ZIPs touch FROST and mark how wide the surface is growing. ZIP 271
+(``Dev Fund Extension and One-Time Disbursement'', Proposed) anticipates
+spending lockbox one-time-disbursement chunks ``to a FROST address'',
+and its May-2025 note that ZIP 312 does not specify key generation is
+its stated reason not to couple the two specifications. ZIP 326
+(``NU6.3 Consequences for Wallets'', Draft, created 2026-06-30) cites
+ZIP 2005's ``Usage with FROST'' section. ZIP 374 (``Partially Created
+Zcash Transaction Format'', Draft, created 2024-12-09) lists FROST per
+RFC 9591 under its multiparty-transactions motivation. Each appears in
+this volume exactly where it bears (\S\ref{sec:fr-deploy}); none is
+developed as a surface of its own.
+%% TODO(cross-refs): once this volume lands, the Wallet Guide's sec:pczt
+%% and the Crosslink Guide's sec:xl-stake-keys prose --- both already
+%% citing FROST/RFC 9591 --- become candidates for italic-name citations
+%% of the FROST Guide; schedule in the adversarial review's
+%% cross-reference check.
+
+%% FROST Guide, section "FROST": the scheme as published (Komlo--Goldberg,
+%% ePrint 2020/852), the corrected later analyses, and the RFC 9591 deltas.
+%% Body-only LaTeX; labels sec:fr-*. Register per ironwood-guide.
+%%
+%% Sources (verified firsthand; repository heads rechecked 2026-09-05):
+%%   - C. Komlo, I. Goldberg, "FROST: Flexible Round-Optimized Schnorr
+%%     Threshold Signatures", IACR ePrint 2020/852,
+%%     https://eprint.iacr.org/2020/852 (received 2020-07-12, last revised
+%%     2020-12-22 -- the version read, in full; published at SAC 2020,
+%%     LNCS 12804, pp. 34-65). PDF fetched via Wayback (eprint serves a
+%%     Cloudflare challenge to curl): .wip/frost-drafts/sources/
+%%     frost-2020-852.pdf/.txt.
+%%   - M. Bellare, S. Tessaro, C. Zhu, "Stronger Security for
+%%     Non-Interactive Threshold Signatures: BLS and FROST", IACR ePrint
+%%     2022/833 (June 2022; preliminary version in Bellare-Crites-Komlo-
+%%     Maller-Tessaro-Zhu, "Better than Advertised Security for
+%%     Non-interactive Threshold Signatures", CRYPTO 2022).
+%%   - C. P. L. Gouvea, C. Komlo, "Re-Randomized FROST", IACR ePrint
+%%     2024/436, https://eprint.iacr.org/2024/436 (received 2024-03-13).
+%%     Theorem 1 bound checked against the PDF page render (p9-09.png,
+%%     paper p. 9, Equation 3): the radical spans all three terms,
+%%     including "- negl(lambda)".
+%%   - RFC 9591, "The Flexible Round-Optimized Schnorr Threshold (FROST)
+%%     Protocol for Two-Round Schnorr Signatures", Connolly/Komlo/
+%%     Goldberg/Wood, IRTF CFRG, June 2024.
+%%   - ZIP 312 (Draft), ~/zcash/zips/zips/zip-0312.rst, repo commit
+%%     6961098410 (2026-07-09).
+%%   - ZcashFoundation/frost, commit 2016e44ba4 (2026-04-23), workspace
+%%     version 3.0.0; ZcashFoundation/reddsa, commit 3792daa95e
+%%     (2026-05-22), version 0.5.2.
+%%
+%% Notation note: this section retains the source paper's multiplicative
+%% notation (g^x, capital-letter group elements); the bridge to the series'
+%% additive notation ([k]P on Pallas) is made in the RedPallas instantiation.
+%% Equations attributed verbatim were checked against the source render.
+%% Where the rerandomization preprint is inconsistent, the body identifies
+%% the printed form and labels every normalisation explicitly.
+
+\section{FROST}\label{sec:fr-frost}
+
+The base object of this volume is the threshold Schnorr scheme FROST
+(\emph{Flexible Round-Optimized Schnorr Threshold} signatures) of Komlo and
+Goldberg, published at SAC 2020 and maintained as IACR ePrint 2020/852; we
+work from the final revision of 22 December 2020. The scheme lets any $t$
+of $n$ parties, each holding a Shamir share of a signing key $s$, produce a
+signature $(R, z)$ that verifies under the ordinary single-party Schnorr
+equation for the group public key $Y = g^s$. The signature carries no
+threshold marker, and a verifier applies the same equation as it would to a
+single-signer signature. That compatibility is what lets the scheme use
+Zcash's existing RedDSA validators: the consensus rules do not observe the
+threshold ceremony. The deployment surfaces this volume targets are
+spend-authorisation custody over RedPallas (the \emph{Ironwood Guide},
+\S``Spend authorisation: RedPallas re-randomisation''), custody of the ZIP-2005
+quantum spending key (whose ``Usage with FROST'' section constrains the key
+generation), and Crosslink finalizer keys (the \emph{Crosslink Guide},
+\S``Finalizer keys'').
+
+Throughout, $\G$ is a group of prime order $q$ with generator $g$, and
+$H$, $H_1$, $H_2$ are hash functions with outputs in $\Z_q^*$, modelled as
+random oracles. The paper fixes the single-party scheme it must match
+--- the Schnorr signature scheme of the \emph{Crypto Guide}, \S``From
+identification to signature via the Fiat--Shamir transform'' ---
+restated here in the paper's multiplicative notation: a Schnorr
+signature over $m$ under secret key $s \in \Z_q$ and
+public key $Y = g^s \in \G$ is produced by sampling a nonce
+$k \xleftarrow{\$} \Z_q$, setting $R = g^k$, $c = H(R, Y, m)$,
+$z = k + s \cdot c$, and outputting $\sigma = (R, z)$; verification
+recomputes $c$ and accepts iff $R = g^z \cdot Y^{-c}$. FROST's whole design
+problem is to compute the pair $(R, z)$ jointly, without reconstructing the
+nonce or signing key during signing and without opening the concurrency
+attacks described in
+\S\ref{sec:fr-binding}.
+
+\subsection{Shamir sharing and share conversion}\label{sec:fr-shamir}
+
+Two secret-sharing mechanisms cooperate in FROST, and keeping them distinct
+is the key to reading the signing equation.
+
+\paragraph{Shamir sharing (the long-lived key).} A dealer --- or, in
+\S\ref{sec:fr-keygen}, every participant acting as a dealer simultaneously
+--- selects $t-1$ random coefficients $a_1, \dots, a_{t-1}$ and forms the
+polynomial of degree at most $t-1$
 \[
- [z]G=R+[c]Y,\qquad c=H_2(R^\star\|Y^\star\|m).
+f(x) = s + \sum_{i=1}^{t-1} a_i x^i, \qquad f(0) = s,
 \]
-Here \(Y=[x]G\) is the group public key, \(m\) is the approved byte-string
-message, \(R\) is the nonce commitment and \(z\) the response scalar.
-FROST distributes the calculation of \(z\); it does not change this
-outside verification rule.
+giving participant $P_i$ the share $(i, f(i))$, with distinct nonzero
+identifiers in $\Z_q$ and $1\le t\le n<q$. Coefficients are sampled
+independently and uniformly in $\Z_q$. Any $t$ shares determine
+$f$ by Lagrange interpolation and hence $s = f(0)$; fewer than $t$ reveal
+nothing. For a signing set $S = \{p_1, \dots, p_\alpha\}$ of $\alpha$
+participant identifiers ($t \le \alpha \le n$), the interpolation weight of
+participant $i$ at zero is the Lagrange coefficient
+\[
+\lambda_i = \prod_{j=1, j \ne i}^{\alpha} \frac{p_j}{p_j - p_i},
+\]
+computable from the identifiers alone --- the coalition can be chosen
+\emph{after} shares are dealt, which is what makes FROST's ``any $t$ of
+$n$, decided at signing time'' flexibility possible.
 
-Each participant has a distinct nonzero identifier \(i\in\F_q\),
-a secret signing share \(x_i\), and a public verification share
-\(Y_i=[x_i]G\). A public key package fixes \(Y\), all identifiers and
-their \(Y_i\), and the threshold. A signer does not accept a coordinator's
-replacement verification-share map as a new definition of its key.
+\paragraph{Additive sharing and conversion (the per-signature nonce).} A
+sum $s = \sum_{i} s_i$ with each summand chosen locally is an additive
+sharing: it needs no dealer and no interaction. The
+Cramer--Damg{\aa}rd--Ishai share conversion observation, used by FROST in
+its simplest case, is that additive shares convert locally to Shamir form:
+if $s = \sum_{i \in S} s_i$, then the values $s_i / \lambda_i$ are Shamir
+shares of the same $s$ (evaluations of a degree-$(\alpha-1)$ polynomial
+interpolating them). FROST uses exactly this to make the group nonce $k$:
+each signer contributes an additively-shared summand non-interactively,
+and the $\lambda_i$ weights in the signing equation perform the conversion
+so that the response aggregates by plain summation. No DKG runs at signing
+time.
 
-The coordinator collects nonce commitments, distributes one signing
-package and aggregates response shares. Its ability to schedule or
-interrupt the protocol does not give it spending authority. Conversely,
-unforgeability does not oblige a malicious coordinator or selected signer
-to finish a session.
+\subsection{Key generation: Pedersen's DKG with a knowledge proof}
+\label{sec:fr-keygen}
 
-\begin{definition}[Threshold authorisation requirement]
-\label{def:fr-contract}
-Fix an honestly provisioned key and an adversary controlling fewer than
-\(t\) participants. Honest participants approve the complete application
-message before answering a signing request. A successful forgery is an
-accepting signature outside the signing interactions permitted by the
-security game's freshness rule: the rule specifying which earlier
-signing interactions disqualify a proposed forgery. The game must state
-when participants may be corrupted, whether sessions may overlap,
-who chooses each key randomizer, and the exact disqualifying interactions.
+FROST generates its long-lived shares with a variant of Pedersen's DKG ---
+$n$ parallel executions of Feldman's verifiable secret sharing, one with
+each participant as dealer --- hardened with a proof of knowledge of each
+dealer's free coefficient. The paper's Figure 1, reproduced:
+
+\paragraph{Round 1.}
+\begin{enumerate}
+\item Every participant $P_i$ samples $t$ random values
+  $(a_{i0}, \dots, a_{i(t-1)}) \xleftarrow{\$} \Z_q$ and defines the
+  polynomial $f_i(x) = \sum_{j=0}^{t-1} a_{ij} x^j$ of degree at most $t-1$.
+\item Every $P_i$ computes a proof of knowledge of $a_{i0}$: with
+  $k \xleftarrow{\$} \Z_q$, $R_i = g^k$,
+  $c_i = H(i, \Phi, g^{a_{i0}}, R_i)$,
+  $\mu_i = k + a_{i0} \cdot c_i$, set $\sigma_i = (R_i, \mu_i)$, where
+  $\Phi$ is a context string preventing replay across ceremonies.
+\item Every $P_i$ computes the public commitment
+  $\vec{C}_i = \langle \phi_{i0}, \dots, \phi_{i(t-1)} \rangle$ with
+  $\phi_{ij} = g^{a_{ij}}$.
+\item Every $P_i$ broadcasts $\vec{C}_i, \sigma_i$.
+\item On receiving $\vec{C}_\ell, \sigma_\ell$, participant $P_i$ verifies
+  $R_\ell \stackrel{?}{=} g^{\mu_\ell} \cdot \phi_{\ell 0}^{-c_\ell}$ with
+  $c_\ell = H(\ell, \Phi, \phi_{\ell 0}, R_\ell)$, \emph{aborting on
+  failure}; on success all $\sigma_\ell$ are deleted.
+\end{enumerate}
+
+\paragraph{Round 2.}
+\begin{enumerate}
+\item Each $P_i$ securely sends each other participant $P_\ell$ the share
+  $(\ell, f_i(\ell))$, then deletes $f_i$ and every share except its own
+  $(i, f_i(i))$.
+\item Each $P_i$ verifies each received share against the dealer's
+  commitment:
+  \[
+  g^{f_\ell(i)} \stackrel{?}{=} \prod_{k=0}^{t-1} \phi_{\ell k}^{\,i^k
+  \bmod q},
+  \]
+  aborting if the check fails.
+\item Each $P_i$ computes its long-lived signing share
+  $s_i = \sum_{\ell=1}^{n} f_\ell(i)$, stores it securely, and deletes the
+  $f_\ell(i)$.
+\item Each $P_i$ computes its public verification share $Y_i = g^{s_i}$
+  and the group public key $Y = \prod_{j=1}^{n} \phi_{j0}$.
+\end{enumerate}
+
+Three design decisions deserve comment. First, the \emph{proof of
+knowledge of $a_{i0}$} is the delta over plain Pedersen DKG: it addresses
+rogue-key attacks in the $t \ge n/2$ regime, where a participant could
+otherwise choose its commitment as a function of others' to bias the
+aggregate key (the fix was suggested to the authors by Shlomovits and
+Turkel; the paper's changelog dates it to the 2020-07-08 revision).
+Second, the \emph{complaint handling} is abort-only: where Gennaro et
+al.\ add a complaint/disqualification phase to make the DKG robust, FROST
+aborts on any failed share check and expects the cause to be investigated
+out of band; the paper notes that implementations wanting robustness can
+substitute the Gennaro et al.\ construction. Third, a \emph{consistent
+view} of the broadcast commitments $\vec{C}_i$ across participants is
+assumed, not provided --- the paper defers to whatever broadcast mechanism
+the deployment supplies. Each participant ends holding $(i, s_i)$, with
+$Y_i = g^{s_i}$ public for share verification during signing and $Y$ the
+single key the outside world sees.
+
+\subsection{Preprocessing and the two-round signing protocol}
+\label{sec:fr-sign}
+
+Signing splits into a message-independent \emph{preprocess} stage and a
+single online round (equivalently, run as one two-round protocol with the
+commitment exchange inlined). A semi-trusted \emph{signature aggregator}
+$\mathrm{SA}$ coordinates. The paper trusts it for publication and correct
+misbehaviour reporting, not for unforgeability, and claims in its security
+model that a malicious $\mathrm{SA}$ can deny service or falsely accuse but
+cannot learn the private key or cause an unapproved message to be signed.
+
+\paragraph{Preprocess($\pi$) (paper Figure 2).} Each participant $P_i$
+generates $\pi$ single-use nonce pairs and publishes their commitments:
+for $1 \le j \le \pi$,
+\[
+(d_{ij}, e_{ij}) \xleftarrow{\$} \Z_q^* \times \Z_q^*, \qquad
+(D_{ij}, E_{ij}) = (g^{d_{ij}}, g^{e_{ij}}),
+\]
+appending $(D_{ij}, E_{ij})$ to a list $L_i$ published to a predetermined
+location, and storing the secret halves for later.
+
+\paragraph{Sign($m$) (paper Figure 3).} The aggregator $\mathrm{SA}$
+selects a signing set $S$ of $\alpha$ participants
+($t \le \alpha \le n$), fetches each member's next unused commitment
+pair, and forms the ordered list
+$B = \langle (i, D_i, E_i) \rangle_{i \in S}$, sending $(m, B)$ to every
+$P_i, i \in S$. Each participant then:
+\begin{enumerate}
+\item validates $m$ (a signer signs only messages it is willing to sign)
+  and checks $D_\ell, E_\ell \in \G^*$ for every commitment in $B$,
+  aborting on failure;
+\item computes the \emph{binding values}
+  \[
+  \rho_\ell = H_1(\ell, m, B), \quad \ell \in S,
+  \]
+  the group commitment and challenge
+  \[
+  R = \prod_{\ell \in S} D_\ell \cdot (E_\ell)^{\rho_\ell}, \qquad
+  c = H_2(R, Y, m);
+  \]
+\item computes its response, converting its Shamir share to the additive
+  aggregation domain via $\lambda_i$ (over the set $S$):
+  \[
+  z_i = d_i + (e_i \cdot \rho_i) + \lambda_i \cdot s_i \cdot c ;
+  \]
+\item securely deletes $((d_i, D_i), (e_i, E_i))$, then returns $z_i$ to
+  $\mathrm{SA}$.
+\end{enumerate}
+Finally $\mathrm{SA}$ recomputes $\rho_i$, $R_i = D_i \cdot
+(E_i)^{\rho_i}$, $R = \prod_{i \in S} R_i$ and $c$, and verifies every
+share against the public data:
+\[
+g^{z_i} \stackrel{?}{=} R_i \cdot Y_i^{\,c \cdot \lambda_i},
+\]
+identifying and reporting the misbehaving participant and aborting if any
+check fails; otherwise it publishes $\sigma = (R, z)$ with
+$z = \sum_{i \in S} z_i$.
+
+\paragraph{Correctness.} The proof is two interpolations (paper \S6.1).
+The key polynomial $F_1(x) = \sum_{j=1}^n f_j(x)$ from key generation has
+$s_i = F_1(i)$ and $s = F_1(0)$. The nonce values
+$(i, (d_i + e_i \cdot \rho_i)/\lambda_i)$ define a degree-$(\alpha-1)$
+polynomial $F_2(x)$ with
+$F_2(0) = \sum_{i \in S} (d_i + e_i \cdot \rho_i) = k$. Setting
+$F_3(x) = F_2(x) + c \cdot F_1(x)$, each response is
+$z_i = \lambda_i F_3(i)$, so $z = \sum_{i \in S} z_i$ interpolates
+$F_3(0) = k + c \cdot s$; with $R = g^k$ and $c = H_2(R, Y, m)$, the pair
+$(R, z)$ is a correct Schnorr signature on $m$.
+
+\subsection{Why the binding factor exists: Drijvers and ROS}
+\label{sec:fr-binding}
+
+The one non-obvious ingredient is $\rho_i = H_1(i, m, B)$. The binding
+factor is FROST's answer to concurrency attacks that affected or constrained
+the earlier two-round schemes discussed by the paper.
+
+\paragraph{The Drijvers attack.} Against two-round Schnorr multisignatures
+in which the adversary may open $T$ parallel sessions, Drijvers et al.\
+showed how to forge by finding a hash output that is a sum of others:
+$c^* = H(R^*, Y, m^*)$ with $c^* = \sum_{j=1}^{T} H(R_j, Y, m_j)$, using
+Wagner's $k$-tree algorithm for the generalised birthday problem in time
+$O(\kappa \cdot b \cdot 2^{b/(1 + \lg \kappa)})$ for $\kappa = T + 1$ and
+$b$ the bitlength of the group order. The attack transfers from the
+$n$-of-$n$ multisignature setting to a $t$-of-$n$ threshold scheme with an
+adversary controlling up to $t-1$ signers, and it is why the Gennaro et
+al.\ scheme must cap its signing parallelism. Benhamouda et al.'s
+subsequent polynomial-time ROS solver (for $\ell > \lg q$ parallel
+sessions) turned the same structural weakness from subexponential to
+practical against schemes including two-round MuSig and GJKR-DKG-based
+threshold Schnorr; their paper concludes that ``the current version of''
+FROST is \emph{not} affected.
+
+\paragraph{How binding addresses it.} Because each signer derives
+$\rho_i = H_1(i, m, B)$ before responding, its share $z_i$ is bound to
+this message, this signing set, and this exact commitment list. Except with
+random-oracle collisions, changing those inputs alters some $\rho_\ell$,
+hence $R$ and $c$, so directly transplanting a response fails verification.
+The paper's own generalisation (its
+Equation 1, with linear combinations $\gamma_j$) states the residual
+attack surface precisely: the forger must find
+\[
+H_2(R^*, Y, m^*) = \sum_{j} \gamma_j \cdot H_2(R_j, Y, m_j),
+\]
+where $R^* = g^{r^*} \cdot \prod_j \widehat{R}_j^{\gamma_j}$ is itself a
+function of every input on the right-hand side. Wagner's algorithm needs
+the two sides of the collision to vary independently; here every candidate
+combination on the right moves the left-hand target, degrading the
+generalised birthday collision into multiple preimage attacks. The paper's
+footnote 7 concedes this step is heuristic: sufficiency of the condition
+is immediate, necessity is not proved.
+
+\subsection{Nonce hygiene}\label{sec:fr-nonces}
+
+The preprocessed pairs $(d_{ij}, e_{ij})$ are one-time keys in the
+strictest sense. The paper's stipulations:
+\begin{itemize}
+\item each pair is used at most once, and the signer \emph{securely
+  deletes} it in the same signing step that returns $z_i$ (Figure 3,
+  step 6);
+\item an accidentally reused $(d_{ij}, e_{ij})$ can expose the long-term
+  share $s_i$;
+\item a $\mathrm{SA}$ that maliciously replays a commitment pair cannot
+  elicit another response from an honest participant; the replay causes an
+  abort and can therefore deny service;
+\item the commitment store (if a server) is trusted only for availability
+  and freshness; possession of the public $(D_{ij}, E_{ij})$ lists grants
+  no signing power.
+\end{itemize}
+See \S\ref{sec:fr-rfc} for RFC 9591's sharpening of nonce generation
+(hedged sampling, and an explicit warning that deterministic nonces enable
+complete key recovery in the multi-party setting).
+
+\subsection{The security theorem as stated}\label{sec:fr-security}
+
+The paper gives an EUF-CMA reduction, in the random-oracle model, for an
+intermediate scheme under the \emph{discrete logarithm problem} in $\G$ ---
+deliberately not to one-more discrete log (the adversary must return the
+discrete logarithms of $\ell + 1$ challenges after at most $\ell$
+queries to a discrete-log oracle), so that the
+negative result of Drijvers et al., which rules out security reductions
+from that assumption for a family of two-round Schnorr multisignatures,
+does not apply. The proof is for an intermediate scheme,
+\emph{FROST-Interactive}, in which the binding value is produced by a
+one-time verifiable random function
+$\rho_i = a_{ij} + b_{ij} \cdot H_\rho(m, B)$ with committed keys.
+
+\begin{quotation}
+\noindent\textbf{Theorem 6.1} (ePrint 2020/852). \emph{If the discrete
+logarithm problem in $\G$ is $(\tau', \epsilon')$-hard, then the
+FROST-Interactive signature scheme over $\G$ with $n$ signing
+participants, a threshold of $t$, and a preprocess batch size of $\pi$ is
+$(\tau, n_h, n_p, n_s, \epsilon)$-secure whenever}
+\[
+\epsilon' \le \frac{\epsilon^2}{2 n_h + (\pi + 1) n_p + 1}
+\quad \text{and}
+\]
+\[
+\tau' = 4\tau + \bigl(30 \pi n_p + (4t - 2) n_s + (n + t - 1) t + 6\bigr)
+\cdot t_{\mathrm{exp}} + O(\pi n_p + n_s + n_h + 1),
+\]
+\emph{such that $t_{\mathrm{exp}}$ is the time of an exponentiation in
+$\G$, assuming the number of participants compromised by the adversary is
+less than the threshold $t$.}
+\end{quotation}
+
+Here $n_h$, $n_p$, $n_s$ bound the forger's random-oracle, preprocess,
+and signing queries. The architecture is Bellare--Neven generalised
+forking: the DL challenge $\omega$ is embedded as the honest
+participant's free-coefficient commitment $\phi_{t0}$ in a simulated
+KeyGen, the simulator is run twice on the same tape with oracle answers
+diverging from index $J$, and two forgeries yield
+$\mathrm{dlog}(Y) = (z' - z)/(h'_J - h_J)$. The VRF is what lets the
+simulator win the programming race: it can compute $R$ before the forger
+does and program $H_2(R, Y, m)$ with success probability $1$.
+
+The step from FROST-Interactive to plain FROST (replace the VRF by
+$\rho_i = H_1(i, m, B)$) is argued \emph{heuristically} in the paper's
+\S6.2, not proven --- the Equation-1 gap of \S\ref{sec:fr-binding}. This
+gap is what the later literature closed, differently and under a
+different assumption (\S\ref{sec:fr-later}).
+
+\subsection{The corrected and extended analyses}\label{sec:fr-later}
+
+Three later results matter for how this volume cites FROST's security.
+
+\paragraph{Crites--Komlo--Maller (ePrint 2021/1375).} This work, ``How
+to Prove Schnorr Assuming Schnorr: Security of Multi- and Threshold
+Signatures'' (IACR ePrint 2021/1375, received 2021-10-12, last revised
+2022-08-03), introduced the optimisation now called \emph{FROST2}: a
+single binding factor $d = h_1(vk, lr)$ shared by all signers,
+replacing the original per-signer $d_i = h_1(vk, lr, i)$ (that original
+is retroactively \emph{FROST1}) and reducing the signers' scalar
+multiplications from linear in the number of signers to constant.
+
+\paragraph{Bellare--Crites--Komlo--Maller--Tessaro--Zhu (CRYPTO 2022).}
+The paper ``Better than Advertised Security for Non-interactive
+Threshold Signatures'' --- its FROST/BLS part maintained as
+Bellare--Tessaro--Zhu, ePrint 2022/833, June 2022 --- gave the analysis
+now cited by RFC 9591. The authors define a hierarchy
+$\mathrm{TS\text{-}UF\text{-}0} \le \cdots \le
+\mathrm{TS\text{-}UF\text{-}4}$ (and strong variants
+$\mathrm{TS\text{-}SUF\text{-}2/3/4}$) grading what counts as a trivial
+forgery. Their results, proven in the ROM under the \emph{one-more
+discrete logarithm} (OMDL) assumption, without the AGM, and in the
+trusted-dealer setting (the DKG is explicitly not modelled):
+\begin{itemize}
+\item FROST1 is TS-SUF-3-secure, and is \emph{not} TS-UF-4-secure;
+\item FROST2 is TS-SUF-2-secure, and is \emph{not} TS-UF-3-secure ---
+  the shared binding factor loses the guarantee that the signer set that
+  committed is the signer set that signed;
+\item concretely (their Theorem 5.1, verbatim bound), for a TS-SUF-2
+  adversary $A$ making at most $q_s$ preprocessing and $q_h$
+  random-oracle queries there is an OMDL adversary $B$ making at most
+  $2 q_s + \mathit{ns}$ challenge queries ($\mathit{ns}$ their number of
+  parties) with
+  \[
+  \mathrm{Adv}^{\mathrm{ts\text{-}suf\text{-}2}}_{\mathrm{FROST2}[\G]}(A)
+  \le \sqrt{q \cdot \bigl(\mathrm{Adv}^{\mathrm{omdl}}_{\G}(B)
+  + 3 q^2 / p \bigr)}, \qquad q = q_s + q_h + 1,
+  \]
+  and an analogous Theorem 5.4 for FROST1 at TS-SUF-3. In these source
+  bounds, $p$ denotes the group order and $q$ the query count, replacing
+  the earlier section's use of $q$ for the group order.
+\end{itemize}
+The BCKMTZ analysis for the RFC's FROST1 signing layer is therefore based on
+OMDL in the ROM, static corruptions below $t$, and trusted-dealer keys. It
+does not establish composition with the DKG shipped by the implementation,
+and its basis differs from the original paper's DL reduction for the
+interactive variant plus a heuristic bridge.
+
+\paragraph{Gouv\^ea--Komlo (ePrint 2024/436).} The preprint
+``Re-Randomized FROST'' (received 2024-03-13) is the design ZIP 312
+builds on: FROST unchanged, plus algorithms $\mathsf{GenRand}$
+($\alpha \xleftarrow{\$} \Z_p$),
+$\mathsf{RandShare}$ ($\bar{x}_i \gets x_i + \hat{\alpha}$ with
+$\hat{\alpha} = H_r(\alpha, \mathrm{aux})$, $\mathrm{aux}$ an optional
+external-protocol transcript contribution), $\mathsf{RandPKShare}$
+($\overline{PK}_i = PK_i \cdot g^{\hat{\alpha}}$) and $\mathsf{RandPK}$
+($\overline{PK} = PK \cdot g^{\hat{\alpha}}$). Correctness rests on the
+$\sum_{i \in S} \lambda_i = 1$ identity, giving
+$z = r + c(x + \hat{\alpha})$. Its Theorem 1 \emph{claims}
+unforgeability in the ROM under \emph{algebraic} OMDL (AOMDL). Unlike
+BCKMTZ's OMDL game, AOMDL restricts discrete-log-oracle queries to declared
+algebraic combinations, so these are not the ``same security assumptions''
+claimed in the preprint's abstract. The stated bound (its Equation 3) is
+\[
+\mathrm{Adv}^{\mathrm{sec}}_{TS,A} \le
+\sqrt{\, q \cdot \mathrm{Adv}^{\mathrm{aomdl}}_{D}(\lambda)
++ 2 q^2 / p - \mathrm{negl}(\lambda) \,},
+\qquad q = q_h + q_s,
+\]
+%% Radical span verified against the PDF page render (p9-09.png, paper
+%% p. 9, Eq. 3): it covers all three terms, including "- negl(lambda)".
+via the local forking lemma. The intended extraction uses the public
+randomizer to strip
+$c^* H_r(\alpha^*, \mathrm{aux}^*)$ from $z^*$, but the printed proof has
+material defects recorded in \S\ref{sec:fr-rerand-sec}; the claimed bound is
+not independently established here. The coordinator chooses the randomizer
+and is trusted for privacy and unlinkability only, not for unforgeability.
+The full treatment of this paper belongs to the re-randomisation chapter
+(\S\ref{sec:fr-rerand}).
+
+\subsection{RFC 9591 against the paper: what the RFC changed}
+\label{sec:fr-rfc}
+
+RFC 9591 (IRTF CFRG, Informational, June 2024; Connolly, Komlo, Goldberg,
+Wood) is the specification implemented by the
+\texttt{frost-core} 3.0.0 workspace this volume cites. Reconciling it
+against ePrint 2020/852:
+
+\begin{itemize}
+\item \emph{Two rounds only.} The RFC specifies the two-round protocol;
+  the paper's single-round-with-preprocessing variant (batch parameter
+  $\pi$, commitment server) is declared out of scope.
+\item \emph{No DKG.} The paper's Figure-1 KeyGen is dropped; key
+  generation is out of scope, with \emph{trusted-dealer} generation given
+  in Appendix C only. The BCKMTZ analysis the RFC cites matches this
+  framing (it, too, models a trusted dealer).
+\item \emph{Binding factor inputs widened.} The paper binds
+  $\rho_i = H_1(i, m, B)$. The RFC computes, per participant,
+  \[
+  \mathtt{binding\_factor}_i = H_1(\mathtt{PK\_enc} \,\|\,
+  H_4(\mathtt{msg}) \,\|\, H_5(\mathtt{encoded\ commitment\ list}) \,\|\,
+  \mathtt{enc}(i)),
+  \]
+  adding the \emph{group public key} to the hash and pre-hashing the
+  message and commitment list. The per-participant structure means RFC
+  9591 specifies FROST1: the RFC's \S7.2 rules the
+  single-binding-factor (FROST2) optimisation NOT RECOMMENDED, citing the
+  loss of the started-set-equals-signed-set guarantee (the TS-SUF-3 vs
+  TS-SUF-2 separation of \S\ref{sec:fr-later}).
+\item \emph{Hedged nonces.} The paper samples $(d, e)$ uniformly; the RFC
+  hedges: each nonce is $H_3(r \,\|\, \mathtt{enc}(sk_i))$ with $r$ a
+  fresh $32$-byte random string, so a weak RNG is backstopped by the key
+  share. It warns that fully deterministic derivation enables complete
+  key recovery in the multi-party setting.
+\item \emph{Five hash roles.} $H_1$ (binding factor), $H_2$ (challenge),
+  $H_3$ (nonce), $H_4$ (message pre-hash), and $H_5$
+  (commitment-list pre-hash) are domain-separated with a per-ciphersuite
+  \texttt{contextString}, except that FROST(Ed25519, SHA-512) deliberately
+  leaves $H_2$ unprefixed for RFC 8032 compatibility. The challenge input order
+  $\mathtt{group\_comm\_enc}$ $\|$ $\mathtt{PK\_enc}$ $\|$
+  $\mathtt{msg}$ equals the paper's $H_2(R, Y, m)$.
+\item \emph{Roles renamed and channels stated.} The signature aggregator
+  becomes the \emph{Coordinator}; the channel is assumed authenticated.
+  Reliable delivery is also assumed for protocol completion;
+  confidentiality is not required.
+  The Coordinator SHOULD verify the aggregate signature and MAY verify
+  individual shares --- the paper's per-share check
+  $g^{z_i} = R_i \cdot Y_i^{c \lambda_i}$ survives as
+  $\mathsf{verify\_signature\_share}$ --- with identifiable abort, as in
+  the paper, and no robustness.
+\item \emph{Ciphersuites.} The RFC ships FROST(Ed25519, SHA-512),
+  FROST(ristretto255, SHA-512) (RECOMMENDED), FROST(Ed448, SHAKE256),
+  FROST(P-256, SHA-256), and FROST(secp256k1, SHA-256); no Zcash suite
+  appears in the RFC itself. The two Zcash suites,
+  FROST(Jubjub, BLAKE2b-512) and FROST(Pallas, BLAKE2b-512), are
+  instead defined by ZIP 312, whose
+  $H_2$ personalisation $\mathtt{Zcash\_RedPallasH}$ makes the FROST
+  challenge equal RedDSA's $\mathsf{H}^{\circledast}$ --- the precise
+  sense in which the RFC protocol plugs into the
+  spend-authorisation verifier of the \emph{Ironwood Guide},
+  \S``Spend authorisation: RedPallas re-randomisation''.
+\item \emph{Security claim.} The RFC claims EUF-CMA per BCKMTZ, citing
+  both the original paper and BCKMTZ --- i.e., the specification's claim rests
+  on the OMDL/ROM analysis, not the paper's DL-based theorem for the
+  interactive variant.
+\end{itemize}
+
+Classification: FROST as in RFC 9591 and its Zcash ciphersuites as in
+ZIP 312 are \emph{specified}; ZIP 312 itself remains Draft status (zips
+commit 6961098410, 2026-07-09), with its key-generation procedure
+explicitly out of scope and PedPoP DKG for Zcash deployment
+\emph{designed-but-unspecified} (implemented in \texttt{frost-core}'s
+\texttt{dkg} module but specified in no ZIP or RFC).
+%% Bin rechecked 2026-09-05: no merged ZIP or RFC specifies any DKG for
+%% Zcash custody; zips PR #895, which would specify key generation, remains
+%% open.
+
+%% FROST Guide draft: Rerandomized FROST for RedPallas --- ePrint 2024/436,
+%% ZIP 312, the released crates, and the custody surfaces.
+%% Body-only LaTeX; labels sec:fr-*; register per ironwood-guide; 80 cols.
+%%
+%% Sources (verified firsthand; repository heads rechecked 2026-09-05):
+%%   - C. P. L. Gouvea, C. Komlo (both Zcash Foundation), "Re-Randomized
+%%     FROST", IACR ePrint 2024/436, https://eprint.iacr.org/2024/436
+%%     (received 2024-03-13, approved 2024-03-15; Preprint, no venue;
+%%     CC BY 4.0; Komlo footnote: "This work was not part of my University
+%%     of Waterloo duties."). Read in full. Direct PDF fetch from
+%%     eprint.iacr.org is blocked by a Cloudflare challenge (two hosts +
+%%     in-browser); PDF obtained from Wayback snapshot 20260218073940 of
+%%     https://eprint.iacr.org/2024/436.pdf, byte-identical to
+%%     .wip/frost-drafts/sources/rerand-2024-436.pdf. Local copies
+%%     eprint-2024-436.pdf/.txt; Fig. 5 and Eqs. (2)/(3) verified against
+%%     the page renders p8-08.png, p9-09.png, p10-10.png.
+%%   - RFC 9591 (base FROST): .wip/frost-drafts/rfc9591.txt.
+%%   - zcash/zips at commit 6961098410 (2026-07-09): zip-0312.rst (the only
+%%     FROST ZIP --- ZIP 313 is the obsolete fee ZIP); zip-2005.md ("Usage
+%%     with FROST"); zip-0316.rst lines 618-624; zip-0271.md lines 114-135;
+%%     protocol/protocol.tex 4.15 (spendauthsig), 5.4.7 (concretereddsa),
+%%     SURK-CMA at lines 4989-5011.
+%%   - ZcashFoundation/frost at 2016e44ba4 (2026-04-23, workspace 3.0.0):
+%%     frost-rerandomized/src/lib.rs, frost-core/src/round1.rs.
+%%   - ZcashFoundation/reddsa at 3792daa95e (2026-05-22, v0.5.2):
+%%     src/frost/redpallas.rs, src/frost/redpallas/rerandomized.rs +
+%%     README.md, src/orchard.rs, src/hash.rs.
+
+\section{Re-Randomized FROST for RedPallas}\label{sec:fr-rerand}
+
+The FROST of \S\ref{sec:fr-frost}, specified in RFC 9591
+(\S\ref{sec:fr-rfc}), constructs its aggregate relative to a \emph{fixed}
+group public key $PK$. Zcash instead supplies a freshly randomised validating
+key for every Sapling Spend and Orchard Action, and consensus checks the
+spend-authorisation signature against that per-Action key --- a key to which,
+as \S\ref{sec:fr-rerand-gap} makes precise, the unchanged FROST shares do not
+interpolate. This chapter presents the
+design that closes the gap: the Re-Randomized FROST of Gouv\^ea and Komlo
+(IACR ePrint 2024/436), its Zcash specification in ZIP 312, the
+ciphersuite FROST(Pallas, BLAKE2b-512), the published implementation in the
+\texttt{frost-rerandomized} and \texttt{reddsa} crates, and the custody
+surfaces the construction serves.
+
+A rigour note before the material. RFC 9591 is an Informational RFC recording
+CFRG consensus, not an Internet Standard. The Gouv\^ea--Komlo paper is a
+preprint --- received
+2024-03-13, no peer-reviewed venue --- and ZIP 312 carries Draft status
+(zips commit 6961098410, 2026-07-09). Following the series rule, every
+claim beyond the RFC is binned as \emph{specified}, \emph{designed but
+unspecified}, or an \emph{open problem}; the closing classification is in
+\S\ref{sec:fr-rerand-custody}.
+
+\subsection{The mismatch: consensus verifies only randomised keys}
+\label{sec:fr-rerand-gap}
+
+The protocol specification (\S4.15, spend authorization signatures)
+prescribes, for every Sapling Spend and every Orchard Action, the
+following signer-side flow. The signer chooses a fresh spend-auth
+randomizer $\alpha$ and:
+\begin{enumerate}
+\item samples $\alpha \gets \mathsf{SpendAuthSig.GenRandom}()$;
+\item derives $\rsk =
+  \mathsf{SpendAuthSig.RandomizePrivate}(\alpha, \ask)$;
+\item derives $\rk =
+  \mathsf{SpendAuthSig.DerivePublic}(\rsk)$;
+\item proves the Spend or Action statement with $\alpha$ in the auxiliary
+  (secret) input and $\rk$ in the primary input;
+\item signs: $\mathsf{spendAuthSig} =
+  \mathsf{SpendAuthSig.Sign}_{\rsk}(\mathsf{SigHash})$.
+\end{enumerate}
+Consensus therefore verifies the signature under
+$\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$. This differs from
+$\aksym$ except in the possible identity-randomizer case $\alpha=0$.
+
+The randomisation algorithms are RedDSA's, from the protocol
+specification (\S5.4.7):
+\begin{align*}
+\mathsf{RedDSA.RandomizePrivate}(\alpha, \mathsf{sk})
+  &:= \mathsf{sk} + \alpha \pmod{r_{\G}}, \\
+\mathsf{RedDSA.RandomizePublic}(\alpha, \mathsf{vk})
+  &:= \mathsf{vk} + [\alpha]\,G,
+\end{align*}
+with identity randomizer $0$; $\mathsf{RedDSA.GenRandom}$ chooses $T$
+uniformly among byte sequences of length $(\ell_H + 128)/8$ --- $80$
+bytes at $\ell_H = 512$ --- and returns $H^{\circledast}(T)$, where
+$H^{\circledast}(B) := \mathrm{LEOS2IP}_{\ell_H}(H(B)) \bmod r_{\G}$.
+Signing draws its nonce as
+$r = H^{\circledast}(T \,\|\, \mathsf{vk}^\star \,\|\, M)$ for fresh
+uniform $T$, sets $R = [r]\,G$ and
+$S = \bigl(r + H^{\circledast}(R^\star \,\|\, \mathsf{vk}^\star \,\|\, M)
+\cdot \mathsf{sk}\bigr) \bmod r_{\G}$, and outputs
+$\sigma = R^\star \,\|\, S^\star$. Validation recomputes
+$c = H^{\circledast}(R^\star \,\|\, \mathsf{vk}^\star \,\|\, M)$ and
+accepts iff $R \ne \bot$, $S < r_{\G}$, $R^\star$ is canonical
+(post-ZIP-216), and
+$[h_{\G}]\bigl(-[S]\,G + R + [c]\,\mathsf{vk}\bigr) = 0_{\G}$. RedPallas
+specialises the template with $\G$ the Pallas group, $\ell_H = 512$, and
+$H(x) = \mathrm{BLAKE2b}\text{-}512(\texttt{Zcash\_RedPallasH}, x)$;
+$\mathsf{SpendAuthSig}^{\mathsf{Orchard}}$ uses the generator
+$G^{\mathsf{SpendAuth}} =
+\mathsf{GroupHash}^{\Pallas}(\mathtt{z.cash:Orchard}, \texttt{"G"})$ and
+``is instantiated as RedPallas with key re-randomization''. The security
+notion the protocol requires of the scheme is SURK-CMA (Strong
+Unforgeability with Re-randomized Keys), adapted from Fleischhacker et
+al.\ (PKC 2016, \S3), whose oracle answers queries of the form
+$(m, \alpha)$ --- message and adversary-chosen randomizer together.
+
+The construction and the cited single-party EUF-CMA result are settled in the
+\emph{Ironwood Guide}: \S``Spend authorisation: RedPallas
+re-randomisation'' builds
+$\rsk := \ask + \alpha$ and
+$\rk := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$, and
+\S``RedPallas unforgeability'' proves EUF-CMA under
+DL in the ROM \emph{including} adversary-chosen $\alpha$, by key-prefixed
+forking with $\ask = \rsk^* - \alpha^*$. Per the layering
+rule we cite those results and do not re-prove them. That proposition is an
+EUF-CMA statement, not a separate proof of the protocol specification's
+strong SURK-CMA notion.
+
+The threshold problem is now visible. A FROST sharing of $\ask$
+gives shares $\mathsf{sk}_i$ with
+$\sum_{i \in S} \lambda_i \mathsf{sk}_i = \ask$ for every signing
+set $S$; an honest plain-FROST execution constructs a signature under
+$\aksym$. For a nonzero Action randomizer, however, the verifier's key is
+$\rk$. The noninteractive construction below shifts every participant by
+the same effective randomizer. A separately generated Shamir sharing of a
+randomizer could also shift the group secret, but would be a different,
+interactive construction.
+
+\subsection{Re-Randomized FROST: the construction}
+\label{sec:fr-rerand-scheme}
+
+The design is due to Gouv\^ea and Komlo (both Zcash Foundation),
+``Re-Randomized FROST'', IACR ePrint 2024/436, received 2024-03-13; we
+work from the full text and page renders of its construction and equations.
+The transcription below normalises the source-level slips identified after
+the construction. As in
+\S\ref{sec:fr-frost} we quote the paper in its own multiplicative
+notation ($g^x$ for $[x]\,G$, $PK \cdot g^{\hat{\alpha}}$ for
+$PK + [\hat{\alpha}]\,G$); the additive RedPallas form returns with
+ZIP 312 in \S\ref{sec:fr-rerand-zip}.
+
+\begin{definition}[Perfectly rerandomizable threshold scheme;
+ePrint 2024/436, Definition 5]\label{def:fr-rerandomizable}
+A threshold signature scheme
+\[
+TS = (\mathsf{Setup}, \mathsf{KeyGen}, (\mathsf{Sign}, \mathsf{Sign}'),
+\mathsf{Combine}, \mathsf{Verify})
+\]
+is \emph{perfectly re-randomizable}
+if there exist additional PPT algorithms $\mathsf{GenRand}$,
+$\mathsf{RandShare}$, $\mathsf{RandPKShare}$, and $\mathsf{RandPK}$,
+and a randomness distribution $X$, such that the
+$\mathsf{Rand}^*$ algorithms take a randomizer $\alpha \in X$ and an
+auxiliary string $\mathrm{aux} \in \{0,1\}^*$.
 \end{definition}
 
-These qualifications matter. A new signature on a previously signed
-message is excluded by an ordinary new-message game but included by a
-strong-unforgeability game. A theorem for corruption choices fixed before
-key generation does not automatically cover secrets exposed adaptively
-during signing. We identify the imported guarantees in
-\S\ref{sec:fr-security}.
+\begin{remark}[What ``perfectly'' specifies]
+\label{rem:fr-perfect-definition}
+The printed Definition 5 requires only the existence, inputs, and outputs of
+four algorithms. It states neither a correctness relation nor equality of
+any distributions. The adjective ``perfectly'' therefore adds no formal
+property in that definition. Functional correctness of the concrete scheme
+comes from Equation~\eqref{eq:fr-rerand-z}; no distributional guarantee
+follows from Definition 5 alone.
+\end{remark}
 
-\section{Shares and verifiable key generation}\label{sec:fr-shamir}
+The paper's Remark 1 explains $\mathrm{aux}$: it models an optional
+contribution from an external protocol transcript, so that a new session
+changes the re-randomised key even under a repeated $\alpha$.
 
-The interpolation theorem is proved in \emph{Math Guide},
-\S\emph{Polynomials and evaluation}. We use it to construct a secret
-sharing and then to explain precisely what the public share checks add.
-That same section proves the hidden-constant-coefficient lemma used
-for the privacy statement below.
-
-\subsection{A polynomial with the key at zero}
-
-Choose \(1\leq t\leq n<q\), a secret \(x\in\F_q\), and independent
-uniform coefficients \(a_1,\ldots,a_{t-1}\in\F_q\). Define
-\[
- f(X)=x+\sum_{j=1}^{t-1}a_jX^j,\qquad x_i=f(i).
-\]
-The degree is at most \(t-1\); a highest coefficient may be zero.
-Identifiers cannot be zero because \(f(0)\) is the secret itself.
-
-For a signing set \(S\) of distinct identifiers with \(|S|\geq t\),
-define
-\[
- \lambda_i^S=\prod_{\substack{j\in S\\j\ne i}}
-                  \frac{j}{j-i}.
-\]
-All denominators are invertible because identifiers are distinct.
-Evaluation of the interpolation formula at zero gives
-\[
- \sum_{i\in S}\lambda_i^Sx_i=x,
- \qquad
- \sum_{i\in S}\lambda_i^S=1.
-\]
-The second equality is interpolation of the constant polynomial \(1\).
-It will be essential when all shares receive the same randomizer.
-
-This construction is called \emph{Shamir secret sharing}. Any fixed set
-of \(r<t\) private shares is jointly uniform in \(\F_q^r\), independently
-of the fixed secret \(x\): apply the lemma ``A hidden constant coefficient''
-in \emph{Math Guide}, \S\emph{Polynomials and evaluation}, with its
-constant \(s=x\) and evaluation points equal to the participant identifiers.
-Its requirements are exactly the nonzero distinct identifiers and independent
-uniform nonconstant coefficients enforced here.
-
-Publishing \(Y=[x]G\) changes the information-theoretic statement:
-an unbounded observer can recover \(x\) from \(Y\). Threshold key secrecy
-with public verification data is computational. The private-share statement
-must not be quoted as perfect privacy of the entire public-key protocol.
-
-\subsection{Checking a dealer's shares}
-
-A trusted dealer can distribute the shares over confidential,
-authenticated channels and publish coefficient commitments
-\[
- C_j=[a_j]G\quad(0\leq j<t),\qquad a_0=x.
-\]
-Each recipient checks
-\[
- [x_i]G=\sum_{j=0}^{t-1}[i^j]C_j.
-\]
-The right side equals \([f(i)]G\). Since scalar multiplication by a
-generator is injective over \(\F_q\), the equality verifies that the
-received scalar is the evaluation described by those public commitments.
-
-All participants must receive the same commitment list. Otherwise a
-dealer could give individually consistent but mutually incompatible
-views. An authenticated private channel identifies the sender to one
-recipient; it does not by itself establish agreement between recipients.
-
-The dealer knows \(x\). Splitting an existing key is therefore compatible
-with a seed-derived account, but its threshold guarantee requires the
-original full key and dealer randomness to be erased or otherwise
-accounted for. Dividing a key does not erase previously made backups.
-
-\subsection{Generating shares without a single dealer}
-
-The selected library also implements distributed key generation (DKG) in
-\texttt{frost-core/\allowbreak src/\allowbreak keys/\allowbreak dkg.rs}.
-It runs a dealer contribution from
-every participant and adds the results. We state its essential messages,
-including the checks needed to obtain one common key.
-
-Each participant \(\ell\) samples a polynomial
-\(f_\ell(X)=\sum_{j=0}^{t-1}a_{\ell j}X^j\). In the selected
-implementation the constant coefficient is sampled nonzero, as a
-signing key; the other coefficients are independent uniform scalars.
-It publishes
-\(C_{\ell j}=[a_{\ell j}]G\). It proves knowledge of its constant
-coefficient using a Schnorr proof, with a fresh nonzero nonce
-\(u_\ell\):
-\[
- U_\ell=[u_\ell]G,\quad
- e_\ell=H_D(\operatorname{enc}(\ell)\|C_{\ell0}^\star\|U_\ell^\star),
- \quad
- v_\ell=u_\ell+e_\ell a_{\ell0}.
-\]
-The verifier recomputes \(e_\ell\) and checks
-\([v_\ell]G=U_\ell+[e_\ell]C_{\ell0}\).
-The selected implementation hashes exactly these three fields.
-Its hash function separates the DKG role; an identifier for this one
-key-generation run, called a ceremony identifier, and
-membership agreement remain responsibilities of the enclosing transport
-protocol, not extra inputs we invent for this library call.
-
-After agreeing on all first-round packages, participant \(\ell\) sends
-\(f_\ell(i)\) privately to recipient \(i\). Each recipient verifies
-\[
- [f_\ell(i)]G=\sum_{j=0}^{t-1}[i^j]C_{\ell j}
-\]
-for every contributor. It rejects missing, duplicate, unauthenticated
-or inconsistent packages. On success it forms
-\[
- x_i=\sum_{\ell=1}^n f_\ell(i),\quad
- Y_i=\sum_{\ell=1}^n\sum_{j=0}^{t-1}[i^j]C_{\ell j},\quad
- Y=\sum_{\ell=1}^n C_{\ell0}.
-\]
-The sum \(F(X)=\sum_\ell f_\ell(X)\) has degree at most \(t-1\),
-\(x_i=F(i)\), and \(Y=[F(0)]G\). Thus the shares have exactly the
-interpolation relation signing needs.
-
-The private contributions and polynomial coefficients are erased after
-their required checks and aggregation. The enduring private object is
-the participant's resulting key share. The enduring public object is
-the agreed key package.
-
-This is an aborting DKG, not a proof that malicious participants cannot
-block key generation. A proof of knowledge of each contribution also
-does not by itself prove unbiased output when an adversary aborts
-unfavourable runs and allows only favourable runs to complete.
-The signing theorem below does not silently acquire a DKG-composition
-guarantee merely because the final interpolation identities are correct.
-
-\subsection{Normalising an Orchard authorisation key}
-
-Orchard's long-term spend-authorisation key uses the even-\(y\)
-representative; \emph{Ironwood Guide}, \S\emph{Keys and viewing capabilities},
-defines the convention. If the generated \(Y\) has odd \(y\), negate
-every secret share and corresponding public share, the group key, and
-any retained polynomial commitments:
-\[
- x_i'=-x_i,\qquad Y_i'=-Y_i,\qquad Y'=-Y.
-\]
-Then
-\(\sum_i\lambda_i^Sx_i'=-x\), so the new shares interpolate to
-the normalised group key. Negating only the group key would leave an
-inconsistent key package.
-
-The selected RedPallas \texttt{post\_generate} and \texttt{post\_dkg}
-hooks apply this transformation. The later per-Action randomised key
-has no even-\(y\) requirement. Applying the normalisation again to that
-key would change the transaction's authorisation equation.
-
-\section{Two-round signing}\label{sec:fr-sign}
-
-We first construct signing for one fixed group key \(Y\). The later
-randomisation step changes the key inputs but preserves the equations.
-
-\subsection{Nonce generation and first-round commitments}
-
-For each signing session, participant \(i\) creates two nonce scalars
-\(d_i,e_i\), called the hiding and binding nonces. The RFC's hedged
-nonce generator combines fresh randomness with the secret share:
-\[
- \operatorname{Nonce}(x_i;b)=H_3(b\|\operatorname{enc}(x_i)),
- \qquad b\gets\{0,1\}^{256}.
-\]
-Invoke it independently twice, using two fresh 32-byte strings, to obtain
-\(d_i,e_i\). The participant retains the scalars and sends only
-\[
- D_i=[d_i]G,\qquad E_i=[e_i]G
-\]
-to the coordinator. Hashing the secret share into nonce generation does
-not make repeated random inputs safe. Identical inputs repeat the nonce.
-
-The participant associates the pair with durable single-use state.
-Publishing a commitment is not permission to reuse its secret in several
-responses. Preprocessing may prepare pairs before the message is known;
-each pair is still consumed by at most one signing operation.
-
-\subsection{The canonical signing package}
-
-The coordinator selects \(S\), with \(t\leq|S|\leq n\), and constructs
-\[
- B=((i,D_i,E_i))_{i\in S}
-\]
-in ascending numerical identifier order. The group encoding is
-\[
- \operatorname{Enc}(B)=
- \mathop{\|}_{i\in S}
- \bigl(\operatorname{enc}(i)\|D_i^\star\|E_i^\star\bigr).
-\]
-Within one ciphersuite all three encodings have fixed lengths; this
-makes the concatenation unambiguous. Ascending scalar order is not
-lexicographic order of little-endian byte strings: that order compares
-the first differing byte, not the integers represented by all bytes.
-
-Each signer receives \(m,B\), validates every point and identifier,
-checks uniqueness and ordering, checks that the selected participants
-belong to the stored key package, and verifies that its own identifier
-and exact commitments occur once. It must also approve \(m\) according
-to the application; a syntactically valid byte string is not necessarily
-an authorised payment.
-
-Define the message and commitment-list prehashes and binding factors:
+\begin{construction}[Re-Randomized FROST; ePrint 2024/436, Figure 5]
+\label{def:fr-rerand-frost}
+The additions to plain FROST --- the paper's grey-boxed lines --- are
+exactly four algorithms:
 \begin{align*}
- M&=H_4(m),& C&=H_5(\operatorname{Enc}(B)),\\
- \rho_i&=H_1(Y^\star\|M\|C\|\operatorname{enc}(i)).
+\mathsf{GenRand}() &: \alpha \xleftarrow{\$} \Z_p; \\
+\mathsf{RandShare}(x_i, \alpha, \mathrm{aux}) &:
+  \hat{\alpha} \gets H_r(\alpha, \mathrm{aux}); \quad
+  \bar{x}_i \gets x_i + \hat{\alpha}; \\
+\mathsf{RandPKShare}(PK_i, \alpha, \mathrm{aux}) &:
+  \hat{\alpha} \gets H_r(\alpha, \mathrm{aux}); \quad
+  \overline{PK}_i \gets PK_i \cdot g^{\hat{\alpha}}; \\
+\mathsf{RandPK}(PK, \alpha, \mathrm{aux}) &:
+  \hat{\alpha} \gets H_r(\alpha, \mathrm{aux}); \quad
+  \overline{PK} \gets PK \cdot g^{\hat{\alpha}}.
 \end{align*}
-These are RFC 9591's ordered inputs. The public key, message, complete
-commitment list and identifier all participate. The symbol \(\rho_i\)
-here denotes a FROST binding factor, not a note's uniqueness seed.
-
-Each participant computes
+The FROST core runs unchanged on the shifted inputs.
+Algorithm $\mathsf{Sign}()$ samples $(r_k, s_k) \xleftarrow{\$} \Z_p^2$
+and commits $(R_k, S_k) = (g^{r_k}, g^{s_k})$. Algorithm
+$\mathsf{Sign}'$, given the
+randomised share $\bar{x}_k$ and randomised key $\overline{PK}$ in place
+of $x_k$ and $PK$, derives each binding factor $a_i$ by $H_{\mathrm{non}}$
+from the participant identifier, the message, $\overline{PK}$, and the
+full commitment list $\{(i, R_i, S_i)\}_{i \in S}$, then computes
 \[
- R_i=D_i+[\rho_i]E_i,\qquad
- R=\sum_{i\in S}R_i,\qquad
- c=H_2(R^\star\|Y^\star\|m).
+R \gets \prod_{i \in S} R_i \cdot S_i^{a_i}, \qquad
+c \gets H_{\mathrm{sig}}(\overline{PK}, R, m), \qquad
+z_k \gets r_k + s_k a_k + c\,\lambda_k \bar{x}_k.
 \]
-No secret nonce is needed to recompute these public values.
-
-\subsection{Responses and aggregation}
-
-Participant \(i\) calculates the Lagrange coefficient for this exact
-\(S\), and returns
-\[
- z_i=d_i+\rho_i e_i+c\lambda_i^Sx_i.
-\]
-The coordinator checks scalar encodings, the response-to-identifier
-mapping and completeness of the selected response set. It computes
-\[
- z=\sum_{i\in S}z_i,\qquad \sigma=R^\star\|\operatorname{enc}(z).
-\]
-The public verification equation is the ordinary Schnorr equation.
-A coordinator may first verify the aggregate and verify individual
-shares only after aggregate failure. To check a share, it tests
-\[
- [z_i]G=R_i+[c\lambda_i^S]Y_i.
-\]
-These checks use the stored \(Y_i\), not a public share supplied alongside
-an allegedly bad response. Authenticated messages make a failed check
-attributable to its sender; the equation alone does not prove who sent
-an arbitrary byte string.
-
-\begin{theorem}[Signing correctness]\label{thm:fr-correct}
-If all selected shares belong to the same key polynomial, all
-participants use the same valid signing package, and all computed
-values satisfy the ciphersuite's encoding and nonidentity checks,
-the aggregate verifies under \(Y\). Freshness of the nonce pairs is
-additionally required for security, not for this algebraic identity.
-\end{theorem}
-\begin{proof}
-Summing the response equations and using interpolation gives
-\[
- z=\sum_{i\in S}(d_i+\rho_i e_i)+
-      c\sum_{i\in S}\lambda_i^Sx_i
-   =r+cx,
- \qquad r=\sum_{i\in S}(d_i+\rho_i e_i).
-\]
-The group commitment is \(R=[r]G\). Multiplying the scalar equality
-by \(G\) yields \([z]G=R+[c]Y\).
-\end{proof}
-
-A signer may leave before answering. The coordinator cannot simply drop
-it and sum the others: the participant set is inside the binding factors
-and interpolation weights, and the dropped commitments are inside \(R\).
-A retry selects fresh nonce pairs and constructs a fresh signing package.
-
-\subsection{A scalar-field walkthrough}
-
-For an arithmetic illustration only, take \(q=101\),
-\(f(X)=42+17X+29X^2\), and \(S=\{1,3,5\}\).
-The shares and coefficients are
-\[
- (x_1,x_3,x_5)=(88,51,44),\qquad
- (\lambda_1,\lambda_3,\lambda_5)=(65,24,13).
-\]
-Both \(\sum_i\lambda_i=1\) and \(\sum_i\lambda_ix_i=42\) hold modulo
-101. Choose illustrative nonce pairs
-\[
- (d_1,d_3,d_5)=(11,13,17),\qquad
- (e_1,e_3,e_5)=(19,23,29).
-\]
-For illustrative hash outputs
-\((\rho_1,\rho_3,\rho_5)=(2,4,6)\) and \(c=7\), the effective nonces
-are \((49,4,90)\), whose sum is \(42\). The response shares are
-\((93,88,54)\); their sum is \(33\). Finally,
-\[
- 33=42+7\cdot42\pmod{101}.
-\]
-The retained numerical check recomputes every entry. These invented
-hash outputs and small scalars test the algebra; they are not a
-ciphersuite test vector or an instance with cryptographic security.
-
-\section{Security and nonce state}\label{sec:fr-security}
-
-Correctness says honest responses add to a valid signature. Security
-must explain why a malicious coordinator interacting with several
-sessions cannot obtain an unapproved one. The equations alone do not
-establish that conclusion.
-The random-oracle model, which treats each distinct hash input as
-receiving one independently random answer consistently reused on
-repetition, is constructed in \emph{Crypto Guide},
-\S\emph{Security contracts and reductions}.
-
-\subsection{What the binding factor prevents}
-
-A response is linear in the secret quantities:
-\[
- z_i=d_i+\rho_i e_i+c\lambda_i^Sx_i.
-\]
-If the coordinator could select the coefficients of this equation
-independently after collecting nonce commitments, it could try to combine
-responses from separate sessions into an equation it wanted. The
-binding factor makes the effective nonce depend on the entire signing
-package, including the eventual message and public key. Changing another
-participant's commitment therefore changes the honest participant's
-coefficient too.
-
-The domain-separated hashes are essential here. Calling two different
-functions the same random oracle, or omitting the participant list from
-one side's calculation, changes the protocol analysed by the security
-proof. The fact that the resulting aggregate still resembles a Schnorr
-signature is not a repair.
-
-\subsection{The imported signing guarantee}
-
-The signing-layer result we rely on is the analysis of FROST1 in
-Bellare, Crites, Komlo, Maller, Tessaro and Zhu,
-\emph{Better than Advertised Security for Non-interactive Threshold
-Signatures}, CRYPTO 2022; the FROST analysis is retained in
-\href{https://eprint.iacr.org/2022/833}{ePrint 2022/833}, Theorem 5.4.
-Its setting uses random oracles, trusted-dealer key distribution and
-static corruption, meaning the corrupted set is fixed before key
-generation, of fewer than \(t\) participants. Its strong
-threshold-forgery notion also accounts for which participants
-contributed to a session; an ordinary single-signer theorem against
-new-message forgery after chosen signing queries is not that result.
-
-The hardness assumption is \emph{one-more discrete logarithm}. In its
-game, an adversary obtains independent random challenge group elements
-and may ask a discrete-log oracle for selected logarithms. It must not
-be able to output the logarithms of more challenge elements than the
-number of oracle queries it used, with non-negligible probability.
-This assumption permits oracle access that the ordinary discrete-log
-game does not. We do not equate the two assumptions.
-
-The imported result covers the matching signing construction under
-its stated key-generation and corruption hypotheses. It does not prove
-that the implemented DKG composes with signing, that arbitrary adaptive
-corruptions are safe, or that backup software preserves the nonce
-requirements. Those are separate obligations. The purpose of importing
-a theorem is to state a precise guarantee, not to replace the
-unforgeability question with an adjective.
-
-\subsection{Why a nonce pair has only one response}
-
-If one nonce pair is answered under three packages, the attacker obtains
-equations
-\[
- z_j=d+\rho_j e+\beta_jx_i,\qquad
- \beta_j=c_j\lambda_i^{S_j},\qquad j=1,2,3.
-\]
-Subtract the first equation from the other two. This leaves two linear
-equations in \(e,x_i\), solved by the elimination procedure in
-\emph{Math Guide}, \S\emph{Linear algebra and uniform masks}. Whenever
-\[
- (\rho_2-\rho_1)(\beta_3-\beta_1)
- -(\rho_3-\rho_1)(\beta_2-\beta_1)\ne0,
-\]
-the coefficient matrix is invertible and reveals \(x_i\), then \(d\).
-Fewer observations can suffice in special cases or with extra leaked
-information. A failed aggregate does not make an emitted response
-harmless: the attacker still possesses its linear equation.
-
-Nonce generation from a deterministic function of just the share and
-message is therefore unsuitable. Signing the same message in another
-coordinator-chosen package would repeat the secret pair while changing
-its public coefficients. Fresh randomness and single-use storage solve
-different parts of this problem; neither substitutes for the other.
-
-\begin{construction}[Application nonce state]\label{con:fr-noncestate}
-Associate each generated pair with a unique local record.
-\begin{enumerate}
-\item Store the private pair as available before advertising its public
-  commitments.
-\item Bind that record to one complete accepted signing request.
-\item Irreversibly mark it consumed before releasing any response
-  derived from it. A crash must not roll that transition back.
-\item Erase the private pair when its response is computed or the
-  session is abandoned. A restart obtains new commitments.
-\end{enumerate}
+Algorithm $\mathsf{Combine}$ outputs $z \gets \sum_{i \in S} z_i$,
+$\sigma \gets (R, z)$; $\mathsf{Verify}(\overline{PK}, m, \sigma)$
+recomputes the challenge and accepts iff
+$R \cdot \overline{PK}^{\,c} = g^z$.\footnote{The paper's own argument
+order for $H_{\mathrm{sig}}$ is inconsistent: $\mathsf{Sign}'$ and
+$\mathsf{Combine}$ write $H_{\mathrm{sig}}(PK, R, m)$, while
+$\mathsf{Verify}$ and the reduction's table write
+$H_{\mathrm{sig}}(PK, m, R)$ --- and both differ from the order RFC 9591
+(\S4.6) and RedDSA fix,
+$c = H_2(R^\star \,\|\, PK^\star \,\|\, m)$, which ZIP 312 and the
+released \texttt{reddsa} crate use. We read the paper's orderings as a
+presentational slip with no normative weight; the implemented order is
+RedDSA's. The paper also twice refers to ``Figure 4'' where Figure 5 is
+meant.}
 \end{construction}
 
-This state machine is an application requirement, not a persistence
-service furnished by a scalar-signing function. The selected Rust API
-takes references to nonce objects; the surrounding application must not
-call it again with a consumed pair. Restoring a backup, cloning a device
-or racing two signing requests must not duplicate available nonce state.
-Ordinary durable key backups should not restore an old pool of
-preprocessed nonces.
+The displayed construction also normalises several evident errors in Figure 5.
+Its \textsf{Setup} lists only $H_{\mathrm{non}}$ and $H_{\mathrm{sig}}$ even
+though every randomisation algorithm calls $H_r$. In $\mathsf{Sign}'$, its
+formal argument names the local randomised share $\bar{x}_i$ although the
+algorithm and its body use signer index $k$; we consistently write
+$\bar{x}_k$. Its loop also prints $k$ as the first input to
+$H_{\mathrm{non}}$ for every $a_i$; the iterated index must be $i$, as above,
+for the commitment $R=\prod_i R_iS_i^{a_i}$ and response term $s_k a_k$ to
+use the same per-participant binding factors.
+The paper's preliminary Shamir definition has two further typographical slips:
+its polynomial omits the factor $Z$ from the $a_1Z$ term and its prose says
+that $t$ coefficients are sampled while listing $a_1,\ldots,a_{t-1}$. Its
+subsequent evaluation formula is the standard degree-$(t-1)$ sharing used here.
 
-A malicious participant can withhold a response. Share verification can
-identify inconsistent responses from authenticated senders; it cannot
-force participation or prove that a sender intended to disrupt the
-session. Availability policy and retry policy remain outside the
-unforgeability theorem.
+The paper is explicit that this is the whole design: ``We do not make any
+changes to the plain FROST protocol.'' Its signing equations are unchanged;
+the added algorithms supply the shifted share and public-key inputs.
 
-\section{Randomised RedPallas signing}\label{sec:fr-rerand}
+\emph{Correctness} is one identity. The paper's Equation (2):
+\begin{equation}\label{eq:fr-rerand-z}
+z = \sum_{i \in S} r_i + \sum_{i \in S} s_i a_i
+    + c \sum_{i \in S} \lambda_i \bar{x}_i
+  = \sum_{i \in S} r_i + \sum_{i \in S} s_i a_i
+    + c \Bigl( \sum_{i \in S} \lambda_i x_i
+    + \hat{\alpha} \sum_{i \in S} \lambda_i \Bigr)
+  = r + c\,(x + \hat{\alpha}) = r + c\,\hat{x},
+\end{equation}
+``because $x$ is Shamir secret shared'' and
+``$\sum_{i \in S} \lambda_i = 1$ since it is the interpolation of the
+constant polynomial $f(X) = 1$''. The output is a regular re-randomised
+signature for $\overline{PK} = PK \cdot g^{\hat{\alpha}}$ with
+$\hat{\alpha} = H_r(\alpha, \mathrm{aux})$.
 
-The \emph{Ironwood Guide}, \S\emph{Balance, digests, and authorisation},
-publishes a per-Action key
+The identity deserves emphasis, because it is the entire reason the
+construction is this simple. Every participant adds the \emph{same}
+$\hat{\alpha}$ to its share --- no dealing, no per-participant shares of
+the randomizer --- and the Lagrange weights, summing to one over any
+interpolating set, carry the common shift through interpolation so that
+the group secret moves by $\hat{\alpha}$ rather than by
+$|S| \cdot \hat{\alpha}$. Had the weights summed to anything else, or
+varied with $S$ in a way the signers could not predict, the shifted
+shares would interpolate to a key nobody computed.
+
+\subsection{Unforgeability: TRUF, AOMDL, and Theorem 1}
+\label{sec:fr-rerand-sec}
+
+\paragraph{The game.} The paper's notion (Definition 6, game
+$\mathrm{TRUF}$ in Figure 4) allows adversarial randomizers and static
+corruption of fewer than $t$ parties. Its signing oracle records only the
+queried messages $Q$, and a forgery wins only when $m^* \notin Q$. It is
+therefore an \emph{existential} notion: a new signature for a previously
+signed message is not a winning forgery. The protocol specification instead
+requires SURK-CMA, whose oracle records message--signature pairs and accepts
+any fresh pair, including a different signature on a previously queried
+message. The paper therefore uses a weaker freshness condition, and Theorem 1
+does not, as printed, establish the protocol specification's strong notion.
+The game pseudocode also assigns
+$\mathsf{RandShare}(x_k,\alpha,\mathrm{aux})$ to $\bar{x}_i$ but later passes
+$\bar{x}_k$, and its call to $\mathsf{Sign}'$ omits the message argument that
+the construction requires. Those are interface errors in the printed game; the
+discussion here uses the evident $k$ index and includes $m$.
+
+There is a second mismatch in the unrandomised branch. The winning predicate
+also accepts a forgery under $PK$, but every signing-oracle answer first
+applies $H_r(\alpha,\mathrm{aux})$; the adversary has no ordinary signing
+oracle under $PK$. Contrary to the paper's prose, setting its outer
+randomizer $\alpha$ to zero does not produce the identity shift. The
+construction's randomizer domain is $\Z_p$ and $H_r(0,\mathrm{aux})$ need
+not be zero. Thus the separate verification branch does not embed the
+ordinary EUF-CMA game either.
+
+\paragraph{The assumption.} Intended AOMDL is the \emph{algebraic
+one-more discrete logarithm} game: the adversary receives $\ell+1$
+challenges, may query a discrete-log oracle only on declared linear
+combinations of environment-generated elements, and should make at most
+$\ell$ queries. The algebraic restriction is absent from
+\S\ref{sec:fr-later}'s OMDL\@. Since it reduces the adversary's allowed oracle
+queries, AOMDL hardness is formally a weaker hardness assumption than OMDL
+hardness, obtained at the cost of an algebraic-adversary restriction; it is
+neither literally the same assumption nor a stronger hardness assumption.
+Figure 1 is not a well-defined rendition of that game: its oracle accepts
+$\{\beta_i\}_{i=1}^{\ell}$ but its return expression uses $\beta_0$ as well,
+and it never checks that the queried element $X$ equals the declared
+combination $g^\alpha\prod_i X_i^{\beta_i}$.
+After the natural repair of supplying coefficients for every challenge, a
+second defect remains: the game initialises its query counter $q\gets0$ but
+never increments it. Its final test $q<\ell+1$ then imposes no query limit, so
+an adversary can request every challenge logarithm. We interpret AOMDL by its
+intended one-more definition below, not by that malformed pseudocode.
+
+\paragraph{The theorem claim.} The preprint states the following
+(Theorem 1 with Equation (3); the radical was checked against the rendered
+page):
+
+\begin{quotation}
+\noindent\textbf{Theorem 1} (ePrint 2024/436). \emph{Rerandomized-FROST
+is unforgeable in the random oracle model, assuming the AOMDL assumption
+holds in $\G$}, concretely
+\begin{equation}\label{eq:fr-rerand-bound}
+\mathrm{Adv}^{\mathrm{sec}}_{TS,\mathcal{A}} \le
+\sqrt{\, q \cdot \mathrm{Adv}^{\mathrm{aomdl}}_{D}(\lambda)
+      + 2 q^2 / p - \mathrm{negl}(\lambda) \,},
+\qquad q = q_h + q_s,
+\end{equation}
+with $q_h$ random-oracle and $q_s$ signing queries.
+\end{quotation}
+
+\begin{remark}[Placement of the negligible term]\label{rem:fr-negl}
+The printed bound places $-\,\mathrm{negl}(\lambda)$ \emph{inside} the
+square root; we transcribe it as printed. The customary form of such
+forking-lemma bounds --- including the BCKMTZ bound quoted in
+\S\ref{sec:fr-later} --- carries additive slack outside the radical, and
+a negative term inside can make the radicand negative. Neither the theorem
+statement nor its proof explains how that expression is to be interpreted in
+that case.
+\end{remark}
+
+\paragraph{Intended proof shape, and why it is not verified.} The reduction
+$\mathcal{B}$ receives $2q_s+1$ AOMDL challenges, sets $PK=X_0$, and
+simulates verification shares in the exponent. Even the displayed
+public-share simulation is not well formed: its product shadows the output
+index $i$ and leaves both $j$ and $k$ unbound. If $C$ is the set of corrupted
+identifiers and
+$L_j(i)$ is the Lagrange basis coefficient for node $j\in\{0\}\cup C$
+evaluated at the honest identifier $i$, the required exponent relation is
 \[
- \rk=Y+[\alpha]G
+  PK_i = PK^{L_0(i)}\prod_{j\in C}\bigl(g^{x_j}\bigr)^{L_j(i)}.
 \]
-rather than the long-term \(Y=\aksym\). The Action proof establishes the
-relation to the authorised spend key. The outside signature must verify
-under \(\rk\), not under \(Y\).
+The printed expression does not establish that simulated public shares
+interpolate to $PK$.
 
-\subsection{Shifting all shares}
-
-For a common scalar \(\alpha\), define
+Round-one answers consume challenge pairs. In round two, the response equation
 \[
- \bar x_i=x_i+\alpha,\qquad
- \bar Y_i=Y_i+[\alpha]G,\qquad
- \bar Y=Y+[\alpha]G.
+z_k=r_k+s_k a_k+c\lambda_k\bar{x}_k
 \]
-All signers use \(\bar Y\) in the binding factors and signature
-challenge and \(\bar x_i\) in their response equation. The coordinator
-uses \(\bar Y_i\) for share verification and \(\bar Y\) for final
-verification.
+requires the reduction to query the logarithm of
+\begin{equation}\label{eq:fr-correct-round-two}
+Z_k=R_k S_k^{a_k}\overline{PK}_k^{\,c\lambda_k}.
+\end{equation}
+The preprint instead prints
+$R_i S_i^{a_k}\overline{PK}_k^{\,c}$: it mixes $i$ and $k$ and omits the
+Lagrange exponent $\lambda_k$. Its claimed ``perfect'' signing simulation
+therefore does not follow from the displayed query.
 
-\begin{proposition}[Randomisation commutes with sharing]
-\label{prop:fr-rerand}
-The shifted shares interpolate to \(x+\alpha\) for every permitted
-signing set \(S\). Their FROST aggregate is an ordinary signature under
-\(\bar Y\).
-\end{proposition}
-\begin{proof}
-The two interpolation identities give
+The random-oracle simulation also is not a consistent lazy sampler as
+printed. Its $H_r$ table stores only the queried pair $(\alpha,\mathrm{aux})$,
+not the sampled output, so a repeat query has no associated value to return.
+Its $H_{\mathrm{non}}$ query signature omits $m$ although its lookup and table
+include $m$; when it samples $a_j$ for each other participant, it stores $a_k$
+rather than $a_j$; and its new-query branch returns the sampled
+$H_{\mathrm{sig}}$ value $c$ rather than the requested binding value $a_k$.
+The proof later invokes an unrandomised case $\alpha=\bot$, although neither
+the construction's domain $\Z_p$ nor the TRUF oracle defines that sentinel.
+
+The forking step is underspecified too. It says to reprogram
+$H_{\mathrm{sig}}(PK',R^*,m^*)$ without defining $PK'$, then asserts a second
+forgery with the same $R^*$ but potentially different $(\alpha,\mathrm{aux})$.
+It does not show that the reprogrammed query is the challenge query for both
+accepted forgeries when their re-randomised public keys differ. Nor does the
+proof derive the concrete probability bound in
+Equation~\eqref{eq:fr-rerand-bound}; it concludes only with a qualitative
+``non-negligible probability'' invocation of the local forking lemma.
+
+The first fork-extraction identity is algebraically sound if both forgeries
+share the same commitment $R$, verify under re-randomised keys, and have
+$c_0\ne c_1$. Writing
+$h_b=H_r(\alpha_b,\mathrm{aux}_b)$, it removes the public shifts and obtains
 \[
- \sum_{i\in S}\lambda_i^S(x_i+\alpha)
- =x+\alpha\sum_{i\in S}\lambda_i^S=x+\alpha.
+x=\frac{(z^*_0-c_0h_0)-(z^*_1-c_1h_1)}{c_0-c_1}.
 \]
-Equivalently, the shifted polynomial is \(f(X)+\alpha\), whose degree
-remains at most \(t-1\). Theorem~\ref{thm:fr-correct} then applies to the
-shifted inputs.
-\end{proof}
-
-Adding the same scalar to every share does not add \(|S|\alpha\) to
-the group key, because shares are interpolated rather than simply
-summed. This is why no separate sharing ceremony for the randomizer is
-needed.
-
-\subsection{The selected randomizer construction}
-
-Let \(B\) be the exact first-round commitment list for the Action.
-The coordinator draws a 32-byte seed \(s\) and computes
+The subsequent nonce extraction is not sound as printed. If two response
+shares have the form
 \[
- \alpha=H_R(s\|\operatorname{Enc}(B)).
+u_b=r_i+s_i a_b+c_b\lambda_i(x_i+h_b),
 \]
-It sends \(s,B\) to each participant. Each participant regenerates
-\(\alpha\) locally and constructs the shifted key package.
+then for $a_0\ne a_1$ the corresponding identity is
+\[
+s_i=\frac{u_0-u_1-c_0\lambda_i x_i-c_0\lambda_i h_0
+                 +c_1\lambda_i x_i+c_1\lambda_i h_1}{a_0-a_1}.
+\]
+The printed numerator gives the two $c_1$ terms the wrong signs and uses the
+outer randomizers in place of their $H_r$ images. More seriously, the proof
+claims that when $c_0=c_1$, $a_0=a_1$, and $h_0\ne h_1$, the reduction can
+still recover both $(r_i,s_i)$. After subtracting the known randomizer
+difference, however, the transcripts give only one linear equation in those
+two nonce scalars. They are underdetermined.
 
-This is the mechanism of
-\texttt{Randomizer::new\_from\_commitments} and
-\texttt{regenerate\_from\_seed\_\allowbreak and\_commitments} at the selected
-\texttt{frost} commit. The message is \emph{not} inside this randomizer
-hash. It is inside \(H_4\), every binding factor and the signature
-challenge. That distinction permits the builder to calculate
-\(\rk\) before the transaction digest containing \(\rk\) is known.
+Together with Figure 1's missing query-counter increment, these are material
+gaps, not merely notation. A repair may be possible, but this volume does not
+supply a complete replacement reduction. It therefore records Theorem 1 as
+a preprint claim and does not use Equation~\eqref{eq:fr-rerand-bound} as a
+verified assurance statement.
 
-Fresh commitments contribute input variation even if the coordinator's
-seed generator malfunctions. This is hedging, not a theorem that every
-maliciously selected seed produces an unbiased randomizer. A coordinator
-can examine candidate seeds and can learn \(\alpha\). Its privacy role
-must be accounted for explicitly.
+\paragraph{Scope even under a repaired proof.} The claimed result is only
+existential unforgeability in the paper's weaker game; no cited theorem
+establishes threshold SURK-CMA\@. The preprint contains no formal unlinkability
+definition or theorem. Corruptions are static, and the threshold-scheme game
+uses centralised key generation; the paper says it ``can [be] adapted'' to a
+DKG, but gives no composition proof. Finally, the paper's \S5.1
+sketches how a DKG-style contribution round could remove the
+trusted-for-privacy coordinator (all parties contribute to the
+randomizer, none learns it) at the cost of extra communication rounds;
+ZIP 312 does not adopt this. The cost of re-randomisation itself is one
+fixed-base scalar multiplication per participant and per coordinator;
+the paper's Table 1 benchmarks (Pallas suite, Ryzen 9 5900X) put the
+signing overhead at $83\%$ with $2$ signers, $45\%$ at $7$, and $8\%$
+at $67$.
 
-\subsection{Signature compatibility}
+\subsection{ZIP 312: the specification}\label{sec:fr-rerand-zip}
 
-Every list entry is therefore \(32+32+32=96\) bytes before transport
-framing. The final signature is \(32+32=64\) bytes. Neither number
-depends on whether the selected signing set has two participants or
-twenty; only the intermediate transcript grows with its size.
+ZIP 312, ``FROST for Spend Authorization Multisignatures'' (Status
+Draft, Category Wallet, created 2022-08; owners Gouv\^ea, Komlo,
+Connolly; zcash/zips PR \#662), specifies Re-Randomized FROST as a
+delta against RFC 9591. Its target property beyond unforgeability is
+\emph{unlinkability}, which the ZIP defines as statistical independence
+of signatures from the signers' long-term keys: for uniform randomizers
+and absent metadata leakage, it is ``impossible to determine whether two
+transactions were generated by the same party''.
 
-The essential compatibility condition is \(H_2\). Its personalisation,
-input order, scalar conversion and point/scalar encodings are exactly
-RedPallas's. A verifier does not care whether the valid response was
-computed from one secret or from interpolated shares. Other FROST
-ciphersuites are not interchangeable merely because they also output
-64-byte signatures.
+\paragraph{The signing-flow changes to RFC 9591.}
+\begin{itemize}
+\item \emph{Randomizer generation.} A new helper
+  \texttt{randomizer\_generate(msg, commitment\_list)}: draw
+  \texttt{rng\_randomizer} $\gets$ \texttt{random\_bytes(Ns)}, form
+  \begin{align*}
+  \texttt{randomizer\_input} = {} & \texttt{rng\_randomizer} \,\|\, \\
+  & \texttt{encode\_signing\_package(commitment\_list, msg)},
+  \end{align*}
+  and return $H_R(\texttt{randomizer\_input})$. Implementations MAY use
+  another encoding ``as long as all values (the message, and the
+  identifier, binding nonce and hiding nonce for each participant) are
+  unambiguously encoded''.
+\item \emph{Round one} is unchanged.
+\item \emph{Round two.} The Coordinator generates the randomizer and
+  sends it to each signer ``over a confidential and authenticated
+  channel'' --- plain FROST requires reliability and authentication but
+  not confidentiality --- together
+  with the message and the commitment list. Each participant then runs
+  \texttt{sign} with $\mathsf{sk}_i + \mathrm{randomizer}$ in place of
+  its share and $PK + [\mathrm{randomizer}]\,G$ in place of the group
+  public key.
+\item \emph{Aggregation} shifts the group key the same way:
+  $PK \mathrel{+}= [\mathrm{randomizer}]\,G$.
+\item \emph{Share verification} shifts both keys:
+  $PK_i \mathrel{+}= [\mathrm{randomizer}]\,G$ and
+  $PK \mathrel{+}= [\mathrm{randomizer}]\,G$ in
+  \texttt{verify\_signature\_share}.
+\end{itemize}
+The ZIP's ``randomizer'' is the paper's \emph{effective} randomizer
+$\hat{\alpha}$: per the paper's \S7 implementation notes,
+$\mathsf{GenRand}$ and $H_r$ are folded into the single hash call above,
+and the value distributed to signers is the already-hashed scalar.
 
-\subsection{Privacy and the remaining theorem boundary}
+\paragraph{The algebra, in RedDSA notation.} The ZIP's Rationale
+restates the correctness identity of \eqref{eq:fr-rerand-z} additively,
+and it is worth displaying because it is the entire consensus-facing
+content of the design. A valid RedDSA response must satisfy
+$z = r + c \cdot \mathsf{sk}$. Each FROST share contributes
+\[
+z_i = \bigl(\mathtt{hiding\_nonce}_i
+      + \mathtt{binding\_nonce}_i \cdot \rho_i\bigr)
+      + \lambda_i \cdot c \cdot \mathsf{sk}_i ,
+\]
+and under re-randomisation the key terms become
+$c \cdot (\mathsf{sk} + \mathrm{randomizer})$ on the single-signer side
+and, summed over the coalition,
+\[
+\sum_{i \in S} \lambda_i \, c \, (\mathsf{sk}_i + \mathrm{randomizer})
+= c \Bigl( \sum_{i \in S} \lambda_i \mathsf{sk}_i
+  + \mathrm{randomizer} \cdot \sum_{i \in S} \lambda_i \Bigr)
+= c \, (\mathsf{sk} + \mathrm{randomizer}),
+\]
+since $\sum_i \lambda_i \mathsf{sk}_i = \mathsf{sk}$ by Shamir and
+$\sum_i \lambda_i = 1$ (the ZIP proves the latter in its
+\texttt{sum-lambda-proof} footnote, citing math.SE 1325342). Every
+participant adds the same randomizer to its share; the
+weights-sum-to-one identity is exactly why the group secret shifts by
+$\alpha$ and not by $|S| \cdot \alpha$.
 
-For an independent uniform \(\alpha\), the map
-\(\alpha\mapsto Y+[\alpha]G\) is a bijection from \(\F_q\) to \(\G\).
-Thus the randomised public key alone is uniform, independently of
-\(Y\). With wide reduction of a random-oracle output, the distribution
-is statistically close to uniform, rather than exactly uniform.
+\paragraph{Who learns the randomizer.} The threat model is the ZIP's
+sharpest departure from RFC 9591. The Coordinator generates the
+randomizer and is ``trusted with the privacy of the transaction (which
+includes the unlinkability property)'' but \emph{not} with
+unforgeability: ``a rogue Coordinator \ldots\ should not be able to
+create signed transactions without the approval of
+\texttt{MIN\_PARTICIPANTS} participants''. All key-share holders receive
+the randomizer and are likewise trusted with privacy only. The role
+assignment is natural: the Coordinator fits the transaction builder, who
+already creates the zero-knowledge proof --- and the proof needs
+$\alpha$ as auxiliary input (step 4 of the flow in
+\S\ref{sec:fr-rerand-gap}). The confidentiality requirement is not
+optional hygiene: anyone learning $\hat{\alpha}$ can un-randomise the
+on-chain key, $\aksym = \rk - [\hat{\alpha}]\,G$, so the
+paper advises encrypting the randomizer ``so that eavesdroppers can't
+break unlinkability''. Non-requirements are stated with equal care: the
+coordinator-less variant of RFC 9591 \S7.5 is unsupported;\footnote{ZIP
+312's reference for the variant mislabels it as RFC 9591 ``Section 7.3:
+Removing the Coordinator Role''; the section is 7.5 (\S7.3 is ``Nonce
+Reuse Attacks''), and the reference's URL anchor targets the correct
+section.} share holders
+can always link the signing operation to the eventual on-chain
+transaction; key generation is out of scope; network privacy is out of
+scope.
 
-A person learning \(\alpha\) can compute \(Y=\rk-[\alpha]G\).
-The coordinator, signers and transaction prover therefore are not
-covered by a claim that their own signing sessions are unlinkable to
-the long-term key. The seed must travel over a confidential,
-authenticated channel: \(s\) and public \(B\) reveal \(\alpha\).
-Transaction timing, signer identity and network traffic may reveal
-additional links.
+\paragraph{The message is a hash.} The signed message is the
+$\mathsf{SigHash}$, which by itself does not expose enough transaction
+semantics for a signer to know what is being authorised. Signers MUST
+therefore check the
+$\mathsf{SigHash}$ against transaction data sent over the same channel,
+or recompute it themselves; the mechanism is out of the ZIP's scope.
+The same authorisation principle applies to any external signer: a signer who
+cannot see what it signs authorises whatever the builder chose.
 
-Gouv\^ea and Komlo's
-\href{https://eprint.iacr.org/2024/436}{\emph{Re-Randomized FROST}}
-provides the algebraic construction and a claimed unforgeability
-analysis. Its stated freshness condition concerns new messages; it
-does not establish the stronger fresh-message--signature-pair property
-requested by the Zcash specification. The selected seed-and-commitments
-API also needs its precise correspondence to an analysed randomizer
-model. We do not present the preprint's claimed concrete bound as a
-proved bound for this full implementation and DKG composition.
+\paragraph{Unlinkability, and where it is proven.} Neither the paper nor
+ZIP 312 supplies a formal threshold-unlinkability proof: the paper attempts
+only an existential-unforgeability proof
+(\S\ref{sec:fr-rerand-sec}), and the ZIP argues unlinkability in its
+Rationale by matching distributions
+--- ``\texttt{randomizer\_generate} generates \texttt{randomizer}
+uniformly at random as required by \texttt{RedDSA.GenRandom}'', and the
+signing flow is compatible with $\mathsf{RedDSA.RandomizePrivate}$,
+$\mathsf{RedDSA.RandomizePublic}$, $\mathsf{RedDSA.Sign}$, and
+$\mathsf{RedDSA.Validate}$ --- while its Requirements defer the
+formal notion to the protocol specification's SURK-CMA definition. More
+precisely, reducing a 512-bit random-oracle output modulo the group order is
+statistically close to uniform, not exactly uniform; the same qualification
+applies to $\mathsf{RedDSA.GenRandom}$. The distribution-matching argument
+does connect to a proved statement: the
+\emph{Ironwood Guide}'s \S``RedPallas unforgeability'' shows honest uniform
+re-randomisations are
+distributed as fresh Schnorr keys. What no source supplies is a
+threshold-specific unlinkability theorem. Nor does the preprint's weaker
+existential game establish the threshold SURK-CMA requirement. Bin: the
+mechanism is \emph{specified} (ZIP 312, Draft); its unlinkability guarantee
+rests on a distribution argument, and its requested strong-unforgeability
+guarantee has no matching threshold theorem among the cited sources.
 
-The identity in Proposition~\ref{prop:fr-rerand}, consensus verification
-compatibility and the public-key masking calculation are proved here.
-A full threshold strong-unforgeability and joint privacy theorem for
-the complete selected workflow remains a separate security obligation.
+\subsection{The ciphersuite FROST(Pallas, BLAKE2b-512)}
+\label{sec:fr-rerand-suite}
 
-\section{Transaction construction with separated signers}
-\label{sec:fr-deploy-pczt}
+ZIP 312 defines the ciphersuite in RFC 9591's template. The group is
+Pallas with base point $G^{\mathsf{SpendAuth}}$ as in protocol \S5.4.7.1,
+of order $p_{\Vesta}$; \texttt{RandomScalar} is uniform in
+$[0, \mathtt{Order} - 1]$; \texttt{SerializeElement} is the point
+compression $\mathrm{repr}_{\Pallas}$ ($P^\star$ in series notation) and
+\texttt{DeserializeElement} is $\mathrm{abst}_{\Pallas}$, erroring on
+$\bot$ \emph{and on the identity element}; \texttt{SerializeScalar} is
+little-endian over $32$ bytes and \texttt{DeserializeScalar} rejects
+values $\ge$ the order. The hash is BLAKE2b-512 with $16$-byte
+personalisation strings and $N_h = 64$; scalar-valued hashes interpret
+the $64$ output bytes as a little-endian integer reduced mod the order.
+Table~\ref{tab:fr-pallas-suite} lists the oracles.
 
-A signer receiving only a 32-byte digest cannot determine what payment
-it authorises. Threshold cryptography does not fix a missing transaction
-review. The complete signer contract is the one in
-\emph{Wallet Guide}, \S\emph{Constructing and authorising a transaction};
-this section inserts the threshold rounds at the necessary points.
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Oracle & Role & Personalisation \\
+\midrule
+$H_1$ & binding factor        & \texttt{FROST\_RedPallasR} \\
+$H_2$ & challenge             & \texttt{Zcash\_RedPallasH} \\
+$H_3$ & nonce                 & \texttt{FROST\_RedPallasN} \\
+$H_4$ & message pre-hash      & \texttt{FROST\_RedPallasM} \\
+$H_5$ & commitment-list pre-hash & \texttt{FROST\_RedPallasC} \\
+$H_R$ & randomizer            & \texttt{FROST\_RedPallasA} \\
+\bottomrule
+\end{tabular}
+\caption{FROST(Pallas, BLAKE2b-512) hash personalisations (ZIP 312).
+The challenge hash reuses RedPallas's own personalisation; the FROST
+additions use the \texttt{FROST\_} prefix.}
+\label{tab:fr-pallas-suite}
+\end{table}
 
-\subsection{The order that avoids a circular digest}
+The single load-bearing row is $H_2$: ZIP 312 states it is
+``equivalent to $H^{\circledast}(m)$'' of RedPallas, so the FROST
+challenge \emph{is} the on-chain challenge, and signature verification
+for the suite is RedPallas validation itself. The ZIP's compatibility
+rationale completes the argument that a FROST aggregate is a plain
+RedPallas signature: the $(R, S)$ output split matches
+$\mathsf{RedDSA.Validate}$'s parsing; FROST and Zcash use the same
+challenge input order ($R$, public key, message); and the fact that $r$
+and $R$ are FROST-generated rather than produced by
+$\mathsf{RedDSA.Sign}$'s nonce derivation is irrelevant to a verifier,
+which only parses $R$ and checks the validation equation. A parallel suite
+FROST(Jubjub, BLAKE2b-512) --- personalisations
+\texttt{FROST\_RedJubjub\{R,N,M,C,A\}} and \texttt{Zcash\_RedJubjubH}
+--- serves Sapling spend authorisation. ZIP 312 defines that suite
+separately; this volume develops only the Pallas suite.
 
-For each real spend assigned to a threshold key:
+\subsection{Published library implementation: \texttt{frost-rerandomized} and
+\texttt{reddsa}}\label{sec:fr-rerand-impl}
+
+Claims in this subsection cite ZcashFoundation/frost at commit
+\texttt{2016e44} (2026-04-23, workspace version 3.0.0) and
+ZcashFoundation/reddsa at commit \texttt{3792daa} (2026-05-22, crate
+version 0.5.2), rechecked against current heads on 2026-09-05. The pins are
+published releases --- tag \texttt{frost-core/v3.0.0} (crates.io
+2026-04-23) and \texttt{reddsa} 0.5.2 --- so main-at-commit and the
+released crates coincide. ZIP 312 names \texttt{reddsa} as the
+reference implementation of both ciphersuites. A current-head check on
+2026-09-05 found \textsf{frost} \texttt{0966bd1} and \textsf{reddsa}
+\texttt{63c6ac0}; their post-release changes update the Rust edition,
+minimum compiler, dependencies, benchmarks, and CI, not the re-randomized
+protocol derived below.
+
+\paragraph{The generic layer.} Crate \texttt{frost-rerandomized}
+(\texttt{frost-rerandomized/src/lib.rs}) implements
+Construction~\ref{def:fr-rerand-frost} over any \texttt{frost-core}
+ciphersuite. Trait impl \texttt{Randomize<KeyPackage>} computes the
+randomised signing share as $\mathtt{signing\_share} + \mathtt{randomizer}$
+and the randomised verifying share by adding the
+\texttt{randomizer\_element}; struct \texttt{RandomizedParams} carries
+the \texttt{randomizer} (``also called alpha'' in its documentation),
+$\mathtt{randomizer\_element} = [\mathtt{randomizer}]\,G$, and
+$\mathtt{randomized\_verifying\_key} = PK + \mathtt{randomizer\_element}$.
+The current flow differs instructively from a literal reading of the
+ZIP: the Coordinator sends a randomizer \emph{seed}, not the
+randomizer, and each participant recomputes the randomizer from that seed
+and the full round-one commitment map in its signing package. The derivation,
+its divergence
+from the draft text --- the message is no longer a hash input --- and
+the reconciliation in flight in zips PR \#895 are treated once, in
+\S\ref{sec:fr-deploy-rand}.
+
+\paragraph{The RedPallas suite.} Module \texttt{src/frost/redpallas.rs}
+in \texttt{reddsa} implements the \texttt{frost-core}
+\texttt{Ciphersuite} trait for \texttt{PallasBlake2b512} (contextual ID
+\texttt{"FROST(Pallas, BLAKE2b-512)"}). Its \texttt{generator()} is
+\texttt{orchard::SpendAuth::basepoint()}, whose constant bytes are
+reproducible as
+\texttt{pallas::Point::hash\_to\_curve("z.cash:Orchard")(b"G")} --- the
+protocol's $G^{\mathsf{SpendAuth}}$. Oracles $H_1/H_3/H_4/H_5$ carry the
+\texttt{FROST\_RedPallas\{R,N,M,C\}} personalisations of
+Table~\ref{tab:fr-pallas-suite}; $H_2$ goes through the crate's
+\texttt{HStar} default, \texttt{Zcash\_RedPallasH}; the
+\texttt{RandomizedCiphersuite::\allowbreak hash\_randomizer} impl uses
+\texttt{FROST\_RedPallasA} (the ZIP's $H_R$); scalar reduction is the
+$64$-byte-wide \texttt{from\_bytes\_wide} (\texttt{src/hash.rs}), whose
+Pallas implementation delegates to pasta's
+\texttt{from\_uniform\_bytes} (\texttt{src/orchard.rs}).
+Beyond ZIP 312, the crate defines two further personalisations ---
+\texttt{HDKG} $=$ \texttt{FROST\_RedPallasD} and \texttt{HID} $=$
+\texttt{FROST\_RedPallasI}, the DKG and identifier hashes --- for key
+generation, which the ZIP does not specify at all.
+
+\paragraph{Even-$Y$ normalisation.} One deployment detail appears in
+neither the paper nor the ZIP 312 body: the \texttt{reddsa} hooks
+\texttt{post\_generate}/\texttt{post\_dkg} normalise fresh key material
+to the even-$Y$ representative the protocol specification requires of
+$\aksym$; the full mechanism is \S\ref{sec:fr-deploy-stack}. The
+\emph{randomised} key $\rk$ need not satisfy the even-$Y$ condition ---
+only $\aksym$ does.
+
+\paragraph{The RedPallas re-randomised API.} Module
+\texttt{src/frost/redpallas/rerandomized.rs} re-exports the
+re-randomised flow for the suite ---
+\texttt{sign\_with\_randomizer\_seed()}, \texttt{aggregate()}, and
+\texttt{aggregate\_custom()} --- together with the type aliases
+\texttt{Randomizer} and \texttt{RandomizedParams} over
+\texttt{PallasBlake2b512}. The module README's worked example runs the
+full trusted-dealer plus re-randomised signing flow and ends by
+verifying the aggregate under the
+\texttt{randomized\_\allowbreak verifying\_key()} of its
+\texttt{RandomizedParams}
+--- the executable form of this chapter's claim that a FROST aggregate
+is a plain RedPallas signature under $\rk$.
+
+\subsection{Custody surfaces and classification}
+\label{sec:fr-rerand-custody}
+
+\paragraph{(a) Spend-authorisation custody.} The primary surface: a
+$t$-of-$n$ sharing of $\ask$ signing Orchard Actions (and, via
+the Jubjub twin suite, Sapling Spends). FROST replaces step 5 of the
+signer flow in \S\ref{sec:fr-rerand-gap}; steps 1--4 move to the
+Coordinator-as-builder, who draws the randomizer, proves the Action
+statement with $\alpha$ as auxiliary input, and publishes $\rk$
+--- the circuit and consensus rules are untouched, per the
+\emph{Ironwood Guide}, \S``Spend authorisation: RedPallas
+re-randomisation''. Bin:
+\emph{specified} (ZIP 312, Draft), with key generation explicitly out of
+the ZIP's scope; DKG-based key generation for Zcash remains
+\emph{designed but unspecified} (implemented in \texttt{frost-core},
+specified nowhere), as \S\ref{sec:fr-rfc} already concluded for the
+base protocol. Related anticipations elsewhere in the ZIP corpus: ZIP
+316 requires FROST unified viewing key material to follow ZIPs 312 and
+2005, and ZIP 271 anticipates lockbox disbursement to ``a FROST
+address'', noting (as of May 2025) that ZIP 312 does not specify key
+generation.
+
+\paragraph{(b) ZIP 2005 quantum spending key custody.} ZIP 2005's
+``Usage with FROST'' section constrains threshold deployments of its
+quantum-recovery hierarchy: the key \aksym{} is derived jointly, by
+FROST DKG, from participants' shares of \ask, and the participants
+privately agree on a value $\mathsf{sk}$ from which $\nksym$,
+$\mathsf{qsk}$, $\mathsf{qk}$, and $\mathsf{rivk}_{\mathrm{ext}}$
+derive. The full ceremony, its derivations, and its asymmetric threat
+model --- every participant holds $\mathsf{qsk}$, so the threshold
+property does not survive an adversary that can also solve Pallas discrete
+logarithms --- are developed once,
+in \S\ref{sec:fr-deploy-qsk}. Bin: the FROST-facing requirements are
+\emph{specified} (ZIP 2005's requirements list calls for full
+compatibility with ZIP 312 FROST, hardware wallets, and their
+combination); the combined DKG-plus-shared-$\mathsf{sk}$ key generation
+is \emph{designed but unspecified} --- no source specifies the protocol
+by which participants ``privately agree'' on $\mathsf{sk}$.
+%% Shared-sk bin rechecked 2026-09-05: zips PR #895 drafts a
+%% contributory sk-generation section (commit 2026-03-05), still
+%% unmerged; designed-but-unspecified stands, #895's merge the trigger.
+
+\paragraph{(c) Crosslink finalizer keys.} The \emph{Crosslink Guide},
+\S``Finalizer keys'', bins threshold custody of finalizer keys as an
+\emph{open problem}, and we adopt that bin. One precision for this
+volume: the applicable protocol there is \emph{plain} FROST --- the
+finalizer design has no key re-randomisation, so the natural suite is
+RFC 9591's FROST(Ed25519, SHA-512), not either ZIP 312 suite. The
+prototype state and this observation are developed once, in
+\S\ref{sec:fr-deploy-crosslink}.
+\paragraph{(d) PCZT signing.} The multiparty transaction flow that
+would host the Coordinator role is the PCZT of the \emph{Wallet Guide},
+\S``Partially created transactions (PCZT)'': ZIP 374 (Partially Created
+Zcash Transaction Format, Draft, owner Jack Grigg) names threshold
+signing (``for example FROST'', per RFC 9591) in its Motivation among
+the multiparty use cases its Signer role must accommodate.
+
+\paragraph{Classification.} In the series' three bins: base FROST and
+its five ciphersuites are \emph{specified} in RFC 9591, an Informational
+RFC recording CFRG consensus (\S\ref{sec:fr-rfc}). Re-Randomized FROST,
+its threat model, and both Zcash ciphersuites are \emph{specified} by
+ZIP 312 at Draft status. The preprint's claimed existential-unforgeability
+proof has the gaps in \S\ref{sec:fr-rerand-sec}, no cited theorem establishes
+threshold SURK-CMA, and unlinkability rests on a distribution argument rather
+than a theorem. Key generation --- FROST DKG for Zcash, and ZIP 2005's
+shared-$\mathsf{sk}$ agreement --- is \emph{designed but unspecified};
+threshold custody of Crosslink finalizer keys is an \emph{open problem}.
+Implementation-behaviour claims (seed-based randomizer derivation, even-$Y$
+normalisation, the extra DKG personalisations) are implementation facts
+of the pinned commits, cited as such.
+
+%% FROST Guide draft: deployment surfaces and open questions.
+%% Body-only LaTeX; labels sec:fr-deploy*. Register per ironwood-guide.
+%%
+%% Sources (verified firsthand; repository heads rechecked 2026-09-05):
+%%   - ZcashFoundation/frost @ 2016e44ba4a4757a996300350063b937a2ad33e8
+%%     (2026-04-23, tag frost-core/v3.0.0, workspace version 3.0.0).
+%%   - ZcashFoundation/reddsa @ 3792daa95e588c1af6bd4805105bfb6ea7e9ad49
+%%     (2026-05-22, tag 0.5.2).
+%%   - zcash/zips @ 69610984109078075e7e64989ecf89d63a259b97 (2026-07-09):
+%%     zip-0312.rst (Draft), zip-2005.md (Proposed), zip-0374.md.
+%%   - zcash/librustzcash @ e30517e4335b4d850d35549f8366ba8bf817b17d
+%%     (2026-07-10): zcash_keys unstable-frost surface.
+%%   - zips PR #895 (still open, rechecked 2026-09-05).
+%%   - C. P. L. Gouvea, C. Komlo, "Re-Randomized FROST", IACR ePrint
+%%     2024/436, https://eprint.iacr.org/2024/436 (Secs. 5.1, 7; Remark 1).
+%%   - NCC Group public report (2023-10-23); Taurus/ZenGo audit report
+%%     (2021-03-23, vendored in the frost and reddsa repos); Least
+%%     Authority frost-client/frostd audit announcement (2025-05-01),
+%%     https://zfnd.org/frost-demo-audit-frost-client-and-frostd/.
+%%   - "The State of FROST for Zcash", zfnd.org, 2025-05-20.
+%%   - ZF FROST book: zcash/technical-details.md, zcash/devtool-demo.md,
+%%     zcash/server.md (in the frost repo, book/src/).
+%%   - Sibling volumes: ironwood-guide.tex (sec:redpallas at line 1308,
+%%     sec:redpallas-sec at line 1742), wallet-guide.tex (sec:pczt,
+%%     sec:pczt-sign), crosslink-guide.tex (sec:xl-stake-keys).
+%%
+%% ZIP note: the FROST ZIP is ZIP 312 alone ("FROST for Spend
+%% Authorization Multisignatures", Draft, created 2022-08). ZIP 313 is a
+%% conventional-fee ZIP (Status: Obsolete, obsoleted by ZIP 317) and is
+%% not cited by this volume.
+%%
+%% Macro note: \ask, \aksym, \nksym, \rk, \F, \Pallas, \Vesta per the
+%% ironwood-guide preamble; the volume preamble must define them.
+%% Cross-references: sec:fr-keygen and sec:fr-rfc resolve against
+%% 02-fr-frost.tex (frost-as-published.tex duplicates both labels;
+%% assembly must keep exactly one of the two files); sec:fr-rerand and
+%% sec:fr-rerand-suite resolve against 03-fr-rerand.tex.
+
+\section{Deployment and open questions}\label{sec:fr-deploy}
+
+The preceding sections dealt in designs and proofs; this one deals in what
+ships. We pin the exact code paths available to a prospective Zcash
+threshold-custody deployment, reconcile them against the draft ZIP text where
+the two have diverged, then walk the three custody surfaces this volume targets ---
+spend authorisation through PCZT, the ZIP-2005 quantum spending key, and
+Crosslink finalizer keys --- and close by sorting every artefact into the
+series' three bins (\emph{specified}, \emph{designed-but-unspecified},
+\emph{open problem}), each with the concrete trigger on which its
+classification must be revisited.
+
+\subsection{The shipped library stack}\label{sec:fr-deploy-stack}
+
+Two Zcash Foundation repositories carry the implementation. The
+\texttt{frost} workspace (commit \texttt{2016e44ba4}, 2026-04-23, tagged
+\texttt{frost-core/v3.0.0}; workspace version 3.0.0, MSRV 1.81) provides
+the generic \texttt{frost-core}, the five RFC 9591 ciphersuite crates
+\texttt{frost-ristretto255}, \texttt{-ed25519}, \texttt{-ed448},
+\texttt{-p256}, and \texttt{-secp256k1}, the separate
+\texttt{frost-secp256k1-tr} Taproot suite, and the generic
+re-randomisation layer \texttt{frost-rerandomized}. Beyond
+RFC 9591's two-round protocol the workspace implements trusted-dealer key
+generation (the RFC's appendix), a variant of the original paper's
+Pedersen-with-knowledge-proof DKG that omits its context string (ePrint
+2020/852, \S\ref{sec:fr-keygen} --- not in the RFC), Repairable-Threshold-Scheme
+share recovery (ePrint 2017/1155), share refresh, and Re-Randomized FROST
+(ePrint 2024/436, \S\ref{sec:fr-rerand}). The README declares the crates
+``considered stable and feature complete'', with SemVer guarantees.
+
+The \texttt{frost-rerandomized} crate is \texttt{no\_std}; its
+\texttt{Randomize} implementations add the randomizer group element to
+every verifying share of a \texttt{PublicKeyPackage} and the randomizer
+scalar to the signing share of a \texttt{KeyPackage}, whose
+\texttt{randomize} documentation warns: ``You MUST NOT reuse the
+randomized key package for more than one signing.'' Its README notes that
+``the main ciphersuite crates do not re-expose the rerandomization
+functions\dots\ The exceptions are the Zcash ciphersuites in
+\texttt{reddsa} which do expose the randomized functionality'' --- the
+Zcash ciphersuite modules are the shipped top-level suites that re-export
+those generic functions.
+
+The \texttt{reddsa} crate (commit \texttt{3792daa95e}, 2026-05-22, version
+0.5.2) supplies those ciphersuites: its feature \texttt{frost} $=$
+\texttt{["frost-rerandomized", "alloc"]} pulls
+\texttt{frost-rerandomized} 3.0.0, and its modules
+\texttt{reddsa::frost::redpallas} and \texttt{reddsa::frost::redjubjub}
+implement the two ZIP-312 ciphersuites (\texttt{PallasBlake2b512},
+\texttt{JubjubBlake2b512}), each with a \texttt{keys} module
+(trusted-dealer, DKG, repairable) and a \texttt{rerandomized} submodule
+re-exporting \texttt{sign\_with\_randomizer\_seed}, \texttt{aggregate},
+\texttt{aggregate\_custom}, \texttt{Randomizer}, and
+\texttt{RandomizedParams}. Function \texttt{hash\_randomizer} instantiates
+ZIP 312's $H_R$ as $H^{\circledast}$ (the code's \texttt{HStar}) under
+the personalisation \texttt{FROST\_RedPallasA} (respectively
+\texttt{FROST\_RedJubjubA}), matching \S\ref{sec:fr-rerand-suite}.
+The crate's README calls this feature experimental because ZIP 312 is still
+Draft and states that neither its SemVer nor its MSRV guarantee applies to
+the feature.
+
+The RedPallas module additionally enforces the even-$y$ requirement that
+ZIP 2005's amended protocol-spec \S4.2.3 places on $\aksym$
+(\S\ref{sec:fr-deploy-qsk}): trait \texttt{keys::EvenY} negates the group
+verifying key, every verifying share, the signing shares, and the VSS
+commitment coefficients whenever the serialised key has $\tilde{y} = 1$
+(the code's evenness test is \texttt{serialized[31] \& 0x80 == 0}), and
+the
+\texttt{post\_generate} and \texttt{post\_dkg} ciphersuite hooks call
+\texttt{into\_even\_y} on fresh key material, so trusted-dealer and DKG
+outputs alike land on the even-$y$ representative. Negation commutes with
+Shamir sharing because it is linear. The RedJubjub module carries no such
+machinery; the constraint is Pallas/Orchard-specific.
+
+\subsection{The randomizer flow: draft ZIP against shipped crate}
+\label{sec:fr-deploy-rand}
+
+ZIP 312 (``FROST for Spend Authorization Multisignatures''; owners Gouvea,
+Komlo, Connolly; Status Draft; created 2022-08) specifies, at zips commit
+\texttt{6961098410}, the randomizer generation
+\begin{align*}
+\mathtt{signing\_package\_enc} &=
+  \mathtt{encode\_signing\_package}(\mathtt{commitment\_list},
+  \mathtt{msg}), \\
+\mathtt{randomizer} &= H_R\bigl(\mathtt{random\_bytes}(N_s) \,\|\,
+  \mathtt{signing\_package\_enc}\bigr),
+\end{align*}
+with $H_R$ for FROST(Pallas, BLAKE2b-512) being BLAKE2b-512 under the
+personalisation \texttt{FROST\_RedPallasA}, output reduced to a Pallas
+scalar
+(an element of $\F_{p_{\Vesta}}$); $H_2$ is \texttt{Zcash\_RedPallasH},
+i.e.\ exactly RedPallas's $H^{\circledast}$
+(\S\ref{sec:fr-rerand-suite}). For Jubjub the personalisations are
+\texttt{FROST\_RedJubjub\{R,N,M,C,A\}} and \texttt{Zcash\_RedJubjubH},
+with base point $G^{\mathsf{Sapling}}$. Round 2 then proceeds as plain
+FROST with three substitutions,
+\begin{gather*}
+sk_i \gets sk_i + \mathtt{randomizer}, \qquad
+PK_i \gets PK_i + \mathtt{ScalarBaseMult}(\mathtt{randomizer}), \\
+\mathit{group\_public\_key} \gets \mathit{group\_public\_key} +
+\mathtt{ScalarBaseMult}(\mathtt{randomizer}),
+\end{gather*}
+the second applying in share verification. The
+Coordinator sends the randomizer over a ``confidential and authenticated
+channel'' --- adding confidentiality to plain FROST's reliable,
+authenticated-channel assumption, because the randomizer links the ceremony
+to the on-chain $\rk$.
+
+The released crate differs from this draft text. Crate
+\texttt{frost-rerandomized} 3.0.0 deprecates
+\texttt{Randomizer::new(rng, signing\_package)} --- the earlier,
+message-inclusive API\@. Even that API is not byte-for-byte the draft flow: it
+samples and serialises a field scalar before hashing, whereas the ZIP starts
+with $N_s$ unconstrained random bytes. The recommended API is instead
+\texttt{Randomizer::new\_from\_commitments}: the Coordinator draws an
+$N_s$-byte \texttt{randomizer\_seed}, sends the \emph{seed}, and each
+participant regenerates
+\[
+\mathtt{randomizer} \;=\; \mathtt{hash\_randomizer}\bigl(\mathtt{seed}
+\,\|\, \mathtt{encode\_group\_commitments}(\mathtt{commitments})\bigr)
+\]
+locally via \texttt{regenerate\_from\_seed\_and\_commitments}. The message
+is no longer an input. The crate documentation says that hashing the complete
+commitment map hedges the Coordinator's RNG because the map includes signer
+commitments. This is its implementation rationale, not a property proved by
+the cited RFC, ZIP, or preprint; in particular, the Coordinator receives the
+commitments before generating the seed and remains trusted for unlinkability.
+In the paper's terms
+(ePrint 2024/436, Definition 5 and Remark 1), the commitment encoding
+plays the role of the optional contributory string $\mathrm{aux}$, which
+models ``the transcript of some external protocol''; the paper's own
+\S7 implementation notes describe the older design, with the message
+still included, in the same terms.
+
+The gap between draft and crate is being closed in zips PR \#895
+(``[ZIP 312] Specify key generation, change randomizer handling''; opened
+August 2024, 21 commits, still open and mergeable as of 2026-09-05, with
+its latest review comments dated 2026-08-28). It adds a key-generation
+specification, revises the
+randomizer handling (the randomizer ``couldn't possibly be generated
+using the message as an input''), integrates the ZIP-2005
+$\mathsf{qsk}$ material, renames the
+scheme consistently to ``Re-Randomized FROST'', and adds Daira-Emma
+Hopwood as a ZIP owner. Its commit history also retires the draft's
+serialisation reference --- the ZF FROST book's moving-target
+serialisation-format page --- in favour of RFC 9591's serialisation
+function. Until it merges, this volume presents the crate flow ---
+message omission included --- as the observed fact of the pinned commit and
+the ZIP text as a divergent Draft specification. No conformance conclusion
+follows while that text remains in flight.
+%% TODO: when #895 merges, re-derive this subsection from the merged
+%% text; it is the single sharpest revisit trigger for the chapter.
+
+The trust geometry is worth stating exactly. The paper's \S5.1 holds that
+the central randomizer-choosing party is ``trusted with preserving privacy
+of the scheme'' but ``not trusted with security'', and that removing it
+would require a DKG-style contributory sub-protocol at extra rounds and
+complexity. ZIP 312's threat model matches: the Coordinator is trusted
+with transaction privacy and unlinkability, while the requirements say it
+must not be able to forge without $\mathtt{MIN\_PARTICIPANTS}$ approvals;
+every key-share holder is
+trusted with transaction privacy. Non-requirements are equally explicit:
+ZIP 312 does not remove the Coordinator role, does not (at this commit)
+provide key generation, and places network privacy out of scope.
+
+\subsection{PCZT as the integration surface}\label{sec:fr-deploy-pczt}
+
+ZIP 374's Motivation names ``multiparty transactions --- threshold signing
+(for example FROST [RFC 9591])'' among the problems the PCZT format
+solves; the \emph{Wallet Guide}, \S``Partially created transactions
+(PCZT)'', documents the format and its role graph. The insertion point for
+FROST is the Signer role (\emph{Wallet Guide}, \S``Signing''): to sign an
+Orchard spend the action's re-randomisation scalar $\alpha$ must be
+present, the local-key path computes $\rsk := \ask + \alpha$ ---
+the re-randomisation of the \emph{Ironwood Guide}, \S``Spend authorisation:
+RedPallas re-randomisation'' --- and checks
+$\mathsf{VerificationKey}(\rsk) = \rk$, and the
+\emph{external} path, \texttt{apply\_orchard\_signature}, accepts a
+signature if and only if it verifies under the action's $\rk$ over the
+shielded sighash (\texttt{InvalidExternalSignature} otherwise). A
+FROST-aggregated RedPallas signature is exactly such an external
+signature; for it to verify, the effective FROST randomizer must equal the
+PCZT action's $\alpha$, so that the re-randomised group key
+$\mathsf{RandPK}$ produces equals that action's $\rk$.
+
+PCZT v2 has since shipped in \textsf{pczt}~0.8.0. Current
+\textsf{pczt}~0.9.3 carries separate Orchard and Ironwood bundles and tags an
+externally produced \texttt{SpendAuthSignature} with its value pool and action
+index; \texttt{apply\_orchard\_spend\_auth\_signature} dispatches to the
+corresponding bundle and verifies under that action's $\rk$. The invariant in
+the preceding paragraph --- one shared shielded sighash and the action's own
+$\alpha$ --- is unchanged for v6 Ironwood spends
+(\textsf{librustzcash} \texttt{91f448b5},
+\texttt{pczt/src/roles/signer/mod.rs}).
+
+The end-to-end flow has been demonstrated (ZF FROST book,
+\texttt{zcash/devtool-demo.md}):
 \begin{enumerate}
-\item Select the participants and obtain their unused first-round
-  commitments. At this point the final transaction message need not
-  exist.
-\item Freeze \(B\), generate \(s\), derive \(\alpha\), and construct
-  \(\rk=Y+[\alpha]G\).
-\item Insert that \(\rk\) into the Action. Complete the transaction
-  effects, including outputs, public balances, fee and all other fields
-  covered by the applicable signature digest.
-\item Compute the transaction's signature digest \(m\). Give each signer
-  the transaction information needed to verify its authorisation policy,
-  along with \(m,B,s\) and the identification of the Action it is
-  authorising.
-\item Each signer checks that its regenerated \(\rk\) equals the Action's
-  key, recomputes the required digest, approves the transaction, and
-  produces one response using its consumed nonce pair.
-\item Aggregate, verify under the Action's \(\rk\), and insert the
-  resulting spend-authorisation signature. Complete the proof and
-  remaining authorising data in the order their own interfaces permit.
+\item \texttt{zcash-devtool pczt create} produces the PCZT;
+\item the \texttt{zcash-sign} tool (from
+  ZcashFoundation/\allowbreak frost-zcash-demo, now \texttt{frost-tools})
+  prints a SIGHASH and a \texttt{Randomizer} from the transaction plan;
+\item \texttt{frost-client} runs the FROST protocol over \texttt{frostd}
+  with that SIGHASH as the message and that randomizer;
+\item \texttt{zcash-sign sign} writes the aggregated signature into
+  \texttt{frost\_pczt.signed};
+\item \texttt{zcash-devtool pczt combine} merges the signed and proven
+  PCZTs;
+\item \texttt{zcash-devtool pczt send} broadcasts.
 \end{enumerate}
+The current \texttt{frost-tools} head (\texttt{06c0dbdb}, 2026-08-12)
+does not exercise the version-3 seed flow described in
+\S\ref{sec:fr-deploy-rand}. Its lockfile selects \texttt{frost-core} 2.2.0,
+\texttt{frost-rerandomized} 2.1.0, and an older \texttt{reddsa} 0.5.1
+revision. For PCZT, the Coordinator accepts each Action's already-generated
+scalar randomizer and sends that value to participants through the legacy
+raw-randomizer API\@. This is a dated implementation boundary: the demo validates
+the PCZT external-signature path, but it is not evidence for integration of the
+pinned version-3 library stack or its seed flow.
 
-The proof relation uses the same \(\alpha\) that defines the signature
-key. The prover must possess the required proof-authorisation data;
-threshold spend-key shares alone are not the entire Orchard witness.
-Likewise, withholding the spend key from the prover does not make a
-malicious builder's proposed outputs safe to approve.
+That distinction creates an ordering requirement for any version-3 integration.
+The recommended seed API derives the effective randomizer from round-one
+commitments, so it cannot in general be made equal to an $\alpha$ already fixed
+inside a PCZT Action. The transaction builder must instead use the derived
+randomizer as that Action's $\alpha$ before constructing its proof and $\rk$, or
+use a separately justified compatibility path. Neither the legacy demo nor a
+specification cited here demonstrates that reordered end-to-end flow.
 
-The final signature digest may exclude some authorising data by design.
-The signer follows the exact digest definition for that transaction
-version; it must not hash an arbitrary serialisation or replace the
-digest by the transaction identifier. A partially created transaction
-container transports roles and fields; it is not itself proof that the
-signer checked them.
+Here \texttt{zcash-devtool} builds on \texttt{zcash\_keys} with the
+features \texttt{"orchard"}, \texttt{"unstable"}, and
+\texttt{"unstable-frost"}. The \texttt{unstable-frost} feature ($=$
+\texttt{["orchard"]}) exposes the constructor
+\texttt{UnifiedFullViewingKey::}\allowbreak\texttt{from\_orchard\_fvk}
+--- a UFVK from an Orchard FVK alone, since a FROST wallet has no
+unified spending key --- and the \texttt{zcash\_keys} changelog (0.3.0,
+2024-08-19) frames the flag as existing ``to temporarily expose API
+features that are needed
+specifically when creating FROST threshold signatures'', to be removed
+``once key derivation for FROST has been fully specified and
+implemented''. Repository \texttt{librustzcash} itself, that is,
+classifies FROST key derivation as not fully specified.
 
-\subsection{Applying the shared payment example}
+One check remains outside every specification: ZIP 312 requires that
+signers ``MUST check that the given SIGHASH matches the data sent from the
+Coordinator, or compute the SIGHASH themselves'', and explicitly leaves
+the mechanism out of scope. In the demonstrated flow the SIGHASH travels
+from \texttt{zcash-sign} to the participants through
+\texttt{frost-client}; by what mechanism a share-holding participant
+gains independent confidence in it is unspecified.
+\subsection{Wallet-integration constraints}\label{sec:fr-deploy-wallet}
 
-The \emph{Wallet Guide}'s running transaction spends an 80,000-zatoshi
-note, pays 50,000, returns 20,000 in change and pays a 10,000 fee.
-Its two padded Actions may have net values \(+30{,}000\) and
-\(-20{,}000\). FROST changes none of that arithmetic.
+The ZF FROST book's technical-details chapter records the constraints a
+FROST-capable Zcash wallet inherits. The documented Zcash integration cannot
+authorise transparent inputs, which require ECDSA; the book accordingly
+suggests supporting Orchard only (``Orchard is simpler to handle''). That is
+historical integration advice rather than a current-pool limit: the page
+predates the Ironwood pool. With a DKG-generated
+$\aksym$, the remaining Orchard key components derive from $\aksym$ plus
+either an $\mathsf{sk}$ used only for $\nksym$ and $\mathsf{rivk}$, or
+independently generated $\nksym$ and $\mathsf{rivk}$. Under this key-generation
+flow, a seed phrase alone does not restore the wallet: recovery also needs the
+key share, all verifying shares, the participant identifiers, and the FVK
+components. The book stores these in participant configuration files; the
+library also provides the Repairable Threshold Scheme
+(\S\ref{sec:fr-deploy-stack}).
 
-The holders of the real note's threshold spend authority jointly sign
-its Action. A dummy spend still follows its own permitted authorisation
-construction; it does not represent another threshold-owned 80,000
-zatoshi note. Before approving, the real signers check recipient,
-amount, change ownership, fee and the relevant Action/digest bindings.
-The aggregate signature does not reveal which subset approved, but the
-participants and coordinator know their own session.
+The Foundation's status report (``The State of FROST for Zcash'',
+2025-05-20) named wallet integration the missing piece (``The missing
+piece is for wallets to integrate FROST''): at publication time it reported
+no mainstream wallet integration, while ``technical-inclined users can use
+FROST with Zcash today using our \texttt{frost-client} command line
+tool''. The same post lists the ``lack of a standardized key generation
+specification for FROST'' as the interoperability limiter, flags metadata
+protection (e.g.\ Tor) as needing work, and offers ZF as a candidate
+operator of a production \texttt{frostd}.
 
-The binding signature is a different role. It supplies the authorisation
-component of the balance argument, whose opening-knowledge premises,
-proof relations and integer bounds are stated in \emph{Ironwood Guide},
-\S\emph{Balance, digests, and authorisation}. Threshold spend
-authorisation does not replace that proof of balance or distribute its
-key automatically.
+\subsection{Transport: frostd and frost-client}
+\label{sec:fr-deploy-transport}
 
-\subsection{What a completed endpoint guarantees}
+The reference transport is \texttt{frostd}, a JSON-over-HTTPS session server:
+clients authenticate with key pairs, the Coordinator creates sessions
+naming the participants' public keys, and all FROST messages are
+end-to-end encrypted. Thus the server need not be trusted with message
+contents or signing authority, although it remains an availability dependency. The CLI
+\texttt{frost-client} drives it; both live in
+ZcashFoundation/\allowbreak frost-tools (renamed from
+\texttt{frost-zcash-demo}). Least Authority, as Zcash Ecosystem Security
+Lead, audited \texttt{frost-client} and \texttt{frostd} (announcement
+2025-05-01) with no
+high-severity findings, all findings addressed on \texttt{main}. No ZIP
+specifies this transport; ZIP 312 places network privacy out of scope
+(\S\ref{sec:fr-deploy-rand}). The tools repository labels the command-line
+programs as demos and says they should not be used in production.
+The \texttt{frost-client} README also warns that it stores secrets unencrypted
+in its configuration file and recommends protecting that file or building a
+separate tool from the client as a base.
 
-A complete honest run outputs the same signature format the existing
-Action verifier accepts, with no reconstruction of the spend key during
-signing. The off-chain system must still provide an agreed key package,
-participant authentication, private share distribution, confidential
-randomizer transport, application-level transaction approval and durable
-nonce consumption.
+\subsection{Audit coverage, precisely}\label{sec:fr-deploy-audit}
 
-Those requirements are not optional implementation polish: each closes
-a specific step in the construction. The threshold-signing endpoint is
-complete only when the surrounding custody system implements them.
-Nothing in this construction turns a proposed threshold application
-for some other protocol into an implemented one.
+Two cryptographic-library audits are relevant, and neither covers the code
+path Zcash custody would run. NCC Group audited the v0.6.0 release (commit
+\texttt{5fa17ed}) of
+\texttt{frost-core}, \texttt{frost-ed25519}, \texttt{frost-ed448},
+\texttt{frost-p256}, \texttt{frost-secp256k1}, and
+\texttt{frost-ristretto255} --- including trusted-dealer and DKG key
+generation and FROST signing --- with all findings addressed and reviewed
+by NCC (public report 2023-10-23). The repository README is explicit:
+``This does not include \texttt{frost-secp256k1-tr} and rerandomized
+FROST.'' Earlier, the 2021 ``Audit of FROST implementation'' (JP Aumasson
+and Adrien Hamelink, Taurus; Omer Shlomovits, ZenGo; dated 2021-03-23)
+covered the pre-rewrite implementation in the RedJubjub repository's
+\texttt{src/frost.rs} (404 source lines by the report's count, at commit
+\texttt{2ebc08f},
+2021-02-25) --- two-round FROST with a trusted dealer only, RedJubjub
+only --- concluding ``We did not find any major security issue.'' The report
+also records that the implementation omitted the paper's secure deletion of
+nonces and commitments after signing.
+
+The composition, therefore: \texttt{frost-rerandomized} plus the
+\texttt{reddsa} RedPallas/RedJubjub ciphersuites --- the exact stack of
+\S\ref{sec:fr-deploy-stack} --- is not covered by any completed third-party
+audit identified in the repository and audit announcements rechecked
+2026-09-05. Of those audits, only the 2021 review touched a Zcash FROST
+ciphersuite, and it predates the \texttt{frost-core} rewrite. The separate
+Least Authority audit covers the transport tools, not this cryptographic
+composition.
+%% Audit landscape rechecked 2026-09-05: frost README @0966bd1 still
+%% scopes the NCC audit to v0.6.0 and excludes rerandomized FROST; the
+%% Least Authority announcement (2025-05-01) covers the frost-client and
+%% frostd tools only; no audit touches frost-rerandomized or the reddsa
+%% suites. A print-time recheck is mandated by the revisit trigger in
+%% sec:fr-deploy-class.
+
+\subsection{Custody of the ZIP-2005 quantum spending key}
+\label{sec:fr-deploy-qsk}
+
+ZIP 2005 (``Ironwood Quantum Recoverability''; owners Daira-Emma Hopwood
+and Jack Grigg; Status Proposed, Category Consensus; activation at the
+NU6.3 activation height) is the second custody surface. Its ``Usage with
+FROST'' section derives $\aksym$ jointly, from the participants' shares of
+$\ask$, via FROST DKG\@. It then says that participants ``MUST privately
+agree on a value $\mathsf{sk}$'' and use it with
+$\mathsf{use\_qsk}=\mathsf{true}$ to derive the remaining material. The
+protocol must give every participant the same extracted validating-key value
+$\mathsf{ak}$, $\nksym$, and $\mathsf{rivk\_ext}$; the specified derivations then imply
+equal $\mathsf{qsk}$ and $\mathsf{qk}$ under the ZIP's stated
+collision-resistance assumptions. In this series,
+$\aksym=[\ask]G^{\mathsf{SpendAuth}}$ denotes the Pallas point. ZIP 2005
+writes $\mathsf{ak}^{\mathbb P}$ for that point and
+$\mathsf{ak}:=\Extract_{\mathbb P}(\mathsf{ak}^{\mathbb P})$ for its
+extracted field element. With that point/field-element distinction explicit,
+its derivations are
+\begin{align*}
+\mathsf{H}^{\mathsf{qsk}}(\mathsf{sk}) &=
+  \mathrm{truncate}_{32}\bigl(\mathsf{PRFexpand}_{\mathsf{sk}}
+  ([\mathtt{0x0C}])\bigr), \\
+\mathsf{H}^{\mathsf{qk}}(\mathsf{qsk}) &=
+  \mathrm{BLAKE3.derive\_key}(\texttt{"Zcash ZIP 2005 qk-derivation
+  v1"}, \mathsf{qsk}, 32), \\
+\mathsf{H}^{\mathsf{rivk\_ext}}_{\mathsf{qk}}
+(\mathsf{ak}, \nksym) &=
+  \mathrm{ToScalar}^{\mathsf{Orchard}}\bigl(
+  \mathsf{PRFexpand}_{\mathsf{qk}}([\mathtt{0x0D}] \,\|\,
+  \mathrm{I2LEOSP}_{256}(\mathsf{ak}) \,\|\,
+  \mathrm{I2LEOSP}_{256}(\nksym))\bigr).
+\end{align*}
+The displayed key derivations use the $\mathsf{PRFexpand}$ domain-separator
+bytes $\mathtt{0x0C}$ and $\mathtt{0x0D}$; ZIP 2005 also reserves
+$\mathtt{0x0A}$ and $\mathtt{0x0B}$ for note-related uses. In the
+$\mathsf{use\_qsk} = \mathsf{true}$ branch of the amended protocol-spec
+\S4.2.3, the wallet obtains the point $\mathsf{ak}^{\mathbb P}$ ``by any suitably
+secure method that ensures the last bit of
+$\mathrm{repr}_{\mathbb{P}}(\mathsf{ak}^{\mathbb P})$ is 0'' --- the
+requirement the \texttt{reddsa} \texttt{EvenY} machinery of
+\S\ref{sec:fr-deploy-stack} enforces --- and sets the ZIP's field element
+$\mathsf{ak}=\Extract_{\mathbb P}(\mathsf{ak}^{\mathbb P})$, $\mathsf{qsk} =
+\mathsf{H}^{\mathsf{qsk}}(\mathsf{sk})$, $\mathsf{qk} =
+\mathsf{H}^{\mathsf{qk}}(\mathsf{qsk})$, and $\mathsf{rivk} =
+\mathsf{H}^{\mathsf{rivk\_ext}}_{\mathsf{qk}}
+(\mathsf{ak}, \nksym)$.
+The ZIP's list of admissible generation methods for
+$\mathsf{ak}^{\mathbb P}$ explicitly includes ``FROST distributed key
+generation [zip-0312-key-generation] in which the corresponding
+spend-authorization material is $t$-of-$n$ shared among the
+participants''.
+
+The threat model shifts accordingly. The host wallet in a multi-signer
+FROST setup is the ZIP-312 Coordinator; the ZIP gives it $\nksym$, the
+extracted validating-key value $\mathsf{ak}$, and $\mathsf{qk}$.
+With FROST and hardware wallets, spend authorisation breaks
+only by (1) possession of $\mathsf{qsk}$ \emph{plus} finding discrete
+logarithms on Pallas --- and ``the adversary is an authorized FROST
+signer --- they hold a copy of $\mathsf{qsk}$ by construction'' is the
+ZIP's variant 1.a --- or (2) breaking RedDSA, FROST, the DKG, or the
+proving system. Each participant MUST treat $\mathsf{qsk}$ as a secret
+held at least as securely and reliably as $\ask$: it is not needed until
+the Recovery Protocol, but losing it can lose funds once the current
+Orchard protocol is disabled. A quantum adversary holding $\mathsf{qsk}$
+--- which every participant holds --- and able to solve discrete logarithms
+on Pallas may steal funds, so the ZIP RECOMMENDS that once a fully
+post-quantum threshold
+multisignature protocol exists, all FROST-held funds migrate to its pool.
+FROST's key advantage --- signing with shares without reconstructing $\ask$
+during signing --- would be retained in the outlined Recovery Protocol, which
+would still require a RedDSA signature.
+
+One tension is unresolved. FROST DKG exists precisely to avoid a
+commonly-known secret, yet the ceremony above requires the participants to
+``privately agree on a value $\mathsf{sk}$'' from which $\nksym$ and
+$\mathsf{qsk}$ derive --- and neither ZIP 2005 nor the crates give a
+protocol for that agreement. ZIP 2005's Deployment section points at
+PR \#895 (``There is no significant existing deployment of FROST, so we
+can write this into ZIP 312 from the start''), so the resolution is
+expected there: as of 2026-09-05 the PR's commit history drafts a
+contributory $\mathsf{sk}$-generation section (2026-03-05), still
+unmerged, so the shared-$\mathsf{sk}$ agreement stays \emph{designed
+but unspecified} with \#895's merge as its trigger.
+
+\subsection{Crosslink finalizer keys}\label{sec:fr-deploy-crosslink}
+
+The third surface is prospective only. The \emph{Crosslink Guide},
+\S``Finalizer keys'', records that the prototype uses single ed25519 keys
+per finalizer (ed25519-zebra), with 76-byte votes signed by appending a
+64-byte ed25519 signature over those 76 bytes, and that no FROST or
+threshold-signing design for finalizer
+keys is sourced anywhere in the Crosslink corpus (negative search over
+tfl-book, crosslink-protocol-guide, crosslink-spec, and zebra-crosslink,
+dated 2026-07-15 in that guide); key rotation, revocation, threshold
+custody, and initial-roster formation are classified open problems in
+every design source.
+
+We record one observation of our own, clearly marked as such: finalizer
+votes are plain ed25519, with no key re-randomisation, so the fitting
+ciphersuite would be RFC 9591's FROST(Ed25519, SHA-512) via the
+\texttt{frost-ed25519} crate, whose v0.6.0 predecessor was covered by the
+NCC audit, with no re-randomisation layer --- finalizer
+keys are deliberately long-lived roster identities, not unlinkable
+one-time keys, so the entire apparatus of \S\ref{sec:fr-rerand} is
+unnecessary there. No published design says this; it is this volume's
+inference from the vote format and the audit table.
+%% TODO: revisit when Shielded Labs publishes any finalizer
+%% key-management or rotation design; none exists as of 2026-07-15.
+
+\subsection{Classification and revisit triggers}
+\label{sec:fr-deploy-class}
+
+Per the series' three-way scheme:
+
+\begin{itemize}
+\item \emph{Specified.} FROST as in RFC 9591 (\S\ref{sec:fr-rfc});
+  Re-Randomized FROST for spend-authorisation custody, per ZIP 312 at
+  Draft status --- PR \#895's in-flight randomizer and key-generation
+  changes are its named revisit trigger and do not move the bin
+  (\S\ref{sec:fr-deploy-rand}); the
+  \texttt{frost-core}/\allowbreak\texttt{frost-rerandomized}/%
+  \allowbreak\texttt{reddsa} API
+  surface at the pinned versions (\S\ref{sec:fr-deploy-stack}); the PCZT
+  Signer external-signature path (\S\ref{sec:fr-deploy-pczt}).
+\item \emph{Designed-but-unspecified.} FROST key generation for Zcash
+  (out of scope at the pinned ZIP-312 commit; the crates implement the
+  PedPoP DKG of ePrint 2020/852, but no ZIP specifies it); the ZIP-2005
+  $\mathsf{use\_qsk}$ FROST
+  key-generation constraints (ZIP Proposed, referencing the unmerged
+  \#895; the $\mathsf{sk}$-agreement step has no protocol,
+  \S\ref{sec:fr-deploy-qsk}); the transport
+  (\texttt{frostd} exists and is audited, but no ZIP covers it,
+  \S\ref{sec:fr-deploy-transport}).
+\item \emph{Open problem.} Crosslink finalizer threshold custody
+  (\S\ref{sec:fr-deploy-crosslink}); post-quantum threshold signing for
+  the $\mathsf{qsk}$-era migration (\S\ref{sec:fr-deploy-qsk});
+  hardware-wallet FROST share custody --- ZIP 2005's threat model assumes
+  hardware-wallet FROST signers, but none was identified in the device
+  integrations checked for this audit.
+\end{itemize}
+
+Two former revisit triggers have fired without changing these bins. NU6.3 is
+active, but \texttt{zcash\_keys} still gates
+\texttt{from\_orchard\_fvk} behind \texttt{unstable-frost} pending a specified
+FROST derivation. PCZT v2 is released, and the current signer preserves the
+$\alpha$ and external-signature surface for Ironwood as described in
+\S\ref{sec:fr-deploy-pczt}. The remaining classifications expire on the
+following identifiable events, in rough order of expected impact:
+
+\begin{itemize}
+\item \emph{PR \#895 merges.} The randomizer flow, the key-generation
+  specification, the $\mathsf{sk}$-agreement protocol, and the
+  ZIP-312/ZIP-2005 integration all re-derive from the merged text; the
+  serialisation reference it pins replaces the ZF-FROST-book moving
+  target (\S\ref{sec:fr-deploy-rand}).
+\item \emph{An audit of the re-randomised stack is announced.} The
+  ``no completed third-party audit'' claim of
+  \S\ref{sec:fr-deploy-audit} must be rechecked immediately before any
+  printing in any case.
+\item \emph{A finalizer key-management design is published.} The
+  Crosslink bin moves, and the \texttt{frost-ed25519} observation is
+  either confirmed or discarded (\S\ref{sec:fr-deploy-crosslink}).
+\item \emph{A post-quantum threshold multisignature protocol exists.}
+  ZIP 2005's RECOMMENDED migration of FROST-held funds becomes
+  actionable (\S\ref{sec:fr-deploy-qsk}).
+\end{itemize}
 
 \end{document}

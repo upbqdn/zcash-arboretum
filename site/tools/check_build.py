@@ -37,6 +37,7 @@ def main():
     out = sitegen.ROOT / "build" / "pdf"
     out.mkdir(parents=True, exist_ok=True)
     sources = [sitegen.ROOT / f"{vol}.tex" for vol in sitegen.VOLUMES]
+    sources += sorted((sitegen.ROOT / "parked").glob("*-guide.tex"))
     sources += sorted((sitegen.ROOT / "talks").glob("*.tex"))
     sitegen.omnibus()
     sources.append(sitegen.ROOT / "arboretum-complete.tex")
