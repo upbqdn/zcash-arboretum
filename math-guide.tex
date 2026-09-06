@@ -9,6 +9,8 @@
 \setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 \usepackage{bm}
 \usepackage{xcolor}
 \usepackage[psdextra,hidelinks]{hyperref}
@@ -30,6 +32,7 @@
 \usepackage{mdframed}
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
+\providecolor{tierspend}{RGB}{200,60,60}
 \mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
   linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
   innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
@@ -7006,11 +7009,36 @@ roots sitting at the angles \(2\pi k/n\) for \(\gcd(k, n) = 1\). Over a
 finite field existence is more delicate, and it is exactly the finite
 case that matters for cryptography.
 
-% FIGURE PLACEHOLDER (figures pass): the eight 8th roots of unity on the
-% complex unit circle, equally spaced at angles 2*pi*k/8; the four
-% primitive ones (k = 1, 3, 5, 7) highlighted in tierin, the others
-% (1, i, -1, -i, of orders 1, 4, 2, 4) in neutral grey; every node
-% labelled omega^k per the L2/L3 rule.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.5,
+  pt/.style={circle, fill, inner sep=1.6pt},
+  prim/.style={pt, tierin},
+  nonprim/.style={pt, black!45},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\draw[black!30] (0,0) circle (1);
+\draw[->, black!25] (-1.35,0) -- (1.35,0);
+\draw[->, black!25] (0,-1.35) -- (0,1.35);
+\foreach \k/\style/\anchor in {0/nonprim/west, 1/prim/south west,
+    2/nonprim/south, 3/prim/south east, 4/nonprim/east,
+    5/prim/north east, 6/nonprim/north, 7/prim/north west} {
+  \node[\style] (w\k) at ({cos(45*\k)}, {sin(45*\k)}) {};
+  \node[lab, anchor=\anchor] at ({1.12*cos(45*\k)}, {1.12*sin(45*\k)})
+    {$\omega^{\k}$};
+}
+\end{tikzpicture}
+\caption{The eight \(8\)-th roots of unity in \(\C\), equally spaced on
+the unit circle at angles \(2\pi k/8\), with
+\(\omega = e^{2\pi i/8}\). The four primitive ones (\(k = 1, 3, 5, 7\),
+exactly the \(k\) coprime to \(8\); marked in colour) each generate the
+whole cycle; the grey points \(\omega^0 = 1\), \(\omega^2 = i\),
+\(\omega^4 = -1\), \(\omega^6 = -i\) have orders \(1, 4, 2, 4\) and
+generate proper subgroups. Over a finite field the same group structure
+survives with the geometry stripped away---the picture to keep is the
+cycle, not the circle.}
+\label{rootsofunity:fig-circle}
+\end{figure}
 
 \subsection{Existence over finite fields: the condition
 \texorpdfstring{\(n \mid q-1\)}{n divides q-1}}
@@ -7619,22 +7647,22 @@ convergence---it is called the \emph{number-theoretic transform}.
 
 \begin{definition}[Number-theoretic transform]\label{rootsofunity:def-ntt}
 Let \(\omega\) be a primitive \(n\)-th root of unity in \(\F\). The
-\emph{number-theoretic transform} (NTT) of a vector
-\(a = (a_0, \dots, a_{n-1}) \in \F^n\) is the vector
+\emph{number-theoretic transform} (NTT) sends the coefficient vector
+of a polynomial to its value vector on \(H\): it is the evaluation map
+\(\mathrm{ev}_H\) written in coordinates. Explicitly, the NTT of
+\(a = (a_0, \dots, a_{n-1}) \in \F^n\) is
 \(\hat{a} = (\hat{a}_0, \dots, \hat{a}_{n-1})\) with
 \[
 \hat{a}_j = \sum_{k=0}^{n-1} a_k\, \omega^{jk},
-\qquad j = 0, \dots, n-1.
+\qquad j = 0, \dots, n-1,
 \]
-The \emph{inverse number-theoretic transform} is
+each entry being the value at \(\omega^j\) of the polynomial with
+coefficients \(a\). The \emph{inverse number-theoretic transform} is
+interpolation---the recovery of the coefficients from the values---and
+by \cref{rootsofunity:thm-vanderinv} it too is a single explicit sum:
 \[
 a_k = \frac{1}{n} \sum_{j=0}^{n-1} \hat{a}_j\, \omega^{-jk}.
 \]
-In the language above: if \(a\) is the coefficient vector of
-\(f \in \F[X]_{<n}\), then \(\hat{a} = \mathrm{ev}_H(f)\) is its value
-vector on \(H\); the NTT is evaluation, and the inverse NTT is
-interpolation. That the inverse formula indeed inverts the forward one
-is exactly \cref{rootsofunity:thm-vanderinv}.
 \end{definition}
 
 The NTT enjoys the same convolution property as the classical DFT, and
@@ -7677,7 +7705,12 @@ values on the \(n\)-point set \(H\)
 (\cref{rootsofunity:prp-lagrangeprop}), so the entrywise product of the
 value vectors uniquely determines \(c\).
 
-For the convolution statement, work in the quotient ring
+For the convolution statement the plan is: (i) multiplication in
+\(\F[X]/(X^n - 1)\) \emph{is} cyclic convolution of coefficient
+vectors; (ii) evaluation on \(H\) is a ring isomorphism from that
+quotient onto \(\F^n\) with entrywise operations; (iii) the degree
+bound rules out wrap-around, so the cyclic product is the genuine one.
+For (i), work in the quotient ring
 \(\F[X]/(X^n - 1)\) (\cref{ringsfields:def-quotient} and
 \cref{ringsfields:prop-quotient-well-defined}, applied to the ideal of
 multiples of \(X^n - 1\), \cref{ringsfields:def-ideal}). Every class has
@@ -7720,6 +7753,26 @@ NTT). If the NTT runs in \(O(n \log n)\) operations, the whole
 multiplication costs \(O(n \log n)\). The fast Fourier transform
 supplies that conditional.
 \end{remark}
+
+\begin{example}[The convolution theorem in \(\F_{17}\)]
+\label{rootsofunity:exp-ntt17}
+% Source: .wip/rewrite/math-guide/compute/ntt_f17.py
+%   domain H = [1, 4, 16, 13]; a^ = [3, 9, 16, 10]; b^ = [4, 7, 2, 16]
+%   entrywise = [12, 12, 15, 7]; inverse NTT = [3, 7, 2, 0]
+In \(\F_{17}\), the element \(\omega = 4\) has
+\(\omega^2 = 16 = -1\), so it is a primitive \(4\)-th root of unity
+with domain \(H = \{1, 4, 16, 13\}\). To multiply \(f = 1 + 2X\)
+and \(g = 3 + X\), pad both coefficient vectors to length \(4\) and
+transform: \(\hat{a} = (3, 9, 16, 10)\) and
+\(\hat{b} = (4, 7, 2, 16)\), the values of \(f\) and of \(g\) on
+\(H\). Multiplying entrywise gives \((12, 12, 15, 7)\), the values
+of \(fg\) on \(H\), and the inverse transform returns
+\((3, 7, 2, 0)\): the coefficients of \(fg = 3 + 7X + 2X^2\),
+agreeing with the schoolbook product. At \(n = 4\) nothing is saved;
+the point is the shape of the pipeline, which becomes decisive once the
+transforms themselves cost \(O(n \log n)\)
+(\S\ref{rootsofunity:sub-fft}).
+\end{example}
 
 \subsection{The fast Fourier transform}\label{rootsofunity:sub-fft}
 
@@ -7857,7 +7910,8 @@ Take \(n = 4\) with primitive \(4\)-th root \(\omega\) (so
 \(\omega^2 = -1\) and \(\omega^4 = 1\), and \(\eta = \omega^2 = -1\) is
 the primitive \(2\)nd root). For
 \(f = a_0 + a_1 X + a_2 X^2 + a_3 X^3\), the two length-\(2\)
-subtransforms over the domain \(\{1, -1\}\) are
+subtransforms over the domain \(\{1, -1\}\)---each itself a single
+butterfly, with twiddle \(\eta^0 = 1\)---are
 \[
 E = (a_0 + a_2,\; a_0 - a_2),
 \qquad
@@ -7880,15 +7934,61 @@ and \(12\) additions for the direct \(4 \times 4\) matrix multiply; and the
 gap widens as \(n\) grows.
 \end{example}
 
-% FIGURE PLACEHOLDER (figures pass): radix-2 butterfly diagram for the
-% length-4 transform of rootsofunity:exp-fft4. Two levels: inputs
-% a_0..a_3 split by parity into the two length-2 subtransforms
-% producing E_0, E_1 and O_0, O_1, then the two butterflies with
-% twiddle weights +omega^0/-omega^0 and +omega^1/-omega^1 crossing to
-% outputs hat a_0, hat a_1, hat a_2, hat a_3. Every node referenced by
-% the caption (a_k, E_j, O_j, hat a_j, the twiddle edges) labelled in
-% the figure per the L2/L3 rule; edge weights +omega^j / -omega^j on
-% the crossing pair.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  >={Stealth[length=2mm,width=1.6mm]},
+  n/.style={font=\small, inner sep=2.5pt},
+  box/.style={draw=black!40, rounded corners=2pt, inner sep=4pt,
+              font=\footnotesize, align=center},
+  ed/.style={->, semithick, black!55},
+  posw/.style={->, semithick, tierin!85!black},
+  neg/.style={->, semithick, tierspend!85!black},
+  wt/.style={font=\scriptsize, inner sep=1pt, fill=white},
+]
+\node[n] (a0) at (0,3.6) {$a_0$};
+\node[n] (a1) at (0,2.7) {$a_1$};
+\node[n] (a2) at (0,1.8) {$a_2$};
+\node[n] (a3) at (0,0.9) {$a_3$};
+\node[box] (EV) at (3.2,3.15) {length-$2$ NTT\\over $\{1,-1\}$};
+\node[box] (OD) at (3.2,1.35) {length-$2$ NTT\\over $\{1,-1\}$};
+\node[n] (E0) at (5.0,3.6)  {$E_0$};
+\node[n] (E1) at (5.0,2.7)  {$E_1$};
+\node[n] (O0) at (5.0,1.8)  {$O_0$};
+\node[n] (O1) at (5.0,0.9)  {$O_1$};
+\node[n] (h0) at (8.2,3.6)  {$\hat{a}_0$};
+\node[n] (h1) at (8.2,2.7)  {$\hat{a}_1$};
+\node[n] (h2) at (8.2,1.8)  {$\hat{a}_2$};
+\node[n] (h3) at (8.2,0.9)  {$\hat{a}_3$};
+\draw[ed] (a0) -- (EV.west |- a0);
+\draw[ed] (a2) -- (EV.west |- 0,3.0);
+\draw[ed] (a1) -- (OD.west |- 0,1.5);
+\draw[ed] (a3) -- (OD.west |- a3);
+\draw[ed] (EV.east |- E0) -- (E0);
+\draw[ed] (EV.east |- E1) -- (E1);
+\draw[ed] (OD.east |- O0) -- (O0);
+\draw[ed] (OD.east |- O1) -- (O1);
+\draw[ed]  (E0) -- (h0);
+\draw[ed]  (E0) -- (h2);
+\draw[ed]  (E1) -- (h1);
+\draw[ed]  (E1) -- (h3);
+\draw[posw] (O0) -- node[wt, pos=0.45] {$+\omega^0$} (h0);
+\draw[neg] (O0) -- node[wt, pos=0.72] {$-\omega^0$} (h2);
+\draw[posw] (O1) -- node[wt, pos=0.45] {$+\omega^1$} (h1);
+\draw[neg] (O1) -- node[wt, pos=0.72] {$-\omega^1$} (h3);
+\end{tikzpicture}
+\caption{The length-\(4\) transform of
+\cref{rootsofunity:exp-fft4} as a circuit. The inputs split by
+parity into two length-\(2\) subtransforms, whose outputs
+\(E_0, E_1\) and \(O_0, O_1\) feed the two butterflies of
+\cref{rootsofunity:rem-butterfly}: each \(E_j\) is carried to
+outputs \(\hat{a}_j\) and \(\hat{a}_{j+2}\) with weight \(1\), each
+\(O_j\) with weights \(+\omega^j\) and \(-\omega^j\)
+(\cref{rootsofunity:eq-fftbutter1}--\cref{rootsofunity:eq-fftbutter2});
+the crossing pair of weighted edges is the \(\times\) that names the
+butterfly.}
+\label{rootsofunity:fig-butterfly}
+\end{figure}
 
 \subsection{The role of smooth multiplicative domains in polynomial
 proof systems}\label{rootsofunity:sub-proofsystems}
