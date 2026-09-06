@@ -7367,8 +7367,12 @@ classically (on the unit circle \(\bar z = z^{-1}\)). Then
 \(\ip{\bar v_k}{v_{k'}} = \sum_i \omega^{i(k'-k)}\), which
 \cref{rootsofunity:prp-sumroots} evaluates to \(0\) for \(k \ne k'\)
 and to \(n\) for \(k = k'\): distinct frequency vectors are orthogonal,
-and each pairs with its own mirror to \(n\). This is the finite-field
-counterpart of the orthogonality of the exponentials
+and each pairs with its own mirror to \(n\). (Which factor carries the
+mirror is a convention: with the roles exchanged the exponent is
+\(k - k'\), and the criterion \(n \mid k' - k\) is symmetric, so the
+verdict is the same; the order here matches the product
+\(\overline{V}\,V\) computed in \cref{rootsofunity:thm-vanderinv}.)
+This is the finite-field counterpart of the orthogonality of the exponentials
 \(\theta \mapsto e^{2\pi i k \theta}\) in classical Fourier analysis,
 the balanced trip around the cycle replacing the integral over the
 circle. It is the engine of the inverse-transform proof below
