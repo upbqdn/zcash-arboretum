@@ -65,3 +65,12 @@ swipes; Firefox used wheel scrolling. Safari/WebKit was not available.
 These checks do not certify every mathematical statement or physical device.
 The restoration preserves the original exposition; it is not a new claim of
 whole-protocol correctness or a guarantee that no editorial gaps remain.
+
+## Subsequent removal
+
+At the user's request, the added subfields/extensions definition, example
+and embedding explanation were removed, and the original wording "finite
+extensions" restored. The Math source now matches the pre-rewrite archive
+exactly. The addition's mathematical review had not established coherent
+editorial integration with the surrounding and later passages. UI fixes
+and the other differences recorded above remain.

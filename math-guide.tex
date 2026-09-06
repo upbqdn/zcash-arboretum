@@ -2809,37 +2809,6 @@ Conversely, if \(n=ab\) is composite with \(1<a,b<n\), then
 \(1\neq 0\) by definition.
 \end{proof}
 
-\begin{definition}[Subfields and field extensions]
-\label{ringsfields:def-extension}
-Let \(K\) be a field. A \emph{subfield} \(F\) of \(K\) is a subset
-containing \(0\) and \(1\), closed under addition, subtraction and
-multiplication, and containing the inverse of each of its nonzero elements.
-It is itself a field with the operations inherited from \(K\): the
-arithmetic laws remain true on the subset, and the closure conditions
-keep the results of its operations inside the subset. We call \(K\) a
-\emph{field extension}, or \emph{extension field}, of \(F\), and write
-\(F\subseteq K\). Enlarging the field does not change the arithmetic
-of the elements already in \(F\).
-\end{definition}
-
-For example, \(\Q\) is a subfield of \(\R\). The calculation
-\(1/2+1/3=5/6\) is the same in both fields. The larger field also
-contains \(\sqrt{2}\), which is not rational: if
-\(\sqrt{2}=a/b\) for coprime integers \(a,b\) with \(b\neq0\), then
-\(a^2=2b^2\) forces \(a\) even. Writing \(a=2c\) gives
-\(b^2=2c^2\), forcing \(b\) even too, contrary to coprimality.
-Thus an extension can supply solutions of equations that have no solution
-in the smaller field, while preserving all its existing calculations.
-
-Sometimes the smaller field is represented inside the larger one rather
-than literally given as a subset. An \emph{embedding} is an injective map
-\(\iota:F\to K\) preserving addition, multiplication, \(0\) and \(1\).
-Its image is a subfield: in particular, for \(a\neq0\), the equality
-\(\iota(a)\iota(a^{-1})=\iota(1)=1\) shows that inverses are preserved.
-Identifying \(a\) with \(\iota(a)\) then lets us regard \(K\) as an
-extension of \(F\). This is the meaning of the identification in the
-polynomial construction of Lemma~\ref{polynomials:lem:adjoin-root}.
-
 \begin{example}[Fields]\label{ringsfields:exa-fields}
 \begin{enumerate}
 \item The rationals \(\Q\), the reals \(\R\), and the complexes \(\C\)
@@ -2849,7 +2818,7 @@ polynomial construction of Lemma~\ref{polynomials:lem:adjoin-root}.
   below recovers the same fact abstractly). It is called the \emph{prime
   field} of characteristic \(p\)---\cref{ringsfields:def-char} names the
   invariant---and is fundamental to every later cryptographic
-  construction in the series. Its extensions \(\Fq\) with
+  construction in the series. Its finite extensions \(\Fq\) with
   \(q=p^k\) elements exist for every prime power, arising from the
   quotient recipe of Example~\ref{ringsfields:exa-quotient-Zn}, and are
   developed in \S\ref{sec:finitefields}.
