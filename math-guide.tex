@@ -7358,8 +7358,12 @@ than \(1\) can only be zero: \((\zeta - 1) S = 0\) with
 Call two vectors in \(\F^n\) \emph{orthogonal} when their standard
 inner product (\cref{linalg:def-stdip}) vanishes. For each frequency
 \(k\) let \(v_k = (1, \omega^k, \omega^{2k}, \dots, \omega^{(n-1)k})\)
-be its vector of powers, and let \(\bar v_k\) be the mirror vector
-built from \(\omega^{-1}\). Then
+be its vector of powers, and let
+\(\bar v_k = (1, \omega^{-k}, \omega^{-2k}, \dots, \omega^{-(n-1)k})\)
+be the same construction run with \(\omega^{-1}\) in place of
+\(\omega\): the \emph{mirror} of \(v_k\), walking the cycle in the
+opposite direction, in the role the complex conjugate plays
+classically (on the unit circle \(\bar z = z^{-1}\)). Then
 \(\ip{\bar v_k}{v_{k'}} = \sum_i \omega^{i(k'-k)}\), which
 \cref{rootsofunity:prp-sumroots} evaluates to \(0\) for \(k \ne k'\)
 and to \(n\) for \(k = k'\): distinct frequency vectors are orthogonal,
