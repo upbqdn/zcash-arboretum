@@ -52,6 +52,10 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
   this volume or in a lower one cited at the point of use. A term the
   critical path does not need is omitted, not name-dropped -- state the
   substance in plain language instead of naming the machinery.
+- First-use order is a release gate: a forward reference, later glossary
+  entry, or assumed specialist background does not replace an earlier
+  explanation. Check fresh rewrites for prerequisite gaps as strictly as
+  existing prose.
 - Claims about deployed behaviour cite the implementation (crate and file)
   and the spec section; claims about design-stage protocols are classified
   /specified/ | /designed-but-unspecified/ | /open problem/.
@@ -65,6 +69,9 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
   =assumption/remark/example= (definition style).
 - Labels: =sec:=, =def:=, =thm:=, =lem:=, =prop:=, =cor:=, =ass:=, =ex:=,
   =eq:=, =fig:=, =tab:=, =rem:= prefixes.
+  Existing published labels may retain their section namespaces (for example
+  =groups:prop-order=); preserve these identifiers when revising their content
+  so that existing links remain valid.
 
 * Figures
 

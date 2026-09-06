@@ -23,8 +23,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends latexml libimage-magick-perl
       - name: Prepare web sources
         run: |
+          python3 -B site/tools/test_sitegen.py
           python3 site/tools/sitegen.py webprep
-          cp -r site/figures build/web/figures
+          if [ -d site/figures ]; then cp -r site/figures build/web/figures; fi
+          cp site/arboretum.css build/arboretum.css
       - name: Convert volumes to HTML
         run: |
           set -e
@@ -54,6 +56,8 @@ jobs:
           cp -r site/fonts _site/fonts
       - name: Build search index
         run: npx --yes pagefind --site _site
+      - name: Check local links and anchors
+        run: python3 -B site/tools/check_site.py _site
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

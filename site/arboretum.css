@@ -173,6 +173,11 @@ code, kbd, pre { font-family: var(--mono); }
 .arb-bar .arb-search-panel {
   position: absolute; right: 0; top: 1.8rem;
   width: min(34rem, 88vw);
+  /* The sticky bar cannot scroll an unbounded popup into view. */
+  max-height: calc(100vh - 4rem);
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   background: var(--plate);
   border: 1px solid var(--edge);
   border-radius: 2px;

@@ -11,16 +11,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: wtfjoke/setup-tectonic@v3
-      - name: Build every volume
+      - name: Check site tooling
+        run: python3 -B site/tools/test_sitegen.py
+      - name: Check numerical examples
         run: |
-          set -e
-          for f in *-guide.tex parked/*-guide.tex; do
-            echo "=== $f ==="
-            tectonic -Z shell-escape "$f"
-          done
+          python3 -B research/check_foundations.py
+          python3 -B research/check_mathcrypto.py
+          python3 -B research/check_halo2.py
+          python3 -B research/check_wallet_crypto.py
+          python3 -B research/check_deployed.py
+          python3 -B research/check_frontier.py
+      - name: Build and check every document
+        run: python3 -B site/tools/check_build.py
       - uses: actions/upload-artifact@v4
         with:
           name: pdfs
+          path: build/pdf/*.pdf
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs
           path: |
-            *.pdf
-            parked/*.pdf
+            build/pdf/*.log
+            build/pdf/*.build-output

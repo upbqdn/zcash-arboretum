@@ -2,112 +2,146 @@
 #+AUTHOR: m@rek.onl
 #+OPTIONS: toc:nil num:nil
 
-The Zcash Arboretum is formal, full-depth documentation of the
-[[https://z.cash/][Zcash]] protocol, focused on the deployed Orchard and Ironwood
-core and the protocols being built on top of it. Each volume states its
-dependencies and is checked against the protocol specification, applicable
-ZIPs, and deployed implementations.
+The Zcash Arboretum explains the mathematics, cryptography and state changes
+needed to understand a modern shielded Zcash payment. It builds the required
+concepts before using them and carries one payment through the protocol,
+wallet construction and recovery.
 
-These materials are *non-normative*: they explain and motivate the
-constructions. The [[https://zips.z.cash/protocol/protocol.pdf][Zcash protocol
-specification]], applicable [[https://zips.z.cash/][ZIPs]], and consensus rules
-remain authoritative. Where this text disagrees with them, this text is wrong.
+The material is *non-normative*. The [[https://zips.z.cash/protocol/protocol.pdf][protocol specification]],
+applicable [[https://zips.z.cash/][ZIPs]] and network consensus rules remain authoritative.
+A specified upgrade, an implementation release and network activation are
+different facts. Each volume identifies its source baseline and distinguishes
+proved statements, computational assumptions and unresolved design boundaries.
 
-* The volumes
+* Reading order
 
-Layered; read each atop the ones it names.
+Read each volume after the prerequisites it names. Elementary arithmetic and
+the ability to follow an algorithm are the starting point; specialist terms
+are not assumed without an earlier explanation.
 
 ** Foundations
-1. *Math Guide* (=math-guide.tex=) — the algebraic and number-theoretic
-   groundwork: groups, finite fields, elliptic curves, and the relevant
-   hardness assumptions.
-2. *Crypto Guide* (=crypto-guide.tex=) — commitments, hashes, signatures,
-   zero-knowledge, and the DLP/CDH/DDH hierarchy, developed only as far as the
-   upper volumes require.
-3. *Halo 2 Guide* (=halo2-guide.tex=) — PLONKish arithmetisation, the
-   permutation, lookup, and vanishing arguments, the inner-product polynomial
-   commitment, the Halo accumulation trick, and recursive proof composition,
-   closing with one worked statement carried end to end, every number real.
 
-** Deployed protocol
-4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
-   double-spend race in the first-seen model (after Rosenfeld), the
-   arithmetic of confirmations, and the deployed most-work rule, including
-   implementation divergences and local safety rails.
-5. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
-   the commitment tree and authentication paths, the key hierarchy, note
-   encryption, value balance, the Action statement and circuit, the two-pool
-   split (legacy Orchard, current Ironwood), and the deployed stack's
-   post-quantum security boundary.
-6. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
-   key derivation, unified addresses (ZIP-316), fees (ZIP-317), and the
-   transaction-construction pipeline as deployed in librustzcash.
-7. *Sync Guide* (=sync-guide.tex=) — light-client synchronisation: ZIP-307
-   compact blocks, the lightwalletd, Zaino, and Zebra service surfaces, the
-   scanning pipeline, and — stated plainly — what the server learns.
+1. *Math Guide* (=math-guide.tex=): integers and encodings, prime fields,
+   groups, probability, linear algebra, polynomials, fast transforms, Pasta
+   curves, and the byte-field extension needed by AES.
+2. *Crypto Guide* (=crypto-guide.tex=): security definitions, exact hash and
+   key-derivation constructions, commitments, signatures, encryption,
+   authenticated trees and wallet address encodings.
+3. *Halo 2 Guide* (=halo2-guide.tex=): circuit constraints, permutation and
+   lookup arguments, the masked inner-product commitment proof, multiple
+   openings and the complete verifier transcript. A checked small-field
+   computation connects the equations; it is not a production proof.
 
-** Frontier
-8. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:
-   the FlyClient sampling protocol and its security analysis, the deployed
-   ZIP-221 chain-history commitment, and the unbuilt bridge between them.
-9. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: issuance,
-    transfer, and the counterfeiting boundary.
-10. *Crosslink Guide* (=crosslink-guide.tex=) — trailing finality: the
-    ebb-and-flow model, the Crosslink construction, stake and delegation,
-    and the wallet-visible contract two ledgers create.
-11. *FROST Guide* (=frost-guide.tex=) — threshold RedPallas: FROST as its
-    paper constructs it and RFC 9591 standardises it, the rerandomized form,
-    and the surfaces that use it.
+** Core protocol
 
-Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
-combines all Arboretum volumes into one document; the landing page publishes it
-in Web and PDF formats.
+4. *Consensus Guide* (=consensus-guide.tex=): branch-local ledger validation,
+   blocks, work and difficulty, public accounting, authenticated block history
+   and the conditional meaning of confirmation.
+5. *Ironwood Guide* (=ironwood-guide.tex=): the Orchard payment construction
+   and specified Ironwood rule profile—keys, notes, nullifiers, delivery,
+   Action constraints, balance, versioned transaction bytes and authorisation.
+6. *Wallet Guide* (=wallet-guide.tex=): seed and account derivation, addresses,
+   receiver selection, fees and change, transaction construction, signer
+   checks and recovery.
+7. *Sync Guide* (=sync-guide.tex=): compact note discovery, commitment
+   positions, retained paths, atomic scanning, rollback and server trust.
 
-* Parked research
+The shared payment spends an 80,000-zatoshi note, pays 50,000, returns 20,000
+in change and leaves a 10,000 fee. Each core volume explains its own part of
+that same transaction.
 
-The =parked/= directory retains the *Voting Guide* (=parked/voting-guide.tex=),
-*Tachyon Guide* (=parked/tachyon-guide.tex=), and *PQ Guide*
-(=parked/pq-guide.tex=), with their compiled PDFs. They are research snapshots
-outside the Arboretum and are not published on its website or included in its
-concordance or complete edition.
+** Independent frontier endpoints
+
+These are optional destinations, not prerequisites for the core payment.
+
+8. *FlyClient Guide* (=flyclient-guide.tex=): authenticated work sampling,
+   its conditional error bounds and the missing bridge to a complete Zcash
+   light-client verifier.
+9. *ZSA Guide* (=zsa-guide.tex=): asset identity, public issuance, private
+   per-asset conservation, split inputs and the selected draft's unresolved
+   transaction-format interfaces.
+10. *Crosslink Guide* (=crosslink-guide.tex=): a pinned two-chain state
+    machine, persistent finalised and bounded-available views, conditional
+    safety proofs and the separate progress and implementation obligations.
+11. *FROST Guide* (=frost-guide.tex=): shares, key generation, two-round
+    signing, single-use nonce state and randomised threshold RedPallas
+    integrated with transaction approval.
+
+Compiled PDFs accompany the sources.
+[[file:arboretum-complete.pdf][The Complete Arboretum]] combines the eleven volumes in that order.
+The companion presentation is
+[[file:talks/zcash-private-transactions.pdf][A Private Zcash Payment, End to End]] (27 slides), with source in
+=talks/zcash-private-transactions.tex=.
+
+* Scope and editorial rule
+
+Include a construction only when a retained endpoint needs it. Explain it
+fully enough for that consumer; do not substitute its name for its definition.
+A later glossary or forward reference does not repair an unexplained first use.
+Shared notation and the binding writing rules live in
+[[file:CONVENTIONS.org][CONVENTIONS.org]].
+
+Earlier shielded and transparent components appear only at compatibility
+interfaces required by the retained protocol. Their complete internals,
+unneeded research surveys and historical implementation catalogues are outside
+this project. Frontier mechanisms are not presented as activated network rules
+or as proofs of an implementation merely sharing their name.
 
 * Website
 
-The rendered site is available at both addresses:
+The website is generated from the same LaTeX sources:
 
-- [[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]]
+- [[https://upbqdn.github.io/zcash-arboretum/][GitHub Pages]]
 - [[https://marek.onl/arboretum/][marek.onl/arboretum]]
 
-Both addresses serve the same generated site and should be verified after a
-deployment.
+A local source change is not a deployment. Both addresses should be checked
+after publication.
 
-* Method
+* Building and checking
 
-Protocol-level claims are checked against the protocol specification and the
-deployed sources (librustzcash, orchard, zebra, and the relevant wallet code).
-Review covers numbers, concepts, source currency, and cross-references. Shared
-notation and layering rules live in
-[[file:CONVENTIONS.org][CONVENTIONS.org]].
-
-* Scope
-
-The material includes only what lies on the critical path to understanding the
-documented protocols; off-path generality is deliberately pruned. Everything
-that does lie on that path is explained in full. Deprecation-bound layers
-(Sprout, Sapling, the transparent layer, the legacy network stack) are
-documented only where the surviving protocols depend on them.
-
-* Building
-
-Each volume compiles independently with
-[[https://tectonic-typesetting.github.io/][Tectonic]]:
+Compile one volume with [[https://tectonic-typesetting.github.io/][Tectonic]]:
 
 #+begin_src sh
 tectonic -Z shell-escape <volume>.tex
 #+end_src
 
-The =-Z shell-escape= flag is required. CI builds every =*-guide.tex= document
-on push, including the parked research.
+Run the shared tooling, numerical examples and complete PDF gate:
+
+#+begin_src sh
+python3 -B site/tools/test_sitegen.py
+python3 -B research/check_foundations.py
+python3 -B research/check_mathcrypto.py
+python3 -B research/check_halo2.py
+python3 -B research/check_wallet_crypto.py
+python3 -B research/check_deployed.py
+python3 -B research/check_frontier.py
+python3 -B site/tools/check_build.py
+#+end_src
+
+The PDF gate builds all eleven volumes, the presentation and the generated
+complete edition. It retains logs and PDFs in =build/pdf/= and rejects
+compilation errors, overfull boxes, unresolved references, duplicate labels
+or destinations, and missing glyphs. Add =--update-pdfs= to copy the PDFs
+beside their sources only after the entire gate passes.
+
+The site workflow renders per-section HTML and builds the search index.
+=site/tools/check_site.py= checks generated local links, anchors and error
+markup. With the generated site served locally, the browser regression checks
+search-result reachability and scrolling at phone, tablet and desktop sizes:
+
+#+begin_src sh
+uv run --with playwright python -B site/tools/check_search.py http://127.0.0.1:8768
+#+end_src
+
+An optional second argument selects =firefox= or =webkit= when their Playwright
+binaries and runtime libraries are available. Viewport emulation is not a claim
+to have tested every physical device.
+
+Builds and example checks detect concrete errors; they do not prove every
+statement or establish cryptographic hardness. Substantive prose also requires
+independent mathematical, source and prerequisite-order review.
+The current edition's review evidence and limitations are recorded in
+[[file:research/verification.md][research/verification.md]].
 
 * License
 

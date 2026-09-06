@@ -3,13 +3,16 @@
 
 Modes:
   volumes  Print the volumes included in the Arboretum.
-  render   Pre-render every tikzpicture in each volume to SVG (needs
-           tectonic + pdftocairo; run locally, commit the SVGs).
+  render   Pre-render every tikzpicture to SVG and PNG (needs tectonic,
+           pdftocairo, and pdftoppm; run locally, commit both formats).
   webprep  Write build/web/<vol>.tex with tikzpictures replaced by
-           \\includegraphics of the pre-rendered SVGs and tikz packages
+           \\includegraphics of the pre-rendered PNGs and tikz packages
            stripped (run in CI before latexml).
   landing  Write the landing page index.html from the volumes' \\title
            lines into the directory given by --out.
+  concordance  Index ZIP citations into --out.
+  omnibus  Generate the complete edition's LaTeX source.
+  postprocess  Finish the generated HTML pages in --out.
 """
 
 import re
@@ -28,12 +31,12 @@ VOLUME_META = [
     ("math-guide", "Foundations", "stable"),
     ("crypto-guide", "Foundations", "stable"),
     ("halo2-guide", "Foundations", "stable"),
-    ("consensus-guide", "Deployed protocol", "deployed"),
-    ("ironwood-guide", "Deployed protocol", "deployed"),
-    ("wallet-guide", "Deployed protocol", "deployed"),
-    ("sync-guide", "Deployed protocol", "deployed"),
+    ("consensus-guide", "Core protocol", "consensus"),
+    ("ironwood-guide", "Core protocol", "versioned rules"),
+    ("wallet-guide", "Core protocol", "wallet"),
+    ("sync-guide", "Core protocol", "wallet"),
     ("flyclient-guide", "Frontier", "design-stage"),
-    ("zsa-guide", "Frontier", "frontier"),
+    ("zsa-guide", "Frontier", "draft"),
     ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
 ]
@@ -46,22 +49,26 @@ OMNIBUS_INTRO = r"""\phantomsection
 \emph{The Zcash Arboretum} is a non-normative guide to the mathematics,
 cryptography, and engineering of the Zcash protocol.  It covers the
 foundations of Halo~2 and Orchard, deployed consensus and wallet protocols,
-and designs being explored beyond them.  The protocol specification,
+and separately identified frontier designs.  The protocol specification,
 applicable ZIPs, and consensus rules remain authoritative.
 
-The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
-Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
-\emph{Wallet}, and \emph{Sync} Guides explain the deployed system and its
-boundaries.  The remaining parts examine the unbuilt FlyClient bridge,
-shielded assets, trailing finality, and threshold authorization.
+Read the parts in dependency order.  The \emph{Math Guide} constructs
+the required mathematical language; the \emph{Crypto Guide} constructs
+the primitives; the \emph{Halo 2 Guide} connects circuit constraints
+to a proof and its explicitly stated security contract.
 
-Three reading paths cover most uses.  For prerequisites, begin with the first
-three parts; readers new to proof systems may start with the worked example
-that closes the Halo~2 Guide.  For the life of a shielded payment, read
-\emph{Ironwood}, then \emph{Wallet}, \emph{Sync}, and \emph{Consensus}.  For
-proposed changes, read the relevant frontier part only after its lower-layer
-dependencies.  Each part restarts its own section numbering so that citations
-agree with the separately published volume.
+The \emph{Consensus}, \emph{Ironwood}, \emph{Wallet}, and \emph{Sync}
+Guides then follow one shielded payment through ledger validation,
+cryptographic construction, authorisation and recovery.  Specified upgrade
+profiles are distinguished from activated network rules.  The four remaining
+parts are independent destinations: FlyClient, shielded assets, Crosslink
+and threshold signing.  None is required for the core payment.
+
+Each technical term must be explained before use, either locally or in an
+identified prerequisite section.  Every part distinguishes mathematical
+identities, computational assumptions, imported results and unresolved
+interfaces.  The checked small-field examples are not production proofs.
+Each part restarts its section numbering to agree with the separate volume.
 """
 
 THEME_INIT = """<script>
@@ -162,11 +169,10 @@ DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
                       "\\author{", "\\date{",
                       "\\small\\begin{center}", "}{\\par\\medskip}")
-DROP_IN_WEB = ("\\usepackage{tikz}", "\\usetikzlibrary")
 
 # The PDF design preamble (fontspec + unicode-math + mdframed + fancyhdr)
-# is byte-identical across volumes; LaTeXML can't ingest it, and the web
-# build styles theorems and fonts in CSS instead. webprep swaps it back to
+# shares the following font block across volumes. LaTeXML uses classic TeX;
+# the web build styles theorems and fonts in CSS. webprep swaps back to
 # the classic package line. Keep these constants in sync with the volumes.
 FONT_BLOCK = """\\usepackage{amsmath,amsthm,mathtools}
 \\usepackage{fontspec}
@@ -266,6 +272,8 @@ def webprep():
         if FONT_BLOCK in text:
             text = text.replace(FONT_BLOCK, FONT_CLASSIC, 1)
         text = DESIGN_BLOCK_RE.sub("", text, count=1)
+        # PDF-only frame pagination; the website uses CSS theorem blocks.
+        text = text.replace(r"\mdfsetup{nobreak=true}", "")
         lines = []
         for ln in text.splitlines():
             s = ln.lstrip()
@@ -311,9 +319,14 @@ def omnibus(srcdir=ROOT, out=None):
     """Generate arboretum-complete.tex: every volume as a \\part of one
     document. Mechanical: shared preamble (packages etc. deduped, macros
     stripped), per-part counter resets + the volume's own macros as \\def
-    (volumes disagree on eight macro bodies), per-volume label prefixing."""
+    (volumes may use different macro bodies), per-volume label prefixing."""
     srcdir = Path(srcdir)
     out = Path(out) if out else ROOT / "arboretum-complete.tex"
+    # LaTeXML's native IDs ignore hyperref's theH... macros. Prefix their
+    # section root so all descendant IDs survive the per-volume resets.
+    web_ids = ("\n\\makeatletter\n"
+               "\\def\\thesection@ID{V\\arabic{arbvolume}.S\\@section@ID}\n"
+               "\\makeatother" if srcdir == WEBDIR else "")
     vols = [v for v in VOLUMES if (srcdir / f"{v}.tex").exists()]
     seen, macro_free = set(), []
     for vol in vols:
@@ -327,9 +340,10 @@ def omnibus(srcdir=ROOT, out=None):
                 seen.add(ln)
                 macro_free.append(ln)
     parts = ["\n".join(macro_free),
+             "\\setlength{\\headheight}{20pt}",
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
-             "\\large Foundations, deployed protocol, and frontier designs}",
+             "\\large Foundations, core protocol, and frontier designs}",
              ("\\author{}\n\\date{}" if srcdir == WEBDIR
               else "\\author{m@rek.onl}\n\\date{}"),
              "\\newcounter{arbvolume}\n"
@@ -340,7 +354,8 @@ def omnibus(srcdir=ROOT, out=None):
              "\\renewcommand*{\\theHtheorem}{\\theHsection.\\arabic{theorem}}\n"
              "\\renewcommand*{\\theHequation}{\\theHsection.\\arabic{equation}}\n"
              "\\renewcommand*{\\theHfigure}{\\arabic{arbvolume}.\\arabic{figure}}\n"
-             "\\renewcommand*{\\theHtable}{\\arabic{arbvolume}.\\arabic{table}}",
+             "\\renewcommand*{\\theHtable}{\\arabic{arbvolume}.\\arabic{table}}"
+             + web_ids,
              "\\begin{document}\n\\maketitle\n\\thispagestyle{empty}",
              "\\clearpage\n\\tableofcontents\n\\clearpage",
              OMNIBUS_INTRO]
@@ -407,7 +422,7 @@ def landing(outdir):
 <div class="label"><span class="acc">all volumes</span>
 <span class="plaque">complete</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
-<p class="sub">Foundations, deployed protocol, and frontier designs</p>
+<p class="sub">Foundations, core protocol, and frontier designs</p>
 <div class="links"><a href="complete/">Web</a>
 <a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
@@ -424,8 +439,8 @@ def landing(outdir):
 <div class="arb-heading"><h1>The Zcash Arboretum</h1>
 {THEME_PICKER}</div>
 <hr class="stem">
-<p class="tag">Non-normative documentation of the deployed Zcash protocol
-and designs being built on top of it. The
+<p class="tag">Self-contained, non-normative documentation of shielded Zcash
+payments and their prerequisites, with separate frontier designs. The
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
 applicable ZIPs, and consensus rules remain authoritative.</p>
 <div id="search"></div>
@@ -457,14 +472,12 @@ def concordance(outdir):
     """ZIP number -> (volume, section) index, scanned from the sources."""
     import collections
     zips = collections.defaultdict(set)
-    specs = collections.defaultdict(set)
     for vol, _g, _c in VOLUME_META:
         p = ROOT / f"{vol}.tex"
         if not p.exists():
             continue
         title, _ = vol_title(vol)
         sec = "front matter"
-        prev = ""
         for ln in p.read_text().splitlines():
             if ln.lstrip().startswith("%"):
                 continue
@@ -473,27 +486,12 @@ def concordance(outdir):
                 sec = m.group(1)
             for z in re.findall(r"ZIP[-~ ]?(\d{2,4})\b", ln):
                 zips[int(z)].add((vol, title, sec))
-            # protocol-spec sections; skip cross-volume cites ("... Guide"
-            # on the same line) and internal \S\ref uses
-            if not re.search(r"\\emph\{[^}]*Guide", prev + " " + ln):
-                for sp in re.findall(r"\\S[~ ]?(\d+(?:\.\d+)+)", ln):
-                    specs[tuple(int(x) for x in sp.split("."))].add(
-                        (vol, title, sec))
-            prev = ln
     rows = []
     for z in sorted(zips):
         refs = "; ".join(
             f'<a href="{v}/">{t}</a> &mdash; {s}'
             for v, t, s in sorted(zips[z], key=lambda x: (x[1], x[2])))
         rows.append(f'<tr><td class="zk">ZIP {z}</td><td>{refs}</td></tr>')
-    srows = []
-    for sp in sorted(specs):
-        dotted = ".".join(str(x) for x in sp)
-        refs = "; ".join(
-            f'<a href="{v}/">{t}</a> &mdash; {s}'
-            for v, t, s in sorted(specs[sp], key=lambda x: (x[1], x[2])))
-        srows.append(f'<tr><td class="zk">&sect; {dotted}</td>'
-                     f'<td>{refs}</td></tr>')
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Concordance &mdash; The Zcash Arboretum</title>
@@ -511,23 +509,21 @@ def concordance(outdir):
 <div class="arb-heading"><h1>Concordance</h1>
 {THEME_PICKER}</div>
 <hr class="stem">
-<p class="tag">Every ZIP and protocol-specification section cited across
-the volumes, and where each is treated. Generated from the sources.</p>
+<p class="tag">ZIP references across the volumes, grouped by guide section.
+Generated from the sources.</p>
 <table>{"".join(rows)}</table>
-<h2>Protocol specification</h2>
-<table>{"".join(srows)}</table>
 <p class="foot"><a href="./">The Zcash Arboretum</a></p>
 </main></body></html>"""
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     (out / "concordance.html").write_text(html)
-    print(f"concordance: {len(zips)} ZIPs, {len(specs)} spec sections")
+    print(f"concordance: {len(zips)} ZIPs")
 
 
 def postprocess(outdir):
     """Ensure the complete edition exists, then finish every HTML page."""
     out = Path(outdir)
     complete = out / "complete"
-    if not complete.is_dir():
+    if not (complete / "index.html").is_file():
         subprocess.run([
             "latexmlc", f"--dest={complete / 'index.html'}",
             "--splitat=section", "--format=html5",
@@ -568,10 +564,13 @@ document.querySelector('details.arb-search').addEventListener('toggle',
             if match := UNEXPANDED_CREF_RE.search(t):
                 raise RuntimeError(
                     f"{page}: unexpanded cross-reference macro {match.group()}")
+            if 'data-arb="vol"' in t:
+                continue
             t2 = re.sub(r'(<head[^>]*>)',
                         lambda m: m.group(1) + THEME_INIT, t, count=1)
-            t2 = t2.replace('href="../arboretum.css"',
-                           f'href="../arboretum.css?v={ver()}"', 1)
+            # LaTeXML may copy CSS and emit a build-directory-relative URL.
+            t2 = re.sub(r'href="(?:[^"]*/)?arboretum\.css(?:\?[^"]*)?"',
+                        f'href="../arboretum.css?v={ver()}"', t2, count=1)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)
             if vol == "complete":
                 t2 = re.sub(r"<body", '<body data-pagefind-ignore', t2,
