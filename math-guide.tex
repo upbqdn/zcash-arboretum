@@ -2787,6 +2787,18 @@ holds because the group \(F\setminus\{0\}\) contains its identity
 \(1\).)
 \end{definition}
 
+\begin{definition}[Subfield and extension field]\label{ringsfields:def-extension}
+A subset \(F \subseteq K\) of a field \(K\) is a \emph{subfield} when it
+contains \(0\) and \(1\) and is itself a field under the operations of
+\(K\) restricted to \(F\). When \(F\) is a subfield of \(K\), the larger
+field \(K\) is called an \emph{extension field} (or simply an
+\emph{extension}) of \(F\); the two phrases name one relation viewed
+from its two ends. More generally, an injective ring homomorphism
+\(F \hookrightarrow K\) between fields exhibits \(K\) as an extension of
+the copy of \(F\) inside it, and we permit ourselves the usual abuse of
+identifying \(F\) with that copy.
+\end{definition}
+
 The finite world of \S\ref{sec:intmod} already contains the series' most
 important fields, and the unit criterion proved there identifies them at
 once.
@@ -4072,8 +4084,8 @@ root of \(f\) is not a root of \(f'\). If \(m \ge 2\), then
 \(X - \alpha\) into both, and \((X - \alpha) \mid \gcd(f, f')\).
 
 (3) The key observation is that \emph{gcds are stable under field
-extension}: for a field \(K\) containing \(F\) (an \emph{extension} of
-\(F\)), the Euclidean algorithm of \cref{polynomials:thm:euclid} run on
+extension}: for an extension field \(K\) of \(F\)
+(\cref{ringsfields:def-extension}), the Euclidean algorithm of \cref{polynomials:thm:euclid} run on
 \(f, f' \in F[X]\) uses only field operations on their coefficients,
 which lie in \(F\); run inside \(K[X]\) on the same inputs it produces
 the identical quotients and remainders. Hence the gcd computed in
@@ -6006,12 +6018,15 @@ boldface and think of them as columns,
   \(K\) (\S\ref{sec:ringsfields}), then \(K\) is an \(F\)-vector space:
   vector addition is the addition of \(K\), and scalar multiplication is
   the multiplication of \(K\) restricted to pairs in \(F \times K\), so
-  the axioms are instances of the field axioms of \(K\). For instance
-  \(\C\) is an \(\R\)-vector space of dimension \(2\)---in the sense of
-  \cref{linalg:thm-dimension} below, with basis \(1, i\)---and the
+  the axioms are instances of the field axioms of \(K\). The dimension
+  of this vector space---in the sense of \cref{linalg:thm-dimension}
+  below---is called the \emph{degree} of the extension, written
+  \([K:F]\). For instance \(\C\) is an \(\R\)-vector space of
+  dimension \(2\), with basis \(1, i\), so \([\C:\R] = 2\); and the
   finite field \(\Fq\) with \(q = p^k\) is a \(k\)-dimensional
-  \(\Fp\)-vector space: this is precisely the structure on which the
-  proof of Theorem~\ref{finitefields:thm:primepower} rested.
+  \(\Fp\)-vector space, \([\Fq:\Fp] = k\): this is precisely the
+  structure on which the proof of
+  Theorem~\ref{finitefields:thm:primepower} rested.
 \end{enumerate}
 \end{example}
 
@@ -8955,8 +8970,9 @@ design. \emph{Anomalous} curves, those with \(\#E(\Fp) = p\), admit a
 polynomial-time attack through the formal group. The MOV/Frey--Rück
 attack transfers the ECDLP into a finite-field discrete logarithm
 when the \emph{embedding degree}---the least \(k \geq 1\) with
-\(r \mid p^k - 1\), i.e.\ the degree of the smallest extension of
-\(\Fp\) whose multiplicative group contains a subgroup of order
+\(r \mid p^k - 1\), i.e.\ the degree (\cref{linalg:exa-more};
+the dimension of the extension over its base) of the smallest extension
+of \(\Fp\) whose multiplicative group contains a subgroup of order
 \(r\)---is small, where index calculus applies. Cryptographically
 secure curves, the Pasta curves included, are chosen with a large prime
 subgroup order, a large embedding degree, and \(\#E(\Fp) \neq p\),
