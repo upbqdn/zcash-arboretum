@@ -664,11 +664,16 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
 <script>
 (function () {{
   const search = document.querySelector('details.arb-search');
-  search.addEventListener('toggle', function () {{
+  search.querySelector('summary').addEventListener('click', function (e) {{
+    e.preventDefault();
+    search.open = !search.open;
     if (search.open && !window.__arbSearch) {{
       window.__arbSearch = new PagefindUI({{ element: '#arb-search-ui',
         {SEARCH_OPTIONS} }});
     }}
+    // Keep focus in the user gesture so touch keyboards can open too.
+    if (search.open)
+      search.querySelector('.pagefind-ui__search-input').focus();
   }});
   document.addEventListener('click', function (e) {{
     if (!search.contains(e.target)) search.open = false;

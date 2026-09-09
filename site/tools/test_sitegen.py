@@ -220,6 +220,9 @@ Volume summary.
     assert html.count('class="arb-theme"') == 1
     assert html.count("showImages: false") == 1
     assert html.count(sitegen.SEARCH_OPTIONS) == 1
+    assert "search.querySelector('summary').addEventListener('click'" in html
+    assert "search.open = !search.open" in html
+    assert "search.querySelector('.pagefind-ui__search-input').focus()" in html
     assert html.count('data-pagefind-meta="volume:Math Guide"') == 1
     assert '<section id="SS1"><h2 class="ltx_title" id="SS1-heading">' in html
     assert 'data-pagefind-meta="heading-SS2-heading:Squared x^(2)"' in html

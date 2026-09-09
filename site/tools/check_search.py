@@ -205,6 +205,35 @@ async def check_result_links(page, scope, touch=False):
     await check_destination(page, target)
 
 
+async def check_search_focus(page, base):
+    for activation in ("click", "tap", "Enter", "Space"):
+        await page.goto(f"{base}/wallet-guide/S1.html")
+        await page.evaluate("MathJax.startup.promise")
+        search = page.locator("details.arb-search")
+        summary = search.locator("summary")
+        field = search.locator(".pagefind-ui__search-input")
+        for previous, typed in (("", "note"), ("note", "s")):
+            await page.evaluate("scrollTo(0, 500)")
+            background = await page.evaluate("scrollY")
+            if activation == "click":
+                await summary.click()
+            elif activation == "tap":
+                await summary.tap()
+            else:
+                await summary.focus()
+                await page.keyboard.press(activation)
+            assert await search.evaluate("el => el.open"), activation
+            assert await field.count() == 1
+            assert await field.evaluate("el => el === document.activeElement"), activation
+            assert await page.evaluate("scrollY") == background, activation
+            assert await field.input_value() == previous
+            # Real typing must reach the field without clicking or filling it.
+            await page.keyboard.type(typed)
+            assert await field.input_value() == previous + typed, activation
+            await summary.click()
+            assert not await search.evaluate("el => el.open"), activation
+
+
 async def check_same_document(page, base):
     await page.goto(f"{base}/zsa-guide/S5.html")
     await page.evaluate("MathJax.startup.promise")
@@ -350,6 +379,11 @@ async def main():
                 assert not await search.evaluate("el => el.open")
                 await summary.click()
                 assert await field.input_value() == "note"
+                assert await field.evaluate("el => el === document.activeElement")
+                field_box = await field.bounding_box()
+                panel_box = await panel.bounding_box()
+                assert panel_box["y"] <= field_box["y"]
+                assert field_box["y"] + field_box["height"] <= panel_box["y"] + panel_box["height"]
             await field.focus()
             await page.keyboard.press("Escape")
             assert not await search.evaluate("el => el.open")
@@ -361,6 +395,7 @@ async def main():
             await check_result_links(page, "#arb-search-ui")
             await page.close()
         page = await context.new_page()
+        await check_search_focus(page, base)
         await check_same_document(page, base)
         await browser.close()
     print(f"{engine}: search is legible in every theme without horizontal overflow; "
