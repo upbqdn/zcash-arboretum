@@ -172,7 +172,7 @@ code, kbd, pre { font-family: var(--mono); }
 }
 .arb-bar .arb-search-panel {
   position: absolute; right: 0; top: 1.8rem;
-  width: min(34rem, 88vw);
+  width: min(38rem, calc(100vw - 2.4rem));
   /* The sticky bar cannot scroll an unbounded popup into view. */
   max-height: calc(100vh - 4rem);
   max-height: calc(100dvh - 4rem);
@@ -291,8 +291,116 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
   --pagefind-ui-background: var(--paper);
   --pagefind-ui-border: var(--edge);
   --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 4px;
   --pagefind-ui-tag: var(--plate);
-  --pagefind-ui-font: inherit;
+  --pagefind-ui-font: var(--serif);
+}
+
+/* Pagefind's generated selectors and reset load after this stylesheet. */
+:is(#search, #arb-search-ui) .pagefind-ui__results-area { margin-top: .5rem; }
+:is(#search, #arb-search-ui) .pagefind-ui__message {
+  height: auto;
+  padding: .65rem 0;
+  font-size: .875rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__results { margin: 0; }
+:is(#search, #arb-search-ui) .pagefind-ui__result {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  margin: 0 0 .6rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: var(--paper);
+  overflow-wrap: anywhere;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-inner {
+  min-width: 0;
+  margin-top: 0;
+  align-items: stretch;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-tags {
+  order: -1;
+  margin: 0 0 .35rem;
+  gap: .4rem;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-tag {
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .025em;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-excerpt {
+  min-width: 0;
+  margin-top: .3rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+/* Stretch real links, preserving native keyboard and open-in-new-tab actions.
+   Nested matches sit above the parent link and keep their own destinations. */
+:is(#search, #arb-search-ui) .pagefind-ui__result-link { position: static; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 4px;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested {
+  position: relative;
+  z-index: 2;
+  min-height: 44px;
+  justify-content: center;
+  margin-top: .4rem;
+  padding: .5rem .8rem;
+  border-left: 2px solid var(--edge);
+  background: var(--plate);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-excerpt {
+  display: none;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-link {
+  font-size: 1rem;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-link::before { content: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-link:hover::after {
+  box-shadow: inset 0 0 0 1px var(--conifer);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible { outline: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible::after {
+  outline: 2px solid var(--conifer);
+  outline-offset: -2px;
+}
+:is(#search, #arb-search-ui) mark {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--conifer) 20%, var(--paper));
+  border-radius: 2px;
+  font-weight: 600;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__button {
+  min-height: 44px;
+  margin-top: .3rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+:is(#search, #arb-search-ui) :is(input, button):focus-visible {
+  outline: 2px solid var(--conifer);
+  outline-offset: 2px;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__search-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 /* ---------- volume pages: re-dress LaTeXML ---------- */

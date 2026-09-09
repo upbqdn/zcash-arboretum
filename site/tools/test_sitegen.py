@@ -57,6 +57,50 @@ assert not (sitegen.ROOT / f"{MERGED}.pdf").exists()
 assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
             if vol == "flyclient-guide") == ("Frontier", "design-stage")
 
+# Existing section and heading links survive; new IDs cannot collide with any
+# existing element, including one that appears later in the document.
+headings = (
+    '<section id="SS1"><h2 class="ltx_title">First</h2></section>'
+    '<section id="SS2"><h3 id="custom">Existing</h3></section>'
+    "<section id='SS3'><h4 id = 'single-quoted'>Existing too</h4></section>"
+    '<section><h1>Page introduction</h1></section>'
+    '<section id="SS4"><h2>Collision</h2></section>'
+    '<span id="SS4-heading"></span><span id="SS4-heading-2"></span>'
+    '<section id="A&amp;B"><h2>Escaped</h2></section>'
+    '<span id="A&#38;B-heading"></span>')
+anchored = sitegen.heading_anchors(headings)
+assert '<section id="SS1"><h2 class="ltx_title" id="SS1-heading">' in anchored
+assert '<h3 id="custom">' in anchored
+assert "<h4 id = 'single-quoted'>" in anchored
+assert '<section><h1>Page introduction</h1></section>' in anchored
+assert '<section id="SS4"><h2 id="SS4-heading-3">' in anchored
+assert '<section id="A&amp;B"><h2 id="A&amp;B-heading-2">' in anchored
+assert sitegen.heading_anchors(anchored) == anchored
+
+for expression, expected in (
+        ('<msup><mi>x</mi><mn>2</mn></msup>', 'x^(2)'),
+        ('<msup><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mn>2</mn></msup>',
+         '(x+y)^(2)'),
+        ('<msub><mi>𝔽</mi><mi>r</mi></msub>', '𝔽_(r)'),
+        ('<msubsup><mi>ψ</mi><mi>nf</mi><mn>2</mn></msubsup>', 'ψ_(nf)^(2)'),
+        ('<mrow><mi>α</mi><mo>+</mo><mi>β</mi></mrow>', 'α+β'),
+        ('<mrow><mn>𝟶</mn><mo>⁢</mo><mi>𝚡</mi><mo>⁢</mo><mn>𝟶𝟹</mn></mrow>',
+         '𝟶⁢𝚡⁢𝟶𝟹'),
+        ('<mrow><mtext>A</mtext><mspace/><mtext>B</mtext></mrow>', 'A B')):
+    assert sitegen.math_search_text(f'<math>{expression}</math>') == expected
+assert sitegen.math_search_text(
+    r'<math alttext="\frac{x}{y}"><mfrac><mi>x</mi><mi>y</mi></mfrac></math>'
+) == r'\frac{x}{y}'
+math_heading = (
+    '<section id="SS1"><h2 id="SS1-heading">A &amp; B: '
+    '<math alttext="x^2"><msup><mi>x</mi><mn>2</mn></msup></math>'
+    ' &lt; "limit"</h2></section>')
+titled = sitegen.heading_search_titles(math_heading)
+assert ('data-pagefind-meta="heading-SS1-heading:A &amp; B: x^(2) '
+        '&lt; &quot;limit&quot;"') in titled
+assert sitegen.heading_search_titles(titled) == titled
+assert titled[titled.index('<math'):titled.index('</math>') + 7] in math_heading
+
 
 with tempfile.TemporaryDirectory() as tmp:
     out = Path(tmp)
@@ -74,6 +118,7 @@ with tempfile.TemporaryDirectory() as tmp:
     landing = (out / "index.html").read_text()
     concordance = (out / "concordance.html").read_text()
     assert landing.count("showImages: false") == 1
+    assert landing.count(sitegen.SEARCH_OPTIONS) == 1
     assert "details.arb-search" not in landing
     assert "ZIP 316" in concordance
     assert "<table></table>" not in concordance
@@ -138,6 +183,10 @@ Volume summary.
         '<html><head><link rel="stylesheet" '
         'href="_site/math-guide/arboretum.css"></head>'
         '<body><main class="ltx_page_content">'
+        '<section id="SS1"><h2 class="ltx_title">A subsection</h2></section>'
+        '<section id="SS2"><h2>Squared '
+        '<math alttext="x^2"><msup><mi>x</mi><mn>2</mn></msup></math>'
+        '</h2></section>'
         '<div id="Thmtheorem1" class="ltx_theorem ltx_theorem_proposition">'
         '<h6 class="ltx_title ltx_runin ltx_title_theorem">'
         '<span class="ltx_tag ltx_tag_theorem">Proposition 1.1</span> '
@@ -160,7 +209,8 @@ Volume summary.
         assert kwargs == {"cwd": sitegen.ROOT, "check": True}
         complete_page.write_text(
             '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
-            '<body><main class="ltx_page_content"></main>'
+            '<body><main class="ltx_page_content">'
+            '<section id="SS1"><h2>A complete subsection</h2></section></main>'
             '<footer><div></div></footer></body></html>')
 
     with patch.object(sitegen.subprocess, "run", side_effect=build_complete):
@@ -169,7 +219,13 @@ Volume summary.
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
     assert html.count('class="arb-theme"') == 1
     assert html.count("showImages: false") == 1
+    assert html.count(sitegen.SEARCH_OPTIONS) == 1
+    assert html.count('data-pagefind-meta="volume:Math Guide"') == 1
+    assert '<section id="SS1"><h2 class="ltx_title" id="SS1-heading">' in html
+    assert 'data-pagefind-meta="heading-SS2-heading:Squared x^(2)"' in html
     assert "if (!search.contains(e.target)) search.open = false" in html
+    assert "e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey" in html
+    assert "e.target.closest('.arb-search a.pagefind-ui__result-link')" in html
     assert "e.key === 'Escape' && search.open" in html
     assert '<body data-arb="vol">' in html
     assert html.count("window.MathJax") == 1
@@ -181,7 +237,7 @@ Volume summary.
     assert "replace(/%\\s+/g, '')" in html
     assert 'src="../mathjax/tex-chtml.js"' in html
     assert ('<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
-            '<a class="arb-permalink" href="#Thmtheorem1" '
+            '<a class="arb-permalink" data-pagefind-ignore href="#Thmtheorem1" '
             'aria-label="Permalink to this item" '
             'title="Permalink">#</a></h6>') in html
     assert html.count('class="arb-permalink"') == 1
@@ -194,12 +250,25 @@ Volume summary.
     assert '<body data-pagefind-ignore data-arb="vol">' in complete_html
     assert '../pdf/arboretum-complete.pdf' in complete_html
     assert 'The Complete Arboretum' in complete_html
+    assert '<section id="SS1"><h2 id="SS1-heading">' in complete_html
+    assert 'data-pagefind-meta="volume:' not in complete_html
     assert (out / "mathjax" / "tex-chtml.js").is_file()
     boldsymbol = out / "mathjax" / "input" / "tex" / "extensions" / "boldsymbol.js"
     assert 'checkVersion("[tex]/boldsymbol","4.1.1"' in boldsymbol.read_text()
     assert (out / "@mathjax" / "mathjax-stix2-font" / "chtml.js").is_file()
 
     # A second finishing pass must not duplicate controls, scripts or IDs.
+    sitegen.postprocess(out)
+    assert page.read_text() == html
+    assert complete_page.read_text() == complete_html
+
+    # Previously finished HTML needs heading anchors and metadata too, without
+    # duplicating existing controls, theorem links or formatting.
+    page.write_text(html.replace(' id="SS1-heading"', '').replace(
+        ' data-pagefind-meta="volume:Math Guide"', '').replace(
+        'class="arb-permalink" data-pagefind-ignore', 'class="arb-permalink"').replace(
+        ' data-pagefind-meta="heading-SS2-heading:Squared x^(2)"', ''))
+    complete_page.write_text(complete_html.replace(' id="SS1-heading"', ''))
     sitegen.postprocess(out)
     assert page.read_text() == html
     assert complete_page.read_text() == complete_html

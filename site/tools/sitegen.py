@@ -20,6 +20,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
+from html import escape, unescape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -97,6 +99,27 @@ THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
 })();
 </script>"""
 
+SEARCH_OPTIONS = """showSubResults: true, showImages: false, excerptLength: 20,
+    processResult: function (result) {
+      const meta = { ...result.meta };
+      const matches = (result.sub_results || []).map(match => ({
+        ...match,
+        title: meta[`heading-${match.anchor?.id}`] || match.title
+      }));
+      for (const key of Object.keys(meta))
+        if (key.startsWith('heading-')) delete meta[key];
+      result = { ...result, meta, sub_results: matches };
+      const best = matches.filter(match => match.anchor).reduce(
+        (best, match) => !best || match.locations.length > best.locations.length
+          ? match : best, null);
+      if (best) {
+        result.meta = { ...result.meta, title: best.title, url: best.url };
+        result.excerpt = best.excerpt;
+        result.sub_results = [best, ...matches.filter(match => match !== best)];
+      }
+      return result;
+    }"""
+
 MATHJAX = r"""<script>
 window.MathJax = {
   loader: { paths: { fonts: '[mathjax]/../@mathjax' } },
@@ -161,6 +184,9 @@ THEOREM_TITLE_RE = re.compile(
     r'(?=[^>]*\bclass="[^"]*\bltx_theorem\b[^"]*")[^>]*>\s*'
     r'<h6\b[^>]*>)(.*?)(</h6>)', re.S)
 UNEXPANDED_CREF_RE = re.compile(r"\\[Cc]ref[A-Za-z]*")
+HTML_ID_RE = re.compile(r'''\sid\s*=\s*(["'])(.*?)\1''')
+SECTION_HEADING_RE = re.compile(
+    r'(<section\b[^>]*>\s*<h[1-6]\b)([^>]*)(>)')
 DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\renewenvironment{abstract}", "\\title{",
                       "\\author{", "\\date{",
@@ -191,6 +217,77 @@ def volumes_present():
 
 def preamble_of(text):
     return text.split("\\begin{document}")[0]
+
+
+def heading_anchors(text):
+    """Give LaTeXML section headings Pagefind anchors, retaining section IDs."""
+    used = {unescape(m.group(2)) for m in HTML_ID_RE.finditer(text)}
+
+    def heading(match):
+        # LaTeXML puts each section's heading directly inside its section.
+        section_id = HTML_ID_RE.search(match.group(1))
+        if not section_id or HTML_ID_RE.search(match.group(2)):
+            return match.group(0)
+        base = unescape(section_id.group(2)) + "-heading"
+        name, suffix = base, 2
+        while name in used:
+            name = f"{base}-{suffix}"
+            suffix += 1
+        used.add(name)
+        return (match.group(1) + match.group(2)
+                + f' id="{escape(name, quote=True)}">')
+
+    return SECTION_HEADING_RE.sub(heading, text)
+
+
+def math_search_text(math):
+    """Read the simple MathML forms used in headings without losing scripts."""
+    def read(node):
+        tag = node.tag.rsplit("}", 1)[-1]
+        if tag in {"math", "mrow", "mi", "mn", "mo", "mtext"}:
+            return (node.text or "") + "".join(
+                read(child) + (child.tail or "") for child in node)
+        if tag == "mspace":
+            return " "
+        if tag in {"msub", "msup", "msubsup"}:
+            parts = [read(child) for child in node]
+            if len(parts) == (3 if tag == "msubsup" else 2):
+                sub = f"_({parts[1]})" if tag != "msup" else ""
+                sup = f"^({parts[-1]})" if tag != "msub" else ""
+                base = parts[0]
+                if node[0].tag.rsplit("}", 1)[-1] not in {"mi", "mn", "mo", "mtext"}:
+                    base = f"({base})"
+                return base + sub + sup
+        raise ValueError(f"unsupported heading MathML: {tag}")
+
+    try:
+        return read(ET.fromstring(math))
+    except (ET.ParseError, ValueError):
+        # ponytail: complex expressions use their existing TeX alternative;
+        # extend only for a new heading form that needs readable search text.
+        alt = re.search(r'''\balttext=(["'])(.*?)\1''', math, re.S)
+        if alt:
+            return unescape(alt.group(2))
+        raise ValueError("heading MathML needs an alttext fallback")
+
+
+def heading_search_titles(text):
+    """Supply complete search titles: Pagefind's anchor text omits MathML."""
+    def heading(match):
+        attrs, body, end = match.groups()
+        heading_id = HTML_ID_RE.search(attrs)
+        if (not heading_id or "<math" not in body
+                or 'data-pagefind-meta="heading-' in attrs):
+            return match.group(0)
+        plain = re.sub(r'<math\b.*?</math>',
+                       lambda m: escape(math_search_text(m.group(0))),
+                       body, flags=re.S)
+        title = " ".join(unescape(re.sub(r'<[^>]+>', '', plain)).split())
+        metadata = f"heading-{unescape(heading_id.group(2))}:{title}"
+        return attrs + f' data-pagefind-meta="{escape(metadata)}">' + body + end
+
+    return re.sub(
+        r'(<h[1-6]\b[^>]*?)>(.*?)(</h[1-6]>)', heading, text, flags=re.S)
 
 
 def render():
@@ -442,8 +539,7 @@ applicable ZIPs, and consensus rules remain authoritative.</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{
-  new PagefindUI({{ element: '#search', showSubResults: true,
-    showImages: false }});
+  new PagefindUI({{ element: '#search', {SEARCH_OPTIONS} }});
 }});
 </script>
 {chr(10).join(cards)}
@@ -571,11 +667,14 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
   search.addEventListener('toggle', function () {{
     if (search.open && !window.__arbSearch) {{
       window.__arbSearch = new PagefindUI({{ element: '#arb-search-ui',
-        showSubResults: true, showImages: false }});
+        {SEARCH_OPTIONS} }});
     }}
   }});
   document.addEventListener('click', function (e) {{
     if (!search.contains(e.target)) search.open = false;
+    if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
+        && e.target.closest('.arb-search a.pagefind-ui__result-link'))
+      search.open = false;
   }});
   document.addEventListener('keydown', function (e) {{
     if (e.key === 'Escape' && search.open) {{
@@ -592,10 +691,21 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
             if match := UNEXPANDED_CREF_RE.search(t):
                 raise RuntimeError(
                     f"{page}: unexpanded cross-reference macro {match.group()}")
+            t2 = heading_search_titles(heading_anchors(t))
+            t2 = t2.replace('class="arb-permalink" href=',
+                            'class="arb-permalink" data-pagefind-ignore href=')
+            if vol != "complete" and 'data-pagefind-meta="volume:' not in t2:
+                t2 = re.sub(
+                    r'(<[^>]+class="ltx_page_content"[^>]*)(>)',
+                    lambda m: m.group(1) + ' data-pagefind-meta="volume:'
+                    + escape(title, quote=True) + '">', t2, count=1)
             if 'data-arb="vol"' in t:
+                if t2 != t:
+                    page.write_text(t2)
+                    n += 1
                 continue
             t2 = re.sub(r'(<head[^>]*>)',
-                        lambda m: m.group(1) + THEME_INIT, t, count=1)
+                        lambda m: m.group(1) + THEME_INIT, t2, count=1)
             # LaTeXML may copy CSS and emit a build-directory-relative URL.
             t2 = re.sub(r'href="(?:[^"]*/)?arboretum\.css(?:\?[^"]*)?"',
                         f'href="../arboretum.css?v={ver()}"', t2, count=1)
@@ -611,7 +721,8 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
                                 1)
             t2 = THEOREM_TITLE_RE.sub(
                 lambda m: (f'{m.group(1)}{m.group(3)}'
-                           f'<a class="arb-permalink" href="#{m.group(2)}" '
+                           '<a class="arb-permalink" data-pagefind-ignore '
+                           f'href="#{m.group(2)}" '
                            f'aria-label="Permalink to this item" '
                            f'title="Permalink">#</a>'
                            f'{m.group(4)}'), t2)
