@@ -27,3 +27,4 @@ math-rewrite.tex
 math-rewrite.pdf
 crypto-rewrite.tex
 crypto-rewrite.pdf
+__pycache__/
