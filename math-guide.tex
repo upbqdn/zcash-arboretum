@@ -244,6 +244,59 @@ We use this construction twice in the present volume: to form the integers
 modulo \(n\) (\S\ref{sec:intmod}) and the cosets of a subgroup
 (\S\ref{sec:groups}).
 
+\smallskip
+A second kind of relation orders rather than identifies. A \emph{partial
+order} on \(A\) is a relation \(\preceq\) that is reflexive, transitive, and
+\emph{antisymmetric}: \(a \preceq b\) and \(b \preceq a\) imply \(a = b\).
+Four partial orders recur in the series: the usual \(\le\) on \(\Z\);
+inclusion \(\subseteq\) on the subsets of a fixed set, whose antisymmetry is
+the two-inclusions rule of \S\ref{sets:subsec:sets}; divisibility \(\mid\) on
+\(\N\) (\S\ref{intmod:sub:divisibility}); and the \emph{prefix} relation on
+finite sequences, under which a sequence precedes every sequence that
+extends it. Two elements are \emph{comparable} if \(a \preceq b\) or
+\(b \preceq a\), and a partial order under which every two elements are
+comparable is a \emph{total} (or \emph{linear}) order. The order \(\le\) on
+\(\Z\) is total; the other three are not: \(\{1\}\) and \(\{2\}\) are
+incomparable under inclusion, as are \(2\) and \(3\) under divisibility and
+the one-term sequences \((1)\) and \((2)\) under prefix.
+
+Every partial order has a \emph{strict} companion, \(a \prec b\) meaning
+\(a \preceq b\) and \(a \neq b\); the two determine each other.
+
+\begin{proposition}[Strict and non-strict orders]\label{sets:prop:strict}
+If \(\preceq\) is a partial order on \(A\), its strict companion \(\prec\)
+is \emph{irreflexive} (\(a \prec a\) holds for no \(a\)) and transitive.
+Conversely, if \(\prec\) is irreflexive and transitive, then
+``\(a \prec b\) or \(a = b\)'' defines a partial order on \(A\) whose strict
+companion is \(\prec\).
+\end{proposition}
+
+\begin{proof}
+Irreflexivity of the companion is the clause \(a \neq a\). For transitivity
+let \(a \prec b \prec c\); then \(a \preceq c\) because \(\preceq\) is
+transitive, and \(a = c\) would give \(a \preceq b \preceq a\), hence
+\(a = b\) by antisymmetry, contradicting \(a \prec b\). Conversely, the
+relation ``\(a \prec b\) or \(a = b\)'' is reflexive by construction and
+transitive by cases: if either link is an equality the other link carries
+the conclusion, and otherwise transitivity of \(\prec\) does. It is
+antisymmetric, since \(a \neq b\) with both \(a \preceq b\) and
+\(b \preceq a\) would mean \(a \prec b\) and \(b \prec a\), whence
+\(a \prec a\), against irreflexivity. Its strict companion is \(\prec\)
+again: ``(\(a \prec b\) or \(a = b\)) and \(a \neq b\)'' reduces to
+\(a \prec b\), which already excludes \(a = b\) by irreflexivity.
+\end{proof}
+
+A strict order \(\prec\) is a \emph{strict total order} when its non-strict
+companion is total, equivalently when for all \(a, b\) exactly one of
+\(a \prec b\), \(a = b\), \(b \prec a\) holds (\emph{trichotomy}): at least
+one holds by totality, and any two together would give \(a \prec a\), by
+substitution or by transitivity. The usual \(<\) on \(\Z\) is the model. A
+function \(f \colon A \to B\) between ordered sets is \emph{monotone}
+(order-preserving) if \(a \preceq a'\) implies \(f(a) \preceq f(a')\), and
+\emph{strictly increasing} if \(a \prec a'\) implies \(f(a) \prec f(a')\).
+The one further property of an order that the volume assumes, the
+well-ordering of \(\le\) on \(\N\), opens \S\ref{intmod:sub:wellordering}.
+
 \subsection{Logic and proof conventions}\label{sets:subsec:logic}
 We employ the symbols \(\forall\) (``for all''), \(\exists\) (``there
 exists''), \(\exists!\) (``there exists a unique''), and ``\(\colon\)'' or
@@ -350,6 +403,7 @@ Symbol & Said & Meaning \\
 \(A \setminus B\) & ``A minus B'' & set difference \\
 \(\times\) & ``times'' / ``cross'' & Cartesian product \\
 \(\mid,\ \nmid\) & ``divides'', ``does not divide'' & divisibility \\
+\(\preceq,\ \prec\) & ``precedes'' & partial order, strict companion \\
 \(\equiv\) & ``congruent to'' & congruence, qualified \(\pmod{n}\) \\
 \(a \bmod n\) & ``a mod n'' & remainder of division by \(n\) \\
 \(:=,\ =:\) & ``is defined as'' & definitional equality \\
@@ -471,11 +525,12 @@ other and the claim holds; otherwise (4) gives \(|a|\le|b|\) and
 \end{proof}
 
 The relation \(\mid\) is thus reflexive and transitive; it is a partial order
-when restricted to the natural numbers (where (5) becomes \(a=b\)), but on all
-of \(\Z\) it fails to be antisymmetric precisely because of signs. The
-\emph{units} of \(\Z\)---the integers dividing \(1\)---are exactly \(\pm 1\),
-and two integers that divide each other are called \emph{associates}; in
-\(\Z\) the associates of \(a\) are \(\pm a\).
+in the sense of \S\ref{sets:subsec:relations} when restricted to the natural
+numbers (where (5) becomes \(a=b\)), but on all of \(\Z\) it fails to be
+antisymmetric precisely because of signs. The \emph{units} of \(\Z\)---the
+integers dividing \(1\)---are exactly \(\pm 1\), and two integers that divide
+each other are called \emph{associates}; in \(\Z\) the associates of \(a\)
+are \(\pm a\).
 
 \subsection{The division algorithm}\label{intmod:sub:divalg}
 
@@ -5468,6 +5523,35 @@ with it \(Z = -13\), is a quadratic non-residue modulo both Pasta
 primes, exactly as the hash-to-curve design requires.
 \end{example}
 
+\begin{example}[\(5\) is a non-square in the Pallas base field]
+\label{numbertheory:ex:pasta-five}
+% Source: .wip/rewrite/math-guide/compute/pasta_five_nonsquare.py
+%   Pallas p: 5^((p-1)/2) = p - 1 = -1, so 5 is a non-square in F_p
+%   Vesta q: 5^((q-1)/2) = q - 1 = -1, so 5 is a non-square in F_q
+%   -5 is a non-cube in F_p: no Pallas point has y = 0
+The same one-line test settles a second constant on which later volumes
+lean, this time in the curve equation itself. Pallas is the curve
+\(y^2 = x^3 + 5\) over \(\Fp\) (\cref{sec:ellipticcurves}), and the
+arithmetic circuits of Halo~2 encode its point at infinity as the
+coordinate pair \((0, 0)\) (\cref{ellipticcurves:con-complete}). The
+encoding is unambiguous only if no genuine point has \(x\)-coordinate
+\(0\), i.e.\ only if \(y^2 = 5\) has no solution in \(\Fp\): the question
+is whether \(5\) is a square in the \emph{base} field \(\Fp\) of Pallas,
+not in its scalar field \(\Fq\). Euler's criterion decides it in one
+exponentiation:
+\[
+5^{\frac{p-1}{2}} \equiv p - 1 \equiv -1 \pmod{p},
+\]
+so \(\legendre{5}{p} = -1\). The constant \(5\) is a quadratic
+non-residue modulo the Pallas base-field prime, and no point of Pallas
+has \(x = 0\). (The same computation modulo \(q\) gives
+\(5^{(q-1)/2} \equiv -1 \pmod{q}\), so Vesta has no such point either.)
+That no point has \(y = 0\) is a different fact---\(-5\) is not a cube
+in \(\Fp\)---which \cref{ellipticcurves:rem-pasta-odd} reads off from
+the oddness of the group order; the two together are the hypotheses of
+\cref{ellipticcurves:prop-complete}.
+\end{example}
+
 \subsection{Square roots modulo a prime}\label{numbertheory:sub:sqrt}
 
 Deciding that \(a\) is a residue is one matter; \emph{producing} an
@@ -8574,13 +8658,15 @@ observe that all coordinates are rational expressions in
 The chord formula~\eqref{ellipticcurves:eq-add} is \emph{incomplete}:
 it fails whenever \(x_1 = x_2\)---the doubling and inverse cases---and
 an implementation must branch into the case analysis above.
-\emph{Complete} addition formulas, single rational expressions valid
-for \emph{all} input pairs including \(P = Q\) and \(P = -Q\), exist
-for the curves used here, at the cost of more field multiplications per
-addition. The distinction is load-bearing in later volumes. Halo~2's
-elliptic-curve gadgets provide complete addition (the
-\texttt{halo2\_gadgets} crate, \texttt{src/ecc/chip/add.rs}) and use
-incomplete gates only where their callers justify the exclusions; the
+\emph{Complete} addition formulas, valid for \emph{all} input pairs
+including \(P = Q\) and \(P = -Q\), exist for the curves used here, at
+the cost of more field operations per addition;
+\cref{ellipticcurves:con-complete} exhibits the deployed set and
+\cref{ellipticcurves:prop-complete} proves it complete. The distinction
+is load-bearing in later volumes. Halo~2's elliptic-curve gadgets provide
+complete addition (the \texttt{halo2\_gadgets} crate,
+\texttt{src/ecc/chip/add.rs}) and use incomplete gates only where their
+callers justify the exclusions; the
 Sinsemilla hash of Orchard deliberately uses the \emph{incomplete}
 formulas nondeterministically
 (\texttt{halo2\_gadgets},
@@ -8599,6 +8685,221 @@ so under discrete-log hardness on Pallas
 (\cref{ellipticcurves:rem-ecdlp-hardness}) such inputs are infeasible
 to find, for honest and adversarial provers alike.
 \end{remark}
+
+An implementation branches; a circuit cannot. In a proof system the
+group law is checked by a fixed list of polynomial identities in the
+input, output, and auxiliary cells of a row, evaluated on every row
+alike, so the case analysis of this subsection has to be folded into
+algebra: each branch must appear as a factor that vanishes exactly when
+the branch is not taken. The deployed gate achieves this with five
+auxiliary cells, four of them ``inverse-or-zero'' hints that let a
+polynomial test a field element for zero.
+
+\begin{construction}[Complete addition as deployed]
+\label{ellipticcurves:con-complete}
+Let \(E : y^2 = x^3 + b\) over \(\Fp\) with \(p > 3\), and encode the
+point at infinity as the pair \((0, 0)\), so that every element of
+\(E(\Fp)\) is a pair of field elements. For \(z \in \Fp\) let
+\(\operatorname{inv}_0(z)\) be \(z^{-1}\) if \(z \neq 0\) and \(0\) if
+\(z = 0\). For encoded inputs \(P = (x_p, y_p)\) and
+\(Q = (x_q, y_q)\) the prover fills five auxiliary cells,
+\begin{gather*}
+  \alpha = \operatorname{inv}_0(x_q - x_p), \qquad
+  \beta = \operatorname{inv}_0(x_p), \qquad
+  \gamma = \operatorname{inv}_0(x_q), \qquad
+  \delta =
+  \begin{cases}
+    \operatorname{inv}_0(y_q + y_p) & \text{if } x_q = x_p,\\
+    0 & \text{otherwise},
+  \end{cases}\\[4pt]
+  \lambda =
+  \begin{cases}
+    (y_q - y_p)\,\alpha & \text{if } x_q \neq x_p,\\
+    3x_p^2\,(2y_p)^{-1} & \text{if } x_q = x_p \text{ and } y_p \neq 0,\\
+    0 & \text{otherwise},
+  \end{cases}
+\end{gather*}
+and an output pair \((x_r, y_r)\): it is \(Q\) if \(x_p = 0\); else
+\(P\) if \(x_q = 0\); else \((0, 0)\) if \(x_q = x_p\) and
+\(y_q = -y_p\); else \(x_r = \lambda^2 - x_p - x_q\) and
+\(y_r = \lambda(x_p - x_r) - y_p\). The verifier accepts the row iff the
+twelve identities
+\begin{align*}
+  (x_q - x_p)\bigl((x_q - x_p)\lambda - (y_q - y_p)\bigr) &= 0,
+    \tag{C1}\\
+  \bigl(1 - (x_q - x_p)\alpha\bigr)\bigl(2y_p\lambda - 3x_p^2\bigr) &= 0,
+    \tag{C2}\\
+  x_p x_q (x_q - x_p)\,(\lambda^2 - x_p - x_q - x_r) &= 0,
+    \tag{C3a}\\
+  x_p x_q (x_q - x_p)\,\bigl(\lambda(x_p - x_r) - y_p - y_r\bigr) &= 0,
+    \tag{C3b}\\
+  x_p x_q (y_q + y_p)\,(\lambda^2 - x_p - x_q - x_r) &= 0,
+    \tag{C3c}\\
+  x_p x_q (y_q + y_p)\,\bigl(\lambda(x_p - x_r) - y_p - y_r\bigr) &= 0,
+    \tag{C3d}\\
+  (1 - x_p\beta)\,(x_r - x_q) &= 0,
+    \tag{C4a}\\
+  (1 - x_p\beta)\,(y_r - y_q) &= 0,
+    \tag{C4b}\\
+  (1 - x_q\gamma)\,(x_r - x_p) &= 0,
+    \tag{C5a}\\
+  (1 - x_q\gamma)\,(y_r - y_p) &= 0,
+    \tag{C5b}\\
+  \bigl(1 - (x_q - x_p)\alpha - (y_q + y_p)\delta\bigr)\,x_r &= 0,
+    \tag{C6a}\\
+  \bigl(1 - (x_q - x_p)\alpha - (y_q + y_p)\delta\bigr)\,y_r &= 0
+    \tag{C6b}
+\end{align*}
+hold in \(\Fp\). These are, in this order, the twelve constraints of the
+gate \texttt{complete addition} in the \texttt{halo2\_gadgets} crate
+(\texttt{src/ecc/chip/add.rs}, \texttt{create\_gate}), each carrying
+there one further factor, a per-row cell equal to \(1\) on the rows where
+the gate applies and \(0\) elsewhere, which switches the list on or off;
+the cell assignments are those of
+\texttt{assign\_region} in the same file, and the circuit field is the
+Pallas base field \(\Fp\).
+\end{construction}
+
+\begin{proposition}[The gate is complete and sound]
+\label{ellipticcurves:prop-complete}
+Suppose no affine point of \(E(\Fp)\) has \(x = 0\) and none has
+\(y = 0\)---for \(y^2 = x^3 + b\), that \(b\) is a non-square and \(-b\)
+a non-cube in \(\Fp\). Then for all \(P, Q \in E(\Fp)\), encoded as in
+\cref{ellipticcurves:con-complete}:
+\begin{enumerate}
+  \item (\emph{completeness}) the prover's cells satisfy
+    (C1)--(C6b), and the output pair encodes \(P + Q\);
+  \item (\emph{soundness}) every
+    \((\lambda, \alpha, \beta, \gamma, \delta, x_r, y_r) \in \Fp^7\)
+    satisfying (C1)--(C6b) has \((x_r, y_r)\) equal to the encoding of
+    \(P + Q\).
+\end{enumerate}
+This is what \emph{complete} means for a gate: the twelve identities are
+satisfiable for every input pair---doublings, inverse pairs, and the
+identity included---and the output they admit is unique, so they are
+the graph of the total function \(+ \colon E(\Fp) \times E(\Fp) \to
+E(\Fp)\), with no case left to a branch outside the constraint system.
+\end{proposition}
+
+\begin{proof}
+Under the hypothesis an encoded pair has \(x = 0\) iff it is
+\(\mathcal{O}\), and two affine points with the same \(x\)-coordinate
+have \(y_q = \pm y_p\) with \(y_p \neq 0\), so they are equal or inverse
+and not both. One observation drives every case: for \(z \in \Fp\) and
+any cell value \(h\), the factor \(1 - zh\) equals \(1\) when \(z = 0\),
+whatever \(h\) is, while for \(z \neq 0\) the honest choice
+\(h = z^{-1}\) makes it \(0\). A constraint of the shape
+\((1 - zh)\,t = 0\) therefore forces \(t = 0\) exactly when \(z = 0\)
+and is discharged by the honest hint otherwise. Five cases exhaust the
+input pairs.
+
+\emph{Case \(P = \mathcal{O}\).} Then \(x_p = 0\), so (C4a)--(C4b) force
+\((x_r, y_r) = (x_q, y_q)\), the encoding of \(\mathcal{O} + Q = Q\);
+that is soundness. The prover outputs \(Q\) by the first clause, and its
+cells satisfy the rest: (C1) reads \(x_q(x_q\lambda - y_q) = 0\) and
+holds for \(\lambda = y_q\,\operatorname{inv}_0(x_q)\); (C2) and
+(C3a)--(C3d) carry a factor \(x_p\) or \(2y_p\lambda - 3x_p^2\), both
+zero; (C5a)--(C5b) are discharged by \(\gamma = x_q^{-1}\) if
+\(Q \neq \mathcal{O}\), and read \((x_r, y_r) = (0, 0) = (x_p, y_p)\) if
+\(Q = \mathcal{O}\); and (C6a)--(C6b) have first factor
+\(1 - x_q\alpha - 0\), which is \(0\) for \(\alpha = x_q^{-1}\) when
+\(Q \neq \mathcal{O}\), while for \(Q = \mathcal{O}\) the other factor
+\(x_r = y_r = 0\) vanishes.
+
+\emph{Case \(Q = \mathcal{O}\), \(P \neq \mathcal{O}\).} Now
+\(x_q = 0 \neq x_p\), so (C5a)--(C5b) force \((x_r, y_r) = (x_p, y_p)\),
+the encoding of \(P\): soundness. The prover outputs \(P\) by the second
+clause, with \(\alpha = (-x_p)^{-1}\) and
+\(\lambda = (-y_p)\alpha = y_p/x_p\); then (C1) reads
+\((-x_p)(-x_p\lambda + y_p) = 0\) and holds; (C2) and (C6a)--(C6b) carry
+the factor \(1 - (x_q - x_p)\alpha = 0\), the latter with
+\(\delta = 0\); (C3a)--(C3d) carry \(x_q = 0\); and (C4a)--(C4b) are
+discharged by \(\beta = x_p^{-1}\).
+
+\emph{Case \(P, Q\) affine with \(x_q \neq x_p\).} Constraint (C1)
+forces \(\lambda\) to be the chord slope \((y_q - y_p)/(x_q - x_p)\),
+and since \(x_p x_q (x_q - x_p) \neq 0\), (C3a)--(C3b) force
+\((x_r, y_r)\) to be the chord formula~\eqref{ellipticcurves:eq-add}---the
+encoding of \(P + Q\), which is affine because \(x_p \neq x_q\). That is
+soundness. The prover's \(\lambda\) is that slope and its output that
+formula, by the fourth clause; (C3c)--(C3d) contain the same two
+vanishing factors; (C2), (C4a)--(C4b), (C5a)--(C5b) are discharged by
+the honest \(\alpha\), \(\beta\), \(\gamma\); and (C6a)--(C6b) have
+first factor \(1 - 1 - 0 = 0\), since \(\delta = 0\).
+
+\emph{Case \(Q = -P\), \(P\) affine.} Here \(x_q = x_p\) and
+\(y_q + y_p = 0\), so both hint-bearing products in (C6a)--(C6b) are
+\(0\) whatever \(\alpha\) and \(\delta\) are, and the constraints force
+\(x_r = y_r = 0\): the encoding of \(P + (-P) = \mathcal{O}\), which is
+soundness. The prover outputs \((0, 0)\) by the third clause; (C1) and
+(C3a)--(C3b) carry \(x_q - x_p = 0\), and (C3c)--(C3d) carry
+\(y_q + y_p = 0\); (C2), whose first factor is now \(1\), needs
+\(2y_p\lambda = 3x_p^2\), which the honest
+\(\lambda = 3x_p^2(2y_p)^{-1}\) supplies (\(y_p \neq 0\)); and
+(C4a)--(C5b) are discharged by \(\beta = \gamma = x_p^{-1}\).
+
+\emph{Case \(Q = P\) affine.} Again \(x_q = x_p\) fixes
+\((x_q - x_p)\alpha = 0\), so (C2) forces \(\lambda\) to be the tangent
+slope \(3x_p^2/(2y_p)\), and since
+\(x_p x_q (y_q + y_p) = 2x_p^2 y_p \neq 0\), (C3c)--(C3d) force
+\((x_r, y_r)\) to be the doubling
+formula~\eqref{ellipticcurves:eq-double}---the encoding of \([2]P\),
+affine because \(y_p \neq 0\). That is soundness. The prover's
+\(\lambda\) is that slope and its output that formula, by the fourth
+clause; (C1) and (C3a)--(C3b) carry \(x_q - x_p = 0\); (C4a)--(C5b) are
+discharged by \(\beta = \gamma = x_p^{-1}\); and (C6a)--(C6b) have first
+factor \(1 - 0 - 2y_p\delta = 0\) for the honest
+\(\delta = (2y_p)^{-1}\).
+\end{proof}
+
+\begin{example}[The gate on the toy curve]
+\label{ellipticcurves:exa-toy-complete}
+% Source: .wip/rewrite/math-guide/compute/complete_add_toy.py
+%   admissible S = O + 8 affine points; all 81 pairs exact
+%     incl. 8 doublings, 8 inverse pairs, 17 with O
+%     [2](5,3): lambda = 7, delta = 2, R = (6, 1) = (6, 1)
+%     (5,3)+(5,8): lambda = 7 (tangent slope), delta = 0, R = (0, 0)
+%     O+(5,3): lambda = 5, alpha = 9, beta = 0, R = (5, 3)
+%   (0,4)+(5,3): gate outputs (5,3) -- x = 0 read as O; true sum (10,9)
+%   (0,4)+(0,7): unsatisfiable (C4 forces R = Q, C5 forces R = P)
+%   (8,0)+(8,0): unsatisfiable (C2 forces 3*64 = 0); true sum O
+Pallas satisfies both hypotheses of \cref{ellipticcurves:prop-complete}:
+\(5\) is a non-square in \(\Fp\) (\cref{numbertheory:ex:pasta-five})
+and \(-5\) is not a cube (\cref{ellipticcurves:rem-pasta-odd}). The toy
+curve \(y^2 = x^3 + 5\) over \(\F_{11}\) of \cref{ellipticcurves:exa-toy}
+satisfies neither---\(5 = 4^2\) gives the points \((0, \pm 4)\), and
+\((8, 0)\) has order \(2\)---which makes it the right place to watch the
+gate work and to see the hypotheses earn their keep. For each input
+pair considered below, a script determines every output pair
+\((x_r, y_r)\) that \emph{some} assignment of the five auxiliary cells in
+\(\F_{11}\) makes the twelve identities accept---the search over
+\(\alpha, \beta, \gamma, \delta\) factored by which identities mention
+each: \(\beta\) only (C4), \(\gamma\) only (C5), \(\alpha\) and
+\(\delta\) only (C2) and (C6)---so soundness is checked against all
+provers, not only the honest one. On the nine points \(\mathcal{O}\),
+\((4, \pm 5)\), \((5, \pm 3)\), \((6, \pm 1)\), \((10, \pm 2)\) with
+\(x, y \neq 0\), all \(81\) ordered pairs---eight doublings, eight
+inverse pairs, seventeen involving \(\mathcal{O}\)---admit exactly one
+output, the encoding of the true sum. Three of them, worked: for
+\([2](5, 3)\) the honest cells are
+\(\lambda = 3 \cdot 5^2 \cdot 6^{-1} = 9 \cdot 2 = 7\) and
+\(\delta = 6^{-1} = 2\), giving
+\((x_r, y_r) = (49 - 10,\ 7(5 - 6) - 3) = (6, 1)\), the value
+of~\eqref{ellipticcurves:eq-double}; for the inverse pair
+\((5, 3) + (5, 8)\) the prover supplies the same \(\lambda = 7\) but
+\(\delta = \operatorname{inv}_0(11) = 0\), and (C6a)--(C6b) force
+\((0, 0)\); for \(\mathcal{O} + (5, 3)\) the cells are
+\(\alpha = 5^{-1} = 9\), \(\lambda = 3 \cdot 9 = 5\), \(\beta = 0\), and
+(C4a)--(C4b) force \((5, 3)\). Off the admissible set the gate fails as
+the proof predicts. With \(P = (0, 4)\) and \(Q = (5, 3)\) the identities
+admit only the output \((5, 3)\)---the coordinate \(x_p = 0\) is read as
+\(\mathcal{O}\)---whereas \(P + Q = (10, 9)\)
+(\cref{ellipticcurves:exa-toy}); the pair \((0, 4) + (0, 7)\) admits no
+output at all, (C4b) demanding \(y_r = 7\) and (C5b) \(y_r = 4\); and
+\((8, 0) + (8, 0)\) admits none either, since (C2) reduces to
+\(3 \cdot 8^2 = 0\), false in \(\F_{11}\). On Pallas none of the three
+inputs exists, and the gate is complete.
+\end{example}
 
 \subsection{Identity, inverses, commutativity, and associativity}
 \label{ellipticcurves:subsec-axioms}
@@ -10219,8 +10520,8 @@ until it first hits a barrier --- has no finite horizon, and a waiting
 time measured in continuous units has no finite sample space at all.
 This subsection extends the finite theory by exactly the rungs those
 uses require: countable additivity, continuity along monotone events,
-a toolkit for waiting times under stopping rules, and laws defined by
-densities.
+a toolkit for waiting times under stopping rules, laws defined by
+densities, and a toolkit of clocks and tail bounds built on them.
 
 \begin{definition}[Countable probability space]
 \label{probability:def-countable}
@@ -10330,7 +10631,18 @@ this series, and for those the values are forced by the finite theory
 together with continuity; the density-defined laws of
 \cref{probability:def-density} carry the analogous debt, their
 interval and joint-event probabilities being taken to cohere as the
-stated integrals.
+stated integrals. The independent families of
+\cref{probability:def-density-family} extend that debt in two ways:
+joint events of several density-defined quantities are taken to be
+iterated integrals, in whichever order of integration is convenient
+--- the exchange of order for nonnegative integrands is the
+Fubini--Tonelli theorem, likewise measure-theoretic --- and the gap
+sequences of \cref{probability:def-clock} are infinite families, of
+which only finite prefixes enter any event this series uses, except
+through countable unions over the values of an arrival count --- the
+event that the count is finite, and the tail events of
+\cref{probability:thm-chernoff} --- whose probabilities are taken to
+be the corresponding sums, by the countable additivity assumed above.
 \end{remark}
 
 \begin{definition}[Law defined by a density]
@@ -10480,10 +10792,543 @@ applying the tail-sum formula (\cref{probability:lem-tailsum}),
 \]
 \end{proof}
 
+\subsubsection{The clock toolkit: exponential clocks, Poisson counts,
+and the Chernoff method}
+
+The second dividend is continuous time. A block-discovery process is
+modelled by \emph{clocks}: each party's next block arrives after a
+random delay, a delay does not remember how long it has already run,
+and two parties race. A light client that samples a chain needs a tail
+bound --- how likely is an adversary to have found \(cL\) blocks while
+the honest chain found \(L\)? --- and a wallet that spaces its
+network queries needs a delay law with a prescribed mean and no
+memory. This unit builds the clocks, counts their arrivals, and
+proves the tail bounds those uses invoke, in the forms they invoke
+them. Everything reduces to density-defined laws
+(\cref{probability:def-density}), elementary calculus, and Markov's
+inequality with a free parameter.
+
+\begin{definition}[Exponential law]\label{probability:def-exponential}
+A random quantity \(X\) is \emph{exponential with rate}
+\(\lambda > 0\), written \(X \sim \mathrm{Exp}(\lambda)\), if it has
+the density \(f(t) = \lambda e^{-\lambda t}\) for \(t \ge 0\) and
+\(f(t) = 0\) for \(t < 0\).
+\end{definition}
+
+\begin{lemma}[Tail, mean, and memorylessness]
+\label{probability:lem-exp-tail}
+Let \(X \sim \mathrm{Exp}(\lambda)\). Then
+\(\Pr[X > t] = e^{-\lambda t}\) for all \(t \ge 0\),
+\(\E[X] = 1/\lambda\), and
+\[
+\Pr[X > s + t \mid X > s] = \Pr[X > t]
+\qquad \text{for all } s, t \ge 0 ,
+\]
+conditional probability being the ratio of
+\cref{probability:def-cond}: having waited without an arrival teaches
+nothing about the remaining wait. Conversely, a nonnegative quantity
+with \(\Pr[X > t] = e^{-\lambda t}\) for all \(t \ge 0\) is
+exponential with rate \(\lambda\).
+\end{lemma}
+
+\begin{proof}
+The density integrates to \(1\), and
+\(\Pr[X > t] = 1 - \int_0^t \lambda e^{-\lambda s}\,ds
+= e^{-\lambda t}\). Integrating by parts,
+\[
+\E[X] = \int_0^\infty t\,\lambda e^{-\lambda t}\,dt
+= \bigl[-t e^{-\lambda t}\bigr]_0^\infty
+  + \int_0^\infty e^{-\lambda t}\,dt
+= \frac{1}{\lambda} .
+\]
+Since \(X > s + t\) implies \(X > s\), the conditional probability is
+\(e^{-\lambda(s+t)}/e^{-\lambda s} = e^{-\lambda t}\). For the
+converse, the events \(X > a\) and \(X > b\) (\(a \le b\)) differ by
+\(a < X \le b\), so
+\(\Pr[a < X \le b] = e^{-\lambda a} - e^{-\lambda b}
+= \int_a^b \lambda e^{-\lambda t}\,dt\); and the point \(a\) carries
+probability at most \(e^{-\lambda(a - \delta)} - e^{-\lambda a}\) for
+every \(\delta > 0\), hence zero, so \(\Pr[a \le X \le b]\) is the
+same integral.
+\end{proof}
+
+\begin{remark}[Where exponential clocks come from]
+\label{probability:rem-geometric-limit}
+The exponential law is the continuous limit of the geometric waiting
+time (\cref{probability:prop-geometric}). If trials succeed with a
+small probability \(\varepsilon\) and each occupies time
+\(\varepsilon/\lambda\), the first success arrives at time
+\(\varepsilon T/\lambda\), and for integer-valued \(T\)
+\[
+\Pr[\varepsilon T/\lambda > t]
+= \Pr\bigl[T \ge \floor{\lambda t/\varepsilon} + 1\bigr]
+= (1 - \varepsilon)^{\floor{\lambda t/\varepsilon}}
+\longrightarrow e^{-\lambda t}
+\qquad (\varepsilon \to 0) ,
+\]
+because \((1-\varepsilon)^{1/\varepsilon} \to e^{-1}\) and the floor
+alters the exponent by less than one. Whether a proof of work fits
+this picture --- each candidate independent of the last --- is a
+question about the trials, which the volumes on consensus take up.
+\end{remark}
+
+\begin{example}[A jittered schedule]\label{probability:exp-jitter}
+% Source: .wip/rewrite/math-guide/compute/clocks.py
+%   jitter: n=3 -> T = 28800 s = 8 h; Pr[Delta > 24 h] = e^-3 = 0.0498; Pr[Delta > 2T] = e^-2 = 0.1353
+A wallet that must poll each of \(n\) addresses about once a day
+waits \(\Delta \sim \mathrm{Exp}(1/T)\) between polls, with
+\(T = 86400/n\) seconds: \(\E[\Delta] = T\) by
+\cref{probability:lem-exp-tail}, one expected poll per address per
+day. For \(n = 3\), \(T = 28\,800\) seconds, eight hours; the gap
+exceeds a full day with probability \(e^{-3} = 0.0498\), and exceeds
+twice its mean with probability \(e^{-2} = 0.1353\) whatever
+\(T\) is. By memorylessness, an observer who has seen no poll for a
+while has learnt nothing about when the next one comes.
+\end{example}
+
+Two clocks race, and clocks are restarted; both need joint events of
+several density-defined quantities, which
+\cref{probability:def-density} provides only for pairs.
+
+\begin{definition}[Independent family of density-defined quantities]
+\label{probability:def-density-family}
+Density-defined quantities \(X_1, \dots, X_n\) with densities
+\(f_1, \dots, f_n\) form an \emph{independent family} if
+\(\Pr[X_1 \in I_1, \dots, X_n \in I_n] = \prod_i \Pr[X_i \in I_i]\)
+for all intervals \(I_1, \dots, I_n\). As in
+\cref{probability:def-density}, the probability of a joint event
+\((X_1, \dots, X_n) \in R\), for a region \(R \subseteq \R^n\) cut out
+by finitely many inequalities, is then taken to be the iterated
+integral of \(f_1(s_1) \cdots f_n(s_n)\) over \(R\), in whichever
+order of integration is convenient (\cref{probability:rem-extension}).
+In particular a quantity that is a function of one block of the
+family is independent of a quantity that is a function of a disjoint
+block: integrate the two blocks separately. A sequence
+\(X_1, X_2, \ldots\) is an independent family if every finite prefix
+is one, in the manner of \cref{probability:def-trials}.
+\end{definition}
+
+\begin{lemma}[Integrating out one quantity]
+\label{probability:lem-integrate-out}
+Let \(U\) be a density-defined quantity, with density \(f_U\), that
+is a function of the first \(k\) members of an independent family
+\(X_1, \dots, X_n\), and write \(W = (X_{k+1}, \dots, X_n)\). Let
+\(R\) be a region in the \((U, W)\)-coordinates whose section
+\(\{s : (s, w) \in R\}\) is an interval for every fixed value \(w\)
+of \(W\). Then
+\[
+\Pr[(U, W) \in R]
+= \int_{-\infty}^{\infty} f_U(s)\,\Pr[W \in R_s]\,ds ,
+\qquad R_s = \{w : (s, w) \in R\} ,
+\]
+the inner probability being a joint event of
+\(X_{k+1}, \dots, X_n\) alone.
+\end{lemma}
+
+\begin{proof}
+Integrate the product density over the first \(k\) coordinates
+first, holding \(w\) fixed: the result is the probability that \(U\)
+lies in the interval \(\{s : (s, w) \in R\}\), which by
+\cref{probability:def-density} equals
+\(\int f_U(s)\,\indicator[(s, w) \in R]\,ds\). What remains is the
+integral of \(f_{k+1} \cdots f_n\) against this function of \(w\);
+exchanging the order and integrating over \(w\) first leaves, for
+each \(s\), the inner probability \(\Pr[W \in R_s]\).
+\end{proof}
+
+\begin{lemma}[Density of a sum]\label{probability:lem-convolution}
+Let \(U, V\) be independent density-defined quantities, nonnegative
+(their densities vanish on the negative axis). Then \(U + V\) is
+density-defined, with density the \emph{convolution}
+\((f_U * f_V)(x) = \int_0^x f_U(u)\, f_V(x - u)\,du\) for \(x \ge 0\).
+\end{lemma}
+
+\begin{proof}
+For \(0 \le a \le b\), the event \(a \le U + V \le b\) is the region
+\(\{(u, v) : u, v \ge 0,\ a \le u + v \le b\}\), so
+\[
+\Pr[a \le U + V \le b]
+= \int_0^\infty f_U(u) \int_{\max(a - u,\,0)}^{\max(b - u,\,0)}
+  f_V(v)\,dv\,du
+= \int_0^\infty f_U(u) \int_{\max(a,\,u)}^{\max(b,\,u)}
+  f_V(x - u)\,dx\,du ,
+\]
+substituting \(x = u + v\) in the inner integral. Exchanging the
+order, the region becomes \(a \le x \le b\), \(0 \le u \le x\), and
+the right-hand side is \(\int_a^b (f_U * f_V)(x)\,dx\). With
+\(a = 0\) and \(b = \infty\) the left-hand side is \(1\), so
+\(f_U * f_V\) is a density.
+\end{proof}
+
+\begin{lemma}[Two-clock race]\label{probability:lem-race}
+Let \(X \sim \mathrm{Exp}(\lambda)\) and \(Y \sim \mathrm{Exp}(\mu)\)
+be independent. Then, for every \(u \ge 0\),
+\[
+\Pr[X < Y,\ X \le u]
+= \frac{\lambda}{\lambda + \mu}\bigl(1 - e^{-(\lambda + \mu)u}\bigr) ,
+\]
+symmetrically with the roles of \((X, \lambda)\) and \((Y, \mu)\)
+exchanged, and \(\Pr[X = Y] = 0\). Consequently
+\(\Pr[X < Y] = \lambda/(\lambda + \mu)\); the winning time
+\(\min(X, Y)\) is exponential with rate \(\lambda + \mu\); and the
+winner is independent of the winning time,
+\[
+\Pr[X < Y,\ \min(X, Y) \le u]
+= \Pr[X < Y] \cdot \Pr[\min(X, Y) \le u]
+\qquad \text{for all } u \ge 0 .
+\]
+\end{lemma}
+
+\begin{proof}
+The event is the region \(0 \le s \le u\), \(t > s\) in the
+\((X, Y)\)-plane. Integrating over \(t\) first
+(\cref{probability:def-density-family}),
+\[
+\Pr[X < Y,\ X \le u]
+= \int_0^u \lambda e^{-\lambda s}\, \Pr[Y > s]\,ds
+= \int_0^u \lambda e^{-(\lambda + \mu)s}\,ds
+= \frac{\lambda}{\lambda + \mu}\bigl(1 - e^{-(\lambda + \mu)u}\bigr) .
+\]
+The diagonal \(s = t\) has inner integral zero, so
+\(\Pr[X = Y] = 0\), and \(u = \infty\) gives \(\Pr[X < Y]\). On the
+event \(X < Y\) the winning time is \(X\), so the displayed formula
+is \(\Pr[X < Y,\ \min(X, Y) \le u]\); adding its mirror for
+\(Y < X\) gives \(\Pr[\min(X, Y) \le u] = 1 - e^{-(\lambda + \mu)u}\),
+whence \(\min(X, Y)\) is exponential with rate \(\lambda + \mu\) by
+the characterisation in \cref{probability:lem-exp-tail}, and the
+formula is exactly the product
+\(\Pr[X < Y] \cdot \Pr[\min(X, Y) \le u]\). Differencing at two
+values of \(u\) extends the factorisation from half-lines to
+intervals.
+\end{proof}
+
+\begin{definition}[Exponential clock process]
+\label{probability:def-clock}
+An \emph{exponential clock of rate} \(\lambda\) --- a \emph{Poisson
+process}, once \cref{probability:thm-poisson-count} is in hand --- is
+an independent family \(G_1, G_2, \ldots\) of
+\(\mathrm{Exp}(\lambda)\) quantities, the \emph{gaps}. Its
+\emph{arrival times} are the partial sums
+\(S_n = G_1 + \cdots + G_n\), with \(S_0 = 0\), and its \emph{arrival
+count} up to time \(t \ge 0\) is \(N(t) = \max\{n : S_n \le t\}\),
+the number of arrivals in \([0, t]\). The event \(N(t) = n\) is
+\(S_n \le t < S_{n+1}\), a joint event of the first \(n + 1\) gaps.
+\end{definition}
+
+\begin{lemma}[Arrival-time density]\label{probability:lem-erlang}
+The \(n\)-th arrival time \(S_n\) of an exponential clock of rate
+\(\lambda\) has density
+\(f_n(s) = \lambda^n s^{n-1} e^{-\lambda s}/(n-1)!\) for \(s \ge 0\).
+\end{lemma}
+
+\begin{proof}
+Induction on \(n\): \(f_1\) is the exponential density, and
+\(S_{n+1} = S_n + G_{n+1}\) with \(S_n\) a function of the first
+\(n\) gaps, hence independent of \(G_{n+1}\)
+(\cref{probability:def-density-family}), so
+\cref{probability:lem-convolution} gives
+\[
+f_{n+1}(s)
+= \int_0^s \frac{\lambda^n u^{n-1} e^{-\lambda u}}{(n-1)!}\,
+  \lambda e^{-\lambda(s - u)}\,du
+= \frac{\lambda^{n+1} e^{-\lambda s}}{(n-1)!} \int_0^s u^{n-1}\,du
+= \frac{\lambda^{n+1} s^{n} e^{-\lambda s}}{n!} . \qedhere
+\]
+\end{proof}
+
+\begin{definition}[Poisson law]\label{probability:def-poisson}
+A random variable \(K\) with values in \(\N\) is \emph{Poisson with
+mean} \(\nu > 0\) if \(\Pr[K = k] = e^{-\nu}\nu^k/k!\) for every
+\(k \ge 0\). The weights sum to \(1\) by the exponential series
+\(e^{\nu} = \sum_{k \ge 0} \nu^k/k!\), and
+\(\E[K] = \sum_{k \ge 1} k\, e^{-\nu}\nu^k/k!
+= \nu e^{-\nu} \sum_{k \ge 1} \nu^{k-1}/(k-1)! = \nu\), so the
+parameter is indeed the mean.
+\end{definition}
+
+\begin{theorem}[Poisson arrival counts]
+\label{probability:thm-poisson-count}
+For an exponential clock of rate \(\lambda\) and every \(t \ge 0\),
+the arrival count \(N(t)\) is Poisson with mean \(\lambda t\):
+\[
+\Pr[N(t) = n] = e^{-\lambda t}\frac{(\lambda t)^n}{n!},
+\qquad n = 0, 1, 2, \ldots
+\]
+In particular \(N(t)\) is finite with probability \(1\) and
+\(\E[N(t)] = \lambda t\): a rate-\(\lambda\) clock delivers
+\(\lambda\) arrivals per unit time on average.
+\end{theorem}
+
+\begin{proof}
+For \(n = 0\) the event is \(G_1 > t\), of probability
+\(e^{-\lambda t}\). For \(n \ge 1\) the event
+\(S_n \le t < S_n + G_{n+1}\) is, in the \((S_n, G_{n+1})\)-coordinates,
+the region \(s \le t\), \(g > t - s\), whose section at fixed \(g\)
+is the interval \((t - g, t]\); the quantity \(S_n\) is a function of
+the first \(n\) gaps with the density of
+\cref{probability:lem-erlang}, so \cref{probability:lem-integrate-out}
+gives
+\[
+\Pr[N(t) = n]
+= \int_0^t \frac{\lambda^n s^{n-1} e^{-\lambda s}}{(n-1)!}\,
+  \Pr[G_{n+1} > t - s]\,ds
+= \frac{\lambda^n e^{-\lambda t}}{(n-1)!} \int_0^t s^{n-1}\,ds
+= e^{-\lambda t}\frac{(\lambda t)^n}{n!} .
+\]
+The event \(N(t) < \infty\) is the disjoint union of the events
+\(N(t) = n\), so its probability is the sum of the weights
+(\cref{probability:rem-extension}), which is \(1\)
+(\cref{probability:def-poisson}); and the mean is that of the Poisson
+law.
+\end{proof}
+
+The tail bounds now. Markov's inequality applied to \(X\) itself
+decays only like \(1/a\); applied to \(e^{tX}\) it decays
+exponentially, and the free parameter \(t\) is then tuned to the
+threshold. That is the whole of the Chernoff method.
+
+\begin{definition}[Moment generating function]\label{probability:def-mgf}
+For a real-valued random variable \(X\) with finite or countable
+image --- one on a finite or countable space, or an arrival count of a
+clock family, whose law is countably additive over its values:
+\(\Pr[X \in B] = \sum_{x \in B} \Pr[X = x]\) for every set \(B\) of
+values (\cref{probability:rem-extension}) --- and a real \(t\), the
+\emph{moment generating function} is
+\[
+M_X(t) = \sum_{x} e^{tx}\,\Pr[X = x] \in (0, \infty] ,
+\]
+the sum running over the image of \(X\); its terms are positive, so
+it either converges or is \(+\infty\). On a countable space it is
+\(\E[e^{tX}]\), the expectation regrouped by value, and
+\(M_X(0) = \sum_x \Pr[X = x] = 1\).
+\end{definition}
+
+\begin{theorem}[The Chernoff method]\label{probability:thm-chernoff}
+Let \(X\) be as above, \(a\) real, and \(t > 0\) with
+\(M_X(t) < \infty\). Then
+\[
+\Pr[X \ge a] \le e^{-ta} M_X(t) ,
+\]
+and hence \(\Pr[X \ge a] \le \inf_t e^{-ta} M_X(t)\), the infimum
+over the \(t > 0\) at which \(M_X\) is finite.
+\end{theorem}
+
+\begin{proof}
+The events \(X = x\) are disjoint, so
+\(\Pr[X \ge a] = \sum_{x \ge a} \Pr[X = x]\) by countable additivity
+(\cref{probability:prop-countadd}, or the clause of
+\cref{probability:def-mgf} for a clock family). Since \(t > 0\), each
+term with \(x \ge a\) satisfies
+\(\Pr[X = x] \le e^{t(x - a)}\,\Pr[X = x]\), and summing gives
+\(\Pr[X \ge a] \le e^{-ta} \sum_x e^{tx}\,\Pr[X = x]\), the terms with
+\(x < a\) being nonnegative. This is Markov's inequality
+(\cref{probability:prop-markov}) applied to \(e^{tX}\), written on the
+law of \(X\).
+\end{proof}
+
+\begin{corollary}[Chernoff bound for a Poisson variable]
+\label{probability:cor-chernoff-poisson}
+Let \(K\) be Poisson with mean \(\nu\) and let \(a > \nu\). Then
+\(M_K(t) = \exp\bigl(\nu(e^t - 1)\bigr)\) for every real \(t\), and
+\[
+\Pr[K \ge a] \le e^{a - \nu}\Bigl(\frac{\nu}{a}\Bigr)^{a} .
+\]
+In particular, for \(\nu = \mu L\) and \(a = cL\) with \(c > \mu\),
+the bound reads \(e^{L(c - \mu)}\,(c/\mu)^{-cL}\).
+\end{corollary}
+
+\begin{proof}
+Expanding,
+\(M_K(t) = \sum_k e^{tk} e^{-\nu}\nu^k/k!
+= e^{-\nu}\sum_k (\nu e^t)^k/k! = e^{-\nu} e^{\nu e^t}\). The
+exponent \(\phi(t) = -ta + \nu(e^t - 1)\) of the Chernoff bound has
+\(\phi'(t) = -a + \nu e^t\) and \(\phi''(t) = \nu e^t > 0\), so it
+is minimised at \(e^{t} = a/\nu\), a positive \(t\) exactly when
+\(a > \nu\); there \(\phi = -a\log(a/\nu) + a - \nu\), and
+exponentiating gives the bound. Substituting \(\nu = \mu L\) and
+\(a = cL\) gives \(e^{cL - \mu L}(\mu/c)^{cL}\).
+\end{proof}
+
+\begin{theorem}[Negative-binomial arrival count]
+\label{probability:thm-negbin}
+Let two exponential clocks be independent --- their gaps together
+form one independent family --- with rates \(\lambda\), the
+\emph{honest} clock, and \(\mu\), the \emph{adversary} clock, and let
+\(X\) be the number of adversary arrivals strictly before the
+\(L\)-th honest arrival, for a fixed \(L \ge 1\). Then \(X\) is
+finite with probability \(1\), with the \emph{negative binomial} law
+\[
+\Pr[X = m] = \binom{m + L - 1}{m}\, p^{L} q^{m},
+\qquad p = \frac{\lambda}{\lambda + \mu},\quad
+q = \frac{\mu}{\lambda + \mu},
+\qquad m = 0, 1, 2, \ldots,
+\]
+of mean \(Lq/p = L\mu/\lambda\), and, for every real \(t\) with
+\(\mu e^{t} < \lambda + \mu\),
+\[
+M_X(t) = \Bigl(\frac{\lambda}{\lambda + \mu - \mu e^{t}}\Bigr)^{L} ;
+\]
+with the honest rate normalised to \(1\) this is
+\(M_X(t) = \bigl(1/(1 + \mu - \mu e^t)\bigr)^{L}\). Only the ratio
+\(\mu/\lambda\) enters.
+\end{theorem}
+
+\begin{proof}
+Write \(S_L\) for the \(L\)-th honest arrival time, a function of
+the honest gaps with the density \(f_L\) of
+\cref{probability:lem-erlang}, and \(N_A\) for the adversary's
+arrival count. The event \(X = m\) differs from \(N_A(S_L) = m\)
+only on the events \(S_L = A_1 + \cdots + A_m\) and
+\(S_L = A_1 + \cdots + A_{m+1}\), with \(A_i\) the adversary gaps;
+each of these, in the coordinates \((S_L, A_1, \dots, A_{m+1})\), has
+a single point as its section at fixed adversary gaps, hence
+probability zero (\cref{probability:def-density}), so
+\(\Pr[X = m] = \Pr[N_A(S_L) = m]\). The latter event is the region
+\(A_1 + \cdots + A_m \le S_L < A_1 + \cdots + A_{m+1}\), whose
+section at fixed adversary gaps is an interval. By
+\cref{probability:lem-integrate-out} and
+\cref{probability:thm-poisson-count},
+\begin{align*}
+\Pr[X = m]
+&= \int_0^\infty f_L(s)\,\Pr[N_A(s) = m]\,ds
+= \frac{\lambda^L \mu^m}{(L-1)!\,m!}
+  \int_0^\infty s^{m+L-1} e^{-(\lambda + \mu)s}\,ds \\
+&= \frac{\lambda^L \mu^m}{(L-1)!\,m!}\cdot
+  \frac{(m+L-1)!}{(\lambda + \mu)^{m+L}} ,
+\end{align*}
+using \(\int_0^\infty s^{k} e^{-\alpha s}\,ds = k!/\alpha^{k+1}\)
+for \(\alpha > 0\), which \(k\) integrations by parts establish.
+Rearranging the factorials gives the binomial coefficient and the
+powers of \(p\) and \(q\).
+
+For the generating function, set \(x = q e^{t}\), so that
+\(0 \le x < 1\) exactly when \(\mu e^t < \lambda + \mu\). Then
+\(M_X(t) = p^L \sum_{m \ge 0} \binom{m+L-1}{m} x^m\), and we claim
+the series is \((1 - x)^{-L}\), by induction on \(L\). For \(L = 1\)
+it is the geometric series. For the step, write
+\(T_L(n) = \sum_{m=0}^{n} \binom{m+L-1}{m} x^m\) for the partial
+sums. Pascal's rule
+\(\binom{m+L}{m} = \binom{m+L-1}{m-1} + \binom{m+L-1}{m}\) --- sort
+the \(m\)-subsets of \(m + L\) items by whether they contain a
+distinguished item --- gives, on subtracting \(x\,T_{L+1}(n)\) from
+\(T_{L+1}(n)\) term by term,
+\[
+(1 - x)\,T_{L+1}(n) = T_L(n) - \binom{n+L}{n} x^{n+1} .
+\]
+Hence \(T_{L+1}(n) \le T_L(n)/(1 - x) \le (1 - x)^{-L-1}\) by the
+induction hypothesis: the partial sums \(T_{L+1}(n)\) increase and
+are bounded, so the series converges, and its terms
+\(\binom{n+L}{n} x^{n}\) tend to zero. Letting \(n \to \infty\) in
+the display gives
+\((1 - x) \sum_{m \ge 0} \binom{m+L}{m} x^m = (1 - x)^{-L}\), the
+claim for \(L + 1\). Hence
+\(M_X(t) = \bigl(p/(1 - q e^t)\bigr)^L\), which is the displayed form
+after multiplying numerator and denominator by \(\lambda + \mu\). At
+\(t = 0\) this gives \(\sum_m \Pr[X = m] = 1\); the event
+\(X < \infty\) is the disjoint union of the events \(X = m\), so its
+probability is this sum (\cref{probability:rem-extension}), and \(X\)
+is finite with probability \(1\). For the mean,
+\(m\binom{m+L-1}{m} = L\binom{m+L-1}{m-1}\), so
+\(\E[X] = Lq\,p^L \sum_{k \ge 0} \binom{k+L}{k} q^k
+= Lq\,p^L (1 - q)^{-L-1} = Lq/p\) by the same series with \(L + 1\)
+in place of \(L\).
+\end{proof}
+
+\begin{remark}[The coin-sequence form]
+\label{probability:rem-negbin-coins}
+The same law arises without clocks. In an infinite sequence of
+independent trials (\cref{probability:def-trials}) succeeding with
+probability \(p\), the number of failures strictly before the
+\(L\)-th success equals \(m\) exactly when the \((m + L)\)-th trial
+succeeds and, among the first \(m + L - 1\), precisely \(m\) fail:
+\(\binom{m+L-1}{m}\) orders, each of probability
+\(p^{L-1} q^m \cdot p\). The two-clock race and memorylessness
+(\cref{probability:lem-race} and \cref{probability:lem-exp-tail}) are
+what identify the clock model's attribution sequence --- which clock
+fires next --- with such a coin sequence of success probability
+\(\lambda/(\lambda + \mu)\); later volumes carry out that
+identification.
+\end{remark}
+
+\begin{theorem}[Chernoff bound for the arrival count]
+\label{probability:thm-chernoff-negbin}
+In the setting of \cref{probability:thm-negbin} with honest rate
+\(1\) and adversary rate \(\mu\), for every \(c > \mu\),
+\[
+\Pr[X \ge cL]
+\le \Bigl[\Bigl(\frac{1 + c}{1 + \mu}\Bigr)^{1 + c}
+          \Bigl(\frac{\mu}{c}\Bigr)^{c}\Bigr]^{L} ,
+\]
+the Chernoff bound optimised at
+\(e^{t} = c(1 + \mu)/(\mu(1 + c))\). The base in brackets is
+strictly less than \(1\), so the bound decays exponentially in
+\(L\).
+\end{theorem}
+
+\begin{proof}
+The count \(X\) has image \(\N\) and a law countably additive over
+its values (\cref{probability:rem-extension}), so
+\cref{probability:thm-chernoff} applies: with
+\cref{probability:thm-negbin},
+\(\Pr[X \ge cL] \le e^{-tcL} M_X(t) = e^{L\phi(t)}\) with
+\(\phi(t) = -tc - \log(1 + \mu - \mu e^{t})\), for
+\(0 < t < \log((1 + \mu)/\mu)\). On that interval
+\[
+\phi'(t) = -c + \frac{\mu e^t}{1 + \mu - \mu e^t},
+\qquad
+\phi''(t) = \frac{\mu e^t (1 + \mu)}{(1 + \mu - \mu e^t)^2} > 0 ,
+\]
+so \(\phi'\) is strictly increasing (positive derivative) and
+vanishes at most once, namely where \(\mu e^t (1 + c) = c(1 + \mu)\),
+that is, at \(e^{t^*} = c(1 + \mu)/(\mu(1 + c))\); this lies in the
+interval because \(c > \mu\) gives \(e^{t^*} > 1\) and
+\(c/(1 + c) < 1\) gives \(e^{t^*} < (1 + \mu)/\mu\). Thus \(\phi\)
+decreases before \(t^*\) and increases after it, and \(\phi(t^*)\) is
+its minimum on the interval. At \(t^*\),
+\(1 + \mu - \mu e^{t^*} = (1 + \mu)/(1 + c)\), so
+\(e^{\phi(t^*)} = (e^{t^*})^{-c}\,(1 + c)/(1 + \mu)\), which is the
+bracketed base. Finally \(\phi(0) = 0\) and \(\phi\) decreases on
+\([0, t^*]\), since \(\phi'(0) = \mu - c < 0\), so \(\phi(t^*) < 0\):
+the base is below \(1\).
+\end{proof}
+
+\begin{example}[The Poisson expression is not a bound for the
+arrival count]\label{probability:exp-negbin-tail}
+% Source: .wip/rewrite/math-guide/compute/clocks.py
+%   mu=1/2, c=3/4, L=40: exact tail = 5.0512e-02, clock bound = 2.5324e-01, Poisson expression = 1.1487e-01
+%   mu=1/2, c=3/4, L=200: exact tail = 1.0859e-04, clock bound = 1.0416e-03, Poisson expression = 2.0000e-05  [Poisson expression BELOW the exact tail]
+%   mu=1/2, c=3/4, L=400: exact tail = 8.2274e-08, clock bound = 1.0849e-06, Poisson expression = 4.0001e-10  [Poisson expression BELOW the exact tail]
+%   mu=1/2, c=3/4: clock-bound base = 0.966248, Poisson-expression base = 0.947338
+With the honest rate \(1\), the arrival count \(X\) has mean
+\(\mu L\), the same as the Poisson variable of
+\cref{probability:cor-chernoff-poisson} with \(\nu = \mu L\), which
+counts adversary arrivals in a window of fixed length \(L\); the two
+laws differ because the window here ends at the random time
+\(S_L\). Substituting one for the other is tempting and wrong. At
+\(\mu = 1/2\) and \(c = 3/4\), the exact tail \(\Pr[X \ge cL]\)
+(summing \cref{probability:thm-negbin}), the bound of
+\cref{probability:thm-chernoff-negbin}, and the Poisson expression
+\(e^{L(c - \mu)}(c/\mu)^{-cL}\) are
+\[
+\begin{array}{r@{\qquad}lll}
+L & \text{exact tail} & \text{clock bound} & \text{Poisson expression} \\
+40  & 5.05 \cdot 10^{-2} & 2.53 \cdot 10^{-1} & 1.15 \cdot 10^{-1} \\
+200 & 1.09 \cdot 10^{-4} & 1.04 \cdot 10^{-3} & 2.00 \cdot 10^{-5} \\
+400 & 8.23 \cdot 10^{-8} & 1.08 \cdot 10^{-6} & 4.00 \cdot 10^{-10}
+\end{array}
+\]
+At \(L = 200\) and \(L = 400\) the Poisson expression lies
+\emph{below} the exact tail, so it is not an upper bound for the
+arrival count; its base per unit of \(L\) is \(0.9473\), against
+\(0.9662\) for the valid bound. A bound stated for the wrong law is
+not a bound.
+\end{example}
+
 Later volumes build block-discovery and extraction analyses directly
-on this base: exponential clocks are density-defined laws,
-block-attribution sequences are infinite sequences of independent
-trials, extractor running times are the waiting times above (the
+on this base: block clocks are the exponential clocks above, their
+races and arrival counts the lemmas of this unit, block-attribution
+sequences are infinite sequences of independent trials, extractor
+running times are the waiting times of the previous unit (the
 geometric waiting time and Wald's identity), and the limit arguments
 instantiate \cref{probability:thm-continuity}.
 
