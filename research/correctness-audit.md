@@ -713,3 +713,39 @@ re-randomised-FROST preprint has material reduction gaps.  A case-insensitive
 raw-content and path exclusion sweep, including hidden and ignored generated
 files but excluding version-control object storage, found zero hits.  No
 remaining Arboretum defect was found by the three closing gates.
+
+## Rewrite: crypto-guide (2026-09-16)
+
+Third volume of the campaign. Claims inventory → three-angle
+architecture (toolbox / consumer / adversary), judged; ten sections in
+dependency order (model, assumptions, hashing, commitments, PRFs and FF1,
+symmetric and AEAD, key agreement, signatures, interactive proofs and
+SNARKs, Merkle trees), the section titles other volumes cite preserved
+verbatim (every title cite from an active volume resolves). Draft rebased
+on the external audit of the live volume (47 claim-level corrections
+carried). Battery: paired coverage juries (≈145 flags), seam and number
+agents, and a statement-correctness hunt (48 refuter-confirmed findings);
+fix wave repaired 84 sites. Critical-path reconciliation against the nine
+upper volumes then added the units they demand and nothing constructed
+(Sinsemilla generator table with LE_32 and its GroupHash derivation;
+Shamir sharing with Feldman VSS for FROST; a pairing-SNARK survey for the
+Ironwood and Halo 2 Guides; IK-CPA key privacy of ElGamal with proof for
+the Wallet Guide's unlinkability reduction; AEAD wrong-key rejection with
+its key-commitment caveat; the transparent layer's hash160, double
+SHA-256, ECDSA and BIP-340 register) and cut the consumer-free units
+(the ROM-limits subsection absorbed into the model remark, the
+three-colouring protocol absorbed into one bridge sentence, two recaps).
+Every surgical site (364 across the ten fragments) then re-verified by
+two independent lenses, ground truth and text integrity: 31 defects,
+all repaired or refuted with reasons, zero open on re-check. A
+whole-volume sweep of the assembled text under two lenses (undefined
+terms and the psi rule; conventions and citation apparatus) raised 130
+candidates; default-refute juries kept 80, all repaired in the
+fragments, and a second verification pass over the repairs corrected six
+follow-through defects (an imprecise S-box gloss, a dangling conditional
+min-entropy hypothesis, a stale step name in the forking-lemma proof, an
+upward cite carrying a title, a double colon, an unexpanded acronym).
+Swapped in gate-clean: 130 pp, 0 overfull, 0 underfull, 0 unresolved,
+0 multiply defined. Figures remain a logged follow-up pass (ten TikZ
+placeholders); the construction-label kind marker is `con:` in three
+sections and `def:` in one, invisible in the rendered volume.

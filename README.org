@@ -21,9 +21,10 @@ Layered; read each atop the ones it names.
 1. *Math Guide* (=math-guide.tex=) — the algebraic and number-theoretic
    groundwork: groups, finite fields, elliptic curves, and the relevant
    hardness assumptions.
-2. *Crypto Guide* (=crypto-guide.tex=) — commitments, hashes, signatures,
-   zero-knowledge, and the DLP/CDH/DDH hierarchy, developed only as far as the
-   upper volumes require.
+2. *Crypto Guide* (=crypto-guide.tex=) — the provable-security model, the
+   DLP/CDH/DDH hierarchy, hashes, commitments, PRFs and ciphers, key agreement,
+   signatures, zero-knowledge and SNARKs, and Merkle trees, developed only as
+   far as the upper volumes require.
 3. *Halo 2 Guide* (=halo2-guide.tex=) — PLONKish arithmetisation, the
    permutation, lookup, and vanishing arguments, the inner-product polynomial
    commitment, the Halo accumulation trick, and recursive proof composition,
