@@ -56,6 +56,10 @@ assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
 assert not (sitegen.ROOT / f"{MERGED}.pdf").exists()
 assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
             if vol == "flyclient-guide") == ("Frontier", "design-stage")
+for volume in sitegen.VOLUMES:
+    source = (sitegen.ROOT / f"{volume}.tex").read_text()
+    assert source.count(r"\tableofcontents") == 1, volume
+    assert source.index(r"\tableofcontents") < source.index(r"\section{"), volume
 
 # Existing section and heading links survive; new IDs cannot collide with any
 # existing element, including one that appears later in the document.
@@ -139,6 +143,7 @@ with tempfile.TemporaryDirectory() as tmp:
     omnibus = out / "arboretum-complete.tex"
     sitegen.omnibus(out=omnibus)
     complete_tex = omnibus.read_text()
+    assert complete_tex.count(r"\tableofcontents") == 1
     native_section_id = (
         r"\def\thesection@ID{V\arabic{arbvolume}.S\@section@ID}")
     assert native_section_id not in complete_tex

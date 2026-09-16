@@ -12,6 +12,10 @@
 \usepackage{bm}
 \usepackage{xcolor}
 \usepackage[psdextra,hidelinks]{hyperref}
+% Leave room for two-digit subsection numbers such as 10.10 in the contents.
+\makeatletter
+\renewcommand*{\l@subsection}{\@dottedtocline{2}{1.5em}{3em}}
+\makeatother
 \emergencystretch=3em
 \hbadness=10000
 \hfuzz=2pt
@@ -130,6 +134,10 @@ hash functions, commitments, pseudorandom functions, authenticated
 encryption, key agreement, signatures, zero-knowledge arguments, and
 Merkle trees---is the toolbox the deployed protocol spends.
 \end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
 
 \section{The provable-security model}\label{sec:model}
 
