@@ -407,8 +407,7 @@ $\fvk = (\aksym, \nksym, \rivk)$;
 $\ivk = \CommitIvk_{\rivk}(\Extract(\aksym), \nksym)$; the
 $(\dk, \ovk)$ split of a single $\mathsf{PRFexpand}$ output with lead byte
 $\mathtt{0x82}$; and the FF1 diversified addresses with default index $0$
-(protocol specification \S4.2.3, ``Orchard Key Components'';
-\textsf{orchard}, \texttt{src/keys.rs}).
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, ``Orchard Key Components'').
 
 What ZIP-32 adds at the wallet level is the capability boundary of the full
 viewing key. The holder of $\fvk$ obtains, for \emph{both} the external and
@@ -459,7 +458,7 @@ $K := \mathrm{LE}_{256}(\rivk)$ and
 \end{gather*}
 i.e.\ $\mathsf{DeriveInternalFVK}^{\mathsf{Orchard}}$ modifies \emph{only}
 $\rivk$ (ZIP-32, ``Orchard internal key derivation''; protocol
-specification \S4.2.3). The downstream keys then follow the standard
+specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}). The downstream keys then follow the standard
 FVK-level rules of the \emph{Ironwood Guide}, applied to
 $\fvk^{\mathsf{int}}$:
 $\ivk^{\mathsf{int}} := \CommitIvk_{\rivk^{\mathsf{int}}}(\Extract(\aksym), \nksym)$
@@ -477,7 +476,7 @@ $\mathrm{I2LEOSP}_{256}(\aksym) \,\|\, \mathrm{I2LEOSP}_{256}(\nksym)$,
 a different lead byte. Its consequences: $\aksym$ and $\nksym$ are
 unchanged (the protocol specification notes
 $\aksym^{\mathsf{int}} = \aksym$ and $\nksym^{\mathsf{int}} = \nksym$,
-\S4.2.3), so spend authorisation and nullifier derivation are common to
+\href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}), so spend authorisation and nullifier derivation are common to
 both scopes, while $\ivk$, $\dk$, and $\ovk$ are re-derived from
 $\rivk^{\mathsf{int}}$. The construction does not explicitly enforce that
 the two scopes' derived keys or addresses differ; equality would be a
@@ -544,7 +543,7 @@ canonicalisation of the \emph{Ironwood Guide}), coincides with
 $\mathrm{I2LEOSP}_{256}(\Extract(\aksym))$, matching the specification's
 $\mathrm{I2LEOSP}_{256}(\aksym)$ for
 $\aksym \in \{0, \dots, p_{\Pallas}-1\}$ (\textsf{orchard},
-\texttt{src/keys.rs}; protocol specification \S4.2.3 and the
+\texttt{src/keys.rs}; protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3} and the
 $\mathsf{AuthSignPublic}$ type). The $\nksym$ bytes are the base-field
 representation.
 \end{remark}
@@ -562,7 +561,7 @@ returns \texttt{None} exactly when one of the three fails
 (\textsf{orchard}, \texttt{src/keys.rs}), and the specification's
 key-generation algorithm mandates exactly these three discard conditions
 --- ``discard this key and repeat with a new $\mathsf{sk}$'' (protocol
-specification \S4.2.3, ``Orchard Key Components'').
+specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, ``Orchard Key Components'').
 \texttt{FullViewingKey::from\_bytes} re-checks both scopes when parsing an
 FVK from bytes (\textsf{orchard}, \texttt{src/keys.rs}).
 \end{definition}
@@ -621,12 +620,12 @@ the probability of any particular scalar is at most
 $\lceil 2^{512}/p_{\Vesta}\rceil/2^{512} < 2^{-254}$. The extractor sends only
 the identity to $0$, because $y^2 = 0^3 + 5$ has no solution in
 $\F_{p_{\Pallas}}$ --- $5$ is a non-square there (protocol specification
-\S5.4.9.7, note) --- so $\Pr[\ivk = 0] < 2^{-254}$.
+\href{https://zips.z.cash/protocol/protocol.pdf\#concreteextractorpallas}{\S5.4.9.7}, note) --- so $\Pr[\ivk = 0] < 2^{-254}$.
 \emph{Bottom}: the $\bot$ output arises only inside the Sinsemilla hash,
-since the blinding addition is complete (\S5.4.8.4). On the $510$-bit
+since the blinding addition is complete (\href{https://zips.z.cash/protocol/protocol.pdf\#concretesinsemillacommit}{\S5.4.8.4}). On the $510$-bit
 $\CommitIvk$ message --- two $255$-bit field encodings,
 $\lceil 510/10 \rceil = 51$ ten-bit chunks --- the hash performs
-$2 \cdot 51 = 102$ incomplete additions (\S5.4.1.9). Each fails only when
+$2 \cdot 51 = 102$ incomplete additions (\href{https://zips.z.cash/protocol/protocol.pdf\#concretesinsemillahash}{\S5.4.1.9}). Each fails only when
 one operand is the identity or shares the other's $x$-coordinate.
 To avoid assuming uniformity after conditioning on prior success,
 consider each round's unconditioned complete-law expression
@@ -672,7 +671,7 @@ For a full viewing key $\fvk = (\aksym, \nksym, \rivk)$, the
 \mathrm{I2LEOSP}_{256}(\nksym) \,\|\, \mathrm{I2LEOSP}_{256}(\rivk),
 \end{align*}
 the digest of the $96$-byte raw FVK encoding $\fvk_{\mathrm{raw}}$
-(protocol specification \S5.6.4.4). The \emph{tag} is its first $4$ bytes
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardfullviewingkeyencoding}{\S5.6.4.4}). The \emph{tag} is its first $4$ bytes
 and MUST NOT be assumed unique; the master key's parent tag is the $4$
 zero bytes (ZIP-32,
 ``Orchard Full Viewing Key Fingerprints and Tags''). Deployed as
@@ -721,7 +720,7 @@ spending keys'').
 
 ZIP-32 defines this encoding ``for completeness'' and expects most wallets
 to expose only the plain $\mathsf{sk}$ encoding of the protocol
-specification (\S5.6.4.5) --- consistent with the deployed stack, which
+specification (\href{https://zips.z.cash/protocol/protocol.pdf\#orchardspendingkeyencoding}{\S5.6.4.5}) --- consistent with the deployed stack, which
 discards the chain code at the account level
 (\S\ref{sec:zip32-path}). Indeed we find \emph{no} deployed
 \textsf{librustzcash} code path that emits or parses the Bech32 form: the
@@ -813,7 +812,7 @@ outputs, while separate consumers may reuse a byte under different
 keys. Sapling derives $\rcm$ and $\mathsf{esk}$ from lead bytes
 $\mathtt{0x04}$ and $\mathtt{0x05}$ with no $\rho$ suffix --- the
 assignment swapped relative to Orchard's, which the specification
-attributes to an oversight (protocol specification \S4.7.3, note) --- and
+attributes to an oversight (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardsend}{\S4.7.3}, note) --- and
 the Sapling
 instantiation of ZIP-32 intentionally reuses
 $\mathtt{0x00}$--$\mathtt{0x02}$ from the Sapling key components under a
@@ -824,7 +823,7 @@ $\mathtt{0x10}$--$\mathtt{0x18}$, of which
 \S\ref{sec:addresses-diversified} cites $\mathtt{0x10}$ and
 $\mathtt{0x16}$) are accounted in the specification's list (protocol
 specification, the $\mathsf{PRF}^{\mathsf{expand}}$ accounting under
-``Pseudo Random Functions'' and \S4.2.3; ZIP-32;
+\href{https://zips.z.cash/protocol/protocol.pdf\#concreteprfs}{``Pseudo Random Functions''} and \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}; ZIP-32;
 \textsf{zcash\_spec}~0.2.1, \texttt{src/prf\_expand.rs}). The Sprout
 instantiation of ZIP-32 reserves the lead byte $\mathtt{0x80}$, the
 personalisation \texttt{``ZcashIP32\_Sprout''}, and the HRPs
@@ -877,12 +876,11 @@ Guide} and carry the Orchard meanings of $\mathtt{0x04}$/$\mathtt{0x05}$.
 The $\mathtt{0x0B}$ row uses the $137$-byte $\mathsf{pre\_rcm}$
 defined in that volume's ``The note seed: Ironwood derivations (lead
 byte $\mathtt{0x03}$)'', with its
-first byte removed because the column already lists it (ZIP-2005;
-\textsf{orchard}~0.15.0, \texttt{src/note.rs}).
+first byte removed because the column already lists it (ZIP-2005).
 Sapling reuses both bytes, without the $\rho$ suffix and with the outputs
 swapped ($\mathtt{0x04} \to \rcm$, $\mathtt{0x05} \to \mathsf{esk}$),
 under its own per-note $\mathsf{rseed}$ keys (protocol specification
-\S4.7.3, note). Rows $\mathtt{0x81}$ and $\mathtt{0x83}$ are constructed
+\href{https://zips.z.cash/protocol/protocol.pdf\#orchardsend}{\S4.7.3}, note). Rows $\mathtt{0x81}$ and $\mathtt{0x83}$ are constructed
 in
 Definitions~\ref{def:zip32-ckd} and~\ref{def:zip32-internal};
 $\mathtt{0xD0}$ in Definition~\ref{def:zip32-transparent-ovk};
@@ -991,7 +989,7 @@ input and output are $88$-bit sequences. The
 protocol specification abbreviates the keyed permutation as
 $\mathrm{PRP}^{d}_{K}(d) := \mathsf{FF1\text{-}AES256}_K(\texttt{""}, d)$
 (ZIP-32, \emph{Sapling diversifier derivation}; \emph{Orchard diversifier
-and OVK derivation}; protocol specification \S5.4.4, \emph{Pseudo Random
+and OVK derivation}; protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concreteprps}{\S5.4.4}, \emph{Pseudo Random
 Permutations}).
 \end{definition}
 
@@ -1009,7 +1007,7 @@ $\mathsf{KA^{Orchard}.DerivePublic}$ of the protocol specification, and the
 \emph{Ironwood Guide} constructs all three maps. Diversifier indices SHOULD
 NOT be chosen at random, and an address generator MAY encode recoverable
 information in the index --- the $\dk$ holder recovers it by FF1 decryption
-(protocol specification \S4.2.3, \emph{Orchard Key Components}).
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, \emph{Orchard Key Components}).
 
 The deployed cipher is the \textsf{fpe} crate's \texttt{FF1<Aes256>} at
 radix~$2$; the \textsf{orchard} crate pins \textsf{fpe}~0.6 in its
@@ -1028,7 +1026,7 @@ too short to be cryptographically unguessable at the $128$-bit security
 level, and diversifiers chosen at random begin to collide by the birthday
 bound as the number of draws approaches $2^{44}$; a keyed permutation
 reaches the full $2^{88}$ range with no repetition, provided the input
-index never repeats for a given node (protocol specification \S5.4.1.6,
+index never repeats for a given node (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretediversifyhash}{\S5.4.1.6},
 notes). The remaining rationale --- per-account sequences pseudorandom and
 mutually uncorrelated, and the issue-count leak a bare counter would cause
 --- is the \emph{Ironwood Guide}'s diversifier construction, cited above.
@@ -1042,7 +1040,7 @@ FF1: at their parameters $r = 5$ (half the number of rounds) and $n = 44$
 (half the domain size in bits), the distinguishing attack has
 data complexity $2^{2n((r-1)-1/2)-n} = 2^{264}$ and time complexity
 $2^{2n((r-1)-1/2)} = 2^{308}$, no better than brute-forcing the $256$-bit
-key (protocol specification \S5.4.4).
+key (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concreteprps}{\S5.4.4}).
 \end{remark}
 
 \begin{definition}[Diversifier validity and default diversifiers]\label{def:diversifier-validity}
@@ -1073,7 +1071,7 @@ P & \text{otherwise,}
 \]
 which never returns $\bot$: every one of the $2^{88}$ Orchard diversifiers
 is valid, the default diversifier is $d_0$, and an account has exactly
-$2^{88}$ payment addresses (protocol specification \S5.4.1.6; ZIP-32,
+$2^{88}$ payment addresses (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretediversifyhash}{\S5.4.1.6}; ZIP-32,
 \emph{Orchard diversifier and OVK derivation}; \emph{Orchard key path}).
 \end{definition}
 
@@ -1111,7 +1109,7 @@ R := \mathsf{PRFexpand}_{\mathrm{LE}_{256}(\rivk)}\bigl(\mathtt{0x82}
 the derivation the \emph{Ironwood Guide} types in full
 ($\mathsf{PRFexpand}_K(t)$ is BLAKE2b-512 with personalisation
 \texttt{Zcash\_ExpandSeed} over $K \,\|\, t$; ZIP-32, \emph{Conventions};
-protocol specification \S4.2.3). The consequence is capability parity with
+protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}). The consequence is capability parity with
 a simpler key structure: any holder of the Orchard full viewing key can
 determine the position of any diversifier in the account's sequence, as in
 Sapling only a holder of the \emph{extended} full viewing key can (ZIP-32,
@@ -1124,7 +1122,7 @@ is known to an adversary, this reuse prevents proving \emph{perfect} hiding
 for $\CommitIvk$ in this context, and modelling $\mathsf{PRFexpand}$ merely
 as a PRF is insufficient; the specification instead makes a joint
 assumption on Pallas scalar multiplication and $\mathsf{PRFexpand}$
-(protocol specification \S4.2.3, security note).
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, security note).
 \end{remark}
 
 Inverting the permutation recovers the index:
@@ -1152,7 +1150,7 @@ possible to tell from which of the two authorities the third address
 derives. For Sapling this holds under DDH on the Jubjub prime-order
 subgroup when $\mathsf{GroupJHash}$ is modelled as a random oracle, via
 IK-CPA key privacy of ElGamal; the specification applies the same property
-and notes to Orchard (protocol specification \S5.4.1.6). One pitfall is
+and notes to Orchard (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretediversifyhash}{\S5.4.1.6}). One pitfall is
 normative: an implementation SHOULD avoid providing a
 \emph{chosen-diversifier} oracle --- deriving a new address for a given
 $\ivk$ at an adversary-supplied diversifier --- since such an oracle
@@ -1168,12 +1166,12 @@ An Orchard shielded payment address encodes raw in $43$ bytes,
 \]
 the $11$-byte diversifier followed by the $32$-byte star-encoding of
 $\pkd$; a decoder rejects the encoding if the point fails to parse or is
-the zero point (protocol specification \S5.6.4.2, \emph{Orchard Raw Payment
+the zero point (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardpaymentaddrencoding}{\S5.6.4.2}, \emph{Orchard Raw Payment
 Addresses}). A Sapling address is likewise $11 + 32 = 43$ bytes under
 Jubjub ctEdwards compression, rejected if parsing fails, the encoding is
 non-canonical, or $\pkd$ lies outside the prime-order subgroup minus zero
 --- the exclusion of zero dates from specification version 2025.6.0
-(protocol specification \S5.6.3.1, \emph{Sapling Payment Addresses}).
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#saplingpaymentaddrencoding}{\S5.6.3.1}, \emph{Sapling Payment Addresses}).
 
 The Orchard raw \emph{full viewing key} is $96$ bytes,
 \[
@@ -1185,21 +1183,21 @@ not a valid affine $x$-coordinate of a Pallas point, or if either the
 external or the internal $\ivk$ derived from it is $0$ or $\bot$; the
 deployed \texttt{FullViewingKey::from\_bytes} enforces exactly these
 checks, including both scopes' $\ivk$ validity (protocol specification
-\S5.6.4.4, \emph{Orchard Raw Full Viewing Keys}; \textsf{orchard},
+\href{https://zips.z.cash/protocol/protocol.pdf\#orchardfullviewingkeyencoding}{\S5.6.4.4}, \emph{Orchard Raw Full Viewing Keys}; \textsf{orchard},
 \texttt{src/keys.rs}). The Orchard raw \emph{incoming viewing key} is $64$
 bytes, $\dk \,\|\, \mathrm{I2LEOSP}_{256}(\ivk)$, where $\ivk$ MUST be a
 nonzero canonical Pallas base field element; deployed as
 \texttt{IncomingViewingKey::\{to\_bytes, from\_bytes\}} over a
-\texttt{NonZeroPallasBase} (protocol specification \S5.6.4.3,
+\texttt{NonZeroPallasBase} (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardinviewingkeyencoding}{\S5.6.4.3},
 \emph{Orchard Raw Incoming Viewing Keys}; \textsf{orchard},
 \texttt{src/keys.rs}).
 
 None of these raw Orchard encodings has a string form of its own: no
 Bech32 or Bech32m encoding is defined for an individual Orchard address,
 incoming viewing key, or full viewing key --- the unified encodings below
-are their only string carrier (protocol specification \S5.6.4.2). Sapling,
+are their only string carrier (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardpaymentaddrencoding}{\S5.6.4.2}). Sapling,
 by contrast, retains standalone address strings (mainnet HRP \texttt{zs},
-testnet \texttt{ztestsapling}; protocol specification \S5.6.3.1), and the
+testnet \texttt{ztestsapling}; protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#saplingpaymentaddrencoding}{\S5.6.3.1}), and the
 deployed renderer honours the asymmetry: the method
 \texttt{Receiver::to\_zcash\_address} emits a Sapling receiver as a bare
 \texttt{zs} address and a transparent receiver as a \texttt{t}-address,
@@ -1218,7 +1216,7 @@ script, revealed and satisfied when spending) over P2PKH. A wallet MAY
 let its user configure which receiver types it can send to, but MUST NOT
 allow the priority order
 itself to be changed, except via experiments (ZIP-316, \emph{Encoding of
-Unified Addresses}; mirrored in protocol specification \S5.6.4.1,
+Unified Addresses}; mirrored in protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#unifiedpaymentaddrencoding}{\S5.6.4.1},
 \emph{Unified Payment Addresses and Viewing Keys}).
 
 \begin{table}[htbp]
@@ -1281,7 +1279,7 @@ container holding unrecognized items (ZIP-316, \emph{Requirements for both
 Unified Addresses and Unified Viewing Keys}; \emph{Receivers}). There is
 intentionally no typecode for Sprout addresses or viewing keys: ZIP-211
 disabled sending funds into the Sprout pool at Canopy (ZIP-316; protocol
-specification \S5.6.4.1).
+specification \href{https://zips.z.cash/protocol/protocol.pdf\#unifiedpaymentaddrencoding}{\S5.6.4.1}).
 
 The deployed parser implements these rules once, identically for all three
 container types (\texttt{Address}, \texttt{Ufvk}, \texttt{Uivk}): the
@@ -1634,8 +1632,8 @@ Internal Keys}; domain bytes in \textsf{zcash\_spec}~0.2.1,
 \texttt{src/prf\_expand.rs}).
 
 A UIVK derives from a UFVK item by item, preserving typecodes: the Sapling
-FVK maps to its IVK per protocol specification \S4.2.2, the Orchard FVK to
-its external-scope IVK per \S4.2.3, and the transparent P2PKH account key
+FVK maps to its IVK per protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#saplingkeycomponents}{\S4.2.2}, the Orchard FVK to
+its external-scope IVK per \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, and the transparent P2PKH account key
 to the external-change key by non-hardened child derivation at index $0$;
 items with unrecognized typecodes MUST be dropped (as they must be again
 when deriving a UA from a UIVK). The deployed method
@@ -1823,7 +1821,7 @@ bundles (\S\ref{sec:fees-librustzcash}); Revision~2 remains
 The unit of account is the \emph{logical action}: a pool-neutral measure of
 how much verification work and chain space a transaction demands. Its inputs
 are public transaction fields defined in the protocol specification
-\S7.1 (\emph{Transaction Encoding and Consensus}): the total byte sizes
+\href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1} (\emph{Transaction Encoding and Consensus}): the total byte sizes
 $\mathit{tx\_in\_total\_size}$ and $\mathit{tx\_out\_total\_size}$ of the
 transparent \texttt{tx\_in} and \texttt{tx\_out} fields, and the counts
 $\mathit{nJoinSplit}$, $\mathit{nSpendsSapling}$,
@@ -2940,7 +2938,7 @@ the independent-shuffle description does not apply to that branch
 (\S\ref{sec:pczt-v2}).
 
 \paragraph{Orchard dummies.} A dummy spend (protocol specification
-\S~4.8.3, ``Dummy Notes (Orchard)'';
+\href{https://zips.z.cash/protocol/protocol.pdf\#orcharddummynotes}{\S~4.8.3}, ``Dummy Notes (Orchard)'';
 \textsf{orchard}~0.15.0, \texttt{src/note.rs}, \texttt{src/tree.rs},
 \texttt{src/note/nullifier.rs}, and \texttt{src/builder.rs}) is built from a freshly random
 \texttt{SpendingKey}, its full viewing key's address at index $0$ (external
@@ -4400,7 +4398,7 @@ A built transaction is serialised for broadcast by
 (version-group ID $\mathtt{0x26A7270A}$) use \texttt{write\_v5}, while v6
 (version-group ID $\mathtt{0xD884B698}$) use \texttt{write\_v6}, which adds
 the separately encoded Ironwood bundle; v1--v4 use \texttt{write\_v4}
-(ZIP-225; ZIP-229; protocol specification \S7.1, \emph{Transaction Encoding
+(ZIP-225; ZIP-229; protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1}, \emph{Transaction Encoding
 and Consensus}; \textsf{zcash\_protocol}, \texttt{src/constants.rs};
 \textsf{zcash\_primitives},
 \texttt{src/transaction/mod.rs}). The wallet places the resulting raw bytes
@@ -4554,7 +4552,7 @@ and the consensus rule states: if a transaction is not a coinbase
 transaction and its $\mathsf{nExpiryHeight}$ is nonzero, it MUST NOT be
 mined at a block height greater than its $\mathsf{nExpiryHeight}$; a block
 containing an expired transaction is invalid (ZIP-203, \emph{Specification};
-protocol specification \S7.1). Expiry at height $N$ thus makes block $N$
+protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1}). Expiry at height $N$ thus makes block $N$
 the last block that may include the transaction. The sentinel
 $\mathsf{nExpiryHeight} = 0$ disables expiry, and for non-coinbase
 transactions $\mathsf{nExpiryHeight} \le 499999999$ MUST hold. From NU5
@@ -4562,7 +4560,7 @@ the bound is removed for coinbase only, and the $\mathsf{nExpiryHeight}$ of
 a coinbase transaction MUST instead equal its block height --- this keeps v5
 coinbase txids unique, since the ZIP-244 txid does not commit to the
 coinbase script height (ZIP-203, \emph{Changes for NU5}; protocol
-specification \S7.1).
+specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1}).
 \end{definition}
 
 \paragraph{The deployed default: exactly $40$ blocks.} ZIP-203 sets the
@@ -5182,7 +5180,7 @@ paying all the specified addresses (ZIP-321, URI Semantics). The number of
 payments one transaction can carry is limited only by
 transaction-construction restrictions: the ZIP notes that if every payment
 were Sapling, the value-balance limit of the protocol specification,
-\S4.13 (Balance and Binding Signature, Sapling), implies construction may
+\href{https://zips.z.cash/protocol/protocol.pdf\#saplingbalance}{\S4.13} (Balance and Binding Signature, Sapling), implies construction may
 fail above $2109$ distinct payments, and that the effective limit may be
 lower when Orchard or future address types are involved.
 Recomputed from the specification, the bound is a transaction-size cap
@@ -5196,7 +5194,7 @@ plus its $192$-byte entry in \texttt{vOutputProofsSapling} --- and a
 transaction must fit within the specification's $2$~MB maximum
 transaction size (numerically equal to the $2\,000\,000$-byte block-size
 limit), so at most $\lfloor 2\,000\,000 / 948 \rfloor = 2109$ outputs fit
-(protocol specification, \S4.13; field sizes from \S7.1, ``Transaction
+(protocol specification, \href{https://zips.z.cash/protocol/protocol.pdf\#saplingbalance}{\S4.13}; field sizes from \href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1}, ``Transaction
 Encoding and Consensus''). The specification uses the cap to show that
 the balance sum cannot overflow the type of committed values; ZIP-321
 reuses it as the payment-count ceiling.
@@ -5291,10 +5289,10 @@ Syntax and URI Semantics):
 \end{itemize}
 
 Implementations SHOULD check that each \texttt{zcashaddress} is a valid
-encoding per the protocol specification, \S5.6, other than a Sprout address:
-a transparent address (Base58Check, \S5.6.1.1), a Sapling payment address
-(Bech32 per ZIP-173, \S5.6.3.1), or a Unified Address (Bech32m per BIP 350,
-\S5.6.4.1 and ZIP-316). New address formats SHOULD be supported whether or
+encoding per the protocol specification, \href{https://zips.z.cash/protocol/protocol.pdf\#addressandkeyencoding}{\S5.6}, other than a Sprout address:
+a transparent address (Base58Check, \href{https://zips.z.cash/protocol/protocol.pdf\#transparentaddrencoding}{\S5.6.1.1}), a Sapling payment address
+(Bech32 per ZIP-173, \href{https://zips.z.cash/protocol/protocol.pdf\#saplingpaymentaddrencoding}{\S5.6.3.1}), or a Unified Address (Bech32m per BIP 350,
+\href{https://zips.z.cash/protocol/protocol.pdf\#unifiedpaymentaddrencoding}{\S5.6.4.1} and ZIP-316). New address formats SHOULD be supported whether or
 not ZIP-321 is updated for them; if network context is available, each
 address SHOULD be checked for the correct network; and every requirement of
 ZIP-316 applies to payments to Unified Addresses (ZIP-321, URI Semantics).

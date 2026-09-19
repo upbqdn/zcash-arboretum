@@ -1051,7 +1051,7 @@ unspecified}, or an \emph{open problem}; the closing classification is in
 \subsection{The mismatch: consensus verifies only randomised keys}
 \label{sec:fr-rerand-gap}
 
-The protocol specification (\S4.15, spend authorization signatures)
+The protocol specification (\href{https://zips.z.cash/protocol/protocol.pdf\#spendauthsig}{\S4.15}, spend authorization signatures)
 prescribes, for every Sapling Spend and every Orchard Action, the
 following signer-side flow. The signer chooses a fresh spend-auth
 randomizer $\alpha$ and:
@@ -1071,7 +1071,7 @@ $\rk = \aksym + [\alpha]\,G^{\mathsf{SpendAuth}}$. This differs from
 $\aksym$ except in the possible identity-randomizer case $\alpha=0$.
 
 The randomisation algorithms are RedDSA's, from the protocol
-specification (\S5.4.7):
+specification (\href{https://zips.z.cash/protocol/protocol.pdf\#concretereddsa}{\S5.4.7}):
 \begin{align*}
 \mathsf{RedDSA.RandomizePrivate}(\alpha, \mathsf{sk})
   &:= \mathsf{sk} + \alpha \pmod{r_{\G}}, \\
@@ -1553,7 +1553,7 @@ guarantee has no matching threshold theorem among the cited sources.
 \label{sec:fr-rerand-suite}
 
 ZIP 312 defines the ciphersuite in RFC 9591's template. The group is
-Pallas with base point $G^{\mathsf{SpendAuth}}$ as in protocol \S5.4.7.1,
+Pallas with base point $G^{\mathsf{SpendAuth}}$ as in protocol \href{https://zips.z.cash/protocol/protocol.pdf\#concretespendauthsig}{\S5.4.7.1},
 of order $p_{\Vesta}$; \texttt{RandomScalar} is uniform in
 $[0, \mathtt{Order} - 1]$; \texttt{SerializeElement} is the point
 compression $\mathrm{repr}_{\Pallas}$ ($P^\star$ in series notation) and
@@ -1850,7 +1850,7 @@ Draft and states that neither its SemVer nor its MSRV guarantee applies to
 the feature.
 
 The RedPallas module additionally enforces the even-$y$ requirement that
-ZIP 2005's amended protocol-spec \S4.2.3 places on $\aksym$
+ZIP 2005's amended protocol-spec \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3} places on $\aksym$
 (\S\ref{sec:fr-deploy-qsk}): trait \texttt{keys::EvenY} negates the group
 verifying key, every verifying share, the signing shares, and the VSS
 commitment coefficients whenever the serialised key has $\tilde{y} = 1$
@@ -2158,7 +2158,7 @@ The displayed key derivations use the $\mathsf{PRFexpand}$ domain-separator
 bytes $\mathtt{0x0C}$ and $\mathtt{0x0D}$; ZIP 2005 also reserves
 $\mathtt{0x0A}$ and $\mathtt{0x0B}$ for note-related uses. In the
 $\mathsf{use\_qsk} = \mathsf{true}$ branch of the amended protocol-spec
-\S4.2.3, the wallet obtains the point $\mathsf{ak}^{\mathbb P}$ ``by any suitably
+\href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}, the wallet obtains the point $\mathsf{ak}^{\mathbb P}$ ``by any suitably
 secure method that ensures the last bit of
 $\mathrm{repr}_{\mathbb{P}}(\mathsf{ak}^{\mathbb P})$ is 0'' --- the
 requirement the \texttt{reddsa} \texttt{EvenY} machinery of

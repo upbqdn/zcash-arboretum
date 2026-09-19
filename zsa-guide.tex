@@ -762,7 +762,7 @@ final step is
 (\texttt{zip-0227.rst}:292--301). The subscript $\mathsf{AssetId}$ may be
 omitted when clear from context (\texttt{zip-0227.rst}:224). The
 group hash is the protocol specification's
-$\GroupHash^{\PP}$ (\S5.4.9.8, ``Group Hash into Pallas and Vesta''),
+$\GroupHash^{\PP}$ (\href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S5.4.9.8}, ``Group Hash into Pallas and Vesta''),
 whose construction --- \texttt{expand\_message\_xmd} over BLAKE2b, two
 field elements through the simplified SWU map, summed and carried through
 the isogeny --- the \emph{Ironwood Guide} develops in ``GroupHash, domain
@@ -840,7 +840,7 @@ The enforcement mechanism belongs to the transfer sections of this volume
 \begin{remark}[The identity-point corner case]\label{rem:zsa-identity-point}
 The protocol specification's $\GroupHash^{G}(D, M)$ has the full group as
 codomain, so its output can in principle be the zero point
-(\texttt{protocol.tex} \S5.4.9.8; the \emph{Ironwood Guide},
+(\texttt{protocol.tex} \href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S5.4.9.8}; the \emph{Ironwood Guide},
 \S``GroupHash, domain separation, and nothing-up-my-sleeve generators'',
 constructs the hash-to-curve pipeline). ZIP~227's $\mathsf{ZSAValueBase}$ never
 states what happens in that event; the non-identity requirement comes from
@@ -1374,7 +1374,7 @@ byte, the two wire encodings are $33$ bytes
 ($\mathsf{ik\_encoding}$) and $65$ bytes ($\mathtt{issueAuthSig}$).
 
 \paragraph{What is signed.} The message is the transaction
-$\mathsf{SigHash}$ as defined by protocol specification \S4.10 under the
+$\mathsf{SigHash}$ as defined by protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#sighash}{\S4.10} under the
 ZIP-226 modifications, with sighash type $\mathsf{SIGHASH\_ALL}$, and the
 consensus rule requires
 $\mathsf{IssueAuthSig.Validate}(\mathsf{ik}, \mathsf{SigHash},
@@ -1843,7 +1843,7 @@ field:
 where $\mathsf{AssetBase} \in \Ep^{*} := \Ep(\F_{p_{\Pallas}}) \setminus
 \{\mathcal{O}\}$ is ``a valid group element that is not the identity and is
 not bottom'' (ZIP-226; the ZIP writes $\mathbb{P}^*$ for $\Ep^{*}$). All
-other components are as in protocol specification \S3.2. Formally,
+other components are as in protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#notes}{\S3.2}. Formally,
 \[
 \begin{aligned}
 \mathsf{Note}^{\mathsf{OrchardZSA}} :={}&
@@ -1983,7 +1983,7 @@ them in constant time on \texttt{asset.is\_zatoshi()} (\textsf{orchard-zsa},
 \end{remark}
 
 The nullifier of an ordinary (non-split) OrchardZSA note is generated
-exactly as in Orchard (protocol specification \S4.16; \emph{Ironwood Guide},
+exactly as in Orchard (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#rhoandnullifiers}{\S4.16}; \emph{Ironwood Guide},
 ``The nullifier, and the loop back to minting''); only Split Inputs use the
 modified, randomized formula of \S\ref{sec:zsa-split} (ZIP-226).
 
@@ -2279,7 +2279,7 @@ need not be distinguished in plaintexts.
 \begin{remark}[The lead byte is unassigned upstream]\label{rem:zsa-leadbyte}
 Upstream ZIP-226 requires $\mathsf{leadByte}$ to be the unresolved
 placeholder \texttt{\{\{ZSALEADBYTE\}\}} when the protocol's note-creation
-sections (\S4.7.3 ``Sending Notes'', \S4.8.3 ``Dummy Notes'') are invoked
+sections (\href{https://zips.z.cash/protocol/protocol.pdf\#orchardsend}{\S4.7.3} ``Sending Notes'', \href{https://zips.z.cash/protocol/protocol.pdf\#orcharddummynotes}{\S4.8.3} ``Dummy Notes'') are invoked
 in the computation of $\rho$ and $\psi$ for OrchardZSA notes --- a
 sentence with no counterpart
 in the fork's ZIP-226 and no implementation counterpart. Upstream ZIP-230
@@ -2376,7 +2376,7 @@ $v_{\mathrm{old}} \cdot (\mathsf{root} - \mathsf{anchor}) = 0$, ``how an
 Action pads with no real input'' (the \emph{Ironwood Guide}, ``The Action
 statement, formally''; its node-verification section, ``What a node
 verifies, without ever observing the note'', records that zero-value dummy
-spends are accepted by design). The construction is protocol \S4.8.3,
+spends are accepted by design). The construction is protocol \href{https://zips.z.cash/protocol/protocol.pdf\#orcharddummynotes}{\S4.8.3},
 implemented in \texttt{orchard-zsa}, \texttt{src/builder.rs},
 \texttt{SpendInfo::dummy}: a random spending key, a zero-valued note, and a
 random Merkle path that is never checked. The exemption is sound there
@@ -3295,7 +3295,7 @@ and memo branches are identical to their txid-side counterparts, so the
 issuance bundle and the memo bundle enter every sighash (ZIP-246,
 Signature Digest).
 On this digest ZIP-227 hangs its authorization rule: the SigHash is the
-\S4.10 SIGHASH transaction hash with the ZIP-226 modifications, computed
+\href{https://zips.z.cash/protocol/protocol.pdf\#sighash}{\S4.10} SIGHASH transaction hash with the ZIP-226 modifications, computed
 with \texttt{SIGHASH\_ALL}, and the issuance authorization signature MUST
 satisfy $\mathsf{IssueAuthSig.Validate}(\mathsf{ik}, \mathsf{SigHash},
 \mathtt{issueAuthSig}) = 1$, where $\mathsf{ik}$ is decoded from the

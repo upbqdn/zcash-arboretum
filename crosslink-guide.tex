@@ -1627,7 +1627,7 @@ issued funds and has no inputs (\texttt{construction.md}:269--271). The
 last gloss is the book's abstraction, not the deployed Zcash definition:
 a Zcash coinbase transaction has one null-prevout transparent input and
 collects miner subsidy plus transaction fees (Zcash Protocol Specification,
-\S``Coinbase Transactions''). Later uses of the predicate refer only to the
+\href{https://zips.z.cash/protocol/protocol.pdf\#coinbasetransactions}{\S``Coinbase Transactions''}). Later uses of the predicate refer only to the
 book's abstract one-transaction block class.
 
 The two chain-quality properties the analysis consumes are stated as
@@ -2112,7 +2112,7 @@ The ``otherwise'' arm is needed because after the best chain switches
 forks under Zcash's damped difficulty adjustment
 (\texttt{PoWAveragingWindow} $= 17$ blocks, \texttt{PoWMedianBlockSpan}
 $= 11$ blocks, quoted by the book from the Zcash protocol specification
-\S\,diffadjustment), the truncated best chain $\mathsf{ch}_i^t
+\href{https://zips.z.cash/protocol/protocol.pdf\#diffadjustment}{\S\,diffadjustment}), the truncated best chain $\mathsf{ch}_i^t
 \lceil^{\mu}_{\mathrm{bc}}$ might not descend from $\mathsf{fin}_i^t$
 even with all safety assumptions satisfied. The source says that
 $\mathsf{fin}$ switches forks, but the no-rollback update rule prohibits
@@ -2602,7 +2602,7 @@ staking-action field carrying four abstract actions
 \end{itemize}
 
 Value flows must balance per the Zcash protocol specification's chain
-value pool accounting (\S4.17); the Orchard side of that balance is the
+value pool accounting (\href{https://zips.z.cash/protocol/protocol.pdf\#chainvaluepoolbalances}{\S4.17}); the Orchard side of that balance is the
 value-commitment machinery of the \emph{Ironwood Guide} (\S``Conservation
 without disclosure: value commitments and the binding signature''). The draft
 consensus rules, verbatim from the implementation book
@@ -2654,7 +2654,7 @@ Zally uses one ballot per $0.125$~ZEC
 Two gaps are visible already at this level. First, the \emph{stake}
 action assigns ``a transparent ZEC amount'' while staking is exclusively
 Orchard-pool: how the revealed, quantized amount balances against Orchard
-value fields under \S4.17 is unspecified. The April prototype sidestepped
+value fields under \href{https://zips.z.cash/protocol/protocol.pdf\#chainvaluepoolbalances}{\S4.17} is unspecified. The April prototype sidestepped
 it entirely --- a transaction carrying a staking action bypassed the
 \texttt{has\_inputs\_and\_outputs} consensus check with a ``TODO: real
 staking transactions with inputs/outputs''
@@ -3138,7 +3138,7 @@ above.
   (\S\ref{sec:xl-stake-params}).
 \item The staking transaction format: how a revealed, quantized,
   ``transparent'' amount balances against Orchard value fields under
-  protocol specification \S4.17 (\S\ref{sec:xl-stake-actions}).
+  protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#chainvaluepoolbalances}{\S4.17} (\S\ref{sec:xl-stake-actions}).
 \item Quantization bucket range and minimum stake: ``power of 10 ZEC
   (or ZAT)'' (\S\ref{sec:xl-stake-actions}).
 \item Commission: protocol-fixed $c = 0.1$ versus per-finalizer market

@@ -7279,9 +7279,8 @@ large \(k\)---as scalar fields in proof systems precisely so that large
 smooth evaluation domains exist. Both Pasta primes---those underlying
 the Pallas and Vesta curves of
 \cref{sec:ellipticcurves}---satisfy \(2^{32} \mid p - 1\), with
-two-adicity exactly \(32\) (deployed as the constant \(S = 32\) in the
-\texttt{pasta\_curves} crate, \texttt{src/fields/fp.rs} and
-\texttt{src/fields/fq.rs}; the primes are specified in \S5.4.9.6,
+two-adicity exactly \(32\) (the primes are specified in
+\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6},
 ``Pallas and Vesta'', of the Zcash protocol specification), so each
 Pasta field contains primitive \(2^k\)-th roots of unity for every
 \(k \le 32\), furnishing power-of-two evaluation domains of every size
@@ -8304,9 +8303,10 @@ These are the primes that \cref{finitefields:rem:twoadicity} and
 \cref{numbertheory:rem:pasta-3mod4} handled as black boxes; here they
 finally acquire their curves. The constants are the deployed ones: the
 primes are the \texttt{MODULUS} values of the \texttt{pasta\_curves}
-crate (\texttt{src/fields/fp.rs} and \texttt{src/fields/fq.rs}), the
+crate, the
 curve equations \(y^2 = x^3 + 5\) are defined in
-\texttt{src/curves.rs}, and both are specified in \S5.4.9.6 (``Pallas
+\texttt{src/curves.rs}, and both are specified in
+\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6} (``Pallas
 and Vesta'') of the Zcash protocol specification. The curve \(E_p\),
 defined over \(\Fp\),
 is called \emph{Pallas}; the curve \(E_q\), defined over \(\Fq\), is
@@ -8718,7 +8718,8 @@ may choose the intermediate slope freely), which the specification
 models by letting the hash return \(\bot\) and weakening the proved
 statement accordingly; its Merkle path validity check is even permitted
 to pass on the resulting sentinel values. Safety rests not on the proof
-system but on Theorem~5.4.4 of the Zcash protocol specification: any
+system but on \href{https://zips.z.cash/protocol/protocol.pdf\#thmsinsemillaex}{Theorem~5.4.4}
+of the Zcash protocol specification: any
 input reaching an
 exceptional case of the incomplete addition immediately yields a
 nontrivial discrete-logarithm relation among the Sinsemilla generators,
@@ -9354,8 +9355,8 @@ the other and vice versa,
   \#E_p(\Fp) = q, \qquad \#E_q(\Fq) = p,
 \]
 so the scalar field of Pallas is \(\Fq\), the base field of Vesta, and
-symmetrically (the \texttt{pasta\_curves} crate,
-\texttt{src/curves.rs}; \S5.4.9.6 of the Zcash protocol
+symmetrically (\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6}
+of the Zcash protocol
 specification). This lets a proof system express the verifier of one
 curve's arithmetic \emph{natively} in the field of the other, enabling
 the recursive proof composition at the heart of Halo~2. Moreover both
@@ -9834,8 +9835,8 @@ For the running example \(y^2 = x^3 + 5\), with \(p\) and \(q\) the
     two curves without expensive non-native field arithmetic
     (\cref{ellipticcurves:rem-pasta}). The cycle is a deployed fact:
     the \texttt{pasta\_curves} crate wires the scalar field of Pallas
-    to be \(\Fq\) and that of Vesta to be \(\Fp\)
-    (\texttt{src/curves.rs}), as specified in \S5.4.9.6 of the Zcash
+    to be \(\Fq\) and that of Vesta to be \(\Fp\), as specified in
+    \href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6} of the Zcash
     protocol specification.
 \end{itemize}
 The discrete logarithm problem in \(E_p(\Fp)\) and \(E_q(\Fq)\) is
@@ -10547,8 +10548,8 @@ deriving scalars from hash outputs: its \(\mathrm{ToScalar}\) reduces
 the full \(512\)-bit \(\mathsf{PRFexpand}\) output modulo the
 \(255\)-bit group order --- a slack of \(257\) bits, comfortably
 beyond the \(128\) of the worked example (Zcash protocol
-specification \S4.2.3 and \S5.4.2; implemented as \texttt{to\_scalar}
-in the \texttt{orchard} crate, \texttt{src/spec.rs}).
+specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardkeycomponents}{\S4.2.3}
+and \href{https://zips.z.cash/protocol/protocol.pdf\#concreteprfs}{\S5.4.2}).
 \end{remark}
 
 \subsection{Beyond finite spaces: countable additivity, limits, and
@@ -11783,8 +11784,8 @@ value (commonly \(\lambda = 128\), targeting
 \(2^{128}\)-operation attacks) and checks the concrete estimates against that
 target --- the just-over-\(2^{254}\) Pallas/Vesta group orders give roughly
 \(2^{127}\) generic group operations
-(\cref{sec:ellipticcurves}; Zcash protocol specification \S5.4.9.6;
-the \texttt{pasta\_curves} crate, \texttt{src/fields/}), hash
+(\cref{sec:ellipticcurves}; Zcash protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6}), hash
 outputs of \({\ge}256\) bits per the birthday bound of
 \cref{probability:prop-birthday}, and sampling slack of at least
 \(128\) extra bits per \cref{probability:prop-modbias} (the deployed

@@ -345,7 +345,7 @@ lines~14--86):
 \item Field \texttt{txid} carries the 32-byte transaction identifier in
   protocol byte order; the proto comment mandates that it ``MUST NOT be
   reversed or hex-encoded'' --- the reversed hex form is display-only ---
-  citing protocol spec \S7.1.1, ``Transaction Identifiers''
+  citing protocol spec \href{https://zips.z.cash/protocol/protocol.pdf\#txnidentifiers}{\S7.1.1}, ``Transaction Identifiers''
   (\texttt{compact\_formats.proto}, lines~52--57).
 \item The \texttt{fee} field is documented ``present if server can
   provide'', but neither deployed server populates it:
@@ -427,12 +427,12 @@ $\mathsf{encCiphertext}$, ``Total size is 116 bytes'' per the proto comment,
 against 580 bytes of ciphertext plus the 32-byte ephemeral key streamed in
 full form --- ZIP~307's 80\% reduction (ZIP~307, ``Output Compression'';
 \textsf{lightwalletd} \texttt{compact\_formats.proto}, lines~114--122; full
-encodings per protocol spec \S\S7.3--7.4). A \texttt{CompactOrchardAction}
+encodings per protocol spec \href{https://zips.z.cash/protocol/protocol.pdf\#spendencodingandconsensus}{\S\S7.3}--\href{https://zips.z.cash/protocol/protocol.pdf\#outputencodingandconsensus}{7.4}). A \texttt{CompactOrchardAction}
 serves both roles of an Action in one message: its \texttt{nullifier}
 detects spends of the input note, while \texttt{cmx},
 \texttt{ephemeralKey}, and \texttt{ciphertext} detect and place the output
 note (\texttt{compact\_formats.proto}, lines~124--130; full Action encoding
-per protocol spec \S7.5).
+per protocol spec \href{https://zips.z.cash/protocol/protocol.pdf\#actionencodingandconsensus}{\S7.5}).
 
 \subsection{Omissions and fetch-on-detect}\label{sec:sync-compact-omitted}
 
@@ -574,8 +574,8 @@ Sapling nullifier depends on the note's position, via $\rho =
 \mathsf{MixingPedersenHash}(\cmsym, \mathsf{NotePosition})$; Orchard's does
 not, but both pools need positions for witnesses
 (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs}, lines~633--639;
-protocol spec, ``Computing $\rho$ values and Nullifiers'' and ``Dummy
-Notes'').
+protocol spec, \href{https://zips.z.cash/protocol/protocol.pdf\#rhoandnullifiers}{``Computing $\rho$ values and Nullifiers''} and \href{https://zips.z.cash/protocol/protocol.pdf\#dummynotes}{``Dummy
+Notes''}).
 
 \paragraph{Where the tree size comes from.} The start size for a block is
 resolved by a ladder (\texttt{tree\_sizes\_\allowbreak around},
@@ -1261,7 +1261,7 @@ stale
 cross-reference:
 the proto comment for \texttt{GetTreeState} cites ``section 3.7 of the
 Zcash protocol specification'', while the current
-\texttt{protocol.tex} numbers note commitment trees as \S~3.8.
+\texttt{protocol.tex} numbers note commitment trees as \href{https://zips.z.cash/protocol/protocol.pdf\#notecommitmenttrees}{\S~3.8}.
 
 \paragraph{Subtree roots.} Shielded outputs of a pool are numbered from
 genesis, and each consecutive group of $2^{16} = 65536$ note commitments
@@ -2574,8 +2574,8 @@ The deployed light-wallet service defines three tree RPCs
 \footnote{The proto comment refers the reader to ``section 3.7 of the
 Zcash protocol specification''
 (\texttt{service.proto:308}). The reference is stale: at the pinned spec
-revision, \S3.4 is ``Transactions and Treestates'', \S3.8 ``Note
-Commitment Trees'', and \S3.7 ``Action Transfers and their
+revision, \href{https://zips.z.cash/protocol/protocol.pdf\#transactions}{\S3.4} is ``Transactions and Treestates'', \href{https://zips.z.cash/protocol/protocol.pdf\#notecommitmenttrees}{\S3.8} ``Note
+Commitment Trees'', and \href{https://zips.z.cash/protocol/protocol.pdf\#actions}{\S3.7} ``Action Transfers and their
 Descriptions''
 (\texttt{protocol/protocol.tex:4048,\allowbreak 4306,\allowbreak 4248}),
 likely a

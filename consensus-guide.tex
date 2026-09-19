@@ -162,7 +162,7 @@ instantiate its conclusions for the deployed Zcash parameters.
 Two distinct attacks are both called ``double-spending'', and this
 volume treats exactly one of them. Two spends of the same shielded note
 reveal the same nullifier, and the protocol specification's
-\S``Nullifier Sets'' forbids a repeated nullifier within a transaction or
+\href{https://zips.z.cash/protocol/protocol.pdf\#nullifierset}{\S``Nullifier Sets''} forbids a repeated nullifier within a transaction or
 valid block chain; such a same-chain attempt is therefore invalid under
 the consensus rules. What consensus must prevent is the chain-level attack:
 paying a merchant on the chain everyone sees, then replacing that chain
@@ -272,13 +272,13 @@ represented by its header target.
 \begin{definition}[Work of a block]\label{def:cons-work}
 Let $\mathsf{ToTarget}$ be the conversion from the header's
 \texttt{nBits} field to its 256-bit target threshold (specification
-\S7.7.4). The \emph{work} of a block is
+\href{https://zips.z.cash/protocol/protocol.pdf\#nbits}{\S7.7.4}). The \emph{work} of a block is
 \[
   \mathsf{work} \;=\;
   \left\lfloor \frac{2^{256}}{\mathsf{ToTarget}(\texttt{nBits}) + 1}
   \right\rfloor
 \]
-(specification \S7.7.5, ``Definition of Work''). A lower target admits
+(specification \href{https://zips.z.cash/protocol/protocol.pdf\#workdef}{\S7.7.5}, ``Definition of Work''). A lower target admits
 fewer valid headers, so a block meeting it certifies proportionally more
 expected hashing; work is that certificate made additive.
 \end{definition}
@@ -302,8 +302,8 @@ so the in-word computation equals the out-of-word quotient (checked by
 script over random targets).
 
 \begin{definition}[Best valid block chain]\label{def:cons-best}
-Specification \S3.3 (``The Block Chain''): a node ``sums the work, as
-defined in \S7.7.5, of all blocks in each valid block chain, and
+Specification \href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S3.3} (``The Block Chain''): a node ``sums the work, as
+defined in \href{https://zips.z.cash/protocol/protocol.pdf\#workdef}{\S7.7.5}, of all blocks in each valid block chain, and
 considers the valid block chain with greatest total work to be best. To
 break ties between leaf blocks, a node will prefer the block that it
 received first.''
@@ -1119,7 +1119,7 @@ a law of nature.
 Corollary~\ref{cor:cons-timefree} says security is purchased in
 blocks, so the wall-clock price of a confirmation count is set by the
 target spacing --- for Zcash, $75$ seconds since the Blossom upgrade
-(ZIP-208; \textsf{PostBlossomPoWTargetSpacing}, specification \S5.3),
+(ZIP-208; \textsf{PostBlossomPoWTargetSpacing}, specification \href{https://zips.z.cash/protocol/protocol.pdf\#constants}{\S5.3}),
 against Bitcoin's $600$. Thirty minutes of waiting therefore buys
 $3$ Bitcoin confirmations or $24$ Zcash confirmations in nominal expected
 time when all hashpower publishes on the public chain. Under the modelled
@@ -1221,17 +1221,15 @@ The block income that an orphaned block forfeits is what the miner
 would have collected: the miner subsidy plus fees. For Mainnet heights in
 the funding-stream interval $3{,}146{,}400 \leq \mathit{height} <
 4{,}406{,}400$, the block subsidy is $1.5625$~ZEC
-($156{,}250{,}000$~zatoshi, specification \S7.8;
-\texttt{zebra-chain/src/parameters/network/\allowbreak subsidy.rs:447}),
+($156{,}250{,}000$~zatoshi, specification \href{https://zips.z.cash/protocol/protocol.pdf\#subsidies}{\S7.8}),
 of which the two active funding streams take $20\%$ --- $8\%$ to the
 Zcash Community Grants stream and $12\%$ to the coinholder-controlled
 fund, both running to the third halving at height $4{,}406{,}400$
-(specification \S7.10.1; ZIP-1016;
-\texttt{subsidy.rs:338}) --- leaving the miner
+(specification \href{https://zips.z.cash/protocol/protocol.pdf\#zip214fundingstreams}{\S7.10.1}; ZIP-1016) --- leaving the miner
 \[
   B \;=\; 1.25 \text{ ZEC} + \text{fees}
 \]
-per block (\texttt{miner\_subsidy}, \texttt{subsidy.rs:480}). The
+per block. The
 funding-stream portion is not the attacker's under either outcome, so
 $B = 1.25$~ZEC is the subsidy-only forfeiture figure. Actual foregone
 fees raise $B$, and hence the profitability threshold, linearly.
@@ -1356,7 +1354,7 @@ requires a different stopping rule and is outside this volume.
 \subsection{Difficulty in motion}\label{sec:cons-difficulty}
 
 Assumption~\ref{ass:cons-difficulty} freezes difficulty; Zcash does
-not. The specification (\S7.7.3) adopts ``a difficulty adjustment
+not. The specification (\href{https://zips.z.cash/protocol/protocol.pdf\#diffadjustment}{\S7.7.3}) adopts ``a difficulty adjustment
 algorithm based on DigiShield v3/v4'', and --- ``[u]nlike Bitcoin, the
 difficulty adjustment occurs after every block''. Each block's target
 is recomputed from the mean target of the last
@@ -1369,8 +1367,7 @@ $[\,\lfloor \mathsf{AWT}(1 - 16\%) \rfloor,\,
 ($\textsf{PoWMaxAdjustUp} = 16\%$, $\textsf{PoWMaxAdjustDown} =
 32\%$, $\mathsf{AWT} = 17 \times 75$~s), with the target capped at
 $\textsf{PoWLimit} = 2^{243} - 1$ (all constants: specification
-\S5.3; \texttt{zebra-state/src/service/check/\allowbreak
-difficulty.rs}).
+\href{https://zips.z.cash/protocol/protocol.pdf\#constants}{\S5.3}).
 
 \begin{remark}[What per-block retargeting changes]
 \label{rem:cons-difffidelity}
@@ -1380,10 +1377,10 @@ Those mechanisms constrain one-step movement, but do not prove that two forked
 branches retain close targets: their block times and timestamp choices may
 diverge. Secondly, the secret branch computes its own schedule: the
 adjustment ``use[s] only information from blocks preceding the given
-block height'' (\S7.7.3), so the attacker's chain retunes from the
+block height'' (\href{https://zips.z.cash/protocol/protocol.pdf\#diffadjustment}{\S7.7.3}), so the attacker's chain retunes from the
 attacker's own timestamps, subject to the timestamp rules ---
 \texttt{nTime} strictly above the median of the preceding $11$, at
-most $90 \times 60$ seconds above it (\S7.6), and at most two hours
+most $90 \times 60$ seconds above it (\href{https://zips.z.cash/protocol/protocol.pdf\#blockheader}{\S7.6}), and at most two hours
 ahead of a validator's clock on receipt (a non-consensus check).
 Thirdly --- and here the model genuinely bends --- the comparison is
 by summed \emph{work}, and work per block moves inversely with the
@@ -1399,12 +1396,12 @@ the two branches to follow materially different difficulty schedules.
 \subsection{Equihash and the memoryless model}\label{sec:cons-equihash}
 
 Zcash's proof of work is Equihash with parameters $n = 200$, $k = 9$
-(specification \S7.7, \S7.7.1; the algorithm is Biryukov and
+(specification \href{https://zips.z.cash/protocol/protocol.pdf\#pow}{\S7.7}, \href{https://zips.z.cash/protocol/protocol.pdf\#equihash}{\S7.7.1}; the algorithm is Biryukov and
 Khovratovich's, ePrint~2015/946), but the quantity the race counts is
 gated one step later: ``[t]he difficulty filter is unchanged from
 Bitcoin, and is calculated using SHA-256d on the whole block header
 (including \texttt{solutionSize} and \texttt{solution})'', required to
-be at most $\mathsf{ToTarget}(\texttt{nBits})$ (\S7.7.2). Each
+be at most $\mathsf{ToTarget}(\texttt{nBits})$ (\href{https://zips.z.cash/protocol/protocol.pdf\#difficulty}{\S7.7.2}). Each
 candidate Equihash solution therefore faces a fresh SHA-256d lottery.
 Treating distinct headers as independent trials is the usual random-function
 model for SHA-256d, not a property asserted by the specification; under that
@@ -1433,7 +1430,7 @@ the examined validator implementations bolt rails onto the theory, and the
 specification acknowledges them: ``A full validator MAY impose a limit
 on the number of blocks it will `roll back' when switching from one
 best valid block chain to another that is not a descendent. For
-\texttt{zcashd} and \texttt{zebra} this limit is 100 blocks'' (\S3.3).
+\texttt{zcashd} and \texttt{zebra} this limit is 100 blocks'' (\href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S3.3}).
 Neither half of that sentence matches deployment.
 
 The retired \textsf{zcashd} enforced
@@ -1484,7 +1481,7 @@ state. The specification adds one more socially anchored floor: a full
 validator that risks
 Mainnet funds or displays transaction information ``MUST do so only
 for a block chain that includes the activation block of the most
-recent settled network upgrade'' (\S3.3) --- history
+recent settled network upgrade'' (\href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S3.3}) --- history
 behind a settled upgrade's activation is treated as a checkpoint by that
 rule.
 \end{remark}
@@ -1493,7 +1490,7 @@ The protocol itself hard-codes one confirmation count. A
 \emph{transparent} output is the Bitcoin-inherited kind, its value and
 destination in cleartext on chain. ``A transaction
 MUST NOT spend a transparent output of a coinbase transaction from a
-block less than 100 blocks prior to the spend'' (\S7.1.2;
+block less than 100 blocks prior to the spend'' (\href{https://zips.z.cash/protocol/protocol.pdf\#txnconsensus}{\S7.1.2};
 \texttt{MIN\_TRANSPARENT\_COINBASE\_MATURITY} $= 100$,
 \texttt{zebra-chain/src/transparent.rs:54}) --- miners wait $n = 100$
 on their own income. Read through Theorem~\ref{thm:cons-r}
