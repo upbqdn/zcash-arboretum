@@ -1490,8 +1490,7 @@ development tree still carries a single $\mathtt{0x02}$-only
 \texttt{OrchardDomain}. And
 because keys are scoped to the protocol rather than to a pool
 (\S\ref{sec:keys-scope}), the same $\ivk$ trial-decrypts both pools ---
-one key, two domains (ZIP-326; \texttt{zcash\_client\_backend}
-\texttt{src/scanning.rs}).
+one key, two domains (ZIP-326).
 
 \subsection{Synchronisation, including from cold storage}
 \label{sec:delivery-sync}
@@ -1741,8 +1740,7 @@ boundaries; blocks that append no commitment need not create a distinct
 tree checkpoint. The ordinary recent set is bounded (currently $100$),
 while explicitly retained durable anchors --- currently selected every
 $288$ blocks after activation --- are exempt from that pruning. This is
-the design of the \texttt{shardtree} crate
-(\texttt{shardtree/src/\allowbreak store.rs}) that
+the design of the \texttt{shardtree} crate that
 \texttt{zcash\_client\_backend} drives. The wallet marks its note's
 position the moment trial decryption succeeds; a \emph{checkpoint}
 stores a tree state (empty or the position of the last leaf) together
@@ -1767,8 +1765,7 @@ Cut the tree at half its depth. Below the cut lie the \emph{shards},
 the height-$16$ subtrees --- $2^{16}$ leaves apiece, up to $2^{16}$ of
 them --- and above it a height-$16$ \emph{cap} whose own leaves are the
 shard roots. (The backend pins the shard height to half the tree depth,
-$32/2 = 16$: constant \texttt{ORCHARD\_SHARD\_HEIGHT},
-\texttt{zcash\_client\_backend/src/\allowbreak data\_api.rs}.) A leaf's
+$32/2 = 16$.) A leaf's
 $32$ siblings divide along the same cut: the low $16$, levels $0$
 through $15$, lie inside its own shard, and the high $16$, levels $16$
 through $31$, are cap nodes, each the root of a subtree spanning whole
@@ -1866,10 +1863,7 @@ the newest shared checkpoint at or below $H-3$ by default, where $H$
 is the next-block target height. The trusted confirmation count fixes
 this bound independently of whether a selected note is trusted;
 untrusted notes separately require $10$ confirmations. Checkpoint gaps
-can make the anchor older (\texttt{ConfirmationsPolicy::anchor\_height},
-\texttt{zcash\_client\_backend/src/data\_api/wallet.rs};
-\texttt{zcash\_client\_sqlite/src/wallet.rs},
-\texttt{get\_anchor\_height}) --- balancing reorg robustness, set size,
+can make the anchor older --- balancing reorg robustness, set size,
 and uniformity.
 Consensus mandates none of this; it is wallet policy. Nor is an old
 anchor a soundness hole: membership in an older, smaller tree implies
@@ -2587,8 +2581,7 @@ conjunction below. Witness types additionally constrain $\aksym$,
 $\gd_{\mathrm{old}}$, $\gd_{\mathrm{new}}$,
 $\pkd_{\mathrm{old}}$, and $\pkd_{\mathrm{new}}$ to nonidentity
 Pallas points; the implementation enforces these with
-\texttt{NonIdentityPoint} (\textsf{orchard}~0.15.0,
-\texttt{src/circuit.rs}). These typing constraints are part of the
+\texttt{NonIdentityPoint}. These typing constraints are part of the
 relation, not optional checks omitted by A1--A10.
 
 \medskip\noindent
@@ -2930,10 +2923,8 @@ Action statement gates off the membership check (check A3,
 of \S\ref{sec:spend-value} proves the books balance. An observer learns
 the entering amount --- the balancing field is a cleartext transaction
 field --- but not the receiving note or address. The deployed
-construction path is function \texttt{propose\_shielding}
-(\texttt{zcash\_client\_backend},
-\texttt{data\_api/\allowbreak wallet.rs} and
-\texttt{input\_selection.rs}): it sweeps the given source addresses'
+construction path is function \texttt{propose\_shielding}:
+it sweeps the given source addresses'
 UTXOs (\S\ref{sec:tree}), at zero confirmations under the default
 policy, and wallets auto-shield transparent receipts to \emph{internal}
 keys --- address material the wallet derives for itself and never
@@ -3003,10 +2994,8 @@ of the turnstile, whose rules \S\ref{sec:turnstile} states.
 The upgrade has a concrete identity. NU6.3 carries consensus branch
 identifier $\mathtt{0x37A5165B}$; ZIP-258 now records both networks'
 activation heights and sets minimum network protocol version $170160$ on
-both. The deployed validator fixes the same values in
-\texttt{zebra-chain/src/parameters/\allowbreak constants.rs}, with
-\texttt{librustzcash} hardcoding the same values in
-\texttt{zcash\_protocol/src/\allowbreak consensus.rs}. ZIP-258 remains
+both. The deployed validator fixes the same values, with
+\texttt{librustzcash} hardcoding the same values. ZIP-258 remains
 Draft, but these deployment parameters are no longer
 to-be-determined. From activation onward, the ZIP expects Zebra to be
 the network's sole full-validator implementation.
@@ -3020,8 +3009,7 @@ plus a separate Ironwood component holding that pool's bundle
 $\mathsf{anchorIronwood}$, $\mathsf{proofsIronwood}$,
 $\mathsf{vSpendAuthSigsIronwood}$, $\mathsf{bindingSigIronwood}$).
 Concretely, a v6 transaction ($\texttt{V6\_TX\_VERSION} = 6$, version
-group $\mathtt{0xD884B698}$; \texttt{librustzcash}
-\texttt{zcash\_protocol/\allowbreak src/constants.rs}) is the v5 format
+group $\mathtt{0xD884B698}$) is the v5 format
 --- with $\mathsf{enableSpendsOrchard}$/\allowbreak
 $\mathsf{enableOutputsOrchard}$ renamed to
 $\mathsf{enableSpends}$/$\mathsf{enableOutputs}$, and bit~2 of
@@ -3110,9 +3098,7 @@ were reworked into these before release.
 The deployed implementation distinguishes three Action-circuit
 versions: the insecure NU5 original, the NU6.2 correction (ZIP-257,
 Final), and the NU6.3 Ironwood circuit --- and only the last constrains
-the cross-address flag
-(\texttt{OrchardCircuitVersion::supports\_cross\_address\_restriction},
-released crate \texttt{orchard}~0.15.0, \texttt{src/circuit.rs}). The
+the cross-address flag. The
 legacy NU5/NU6 statement is the relation A1--A9 alone
 (\S\ref{sec:action}), over the nine-element public-input tuple ending
 at $\mathsf{enableOutputs}$. Consensus selects the verifying key by
@@ -3248,8 +3234,7 @@ into the instance's $\delta$ --- with the bit assignments spends
 $\mathtt{0b001}$, outputs $\mathtt{0b010}$, cross-address
 $\mathtt{0b100}$. Deployed encoders carry both canonical flags
 values, $\mathtt{0b0000\_0011}$ for an Orchard component and
-$\mathtt{0b0000\_0111}$ for an Ironwood one (\texttt{librustzcash},
-\texttt{pczt/src/\allowbreak orchard.rs}).
+$\mathtt{0b0000\_0111}$ for an Ironwood one.
 
 The polarity is backward-compatible by design. Bit $2 = 0$ --- the
 restricted state consensus requires of post-NU6.3 Orchard-pool spends
@@ -3287,8 +3272,7 @@ Between construction and signing, the pretence is dropped. In a PCZT
 carries an in-progress transaction between its constructor, prover,
 and signers --- the fabricated output carries its recipient, value,
 and $\mathsf{rseed}$ explicitly, so a signer can classify it as a
-tolerable dummy rather than an opaque payment (ZIP-326;
-\texttt{librustzcash}, \texttt{pczt/src/\allowbreak orchard.rs}).
+tolerable dummy rather than an opaque payment (ZIP-326).
 
 One gap remains open by construction. Paying into an Orchard-pool
 receiver post-NU6.3 requires a spend at that same receiver, hence the
@@ -3392,9 +3376,7 @@ the routing rule the walkthrough of \S\ref{sec:action-walk} deferred:
 change from Ironwood value stays in Ironwood; after activation, change
 may return to the Orchard pool only when the transaction spends
 Orchard notes \emph{and} strictly less value returns than the spends
-remove; otherwise change is diverted to Ironwood (function
-\texttt{select\_change\_pool}, \texttt{librustzcash},
-\texttt{zcash\_client\_backend/src/fees/\allowbreak common.rs}). The
+remove; otherwise change is diverted to Ironwood. The
 strict inequality keeps every such transaction on the right side of
 the seal's third rule: change never asks new value to enter the pool.
 

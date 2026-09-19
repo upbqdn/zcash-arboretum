@@ -1618,8 +1618,7 @@ reference implementation of both ciphersuites. A current-head check on
 minimum compiler, dependencies, benchmarks, and CI, not the re-randomized
 protocol derived below.
 
-\paragraph{The generic layer.} Crate \texttt{frost-rerandomized}
-(\texttt{frost-rerandomized/src/lib.rs}) implements
+\paragraph{The generic layer.} Crate \texttt{frost-rerandomized} implements
 Construction~\ref{def:fr-rerand-frost} over any \texttt{frost-core}
 ciphersuite. Trait impl \texttt{Randomize<KeyPackage>} computes the
 randomised signing share as $\mathtt{signing\_share} + \mathtt{randomizer}$
@@ -1650,9 +1649,9 @@ Table~\ref{tab:fr-pallas-suite}; $H_2$ goes through the crate's
 \texttt{HStar} default, \texttt{Zcash\_RedPallasH}; the
 \texttt{RandomizedCiphersuite::\allowbreak hash\_randomizer} impl uses
 \texttt{FROST\_RedPallasA} (the ZIP's $H_R$); scalar reduction is the
-$64$-byte-wide \texttt{from\_bytes\_wide} (\texttt{src/hash.rs}), whose
+$64$-byte-wide \texttt{from\_bytes\_wide}, whose
 Pallas implementation delegates to pasta's
-\texttt{from\_uniform\_bytes} (\texttt{src/orchard.rs}).
+\texttt{from\_uniform\_bytes}.
 Beyond ZIP 312, the crate defines two further personalisations ---
 \texttt{HDKG} $=$ \texttt{FROST\_RedPallasD} and \texttt{HID} $=$
 \texttt{FROST\_RedPallasI}, the DKG and identifier hashes --- for key

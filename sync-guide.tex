@@ -438,8 +438,7 @@ per protocol spec \href{https://zips.z.cash/protocol/protocol.pdf\#actionencodin
 
 Compact blocks omit the 512-byte memo, the 16-byte AEAD tag, the 80-byte
 $\mathsf{outCiphertext}$, $\cvsym$, $\rk$, anchors, zkproofs, and signatures
-(ZIP~307, ``Transaction privacy''; sizes per
-\textsf{zcash\_note\_encryption}~0.4.1, \texttt{src/lib.rs}, lines~44--57).
+(ZIP~307, ``Transaction privacy'').
 Recovering a memo, or spend information via the outgoing ciphertext, thus
 requires downloading the full transaction --- deployed as the
 \texttt{GetTransaction} RPC. ZIP~307 attaches three requirements to that
@@ -453,9 +452,9 @@ The deployed pipeline expresses the fetch as data: scanning emits
 ``download of complete raw transaction data'' --- which the caller
 satisfies via \texttt{GetTransaction} and feeds to
 \texttt{wallet::}\allowbreak\texttt{decrypt\_and\_store\_transaction}
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs},
-lines~1185--1207, 2210). The crate's own sync loop documents that it does
-not yet perform enhancement (\textsf{zcash\_client\_backend},
+(\textsf{zcash\_client\_backend}). The crate's own sync loop documents
+that it does
+not yet perform enhancement (\textsf{zcash\_client\_\allowbreak backend},
 \texttt{src/sync.rs}, lines~1--10).
 
 \subsection{Compact trial decryption}\label{sec:sync-compact-decrypt}
@@ -465,8 +464,7 @@ $\mathsf{encCiphertext}$ that encrypts exactly the \emph{compact note
 plaintext}: lead byte (1)~$\|$ diversifier $d$~(11) $\|$ value $v$~(8) $\|$
 $\mathsf{rseed}$~(32), so $\mathrm{COMPACT\_NOTE\_SIZE} = 52$; the full
 plaintext appends the 512-byte memo, and the full ciphertext a 16-byte tag,
-giving $580$ bytes (\textsf{zcash\_note\_encryption}~0.4.1,
-\texttt{src/lib.rs}, lines~44--57). ZIP~307's rationale: these bytes
+giving $580$ bytes. ZIP~307's rationale: these bytes
 ``contain the contents and opening of the note commitment, which is all of
 the data needed to spend the note and to verify that the note is spendable''
 (ZIP~307, ``Output Compression''). The \emph{Ironwood Guide} constructs
@@ -476,9 +474,7 @@ construction, and record here only the deployed mechanics and the integrity
 argument.
 
 Function \texttt{try\_compact\_note\_decryption} (doc-comment: ``Implements
-the procedure specified in ZIP 307'') proceeds as follows
-(\textsf{zcash\_note\_encryption}~0.4.1, \texttt{src/lib.rs},
-lines~567--604):
+the procedure specified in ZIP 307'') proceeds as follows:
 \begin{align*}
 K &:= \mathsf{KDF}\bigl(\mathsf{KA.Agree}(\ivk, \mathsf{epk}),\,
       \mathsf{ephemeralKey}\bigr),\\
@@ -487,7 +483,7 @@ K &:= \mathsf{KDF}\bigl(\mathsf{KA.Agree}(\ivk, \mathsf{epk}),\,
 \end{align*}
 a bare ChaCha20 keystream with zero nonce, sought to byte offset~$64$ ---
 skipping keystream block~0, which the full AEAD reserves for the Poly1305
-key (\texttt{src/lib.rs}, lines~590--593). The candidate $\mathsf{np}$ is
+key. The candidate $\mathsf{np}$ is
 parsed as a compact note plaintext (no memo), then
 \texttt{check\_note\_validity} accepts iff
 \begin{enumerate}[label=(\roman*)]
@@ -499,9 +495,9 @@ parsed as a compact note plaintext (no memo), then
 $\mathsf{esk}$ re-derived from
   $\mathsf{rseed}$ reproduces the published key: the byte encoding of
   $\mathsf{KA.DerivePublic}(\mathsf{esk}, \gd)$ equals
-  \texttt{ephemeralKey}, compared in constant time
+  \texttt{ephemeralKey}, compared in constant time.
 \end{enumerate}
-(\texttt{src/lib.rs}, lines~524--604). Condition~(ii) is the integrity
+Condition~(ii) is the integrity
 substitute: truncation at 52 bytes discards the AEAD tag, so a compact
 decryption cannot be authenticated via Poly1305; ZIP~307 instead recomputes
 the note commitment from the decrypted plaintext and compares against the
@@ -545,15 +541,12 @@ and each
 length yields \texttt{ScanError::}\allowbreak\texttt{EncodingInvalid}
 rather than a panic. The parsed nullifiers are compared against the
 wallet's known-unspent nullifiers in constant time (\texttt{find\_spent});
-unmatched nullifiers are retained in per-block nullifier maps
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs},
-lines~312--390; \texttt{src/scanning.rs}, lines~826--828).
+unmatched nullifiers are retained in per-block nullifier maps.
 
 \paragraph{Tree building and positions.} Every $\mathsf{cmu}$ and $\cmx$ in
 the block --- not only the wallet's --- is appended to the wallet's note
 commitment tree with \texttt{Retention} marks, and each detected note is
-marked at its position (\textsf{zcash\_client\_backend},
-\texttt{src/scanning.rs}, lines~786--824). The position is computed
+marked at its position. The position is computed
 arithmetically, never by replaying the chain:
 \[
 \mathrm{pos}(\text{output } i \text{ of } tx)
@@ -573,14 +566,11 @@ is ``impossible to construct the nullifier for a detected note'' --- the
 Sapling nullifier depends on the note's position, via $\rho =
 \mathsf{MixingPedersenHash}(\cmsym, \mathsf{NotePosition})$; Orchard's does
 not, but both pools need positions for witnesses
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs}, lines~633--639;
-protocol spec, \href{https://zips.z.cash/protocol/protocol.pdf\#rhoandnullifiers}{``Computing $\rho$ values and Nullifiers''} and \href{https://zips.z.cash/protocol/protocol.pdf\#dummynotes}{``Dummy
+(protocol spec, \href{https://zips.z.cash/protocol/protocol.pdf\#rhoandnullifiers}{``Computing $\rho$ values and Nullifiers''} and \href{https://zips.z.cash/protocol/protocol.pdf\#dummynotes}{``Dummy
 Notes''}).
 
 \paragraph{Where the tree size comes from.} The start size for a block is
-resolved by a ladder (\texttt{tree\_sizes\_\allowbreak around},
-\textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs},
-lines~589--696):
+resolved by a ladder (\texttt{tree\_sizes\_\allowbreak around}):
 \[
 \mathrm{start}(\mathrm{pool}) :=
 \begin{cases}
@@ -598,8 +588,7 @@ and $n_{\mathrm{block}}$ the block's own output count. The subtraction is
 proto3's default-zero metadata (\S\ref{sec:sync-compact-wire}). After
 walking all \texttt{CompactTx}s the accumulated position must equal the
 \texttt{chainMetadata} size, else scanning fails with
-\texttt{ScanError::}\allowbreak\texttt{TreeSizeMismatch\{given, computed\}}
-(\texttt{src/scanning/compact.rs}, lines~257--287, 745--770).
+\texttt{ScanError::}\allowbreak\texttt{TreeSizeMismatch\{given, computed\}}.
 
 The error taxonomy routes recovery: \texttt{TreeSizeMismatch},
 \texttt{PrevHashMismatch} (\texttt{prevHash} against the prior block's
@@ -608,9 +597,8 @@ hash), and \texttt{BlockHeightDiscontinuity} ($\mathrm{height} \neq
 and trigger the truncate-and-rescan reorganisation path (\emph{Wallet
 Guide}, \S``Reorganisations: truncate and rescan'');
 \texttt{EncodingInvalid}, \texttt{TreeSizeUnknown},
-\texttt{TreeSizeInvalid}, and \texttt{TreeSizeOverflow} do not
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs},
-lines~602--685). The overflow variant is emitted by the full-block
+\texttt{TreeSizeInvalid}, and \texttt{TreeSizeOverflow} do not.
+The overflow variant is emitted by the full-block
 scanner, not by the compact path described above. The final tree size also
 drives checkpointing: the
 helpers \texttt{compact\_tx\_}\allowbreak\texttt{contains\_last\_}\allowbreak%
@@ -619,9 +607,7 @@ helpers \texttt{compact\_tx\_}\allowbreak\texttt{contains\_last\_}\allowbreak%
 \texttt{\ldots\_ironwood\_}\allowbreak\texttt{actions\_in\_block}
 compare the running position plus the current transaction's output or
 action count against the final size, to decide when to write the
-block-boundary checkpoint into the commitment tree
-(\texttt{src/scanning/compact.rs}, lines~712--731; call sites 404, 444,
-482).
+block-boundary checkpoint into the commitment tree.
 
 \paragraph{The server side of \texttt{ChainMetadata}.}
 Server \textsf{lightwalletd} fills the tree sizes from the node's
@@ -629,9 +615,8 @@ Server \textsf{lightwalletd} fills the tree sizes from the node's
 and \texttt{trees.orchard.size} (\textsf{lightwalletd},
 \texttt{common/common.go}, lines~163--175, 399--400). The deployed
 backend is zebrad (\S\ref{sec:sync-lwd}), whose \texttt{getblock} omits
-each subfield while the pool's tree is empty (\textsf{zebra-rpc},
-\texttt{src/methods.rs}, \texttt{GetBlockTrees},
-\texttt{skip\_serializing\_if}) --- in which case Go's JSON unmarshal
+each subfield while the pool's tree is empty --- in which case Go's JSON
+unmarshal
 leaves $\texttt{Size} = 0$, which is correct for an empty tree.
 \texttt{TreeSizeInvalid} catches a reported size smaller than the
 block's own output count, not zero metadata unconditionally.
@@ -651,14 +636,13 @@ and omitted the subfield when the anchor was unavailable
 Function \texttt{scan\_cached\_blocks} requires a \texttt{ChainState} ---
 the final Sapling, Orchard, and Ironwood tree frontiers as of
 $\mathrm{from\_height} - 1$ --- and asserts $\mathrm{from\_height} =
-\texttt{chain\_state.height} + 1$; all three trees have depth~32
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs},
-lines~504--698). The \texttt{ChainState} comes from the server's
+\texttt{chain\_state.height} + 1$; all three trees have depth~32.
+The \texttt{ChainState} comes from the server's
 \texttt{GetTreeState} RPC via \texttt{TreeState::to\_chain\_state()}, which
 hex-decodes and byte-reverses the block hash and parses empty tree fields as
-empty trees (\texttt{src/proto.rs}, lines~367--463). Trial decryption of
+empty trees. Trial decryption of
 compact outputs is batched through \texttt{BatchRunners} with batch
-size~100 (\texttt{src/data\_api/chain.rs}, line~642).
+size~100.
 
 The proto accessors split their failure modes: block-level convenience
 accessors panic on malformed server data (\texttt{CompactBlock::hash} and
@@ -668,13 +652,12 @@ $\nfsym$, ephemeral key) return
 \texttt{CompactFormatError::}\allowbreak%
 \texttt{\{InvalidLength, InvalidValue\}}; the
 \texttt{From} impls that \emph{build} compact messages from full bundles
-take $\mathsf{encCiphertext}[0..\mathrm{COMPACT\_NOTE\_SIZE}]$
-(\textsf{zcash\_client\_backend}, \texttt{src/proto.rs}, lines~63--286).
+take $\mathsf{encCiphertext}[0..\mathrm{COMPACT\_NOTE\_SIZE}]$.
 The scanner bounds \texttt{CompactTx.index} to \texttt{u16} (the
 \texttt{expect} reads ``Cannot fit more than $2^{16}$ transactions in a
 block''), and \texttt{CompactBlock.time} --- \texttt{uint32} Unix epoch,
 ``if non-zero'' --- flows into \texttt{ScannedBlock} and thence wallet
-metadata (\texttt{src/scanning/compact.rs}, lines~314--315, 552--555).
+metadata.
 
 Compact blocks are cached as serialized protos. Crate
 \textsf{zcash\_client\_sqlite} offers \texttt{BlockDb}, a
@@ -682,8 +665,7 @@ Compact blocks are cached as serialized protos. Crate
 (\texttt{CompactBlock::decode}), and \texttt{FsBlockDb}, one file per block
 plus a \texttt{BlockMeta} row \{height, blockhash, time,
 sapling\_outputs\_count, orchard\_actions\_count\} that enables range
-queries without decoding (\textsf{zcash\_client\_sqlite},
-\texttt{src/chain.rs}, lines~30--230).
+queries without decoding.
 
 ZIP~307's own client-operation sketch --- append every $\mathsf{cmu}$ to a
 depth-32 incremental Merkle tree, keep a per-note incremental witness, and
@@ -691,8 +673,7 @@ cache roughly 100 recent tree states because ``no full Zcash node will roll
 back the chain by more than 100 blocks'' (ZIP~307, ``Creating and updating
 note witnesses'') --- describes the pre-shardtree design. The deployed
 replacement is the position-marked shardtree fed by \texttt{GetSubtreeRoots}
-(RPC added in \textsf{lightwallet-protocol} v0.3.5;
-\textsf{zcash\_client\_backend}, \texttt{src/sync.rs}, lines~80--86), whose
+(RPC added in \textsf{lightwallet-protocol} v0.3.5), whose
 mechanics the \emph{Ironwood Guide} constructs in \S``Resting: the note in the
 commitment tree''.
 
@@ -1071,10 +1052,10 @@ gaps a reader should not assume closed.
 
 The reference client narrows the surface further: the sync loop in
 \textsf{zcash\_client\_backend}
-(\texttt{src/sync.rs:1--10,244--381}) exercises four shielded-sync RPCs
+exercises four shielded-sync RPCs
 (below) plus, when built with feature \texttt{transparent-inputs},
 \texttt{GetAddressUtxosStream}, issued per account per cycle by
-\texttt{refresh\_utxos} (\texttt{src/sync.rs:117--126,511--527}; cf.\
+\texttt{refresh\_utxos} (cf.\
 \S\ref{sec:sync-privacy-schedule}):
 \begin{itemize}
 \item \texttt{get\_latest\_block}, in \texttt{update\_chain\_tip};
@@ -1135,8 +1116,7 @@ Metadata & \texttt{GetLightdInfo} & & server and chain metadata \\
 (\texttt{service.proto:221--326}, lightwallet-protocol v0.4.1). The
 $\checkmark$ column marks the shielded-sync RPCs exercised by the
 reference sync loop; with feature \texttt{transparent-inputs} the loop
-also issues \texttt{GetAddressUtxosStream} per account per cycle
-(\textsf{zcash\_client\_backend}, \texttt{src/sync.rs}).}
+also issues \texttt{GetAddressUtxosStream} per account per cycle.}
 \label{tab:sync-rpcs}
 \end{table}
 
@@ -1194,10 +1174,7 @@ $\mathtt{GetBlockRange}(\mathtt{BlockRange})$ streams consecutive
 $[\min(s,e), \max(s,e)]$, in increasing height order iff $s \le e$ and
 decreasing otherwise --- lightwalletd computes
 $j = \mathit{high} - (i - \mathit{low})$, Zaino tests
-$s \le e$ (\texttt{service.proto:250--255};
-\textsf{lightwalletd}, \texttt{common/common.go:574--624};
-\textsf{zaino}, \texttt{zaino-state/}\allowbreak\texttt{src/}\allowbreak
-\texttt{chain\_index.rs:1774--1802}).
+$s \le e$ (\texttt{service.proto:250--255}).
 At the pinned v0.4.1 contract, an empty \texttt{poolTypes} field selects
 the legacy behaviour: prune each block to Sapling and Orchard data only;
 v0.5.0 and current lightwalletd add Ironwood to that default. Clients MUST
@@ -1443,8 +1420,7 @@ arbitrarily many concurrent server threads --- a
 resource-exhaustion risk (\texttt{service.proto:324--325};
 \textsf{lightwalletd},
 \texttt{frontend/\allowbreak service.go:920--936}). Zaino
-returns gRPC \texttt{Unimplemented} (\textsf{zaino},
-\texttt{zaino-state/src/backends/\allowbreak state.rs:2782--2792}).
+returns gRPC \texttt{Unimplemented}.
 
 \paragraph{Transparent-address RPCs.} The six remaining RPCs
 (\texttt{GetTaddressTxids} --- deprecated and misnamed, it returns
@@ -1565,19 +1541,17 @@ the question as open.
 
 \paragraph{The chain index.} Server-side state is the
 \texttt{ChainIndex}, with three components (\textsf{zaino},
-\texttt{docs/\allowbreak internal\_spec.md}, \S~``Zaino-State'';
-\texttt{zaino-state/}\allowbreak\texttt{src/}\allowbreak
-\texttt{chain\_index.rs:1--100}). A \texttt{Mempool}
+\texttt{docs/\allowbreak internal\_spec.md}, \S~``Zaino-State''). A
+\texttt{Mempool}
 --- a dashmap broadcast map keyed by txid, whose sync task polls
 \texttt{get\_best\_block\_hash} and on a tip change clears the map and
-notifies subscribers (\texttt{chain\_index/mempool.rs}). A
+notifies subscribers. A
 \texttt{NonFinalisedState} --- an in-memory \texttt{ArcSwap} snapshot of
 the top blocks of all chains. A \texttt{FinalisedState} --- all blocks
 below the seam --- served either by a versioned LMDB-backed persistent
 database (v1) or, with \texttt{ephemeral\_finalised\_state}, by a
 stateless passthrough to the validator; large syncs and version
-migrations run in the background while serving continues
-(\texttt{chain\_index/\allowbreak finalised\_state.rs:1--80}). The seam
+migrations run in the background while serving continues. The seam
 is
 \[
 \mathrm{floor}(t) \;=\; t - D_{\mathrm{op}}
@@ -1590,24 +1564,20 @@ limit is local node policy, not consensus; the finalised database serves
 heights $\le \mathrm{floor}(t)$, the in-memory state serves heights above
 it, and in-memory retention is hard-capped at
 $\mathtt{MAX\_NFS\_DEPTH} = D_{\mathrm{op}} + 10 = 1011$ blocks below the
-tip (\textsf{zaino}, \texttt{zaino-common/src/consensus.rs:16--17},
-\texttt{chain\_index/non\_finalised\_state.rs:23--58}; \textsf{zebra},
-\texttt{zebra-chain/src/parameters/constants.rs:30}).
+tip.
 
 \paragraph{Serving.} Each gRPC handler delegates to a
 \texttt{LightWalletIndexer} trait implemented by both backend
 subscribers; streaming responses are tokio mpsc channels wrapped in typed
-streams (\textsf{zaino},
-\texttt{zaino-serve/src/rpc/grpc/service.rs:159--320}). The gRPC server
+streams. The gRPC server
 may bind a public address only with TLS configured --- rejected at
 startup otherwise --- and the default listen address is 127.0.0.1:8137;
 Zaino additionally serves a zcashd-style JSON-RPC server, unencrypted and
 restricted to loopback or private bind addresses by default
-(\textsf{zaino}, \texttt{README.md}, \S~``Server network exposure'';
-\texttt{zainod/src/config.rs:239}). Service defaults: timeout 30~s,
+(\textsf{zaino}, \texttt{README.md}, \S~``Server network exposure'').
+Service defaults: timeout 30~s,
 \texttt{channel\_size} 32; stream deadlines are $4\times$ the timeout
-(120~s), and $6\times$ for \texttt{GetMempoolStream} (180~s)
-(\textsf{zaino}, \texttt{zaino-common/src/config/service.rs:8--20}).
+(120~s), and $6\times$ for \texttt{GetMempoolStream} (180~s).
 Until the non-finalised snapshot exists, \texttt{GetLatestBlock} and
 \texttt{GetMempoolStream} return an \texttt{UnavailableNotSyncedEnough}
 error where lightwalletd would proxy the node's answer immediately; a
@@ -1768,8 +1738,7 @@ account --- two ZIP-32 scopes per pool per account
 traffic multiplied by tracked keys. This trial-decryption component is
 independent of the wallet's own activity; other synchronisation work, such
 as note enhancement and retained-witness updates, is not. Restore-from-seed
-replays the trial-decryption computation from the birthday
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:598--699}).
+replays the trial-decryption computation from the birthday.
 This is precisely the deployed cost centre that Project Tachyon's proposed
 proof-carrying wallet is designed to remove (Bowe--Miers, ePrint 2025/2031;
 \texttt{tachyon-zcash/tachyon}, \texttt{book/src/proof-tree.md} @
@@ -1900,16 +1869,14 @@ ChainState} with a \texttt{recover\_until: Option<BlockHeight>}. The
 \[
 \mathsf{birthday} := \mathsf{priorChainState.height} + 1,
 \]
-the height of the first block to be scanned
-(\textsf{zcash\_client\_backend}, \texttt{src/\allowbreak
-data\_api.rs:3013--\allowbreak 3106}). A
+the height of the first block to be scanned. A
 \texttt{ChainState} holds a block height, a block hash, and the final note
 commitment tree frontier of each pool: Sapling (depth
-\texttt{sapling::NOTE\_COMMITMENT\_TREE\_DEPTH} $= 32$), Orchard, and
+\texttt{sapling::\allowbreak NOTE\_COMMITMENT\_\allowbreak TREE\_DEPTH}
+$= 32$), Orchard, and
 Ironwood --- the Ironwood tree is Orchard-shaped
 (\texttt{MerkleHashOrchard}, the same depth) but the pool is distinct and
-keeps its own tree
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:504--596}).
+keeps its own tree.
 \end{definition}
 
 Constructor \texttt{AccountBirthday::from\_treestate} builds the birthday
@@ -1919,9 +1886,7 @@ the birthday height. The conversion
 hex-decodes the block hash --- reversing the bytes, since zcashd renders
 block hashes byte-reversed in hex --- parses the height, and converts the
 hex-serialised Sapling, Orchard, and Ironwood trees into per-pool
-frontiers; an empty tree field yields an empty tree
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3055--3073};
-\texttt{src/proto.rs:367--463}).
+frontiers; an empty tree field yields an empty tree.
 
 \paragraph{Choosing a birthday.} For a new wallet the crate documentation
 directs constructing the birthday from the treestate at
@@ -1942,17 +1907,13 @@ spendability policy itself is the \emph{Wallet Guide}'s
 does not restate. Progress reporting follows the same split: type
 \texttt{Progress} carries two scanned-notes/notes-on-chain ratios, one over
 the recovery window (birthday to recovery height) and one over the scan
-window (recovery height to tip); either denominator may be zero
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api.rs:3042--3047,788--831}).
+window (recovery height to tip); either denominator may be zero.
 
 \paragraph{The wallet birthday.} The birthday of the \emph{wallet} is the
 minimum birthday over its accounts --- literally
 \texttt{SELECT MIN(birthday\_height) FROM accounts} in the SQLite backend
 --- and adding an account whose birthday lies below the current chain tip
-triggers a rescan of all blocks at and above that height
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:2967--2978};
-\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3153--3156}). Function
+triggers a rescan of all blocks at and above that height. Function
 \texttt{add\_account} persists the birthday height together with the
 Sapling and Orchard frontier tree sizes, calls
 \texttt{rewind\_to\_chain\_state} targeting the birthday's prior chain
@@ -1960,8 +1921,7 @@ state --- installing a \texttt{Historic}-priority rescan range above
 $\mathsf{birthday} - 1$ up to the wallet's known chain tip while preserving
 higher-priority queue entries --- and finally inserts an
 \texttt{Ignored}-priority range covering
-$[\mathsf{saplingActivation}, \mathsf{birthday})$
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:432--628,4056--4224}).
+$[\mathsf{saplingActivation}, \mathsf{birthday})$.
 
 \subsection{The scan queue}\label{sec:sync-queue}
 
@@ -1971,14 +1931,12 @@ of height ranges and always works on the most urgent.
 \begin{definition}[Scan range]\label{def:sync-scanrange}
 A \texttt{ScanRange} is a half-open range $[\mathsf{start}, \mathsf{end})$
 of block heights paired with a \texttt{ScanPriority}, with helpers
-\texttt{truncate\_start}, \texttt{truncate\_end}, and \texttt{split\_at}
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/scanning.rs:31--125}).
+\texttt{truncate\_start}, \texttt{truncate\_end}, and \texttt{split\_at}.
 The
 SQLite backend stores the queue in table \texttt{scan\_queue} as rows
 \texttt{(block\_range\_start, block\_range\_end, priority)} with both
 bounds \texttt{UNIQUE} and a \texttt{CHECK} constraint
-$\mathsf{start} < \mathsf{end}$
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1017--1028}).
+$\mathsf{start} < \mathsf{end}$.
 \end{definition}
 
 \begin{table}[htbp]
@@ -2000,9 +1958,7 @@ Priority & Code & Meaning (doc comment) \\
                              (highest). \\
 \bottomrule
 \end{tabular}
-\caption{The \texttt{ScanPriority} ladder, ascending, with its SQLite codes
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/scanning.rs:11--29};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:34--45}).}
+\caption{The \texttt{ScanPriority} ladder, ascending, with its SQLite codes.}
 \label{tab:sync-priorities}
 \end{table}
 
@@ -2022,14 +1978,11 @@ Table~\ref{tab:sync-priorities}.
 returns queue entries in descending priority order. Its documented contract
 has two clauses: \texttt{Verify} ranges must be scanned before all others,
 to avoid continuity errors under reorganisation; and the compact-block
-source must supply note commitment tree size metadata
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:1995--2010}). The
+source must supply note commitment tree size metadata. The
 SQLite
 implementation orders by \texttt{priority DESC, block\_range\_end DESC} ---
 nearest the tip first within a priority --- and filters to priorities at or
-above \texttt{Historic}
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:61--90};
-\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:958--960}).
+above \texttt{Historic}.
 
 \begin{remark}[Contract, not type]\label{rem:sync-verify-first}
 The guarantee that a \texttt{Verify} range arrives first is a documented
@@ -2055,10 +2008,7 @@ rule ---
   into one range.
 \end{itemize}
 Gaps between disjoint ranges are filled at \texttt{Historic} priority, so
-the queue always tiles a contiguous span
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:145--222};
-\textsf{zcash\_client\_backend}, \texttt{src/data\_api/scanning/}%
-\allowbreak\texttt{spanning\_tree.rs:65--153}).
+the queue always tiles a contiguous span.
 
 \subsection{Tracking the chain tip}\label{sec:sync-tip}
 
@@ -2071,11 +2021,7 @@ range upper bounds exclusive throughout:
 \]
 where $\mathsf{PRUNING\_DEPTH} = 100$ blocks and heights at or below
 $\mathsf{stable}$ are treated by the wallet as outside its assumed
-reorganisation window
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/\allowbreak scanning.rs:522--523,\allowbreak
-582--584};
-\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:169}). The SQLite
+reorganisation window. The SQLite
 implementation
 proceeds as follows (\textsf{zcash\_\allowbreak client\_\allowbreak
 sqlite},
@@ -2119,22 +2065,18 @@ minutes at $75\,\mathrm{s}$ per block, a window within which a user may
 plausibly have received a transaction without leaving the wallet open; and
 the \texttt{Verify} range is clamped to the stable region so that it cannot
 itself be reorganised away within the wallet's assumed depth window and
-interfere with later \texttt{Verify} ranges
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:583--634};
-\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:172}).
+interfere with later \texttt{Verify} ranges.
 
 \begin{remark}[Two deliberate asymmetries]\label{rem:sync-tip-asymmetries}
 First, when $\mathsf{maxScanned} = \mathsf{stable}$ the \texttt{Verify}
 range above is empty: after a long offline period no \texttt{Verify} entry
 need exist, and connectivity is then checked only implicitly, by the
 previous-hash comparison of \S\ref{sec:sync-reorg} when the adjacent range
-is scanned (\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/scanning.rs:625--634}).
+is scanned.
 Second, case (b) above means \texttt{update\_chain\_tip} deliberately does
 \emph{nothing} when the tip moves backwards; reorganisation detection lives
 in the scanner, not in tip updates, and recovery in that case waits for a
-fetch failure or continuity error
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:488--660}).
+fetch failure or continuity error.
 \end{remark}
 
 \subsection{Scanning a range}\label{sec:sync-scan}
@@ -2144,8 +2086,7 @@ takes the network parameters, the block source, the wallet database, a
 starting height \texttt{from\_height} with its prior chain state
 \texttt{from\_state}, and a block-count limit. It panics unless
 $\mathsf{fromHeight} = \mathsf{fromState.height} + 1$ --- the caller must
-supply the chain state immediately prior to the range
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:598--699}).
+supply the chain state immediately prior to the range.
 
 \paragraph{Keys.} The scanner loads all tracked unified full viewing keys
 and builds a \texttt{ScanningKeys} set
@@ -2158,15 +2099,13 @@ Ironwood notes are Orchard-shaped and decrypt under Orchard viewing keys,
 but carry version-3 note plaintexts, so \texttt{IronwoodDomain} is distinct
 from \texttt{OrchardDomain}, which accepts only version-2 plaintexts. Each
 incoming viewing key is tagged \texttt{(AccountId, zip32::Scope)}
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:213--256,352--434};
-Ironwood's note-encryption and recoverability changes are specified by
+(Ironwood's note-encryption and recoverability changes are specified by
 ZIP~2005 (Proposed), while ZIP~258 activates the pool at NU6.3). A scanning
 key derives a note's nullifier only when it carries nullifier-deriving
 capability: trait method \texttt{ScanningKeyOps::nf(note, position)}
 returns \texttt{None} for bare incoming viewing keys, so notes detected
 with an IVK alone never enter the tracked-nullifier set and their spends
-cannot be detected
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:34--66,168--186}).
+cannot be detected.
 
 \paragraph{Batched trial decryption.} The scanner makes two passes over the
 downloaded blocks. The first pass feeds every compact output into a set of
@@ -2179,10 +2118,7 @@ reaches the batch-size threshold ($100$ outputs in
 \textsf{rayon} thread pool (\texttt{rayon::spawn\_fifo}) and a fresh batch
 begins. Results are delivered per (block hash, txid) over \textsf{flume}
 channels, and \texttt{collect\_results} blocks until the relevant batch has
-run (\textsf{zcash\_client\_backend},
-\texttt{src/scan.rs:194--220,\allowbreak 461--626};
-\texttt{src/scanning/\allowbreak compact.rs:101--238};
-\texttt{src/data\_api/\allowbreak chain.rs:642}). Within a batch,
+run. Within a batch,
 \texttt{zcash\_note\_encryption::}\allowbreak\texttt{batch::}\allowbreak
 \texttt{try\_compact\_note\_\allowbreak decryption}
 batches the cryptography: \texttt{D::batch\_epk} parses and prepares all
@@ -2190,8 +2126,7 @@ ephemeral keys at once, shared secrets are computed for every
 (\ivk, \textsf{epk}) pair --- at the pinned \textsf{zcash\_note\_encryption}
 0.4.1 revision, each scalar multiplication is still performed separately ---
 and \texttt{D::batch\_kdf} derives all symmetric keys in one
-pass before per-output trial decryption of the $52$-byte compact ciphertext
-(\textsf{zcash\_note\_encryption}, \texttt{src/batch.rs:42--85}); the
+pass before per-output trial decryption of the $52$-byte compact ciphertext; the
 underlying primitives are again the \emph{Ironwood Guide}'s
 (\S``Delivery: the note reaches its owner'').
 
@@ -2204,9 +2139,7 @@ updating the in-memory nullifier set after each block
 removed, nullifiers of newly received full-viewing-key-decrypted notes are
 added), and chaining each block's metadata into the next --- so a spend of
 a note received earlier in the same batch is detected before anything is
-persisted (\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/chain.rs:598--699};
-\texttt{src/scanning.rs:436--600}).
+persisted.
 
 Within a block, spend detection (\texttt{find\_spent}) compares each
 revealed nullifier against the tracked unspent set in constant time --- a
@@ -2234,8 +2167,7 @@ commitment in the block:
 \end{cases}
 \]
 and a note is flagged \texttt{is\_change} when the receiving account also
-spent notes in the same transaction
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:804--824,872--994}).
+spent notes in the same transaction.
 
 \paragraph{Position tracking.} Positions require tree sizes, which the
 compact stream must supply. Per pool, the tracker
@@ -2247,14 +2179,11 @@ zero is caught here); else $0$ below the pool's activation height (Sapling,
 NU5, and NU6.3 for Ironwood respectively); else \texttt{TreeSizeUnknown}.
 The tracker advances by each transaction's per-pool output count, and at
 end of block its computed size is checked against \texttt{ChainMetadata}
---- a mismatch is the continuity error \texttt{TreeSizeMismatch}
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning/compact.rs:577--791}).
+--- a mismatch is the continuity error \texttt{TreeSizeMismatch}.
 Malformed input from the untrusted server is likewise caught up front:
 wrong-length nullifier bytes and malformed compact outputs or actions yield
 \texttt{ScanError::EncodingInvalid} --- naming pool, txid, and index ---
-rather than a panic
-(\textsf{zcash\_client\_backend},
-\texttt{src/scanning/compact.rs:174--234,312--390}).
+rather than a panic.
 
 \paragraph{Output.} Each block yields a \texttt{ScannedBlock}: height,
 hash, block time, the wallet-relevant \texttt{WalletTx} list --- a
@@ -2268,9 +2197,7 @@ issue \#2187)
 reports the scanned range and counts of spent and received Sapling and
 Orchard notes; received counts may include notes already spent in later
 blocks (a scanning-order effect), and spent counts cover only previously
-detected notes
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/chain.rs:437--502,677--685}).
+detected notes.
 
 \begin{remark}[A gap in \texttt{ScanSummary}]\label{rem:sync-summary-gap}
 No Ironwood counters exist in \texttt{ScanSummary}, although
@@ -2290,9 +2217,7 @@ Sapling and Orchard: its actions are trial-decrypted under
 nullifiers form a separate set --- method \texttt{get\_ironwood\_nullifiers}
 is a required trait method, deliberately without a panicking default
 because it sits on the scan path --- and its commitment tree and scan-queue
-shard extensions are its own
-(\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:213--256};
-\texttt{src/data\_api.rs:2066--2078}).
+shard extensions are its own.
 
 \subsection{Persistence}\label{sec:sync-persist}
 
@@ -2309,10 +2234,7 @@ for the first block $b_0$ and every pool,
 \]
 each subsequent height being the predecessor plus one; violation is
 \texttt{NonSequentialBlocks}. In \textsf{zcash\_client\_sqlite} the whole
-call runs in one database transaction
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3478--3490};
-\texttt{src/data\_api/ll/wallet.rs:291--348};
-\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:1425--1431}).
+call runs in one database transaction.
 
 \paragraph{Stage 1: rows.} Per block, \texttt{put\_blocks} persists block
 metadata (heights, hash, time, per-pool final tree sizes and commitment
@@ -2323,9 +2245,7 @@ the \emph{persisted} nullifier map (\texttt{detect\_*\_spend}) to catch
 notes spent in a later block range that was scanned earlier, the
 out-of-order counterpart of the in-memory check of \S\ref{sec:sync-scan}.
 It then persists each block's unlinked-nullifier map and prunes the map
-beyond $\mathsf{PRUNING\_DEPTH}$
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/ll/wallet.rs:291--579,55}).
+beyond $\mathsf{PRUNING\_DEPTH}$.
 
 \paragraph{Stage 2: trees.} Note commitments are assembled into shard
 subtrees in parallel --- chunks of $1024$ commitments, built at the pool's
@@ -2335,10 +2255,8 @@ is updated. The same checkpoint set is enforced across all three trees:
 each tree gains a checkpoint at every height checkpointed in any other.
 Checkpoints at or above the NU6.3 activation height that fall on the
 $\mathsf{ANCHOR\_RETENTION\_INTERVAL} = 288$-block grid are retained as
-durable anchors exempt from checkpoint pruning
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/ll/wallet.rs:597--720,1537};
-\texttt{src/data\_api.rs:159,166,173}). This is the boundary of the present
+durable anchors exempt from checkpoint pruning. This is the boundary of the
+present
 volume: shard-tree structure, witness derivation, and anchor selection are
 the \emph{Ironwood Guide}'s material (\S``Resting: the note in the commitment tree'').
 
@@ -2358,9 +2276,8 @@ containing shard's end height plus one. The same pass marks notes
 \texttt{witness\_stabilized} once their shard's block extent is fully
 \texttt{Scanned} and the shard's end height is at most the pruning floor,
 \[
-\mathsf{floor} := \mathsf{maxScanned} - (\mathsf{PRUNING\_DEPTH} - 1)
+\mathsf{floor} := \mathsf{maxScanned} - (\mathsf{PRUNING\_DEPTH} - 1).
 \]
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs:224--473}).
 
 \paragraph{Two notions of scanned height.} Out-of-order scanning leaves
 gaps, so the backend distinguishes \texttt{block\_max\_scanned} --- simply
@@ -2369,9 +2286,7 @@ height to which this and all preceding blocks above the wallet birthday
 have been trial-decrypted. The SQLite implementation computes the latter
 from the queue: it is $\mathsf{end} - 1$ of the \emph{first}
 \texttt{Scanned} range (by ascending start), defined only when that range
-starts at or below the birthday
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:1974--1993};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:3221--3307}).
+starts at or below the birthday.
 
 \subsection{Reorganisation detection and recovery}\label{sec:sync-reorg}
 
@@ -2403,7 +2318,7 @@ Classification is explicit: method \texttt{is\_continuity\_error} on
 encoding and tree-size-availability errors of \S\ref{sec:sync-scan}
 (\texttt{EncodingInvalid}, \texttt{TreeSizeUnknown},
 \texttt{TreeSizeInvalid}, \texttt{TreeSizeOverflow}) are not continuity
-errors (\textsf{zcash\_client\_backend}, \texttt{src/scanning.rs:602--685}).
+errors.
 
 \paragraph{Recovery.} On a continuity error the reference loop rewinds:
 \[
@@ -2415,8 +2330,7 @@ $10$-block offset is a heuristic. It then calls
 \texttt{truncate\_to\_height(rewind)} on the wallet database,
 \texttt{truncate(rewind)} on the block cache, and returns control so the
 caller restarts from \texttt{update\_chain\_tip} and a fresh
-\texttt{suggest\_scan\_ranges}
-(\textsf{zcash\_client\_backend}, \texttt{src/sync.rs:423--453}).
+\texttt{suggest\_scan\_ranges}.
 Truncation semantics --- resolution to a shared shard-tree checkpoint at
 or below the requested height (error \texttt{RequestedRewindInvalid},
 carrying a safe rewind height, otherwise), un-mining of transactions
@@ -2428,8 +2342,7 @@ wallet's view of the chain tip so that the next
 \texttt{update\_chain\_tip} re-installs \texttt{Verify} and
 \texttt{ChainTip} ranges above the new maximum scanned height; and at
 the pinned commit truncation covers all three shard trees and the
-nullifier-map locators
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:3707--3897,4252--4274}).
+nullifier-map locators.
 
 \paragraph{The depth constant.} Constant $\mathsf{PRUNING\_DEPTH} = 100$
 blocks is \textsf{librustzcash}'s reorganisation-safety depth
@@ -2487,9 +2400,7 @@ non-contiguity permitted --- \texttt{delete} and \texttt{truncate}. The
 loop deletes each range from the cache after scanning it, the module
 observing that ``keeping the entire chain in \texttt{CompactBlock} files on
 disk is horrendous for the filesystem''; deletions are spawned concurrently
-and awaited before the loop returns
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:237--435};
-\texttt{src/sync.rs:131--226}).
+and awaited before the loop returns.
 
 The module documents its own limitations: block batches are not downloaded
 in parallel with scanning; detected transactions are not enhanced (the full
@@ -2499,8 +2410,7 @@ exit (\textsf{zcash\_client\_backend}, \texttt{src/sync.rs:1--10}). The
 chain-module
 documentation additionally recommends scanning \texttt{Historic} ranges in
 reverse height order --- or from both ends inward --- so that recent
-unspent notes are discovered sooner
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/chain.rs:128--134}).
+unspent notes are discovered sooner.
 
 \section{Commitment-tree synchronisation}\label{sec:sync-tree}
 %% Ground truth: librustzcash @ e30517e4 (2026-07-10); lightwalletd @
@@ -2628,8 +2538,7 @@ $32$-byte encoding of a base-field element --- Jubjub base for Sapling,
 Pallas base for Orchard --- with non-canonical encodings rejected at
 parse time. The parser \texttt{read\_commitment\_tree} bounds the
 $\mathsf{parents}$ vector at $\mathrm{DEPTH} - 1$ entries, and the parsed
-tree converts losslessly to a frontier via \texttt{to\_frontier()}
-(\textsf{zcash\_primitives}, \texttt{src/merkle\_tree.rs:26--61,183--209}).
+tree converts losslessly to a frontier via \texttt{to\_frontier()}.
 The format's originator is \textsf{zcashd} (retired): its Sapling final
 state streamed the legacy \texttt{SaplingMerkleTree} directly and its
 Orchard final state streamed through the
@@ -2782,28 +2691,21 @@ with $\mathsf{end\_height} = 558822$, and subtree $1$ has root
 \texttt{03654c3eacbb9b93e122cf6d77b606eae29610f4f38a477985368197fd68e02d}
 \]
 with $\mathsf{end\_height} = 670209$: measured from Sapling activation
-at height $419{,}200$ (\textsf{zcash\_protocol},
-\texttt{src/consensus.rs:488}), the first $2^{17}$ Sapling outputs
+at height $419{,}200$, the first $2^{17}$ Sapling outputs
 span roughly the chain's first $250{,}000$ post-activation blocks.
 \end{example}
 
 \paragraph{Deployed validator.} Zebra implements both
 \texttt{z\_gettreestate} and \texttt{z\_getsubtreesbyindex} in its RPC
 surface, so a Zebra-backed indexer retains tree synchronisation after
-zcashd's retirement (\textsf{zebra-rpc},
-\texttt{src/methods.rs:361,2018}; \texttt{src/methods/trees.rs}). The
+zcashd's retirement. The
 successor indexer serves the same gRPC API: Zaino's
 \texttt{get\_tree\_state} proxies \texttt{z\_get\_treestate} to the
 backing validator and hex-encodes the final states (at HEAD it also
 populates an \texttt{ironwood\_tree} field), its
 \texttt{get\_latest\_tree\_state} reads the chain height and delegates,
 and its \texttt{get\_subtree\_roots} fetches each completing block via
-\texttt{z\_get\_block(end\_height)}
-(\textsf{zaino-state},
-\texttt{src/\allowbreak backends/}\allowbreak\texttt{fetch.rs:1836--1896};
-\texttt{src/\allowbreak indexer.rs:756--860};
-\texttt{src/\allowbreak chain\_index.rs:509--514,\allowbreak
-2397--\allowbreak 2431}). One behavioural
+\texttt{z\_get\_block(end\_height)}. One behavioural
 divergence: Zaino maps the proto's \texttt{uint32}
 $\mathsf{startIndex}$/$\mathsf{maxEntries}$ down to \texttt{u16} and
 returns \texttt{InvalidArgument} when either exceeds $65535$ ---
@@ -2814,20 +2716,17 @@ but stricter than \textsf{lightwalletd}/\textsf{zcashd}, whose
 \textsf{zcashd} \texttt{src/zcash/}\allowbreak
 \texttt{IncrementalMerkleTree.hpp:20--70}).
 Both backends delegate to the validator:
-\texttt{NodeBackedChainIndex::}\allowbreak\texttt{get\_subtree\_roots}
+\texttt{NodeBackedChainIndex::}\allowbreak%
+\texttt{get\_subtree\_\allowbreak roots}
 calls the blockchain
-source (\texttt{chain\_index.rs:\allowbreak 2421--2431});
-\texttt{ValidatorConnector::State} issues
+source;
+\texttt{Validator\allowbreak Connector::\allowbreak State} issues
 \texttt{ReadRequest::}\allowbreak\texttt{\{Sapling,}\allowbreak%
 \texttt{Orchard,}\allowbreak\texttt{Ironwood\}}\allowbreak%
 \texttt{Subtrees} to Zebra's
-\texttt{ReadStateService}, and \texttt{::Fetch} proxies
-\texttt{z\_get}\allowbreak\texttt{subtrees}\allowbreak\texttt{byindex}
-(\texttt{chain\_\allowbreak index/\allowbreak source/}\allowbreak
-\texttt{validator\_\allowbreak connector.rs:545--608}); only
-the mockchain test source self-computes
-(\texttt{chain\_index/\allowbreak source/}\allowbreak
-\texttt{mockchain\_\allowbreak source.rs:579--665}).
+\texttt{ReadState\allowbreak Service}, and \texttt{::Fetch} proxies
+\texttt{z\_get}\allowbreak\texttt{subtrees}\allowbreak\texttt{byindex}; only
+the mockchain test source self-computes.
 
 \subsection{Client state: shards, cap, and retention}
 \label{sec:sync-tree-store}
@@ -2839,26 +2738,22 @@ the tree above the shard roots --- and a checkpoint set enabling
 truncation. The root sits at address $(\mathrm{DEPTH}, 0)$, shards at
 level $\mathrm{SHARD\_HEIGHT}$, and
 $\texttt{max\_subtree\_index()} =
-2^{\mathrm{DEPTH} - \mathrm{SHARD\_HEIGHT}} - 1$
-(\textsf{shardtree}, \texttt{src/lib.rs:61--129}). The wallet API
+2^{\mathrm{DEPTH} - \mathrm{SHARD\_HEIGHT}} - 1$. The wallet API
 instantiates one such tree per pool as
 $\texttt{ShardTree}\langle \mathsf{Store}, \mathrm{DEPTH} = 32,
 \mathrm{SHARD\_HEIGHT} = 16 \rangle$ with block heights as checkpoint
-identifiers, via \texttt{with\_sapling\_tree\_mut} /
-\texttt{with\_orchard\_tree\_mut} /
-\texttt{with\_ironwood\_tree\_mut}
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3743--3826}).
+identifiers, via \texttt{with\_sapling\_\allowbreak tree\_mut} /
+\texttt{with\_orchard\_\allowbreak tree\_mut} /
+\texttt{with\_ironwood\_\allowbreak tree\_mut}.
 The shard height is documented as chosen to conform ``to the structure
 of subtree data returned by lightwalletd when using the GetSubtreeRoots
 GRPC call'': $\mathsf{SAPLING\_SHARD\_HEIGHT} =
-\mathsf{ORCHARD\_SHARD\_HEIGHT} = 16$, half the tree depth of each pool
-(\texttt{src/data\_api.rs:155--166}). The geometry --- height-$16$
+\mathsf{ORCHARD\_SHARD\_HEIGHT} = 16$, half the tree depth of each pool.
+The geometry --- height-$16$
 shards of $2^{16}$ leaves under the $16$-level cap, at most $2^{16}$
 shards --- is the \emph{Ironwood Guide}'s construction (\S``Resting: the note
 in the commitment tree''); the
-deployed constants realise it exactly (\textsf{shardtree},
-\texttt{src/lib.rs:111--129};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1446--1447}).
+deployed constants realise it exactly.
 The SQLite backend constructs each tree as
 $\texttt{ShardTree::new}(\mathsf{store}, \mathsf{PRUNING\_DEPTH})$ with
 $\mathsf{PRUNING\_DEPTH} = 100$: at most $100$ ordinary recent
@@ -2868,14 +2763,9 @@ not create a distinct checkpoint. From NU6.3 activation onward, established
 checkpoints at heights divisible by $288$ are additionally retained as
 durable anchors and are exempt from that automatic pruning. The $100$-block
 depth is the assumed maximum reorganisation depth and ZIP~307's cache-size
-guidance (\S\ref{sec:sync-tree-linear})
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/lib.rs:169,\allowbreak 2500,\allowbreak 2526,\allowbreak
-2558}; \textsf{zcash\_client\_backend},
-\texttt{src/data\_api/ll/wallet.rs:1535--1560}).
+guidance (\S\ref{sec:sync-tree-linear}).
 
-What survives pruning is governed by per-node \emph{retention}
-(\textsf{incrementalmerkletree}, \texttt{src/\allowbreak lib.rs:76--107}):
+What survives pruning is governed by per-node \emph{retention}:
 \begin{itemize}
 \item \texttt{Ephemeral} --- prunable together with its siblings;
 \item \texttt{Checkpoint\{id, marking\}} --- the position is retained
@@ -2906,23 +2796,15 @@ streamed message by
 and passing the batches, each with start index $0$, to
 \texttt{put\_sapling\_}\allowbreak\texttt{subtree\_roots},
 \texttt{put\_orchard\_}\allowbreak\texttt{subtree\_roots}, and
-\texttt{put\_ironwood\_}\allowbreak\texttt{subtree\_roots}
-(\textsf{zcash\_client\_backend},
-\texttt{src/\allowbreak sync.rs:\allowbreak 80--86,\allowbreak 228--299}).
+\texttt{put\_ironwood\_}\allowbreak\texttt{subtree\_roots}.
 Type \texttt{CommitmentTreeRoot} pairs the subtree end height with the
-root hash
-(\texttt{src/\allowbreak data\_api/}\allowbreak\texttt{chain.rs:180--212}),
-and the trait documentation
-(\texttt{src/}\allowbreak\texttt{data\_api.rs:\allowbreak 3743--3826})
-fixes the meaning:
+root hash, and the trait documentation fixes the meaning:
 each value ``should be the Merkle root of a subtree \ldots\ containing
 $2^{\mathrm{SHARD\_HEIGHT}}$ note commitments''.
 
 The SQLite backend implements all three puts via one generic procedure,
 \texttt{put\_shard\_roots} parameterised by the hash $H$, the tree
-depth, and the shard height
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/}\allowbreak\texttt{commitment\_tree.rs:1107--1227}):
+depth, and the shard height:
 \begin{enumerate}[label=(\arabic*)]
 \item no-op on empty input;
 \item load the cap and treat it as a standalone tree of
@@ -2937,8 +2819,7 @@ depth, and the shard height
   \]
   and the downloaded roots are \texttt{batch\_insert}ed at
   $\texttt{Position::from}(\mathsf{startIndex})$ with
-  \texttt{Retention::Reference}
-  (\texttt{src/wallet/}\allowbreak\texttt{commitment\_tree.rs:1122--1181});
+  \texttt{Retention::Reference};
 \item write the cap back;
 \item check contiguity over
   $[\mathsf{startIndex}, \mathsf{startIndex} + n)$:
@@ -2946,8 +2827,7 @@ depth, and the shard height
   range is neither overlapping nor immediately adjacent to the stored
   $[\min(\mathsf{shardIndex}), \max(\mathsf{shardIndex}) + 1)$ range,
   raising \texttt{Error::SubtreeDiscontinuity} --- subtree roots must
-  arrive without gaps
-  (\texttt{src/wallet/}\allowbreak\texttt{commitment\_tree.rs:481--520});
+  arrive without gaps;
 \item upsert each root into
   \texttt{\{pool\}\_tree\_shards(shard\_index, subtree\_end\_height,
   root\_hash, shard\_data)}; on conflict only the end height and root
@@ -2960,9 +2840,7 @@ merged eagerly --- ``we want to avoid deserializing the subtree just to
 annotate its root node, so we simply cache the downloaded root alongside
 of any already-persisted subtree'' --- and the read path resolves the
 pair: \texttt{get\_shard} deserialises \texttt{shard\_data} and applies
-$\texttt{reannotate\_root}(\mathsf{Some}(\mathsf{rootHash}))$
-(\texttt{src/wallet/}\allowbreak
-\texttt{commitment\_tree.rs:1190--1193,\allowbreak 412--445}).
+$\texttt{reannotate\_root}(\mathsf{Some}(\mathsf{rootHash}))$.
 
 \begin{remark}[Idempotent full re-download]\label{rem:sync-tree-refetch}
 The driver fixes $\mathsf{startIndex} = 0$ on every run although
@@ -2992,8 +2870,7 @@ reverses its bytes (``Zcashd hex strings for block hashes are
 byte-reversed''), and parses each pool's legacy tree
 (Definition~\ref{def:sync-legacy-ser}) into a frontier; an \emph{empty}
 tree-state string parses as the empty tree, the correct state before a
-pool's activation
-(\textsf{zcash\_client\_backend}, \texttt{src/proto.rs:367--463}). The
+pool's activation. The
 result is
 \[
 \begin{aligned}
@@ -3005,8 +2882,7 @@ result is
 \]
 ``the final note commitment tree state for each shielded pool, as of a
 particular block height'' --- the Orchard and Ironwood frontiers sit
-behind the \texttt{orchard} feature
-(\texttt{src/data\_api/}\allowbreak\texttt{chain.rs:504--596}).
+behind the \texttt{orchard} feature.
 
 Every scanned batch is seeded with the chain state of the block
 immediately preceding it, and the seed is verified against the server's
@@ -3019,11 +2895,7 @@ own metadata before any tree is touched:
 \]
 per pool $P$, where $b_0$ is the batch's first block and the final
 tree size is read from the block's \texttt{chainMetadata}; violation
-yields error \texttt{NonSequentialBlocks}
-(\textsf{zcash\_client\_backend},
-\texttt{src/\allowbreak data\_api/\allowbreak chain.rs:616--635};
-\texttt{src/\allowbreak data\_api/\allowbreak ll/\allowbreak
-wallet.rs:291--348}). The metadata sizes are
+yields error \texttt{NonSequentialBlocks}. The metadata sizes are
 what give the scanner absolute leaf positions when no prior metadata is
 available. Without positions it cannot derive Sapling nullifiers or
 build any pool's witnesses (\texttt{TreeSizeUnknown}, a hard error);
@@ -3031,17 +2903,13 @@ Orchard and Ironwood nullifier derivation itself is position-independent,
 and a size contradicted by block contents is \texttt{TreeSizeMismatch},
 a continuity error triggering the rewind of \S\ref{sec:sync-reorg}
 (\texttt{lightwallet-protocol/walletrpc/}\allowbreak
-\texttt{compact\_\allowbreak formats.proto:14--17,\allowbreak 31--40};
-\textsf{zcash\_client\_backend},
-\texttt{src/scanning.rs:602--685}).
+\texttt{compact\_\allowbreak formats.proto:14--17,\allowbreak 31--40}).
 
 The batch's note commitments are then assembled into located subtrees in
 parallel --- \textsf{rayon}, chunks of $1024$ commitments,
 \texttt{LocatedTree::from\_iter} at the shard level --- starting at
 $\texttt{Position::from}(\mathsf{seed}.\mathsf{treeSize}_P)$, and each
-pool's tree is updated by \texttt{update\_tree}
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/ll/}\allowbreak\texttt{wallet.rs:597--771}):
+pool's tree is updated by \texttt{update\_tree}:
 \begin{enumerate}[label=(\arabic*)]
 \item insert the seed frontier (\texttt{tree.insert\_frontier}) with
   retention
@@ -3053,8 +2921,7 @@ pool's tree is updated by \texttt{update\_tree}
   subtree;
 \item add any cross-pool checkpoints missing above the minimum retained
   checkpoint
-  (\texttt{src/\allowbreak data\_api/\allowbreak ll/\allowbreak
-  wallet.rs:1591--1664}; the cross-pool
+  (the cross-pool
   checkpoint-unification rule itself, \S\ref{sec:sync-persist}).
 \end{enumerate}
 Inside \textsf{shardtree}, \texttt{insert\_frontier} splits a non-empty
@@ -3066,8 +2933,7 @@ levels $\ge \mathrm{SHARD\_HEIGHT}$ enter the cap, checkpoint retention
 adds a checkpoint at the leaf position, and checkpoints beyond
 \texttt{max\_checkpoints} are pruned. An empty frontier with checkpoint
 retention records a checkpoint for the empty tree
-(\texttt{Retention::Marked} is invalid there)
-(\textsf{shardtree}, \texttt{src/lib.rs:323--405}).
+(\texttt{Retention::Marked} is invalid there).
 
 Frontier seeding is also how a wallet is born and how it rewinds. An
 \texttt{AccountBirthday} wraps ``the chain state prior to the birthday
@@ -3079,16 +2945,13 @@ $\texttt{height()} = \mathsf{priorChainState}.\mathsf{blockHeight} + 1$,
 and account creation stores the birthday tree sizes and rewinds the
 wallet to the birthday chain state, so no block before the birthday
 needs to be replayed: the prior frontier summarises the required prefix
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs:3010--3106};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:438--618};
-\S\ref{sec:sync-birthday}). Symmetrically,
+(\S\ref{sec:sync-birthday}). Symmetrically,
 \texttt{truncate\_to\_chain\_state} inserts each pool's frontier from
 the target chain state with
 $\texttt{Checkpoint}\{\mathsf{id} = \mathsf{targetHeight},
 \mathsf{marking} = \texttt{None}\}$, creating the checkpoint on which the
 subsequent tree truncation lands
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs:3984--4034};
-recovery flow, \S\ref{sec:sync-reorg}).
+(recovery flow, \S\ref{sec:sync-reorg}).
 
 \subsection{Shard completion and spendability}
 \label{sec:sync-tree-witness}
@@ -3097,9 +2960,7 @@ Two of the scan-queue priorities of \S\ref{sec:sync-queue} exist purely
 for this layer: \texttt{ChainTip} is documented as ``blocks that must be
 scanned to complete the latest note commitment tree shard'' and
 \texttt{FoundNote} as ``blocks that must be scanned to complete note
-commitment tree shards adjacent to found notes''
-(\textsf{zcash\_client\_backend},
-\texttt{src/data\_api/scanning.rs:13--29}).
+commitment tree shards adjacent to found notes''.
 
 \paragraph{The tip shard.} On each tip update the backend computes per
 pool the maximum \texttt{subtree\_}\allowbreak\texttt{end\_height} over
@@ -3113,8 +2974,7 @@ enqueues
 \]
 at \texttt{ChainTip} priority, so the incomplete tip shard of every pool
 is scanned even before historic ranges
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/}\allowbreak\texttt{scanning.rs:475--657}; the full
+(the full
 tip-update case
 analysis, \S\ref{sec:sync-tip}).
 
@@ -3128,9 +2988,7 @@ height for shard $0$, clamped to the wallet birthday) to the containing
 shard's \texttt{subtree\_end\_height} $+\,1$ --- enqueuing the
 extensions beyond the just-scanned range at \texttt{FoundNote} priority.
 Completing the shard's block range is exactly what makes the note's
-witness computable
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/scanning.rs:224--398}).
+witness computable.
 
 \paragraph{Witness derivation.} The query
 \texttt{witness\_at\_checkpoint\_id(position, id)} requires
@@ -3145,9 +3003,7 @@ empty-root constant beyond the tree size. A pruned node that cannot be
 replaced by an empty-root constant yields
 \texttt{QueryError::}\allowbreak\texttt{TreeIncomplete(addresses)} ---
 the precise failure
-mode of an unready witness
-(\textsf{shardtree}, \texttt{src/lib.rs:1236--1362};
-\texttt{src/error.rs:124--136}). The mathematics of the fold is the
+mode of an unready witness. The mathematics of the fold is the
 \emph{Ironwood Guide}'s (\S``Resting: the note in the commitment tree''); what
 this volume adds is the deployed
 readiness condition under which it cannot fail.
@@ -3167,16 +3023,14 @@ $(\mathsf{s}, \mathsf{e}, \mathsf{h}_0, \mathsf{h}_1) \in U_P$ satisfies
 \]
 i.e.\ the note's shard has an unscanned block range at or below the
 anchor; the same view drives \texttt{unscanned\_tip\_exists}, which
-invalidates anchors whose containing shard is not fully scanned
-(\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/common.rs:142--162,\allowbreak 762--822}). The views compute
+invalidates anchors whose containing shard is not fully scanned.
+The views compute
 $\mathsf{startPosition} = \mathsf{shardIndex} \ll 16$ and
 $\mathsf{endPositionExclusive} = (\mathsf{shardIndex} + 1) \ll 16$, set
 the shard's block extent to begin at the previous shard's end height
 (the pool activation height for the first shard), join the scan-queue
 rows whose block ranges overlap that extent, and filter to priority
-above \texttt{Scanned}
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/db.rs:1435--1494}).
+above \texttt{Scanned}.
 Unwinding the predicate recovers the tree-readiness condition: at a given
 anchor, the note's own shard must be scanned up to the anchor, every earlier
 shard must be covered by a downloaded root, and the blocks from the last
@@ -3225,8 +3079,8 @@ The keys never travel; the \emph{requests} do. This section inventories
 what the deployed server-side observer learns from those requests: the
 stated threat model, the baseline that genuinely holds, the leaks in the
 deployed request pattern, the operator's instruments for recording them,
-and the mitigations that actually ship. Every claim about deployed
-behaviour cites the implementation at the commits pinned above; where the
+and the mitigations that actually ship. Implementation references use the
+commits pinned above; where the
 code diverges from ZIP text, we flag the divergence in place.
 
 \subsection{The stated security model}\label{sec:sync-privacy-model}
@@ -3287,8 +3141,7 @@ and --- for the testing-only \texttt{Ping} RPC --- a duration
 service.proto}). Incoming viewing
 keys remain on the device: trial decryption of compact outputs is performed
 client-side by \texttt{scan\_block} over locally cached
-\texttt{CompactBlock}s (\textsf{zcash\_client\_backend},
-\texttt{src/scanning.rs}), by the mechanism of the \emph{Ironwood Guide},
+\texttt{CompactBlock}s, by the mechanism of the \emph{Ironwood Guide},
 \S``Delivery: the note reaches its owner''; witness maintenance over the
 resulting positions is that
 of \S``Resting: the note in the commitment tree''.
@@ -3334,8 +3187,8 @@ shielded pool, \texttt{GetLatestBlock}, \texttt{GetAddressUtxosStream} over
 \emph{all} transparent receivers of every account (cleartext,
 Remark~\ref{rem:sync-transparent}), \texttt{GetTreeState} for the block
 before each scan range, and \texttt{GetBlockRange} for each suggested scan
-range in \texttt{batch\_size} chunks (\textsf{zcash\_client\_backend},
-\texttt{src/sync.rs}). At the pinned commit the subtree-root fetch covers
+range in \texttt{batch\_size} chunks. At the pinned commit the subtree-root
+fetch covers
 Sapling, Orchard, and Ironwood. Ironwood appears in no light-client ZIP
 --- ZIP~2005 covers quantum recoverability and ZIP~258 only NU6.3
 deployment --- the request exists solely because the
@@ -3354,9 +3207,7 @@ priority (Table~\ref{tab:sync-priorities}), and
 \texttt{suggest\_scan\_ranges} returns them in descending priority, then
 descending end height (\S\ref{sec:sync-queue}), so \textsf{Verify} and
 \textsf{ChainTip} ranges near the tip are fetched first and
-\textsf{FoundNote} ranges pre-empt \textsf{Historic} backfill
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api/scanning.rs};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet/scanning.rs}). The
+\textsf{FoundNote} ranges pre-empt \textsf{Historic} backfill. The
 privacy consequence of that pre-emption is
 Remark~\ref{rem:sync-foundnote}.
 
@@ -3381,8 +3232,7 @@ observables. We take them in turn.
 creation,
 the scan queue marks the range from Sapling activation up to the account
 birthday as \textsf{Ignored} --- never downloaded --- and queues scanning
-from the birthday itself (\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet.rs}). The minimum historic start height visible across
+from the birthday itself. The minimum historic start height visible across
 the request schedule therefore approximates the wallet's earliest account
 birthday. Priority scheduling means this need not be the first range
 requested, and importing an older account can later lower it.
@@ -3413,10 +3263,8 @@ the subset of transactions relevant to this wallet, and queues a retrieval
 request for each. An integrating wallet that consumes
 \texttt{transaction\_data\_requests} later receives
 \textsf{Enhancement}(\texttt{txid}) or \textsf{GetStatus}(\texttt{txid}),
-and may resolve it via the \texttt{GetTransaction} RPC
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs},
-\texttt{src/data\_api/ll/wallet.rs}; \textsf{zcash\_client\_sqlite},
-\texttt{src/wallet.rs}). The simple \texttt{sync} module does not itself
+and may resolve it via the \texttt{GetTransaction} RPC.
+The simple \texttt{sync} module does not itself
 perform enhancement, and the API imposes no requirement that a fetch occur
 immediately after its containing range. When a wallet does issue these
 requests without cover, however, the selected txids reveal transactions it
@@ -3453,15 +3301,14 @@ request taxonomy is
    \texttt{request\_at}, \ldots\},\\
   &\textsf{GetSpendingTx}(\cdot)\;\}
 \end{align*}
-(\textsf{zcash\_client\_backend}, \texttt{src/data\_api.rs}; the last two
+(the last two
 variants are feature-gated). Only \textsf{TransactionsInvolvingAddress}
 carries a \texttt{request\_at} field, documented as the instant chosen so
 as to ``decorrelate this request to a light wallet server from other
 requests made by the same caller'', ignorable when the supplier of chain
 data is ``private, trusted-for-privacy''. The shielded-note variants
 \textsf{Enhancement} and \textsf{GetStatus} have no analogous jitter: the
-SQLite backend emits them with no \texttt{request\_at}
-(\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs}). The one deployed
+SQLite backend emits them with no \texttt{request\_at}. The one deployed
 timing defence (\S\ref{sec:sync-privacy-mitigations}) protects transparent
 address checks, not the shielded fetch-on-detect path.
 
@@ -3618,14 +3465,11 @@ check time from an exponential distribution,
 with the expected interval $T$ set to $(24 \cdot 60 \cdot 60)/n$ seconds
 for $n$ tracked ephemeral addresses --- one expected check per address per
 day --- over a shuffled address order, ``so that we don't always check them
-in the same order'' (\textsf{zcash\_client\_sqlite},
-\texttt{src/wallet/transparent.rs},
-\texttt{src/wallet/transparent/ephemeral.rs}). The intent is explicit in
+in the same order''. The intent is explicit in
 the API documentation: only one such query should be performed at a time,
 ``to avoid linking multiple transparent addresses as belonging to the same
 wallet in the view of the light wallet server''
-(\textsf{zcash\_client\_backend}, \texttt{src/wallet.rs},
-\texttt{TransparentAddressMetadata::next\_check\_time}). No analogous
+(\texttt{TransparentAddressMetadata::next\_check\_time}). No analogous
 jitter exists for shielded-note enhancement
 (\S\ref{sec:sync-privacy-leaks}).
 

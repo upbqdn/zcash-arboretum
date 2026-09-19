@@ -285,11 +285,10 @@ expected hashing; work is that certificate made additive.
 
 The deployed Zebra validator computes this quantity with a 256-bit in-word
 trick: \textsf{zebra} evaluates
-\verb|(!expanded.0 / (expanded.0 + 1)) + 1|
-(\texttt{zebra-chain/src/work/\allowbreak difficulty.rs:401}); the retired
+\verb|(!expanded.0 / (expanded.0 + 1)) + 1|; the retired
 \textsf{zcashd} computed the identical
 expression on \texttt{arith\_uint256}, with \texttt{\textasciitilde}
-spelling the complement (\texttt{src/pow.cpp:144--157}). The form
+spelling the complement. The form
 agrees with
 Definition~\ref{def:cons-work} exactly: writing $t$ for the target and
 $A = 2^{256}$, the complement is $\lnot t = A - 1 - t$, and
@@ -1319,8 +1318,7 @@ chain.rs:2623--2696}); the best chain is the set's maximum. The
 ordering's doc comment is exact about its two criteria: ``Chains with
 higher cumulative Proof of Work are [\texttt{Ordering::Greater}],
 breaking ties using the tip block hash.'' Cumulative work is the sum of
-Definition~\ref{def:cons-work} over the chain's blocks
-(\texttt{chain.rs:1803--1809}).
+Definition~\ref{def:cons-work} over the chain's blocks.
 
 \begin{remark}[The specified tie-break is not deployed]\label{rem:cons-tiebreak}
 The specification's tie-break is first-seen
@@ -1490,9 +1488,7 @@ The protocol itself hard-codes one confirmation count. A
 \emph{transparent} output is the Bitcoin-inherited kind, its value and
 destination in cleartext on chain. ``A transaction
 MUST NOT spend a transparent output of a coinbase transaction from a
-block less than 100 blocks prior to the spend'' (\href{https://zips.z.cash/protocol/protocol.pdf\#txnconsensus}{\S7.1.2};
-\texttt{MIN\_TRANSPARENT\_COINBASE\_MATURITY} $= 100$,
-\texttt{zebra-chain/src/transparent.rs:54}) --- miners wait $n = 100$
+block less than 100 blocks prior to the spend'' (\href{https://zips.z.cash/protocol/protocol.pdf\#txnconsensus}{\S7.1.2}) --- miners wait $n = 100$
 on their own income. Read through Theorem~\ref{thm:cons-r}
 (script-computed): $r(0.3, 100) \approx 3.7 \times 10^{-9}$ and
 $r(0.4, 100) \approx 0.43\%$, but $r(0.45, 100) \approx 15.7\%$ ---
@@ -1510,19 +1506,14 @@ Deployed confirmation policy lives in \textsf{librustzcash}. Structure
 handling, with externally received transactions trusted only by explicit user
 policy --- and $10$ for \emph{untrusted} ones, with zero-confirmation
 shielding of transparent funds allowed
-(\texttt{zcash\_client\_backend/src/data\_api/\allowbreak
-wallet.rs:444--455}, citing the draft ZIP-315); the spend anchor ---
+(citing the draft ZIP-315); the spend anchor ---
 the note-commitment-tree root against which a spend proves its note
 exists (\emph{Crypto Guide}, \S``Privacy-preserving membership via
-zero-knowledge paths'') --- sits $3$ blocks below the target height
-(\texttt{wallet.rs:574--576}). The
+zero-knowledge paths'') --- sits $3$ blocks below the target height. The
 Android SDK passes exactly these defaults for transfers, and for
 shielding the minimum policy, under which the transparent funds being
-shielded need no confirmations at all
-(\texttt{backend-lib/src/main/rust/lib.rs:2096},
-\texttt{:2158}, \texttt{:2192}); its UI reports a transaction
-\emph{confirmed} at $10$ confirmations
-(\texttt{TransactionOverview.kt:89}). These constants are wallet policy
+shielded need no confirmations at all; its UI reports a transaction
+\emph{confirmed} at $10$ confirmations. These constants are wallet policy
 rather than consensus rules.
 
 Table~\ref{tab:cons-r} prices the defaults in the first-seen model. Three

@@ -2094,7 +2094,7 @@ attacks require an implementation that accepts an attacker-supplied
 skips its on-curve checks, and the deployed arithmetic does neither.
 The \texttt{pasta\_curves} crate carries points in full coordinates
 and has no \(x\)-only code path; its deserialisation
-(\texttt{from\_bytes} in \texttt{src/curves.rs}) reconstructs \(y\)
+(\texttt{from\_bytes}) reconstructs \(y\)
 by taking the square root of \(x^{3} + 5\), failing exactly when
 \(x\) lies on the twist, where \(x^{3} + 5\) is a non-square, and
 even \texttt{from\_bytes\_unchecked} delegates to the checked path
@@ -2105,9 +2105,7 @@ points built from raw coordinates are gated on
 \(x^{3} + b\) has no square root, and an implementation must not
 assume that the root exists or that the encoding lies on the curve.
 Orchard deserialises its points through this
-routine (e.g.\ the \texttt{orchard} crate, \texttt{src/value.rs},
-\texttt{ValueCommitment::\allowbreak from\_bytes}, and the key
-material of \texttt{src/keys.rs}), and cofactor \(1\) leaves no
+routine, and cofactor \(1\) leaves no
 small subgroup on the curve itself. Invalid-curve and twist-point
 injection are therefore excluded by \emph{validation}, not by twist
 structure.
@@ -2912,7 +2910,7 @@ family---set \(k = 128\), hence \(48\)-byte chunks. The Zcash suite
 for Pallas and Vesta is more generous: it takes \(k = 256\), reducing
 each element from a full \(64\)-byte BLAKE2b-512 digest, so the slack
 of Proposition~\ref{hash:prop:bias} is realised with room to spare
-(\texttt{pasta\_curves} crate, \texttt{src/hashtocurve.rs}: the
+(the
 \texttt{hash\_to\_field} routine expands with BLAKE2b in the XMD
 pattern under the suite tag
 \texttt{\{tag\}-\allowbreak\{curve\}\_\allowbreak
@@ -2924,8 +2922,7 @@ and for producing the field elements that the next subsection feeds to
 a curve. Halo~2's deployed Fiat--Shamir transcript uses the same
 wide-output-then-reduce principle: each challenge is the \(64\)-byte
 digest of a BLAKE2b state personalised with \texttt{Halo2-Transcript},
-reduced by \texttt{from\_uniform\_bytes} (\texttt{halo2\_proofs} crate,
-\texttt{src/transcript.rs}); the order in which that state absorbs
+reduced by \texttt{from\_uniform\_bytes}; the order in which that state absorbs
 messages and squeezes challenges is the \emph{Halo~2 Guide}'s,
 \S``The complete Halo 2 protocol''.
 
@@ -3083,9 +3080,7 @@ coordinate formulas and respecting the group law. The deployed
 implementation applies a degree-\(3\) isogeny, and---because an
 isogeny is a group homomorphism---sums \(Q_{0} + Q_{1}\) on \(E'\)
 first and transports the single sum
-(\texttt{pasta\_curves} crate, \texttt{src/hashtocurve.rs}: the
-\texttt{iso\_map} routine; \texttt{src/curves.rs}: the
-\texttt{hash\_to\_curve} closure; protocol specification
+(protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S~5.4.9.8}).
 \end{remark}
 
@@ -3113,11 +3108,10 @@ Construction~\ref{commitments:def:ipa}): every generator \(G_{i}\) is
 a five-byte message---a zero byte, then the four-byte little-endian
 encoding of \(i\)---the leading zero keeping the \(G_{i}\) disjoint
 from the two auxiliary generators the same tag derives from the
-one-byte messages \(1\) and \(2\) (\texttt{halo2\_proofs}
-crate, \texttt{src/poly/commitment.rs}), and Orchard's value
+one-byte messages \(1\) and \(2\), and Orchard's value
 commitment derives its two bases from the tag
 \texttt{z.cash:Orchard-cv} with the one-byte messages \texttt{"v"}
-and \texttt{"r"} (\texttt{orchard} crate, \texttt{src/value.rs}).
+and \texttt{"r"}.
 \end{construction}
 
 \begin{remark}[Why NUMS generators are binding-safe]
@@ -3221,8 +3215,7 @@ Orchard fixes \(t = 3\) (rate \(2\), capacity \(1\)),
 \(\alpha = 5\), and \(8\) full plus \(56\) partial rounds, over the
 Pallas base field, at the \(128\)-bit security level---the
 parametrisation named \texttt{P128Pow5T3} in the deployed source
-(\texttt{halo2\_poseidon} crate, \texttt{src/p128pow5t3.rs}; protocol
-specification \href{https://zips.z.cash/protocol/protocol.pdf\#poseidonhash}{\S~5.4.1.10}). It is used in
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#poseidonhash}{\S~5.4.1.10}). It is used in
 \emph{constant-input-length} mode as a two-input hash:
 \[
 \mathsf{PoseidonHash}(x, y) \;=\;
@@ -3232,7 +3225,7 @@ the first component of the state after a single permutation of the
 input padded by the fixed capacity value
 \(2^{65} = 2 \cdot 2^{64}\), which encodes the input length \(2\)
 into the capacity so that no message padding is required
-(\texttt{halo2\_poseidon} crate, \texttt{src/lib.rs}: the
+(the
 \texttt{ConstantLength} domain sets the initial capacity element to
 \(L \cdot 2^{64}\)). Keyed by its first argument, this hash serves as
 the pseudorandom function
@@ -3268,8 +3261,7 @@ domains, and deployed uses for the volumes above.
   inherited with its address format, whose collision resistance sits
   at the \(80\)-bit birthday bound of Lemma~\ref{hash:lem:birthday}.
   Zcash uses it only inside \(\mathsf{hash160}\) below and the script
-  opcodes \texttt{OP\_RIPEMD160} and \texttt{OP\_HASH160}
-  (\texttt{zcash\_script} crate, \texttt{src/opcode/mod.rs}).
+  opcodes \texttt{OP\_RIPEMD160} and \texttt{OP\_HASH160}.
 \item \emph{The address hash
   \(\mathsf{hash160} := \mathrm{RIPEMD160} \circ \mathrm{SHA256}\).}
   A pay-to-public-key-hash (P2PKH) address carries the \(20\)-byte
@@ -3282,35 +3274,25 @@ domains, and deployed uses for the volumes above.
   condition a spend of the output must satisfy---is
   \texttt{OP\_DUP OP\_HASH160 \(\langle h \rangle\) OP\_EQUALVERIFY
   OP\_CHECKSIG}, which recomputes the hash from the public key the
-  spender reveals (\texttt{zcash\_script} crate,
-  \texttt{src/pattern.rs}); wallets compute it through the
-  \texttt{zcash\_transparent} crate
-  (\texttt{src/util/\allowbreak hash160.rs}), and a partially created
+  spender reveals; wallets compute it through the
+  \texttt{zcash\_transparent} crate, and a partially created
   transaction (PCZT), the multi-party construction format of the
   \emph{Wallet Guide}, \S``Partially created transactions (PCZT)'',
   carries on each transparent input preimage maps keyed by
   RIPEMD-160, SHA-256, \(\mathsf{hash160}\), and \(\mathsf{hash256}\)
-  digests (\texttt{src/pczt.rs}).
+  digests.
 \item \emph{Double SHA-256 (SHA-256d, or \(\mathsf{hash256}\)).} The
   composition \(x \mapsto \mathrm{SHA256}(\mathrm{SHA256}(x))\)
   (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretesha256}{\S~5.4.1.1}), whose outer application also
   closes the length-extension property of plain SHA-256
-  (\S\ref{prf:subsec:hmac}). It hashes block headers
-  (\texttt{zebra-chain} crate, \texttt{src/block/hash.rs}); its
+  (\S\ref{prf:subsec:hmac}). It hashes block headers; its
   leading four bytes are the checksum that Base58Check, the string
   encoding of transparent addresses, appends to the raw address bytes
-  before converting to base~58 (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#transparentaddrencoding}{\S~5.6.1.1};
-  \texttt{zebra-chain} crate,
-  \texttt{src/transparent/\allowbreak address.rs}, through the
-  \texttt{bs58} crate's checked mode) and the payload checksum in
-  every peer-to-peer message header (\texttt{zebra-network} crate,
-  \texttt{src/protocol/external/\allowbreak codec.rs}); and it is the
+  before converting to base~58 (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#transparentaddrencoding}{\S~5.6.1.1}) and the payload checksum in
+  every peer-to-peer message header; and it is the
   legacy transaction identifier: the txid of a version-4-or-earlier
   transaction is SHA-256d of its serialisation (protocol
-  specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnidentifiers}{\S~7.1.1}; \texttt{zcash\_primitives} crate,
-  \texttt{src/transaction/mod.rs}, hashing through the
-  \texttt{zcash\_transparent} crate's
-  \texttt{src/util/\allowbreak sha256d.rs}), whereas a version-5
+  specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnidentifiers}{\S~7.1.1}), whereas a version-5
   txid is the BLAKE2b digest tree of ZIP~244.
 \end{itemize}
 
@@ -4000,8 +3982,7 @@ value records) spent and created by each Action (Orchard's combined
 spend-and-output unit) are proved to lie in
 \(\{0, \dots, 2^{64}-1\}\) (the Action statement, protocol
 specification \href{https://zips.z.cash/protocol/protocol.pdf\#actionstatement}{\S~4.18.4}; enforced by the note-commitment gadget's
-\texttt{ValueCanonicity} gate, \texttt{orchard} crate,
-\texttt{src/circuit/\allowbreak note\_commit.rs}), the committed net
+\texttt{ValueCanonicity} gate), the committed net
 value is the difference of two such values, and the number of
 summands is bounded, so the sums cannot wrap (\href{https://zips.z.cash/protocol/protocol.pdf\#orchardbalance}{\S~4.14}). The prover
 does not reveal \(r\); it proves \emph{knowledge} of \(r\) by using
@@ -4015,9 +3996,7 @@ with hashed-to-curve generators \(V, R\)
 commitment to its \emph{net}
 value change, and the verifier folds the published commitments with
 a commitment to the transparent value balance to obtain the binding
-verification key
-(\texttt{src/bundle.rs},
-\texttt{Bundle::\allowbreak binding\_validating\_key}). The
+verification key. The
 homomorphism turns an arithmetic relation on hidden values into a
 group equation on public commitments---a template the rest of the
 volume reuses repeatedly.
@@ -4231,15 +4210,13 @@ Both derivations are nothing-up-my-sleeve
 discrete-log relation among \(\{S(v)\}_v \cup \{Q\}\)
 (Remark~\ref{hash:rem:nums-binding}). The deployed instantiation
 takes \(w = 10\) (the specification's \(k\)) over Pallas: the
-\texttt{sinsemilla} crate, \texttt{src/lib.rs}, fixes the two
+\texttt{sinsemilla} crate fixes the two
 personalisation strings and derives \(Q\) in
 \texttt{HashDomain::\allowbreak new}; the table ships precomputed as
-\texttt{SINSEMILLA\_S} in \texttt{src/sinsemilla\_s.rs}, and the
+\texttt{SINSEMILLA\_S}, and the
 crate's test \texttt{sinsemilla\_s} re-derives every entry from
 \texttt{u32::\allowbreak to\_le\_bytes} of the index---exactly
-\(\mathrm{LE}_{32}\); the circuit loads that table as its lookup
-(\texttt{halo2\_gadgets} crate,
-\texttt{src/sinsemilla/chip/\allowbreak generator\_table.rs});
+\(\mathrm{LE}_{32}\); the circuit loads that table as its lookup;
 protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretesinsemillahash}{\S~5.4.1.9}. The hash iterates over the pieces
 with a running accumulator \(\mathrm{Acc} \in \G\):
 \[
@@ -4342,7 +4319,7 @@ extracted \(x\)-coordinates mean the two points are equal or are
 negatives of one another, and either signed equality yields the same
 kind of nontrivial generator relation as in the proof above. Second,
 the final piece is zero-padded to the piece width---the \texttt{Pad}
-iterator of the \texttt{sinsemilla} crate, \texttt{src/lib.rs}, pads
+iterator of the \texttt{sinsemilla} crate pads
 the message bits to a multiple of the piece width before
 chunking---so two bit strings of different lengths within the same
 final piece present identical piece sequences, and the deployed hash
@@ -4383,13 +4360,11 @@ discrete-log relation between \(H'\) and the hash generators.
 Orchard's note commitment \(\mathsf{NoteCommit}\) instantiates
 exactly this map: the \texttt{orchard} crate derives it through the
 \texttt{sinsemilla} crate's \texttt{CommitDomain::\allowbreak commit}
-(\texttt{src/note/\allowbreak commitment.rs},
-\texttt{NoteCommitment::\allowbreak derive}; protocol specification
+(protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#concretesinsemillacommit}{\S~5.4.8.4}). Its key commitment \(\mathsf{CommitIvk}\) composes the
 same map with \(x\)-coordinate extraction---the specification's
 \(\mathsf{SinsemillaShortCommit}\)---returning a base-field element
-rather than a point (\texttt{src/spec.rs}, \texttt{commit\_ivk}, via
-\texttt{CommitDomain::\allowbreak short\_commit}).
+rather than a point.
 
 \begin{remark}[Why Sinsemilla exists: cost inside a proof]
 \label{commitments:rem:sinsemilla-circuit}
@@ -4640,11 +4615,7 @@ practical verification cost through \emph{batching}: the deployed
 verifier folds the final multiscalar multiplications of many proofs
 into one shared multiexponentiation---each proof's deferred check is
 scaled by a fresh random factor and accumulated, and a single
-combined check is evaluated once (\texttt{halo2\_proofs} crate,
-\texttt{src/plonk/verifier/\allowbreak batch.rs},
-\texttt{BatchVerifier}; consumed through
-\texttt{orchard}'s \texttt{src/bundle/\allowbreak batch.rs},
-\texttt{BatchValidator}). Batching amortises the per-proof group
+combined check is evaluated once. Batching amortises the per-proof group
 operations across a batch, though per-proof verifier work remains
 linear in \(d\). The Halo lineage's accumulation technique extends
 the same deferral across \emph{recursively composed} proofs, one
@@ -5333,7 +5304,7 @@ spans both widths. On the BLAKE2b side, the key-expansion PRF
 \texttt{Zcash\_\allowbreak ExpandSeed} (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#concreteprfs}{\S``Pseudo Random
 Functions''}), evaluated on the spending key to derive Orchard's key
-tree (\texttt{orchard} crate, \texttt{src/keys.rs}); the
+tree; the
 note-encryption KDF is personalised with
 \texttt{Zcash\_\allowbreak OrchardKDF}
 (\href{https://zips.z.cash/protocol/protocol.pdf\#concreteorchardkdf}{\S``Orchard Key Derivation''})
@@ -6632,9 +6603,8 @@ where \(\mathsf{sharedSecret}\) is the Diffie--Hellman shared point
 of the note-encryption key agreement,
 \(\mathsf{epk}\) is the sender's ephemeral public key, and the quoted
 string occupies BLAKE2b's \(16\)-byte personalisation field
-(\texttt{orchard} crate, \texttt{src/keys.rs}: the constant
-\texttt{KDF\_ORCHARD\_PERSONALIZATION} and the function
-\texttt{kdf\_orchard}, which hashes the serialised shared point
+(the function
+\texttt{kdf\_orchard} hashes the serialised shared point
 followed by the ephemeral-key bytes with a \(32\)-byte output;
 protocol specification,
 \href{https://zips.z.cash/protocol/protocol.pdf\#concreteorchardkdf}{\S``Orchard Key Derivation''}). The
@@ -6901,12 +6871,11 @@ argument} rather than fixing a protocol-wide generator, so that
 Sapling and Orchard derive keys over per-address \emph{diversified
 bases} (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#abstractkeyagreement}{\S``Key Agreement''}; the
-\texttt{zcash\_note\_encryption} crate,
-\texttt{src/lib.rs}: the \texttt{Domain} trait's
+\texttt{zcash\_note\_encryption} crate's \texttt{Domain} trait's
 \texttt{ka\_derive\_public}, \texttt{ka\_agree\_enc}, and
 \texttt{ka\_agree\_dec} operate on abstract associated types, and
 Orchard's implementation of \texttt{derive\_public} in the
-\texttt{orchard} crate, \texttt{src/keys.rs}, receives the base
+\texttt{orchard} crate receives the base
 \(g_{d}\) as a parameter). Those bases are put to work in
 \S\ref{keyagreement:subsec:notes}, and the address machinery that
 produces them is detailed in the \emph{Ironwood Guide}
@@ -7725,9 +7694,8 @@ the shared secret \(S\) uniform, and once it is, the pair
 (N, \mathit{ad}, m)\) is computed without reference to the
 recipient's key---\emph{provided} the KDF context names no recipient
 key, which it must not. The deployed KDF takes
-\((\mathsf{sharedSecret}, \mathsf{epk})\) (\texttt{orchard} crate,
-\texttt{src/keys.rs}, function \texttt{kdf\_orchard};
-\S\ref{symmetric:subsec:kdf}): the shared secret is the keying
+\((\mathsf{sharedSecret}, \mathsf{epk})\)
+(\S\ref{symmetric:subsec:kdf}): the shared secret is the keying
 material, the context is \(\mathsf{epk}\) under a personalisation
 label, and no key of the recipient enters. The protocol
 specification requires the composed note-encryption scheme to be
@@ -7768,9 +7736,7 @@ protocol-wide generator but a per-address \emph{diversified base},
 the hash-to-curve image (\S\ref{hash:subsec:hashtocurve}) of the
 address's diversifier---the generalised interface of
 Remark~\ref{keyagreement:rem:deployed-abstraction} exists precisely
-to accommodate it (\texttt{orchard} crate, \texttt{src/spec.rs},
-function \texttt{diversify\_hash}; \texttt{src/keys.rs}, where
-\texttt{DiversifiedTransmissionKey} is derived as
+to accommodate it (\texttt{DiversifiedTransmissionKey} is derived as
 \(\mathsf{pk_d} = [\mathsf{ivk}]\,g_{d}\)); the \emph{Ironwood
 Guide} develops the key hierarchy (\S``Viewing keys'') and address
 encoding (\S``Diversified addresses'') behind these bases. The
@@ -7778,8 +7744,7 @@ sender runs Construction~\ref{keyagreement:def:hpke}
 over that base, with one deployed refinement: the ephemeral scalar
 \(\mathsf{esk}\) is not sampled directly but derived by
 \(\mathsf{PRF}^{\mathsf{expand}}\) (Remark~\ref{prf:rem:blake2})
-from the note's random seed (ZIP~212; \texttt{orchard} crate,
-\texttt{src/note.rs}, where \texttt{RandomSeed::esk\_inner} applies
+from the note's random seed (ZIP~212; \texttt{RandomSeed::esk\_inner} applies
 \texttt{PrfExpand::ORCHARD\_ESK}), so that the uniform-ephemeral
 hypothesis of Theorem~\ref{keyagreement:thm:hpke-secure} is met
 through the PRF's pseudorandomness and the recipient can later
@@ -7799,12 +7764,12 @@ ciphertext to the transaction. The nonce is fixed to zero and the
 associated data is empty, safe because each \(K\) keys exactly one
 encryption (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#saplingandorchardencrypt}{\S``Encryption (Sapling and
-Orchard)''}; the \texttt{zcash\_note\_encryption} crate,
-\texttt{src/lib.rs}: \texttt{encrypt\_note\_plaintext}, which chains
+Orchard)''}; the \texttt{zcash\_note\_encryption} crate's
+\texttt{encrypt\_note\_plaintext}, which chains
 \texttt{ka\_agree\_enc}, \texttt{kdf}, and
 \texttt{ChaCha20Poly1305} with the zero nonce; the Orchard
-instantiation of the \texttt{Domain} trait is
-\texttt{orchard} crate, \texttt{src/note\_encryption.rs}).
+instantiation of the \texttt{Domain} trait is in the
+\texttt{orchard} crate).
 
 Chain scanners see \((\mathsf{epk}, c)\) in every shielded output,
 but lacking \(\mathsf{ivk}\) they learn nothing
@@ -8644,7 +8609,7 @@ line for line (protocol specification \href{https://zips.z.cash/protocol/protoco
 uniform bytes, and both hashes are the function
 \(\mathsf{H}^{\circledast}\): BLAKE2b-512 personalised with
 \texttt{Zcash\_RedPallasH}, its \(64\)-byte output reduced to
-\(\Fq\) by wide reduction (\texttt{src/hash.rs}, \texttt{HStar})---
+\(\Fq\) by wide reduction---
 the expand-then-reduce discipline of
 Construction~\ref{hash:con:expandreduce}, with the \(512\)-bit width
 making the modular bias negligible. The nonce hash absorbs
@@ -8653,8 +8618,7 @@ making the modular bias negligible. The nonce hash absorbs
 
 Orchard instantiates RedDSA \emph{twice}, both times as
 \emph{RedPallas}---RedDSA over the Pallas curve---and the two
-instantiations differ \emph{only} in the base point
-(\texttt{reddsa} crate, \texttt{src/orchard.rs}):
+instantiations differ \emph{only} in the base point:
 \begin{itemize}
 \item the \emph{spend authorisation} base point, derived by hashing
   to the curve with domain \texttt{z.cash:\allowbreak Orchard} and input
@@ -8663,18 +8627,13 @@ instantiations differ \emph{only} in the base point
 \item the \emph{value-commitment randomness} base point, derived
   with domain \texttt{z.cash:Orchard-cv} and input \texttt{r}, for
   the binding signature of \S\ref{signatures:subsec:binding}. This
-  is byte-for-byte the randomness base of Orchard's value commitment
-  (\texttt{orchard} crate, \texttt{src/value.rs},
-  \texttt{ValueCommitment::\allowbreak derive}, with the domain
-  strings in \texttt{src/constants/\allowbreak fixed\_bases.rs})---
+  is byte-for-byte the randomness base of Orchard's value commitment---
   an identity that \S\ref{signatures:subsec:binding} shows is the
   entire design.
 \end{itemize}
 The curve varies only across protocol generations: Sapling's
-\emph{RedJubjub} is the same scheme over the Jubjub curve
-(\texttt{reddsa} crate, \texttt{src/lib.rs}, the \texttt{Sealed}
-impls for \texttt{sapling::\allowbreak SpendAuth} and
-\texttt{sapling::\allowbreak Binding}); the curve, its two base
+\emph{RedJubjub} is the same scheme over the Jubjub curve;
+the curve, its two base
 points and the \(\mathsf{H}^{\circledast}\) personalisation
 (\texttt{Zcash\_RedJubjubH} against \texttt{Zcash\_RedPallasH}) are
 all that distinguish the two.
@@ -8705,12 +8664,7 @@ rk := X + [\alpha]P \in \G .
 
 Orchard publishes a fresh \(rk\) per spend, signs with the shifted
 secret key \(rsk\), and proves in zero knowledge that \(rk\) is a
-valid re-randomisation of an authorised public key
-(\texttt{orchard} crate, \texttt{src/keys.rs},
-\texttt{SpendAuthorizingKey::\allowbreak randomize} and
-\texttt{SpendValidatingKey::\allowbreak randomize}, delegating to
-\texttt{reddsa}'s \texttt{src/signing\_key.rs} and
-\texttt{src/verification\_key.rs}).
+valid re-randomisation of an authorised public key.
 
 \begin{proposition}[Re-randomisation consistency]
 \label{signatures:prop:rerand-consistent}
@@ -8770,8 +8724,7 @@ computational assumption---but its \emph{precondition} matters:
 \(\alpha\) must be sampled uniformly and freshly per use, and must
 be kept secret. In Orchard the transaction builder samples
 \(\alpha \xleftarrow{\$} \Fq\) afresh for each spend
-(\texttt{orchard} crate, \texttt{src/builder.rs},
-\texttt{SpendInfo::\allowbreak build}) and reveals it only to the
+and reveals it only to the
 proving circuit and the signer.
 
 \begin{remark}[Scope of unlinkability]
@@ -8786,8 +8739,7 @@ spends one note and creates one) while proving, inside the Halo~2
 circuit, knowledge of a witness for \(rk = X + [\alpha]P\) with
 \(X\) a public key whose holder is authorised to spend the note
 (Orchard's \emph{spend validating key})---the circuit constrains
-\(rk\) as a public input (\texttt{orchard} crate,
-\texttt{src/circuit.rs})---and the network
+\(rk\) as a public input---and the network
 verifies the spend authorisation signature against the public
 \(rk\). Signing under \(rk\) requires \(rsk = x + \alpha\), that is,
 knowledge of \emph{both} \(x\) and \(\alpha\); only the legitimate
@@ -8988,7 +8940,7 @@ public value into the verification key---the \texttt{orchard}
 crate's \texttt{Bundle::\allowbreak binding\_validating\_key}
 subtracts a commitment to \(v^{\mathrm{bal}}\) with zero blinding
 from the sum of the Actions' \(\mathrm{cv}^{\mathrm{net}}\)
-(\texttt{src/bundle.rs}; protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardbalance}{\S~4.14}). The
+(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#orchardbalance}{\S~4.14}). The
 argument of Theorem~\ref{signatures:thm:bindingpok} applies verbatim
 to the folded key and forces
 \(\Delta_v \equiv v^{\mathrm{bal}} \pmod q\); the balancing value is
@@ -9108,9 +9060,7 @@ specification \href{https://zips.z.cash/protocol/protocol.pdf\#abstractsig}{\S~4
   \href{https://zips.z.cash/protocol/protocol.pdf\#sighash}{\S~4.10} (ZIP~244 for version-5 transactions), so the sighash
   algorithm plays the role of the hash in
   Theorem~\ref{signatures:thm:hashandsign}. Signer and verifier both
-  feed it in as a digest (\texttt{zcash\_transparent} crate,
-  \texttt{src/builder.rs}; \texttt{zcash\_script} crate,
-  \texttt{src/opcode/mod.rs}).
+  feed it in as a digest.
 \item \emph{DER encoding and the sighash-type byte.} On the wire a
   signature is the DER encoding of \((r, s)\)---an ASN.1
   \texttt{SEQUENCE} of two minimally encoded
@@ -9118,15 +9068,11 @@ specification \href{https://zips.z.cash/protocol/protocol.pdf\#abstractsig}{\S~4
   \emph{sighash type}, selecting which parts of the transaction the
   sighash commits to (\(\mathsf{SIGHASH\_ALL}\) for every signature
   the transaction builder emits; a signer working from a partially
-  created transaction, \texttt{src/pczt/\allowbreak signer.rs},
+  created transaction
   honours whichever valid type the input records). The signer
-  appends the byte
-  (\texttt{zcash\_transparent} crate, \texttt{src/builder.rs},
-  \texttt{construct\_script\_sig}); the verifier splits it off and
+  appends the byte; the verifier splits it off and
   enforces strict DER unconditionally, the BIP-66 rule, so a
-  malformed encoding fails script evaluation
-  (\texttt{zcash\_script} crate, \texttt{src/signature.rs},
-  \texttt{Decoded::\allowbreak from\_bytes}). The public key travels
+  malformed encoding fails script evaluation. The public key travels
   as its \(33\)-byte compressed encoding, the bytes that
   \(\mathsf{hash160}\) commits to (\S\ref{hash:subsec:transparent}).
 \item \emph{Low-\(s\) normalisation.} If \((r, s)\) verifies then so
@@ -9135,9 +9081,7 @@ specification \href{https://zips.z.cash/protocol/protocol.pdf\#abstractsig}{\S~4
   normalisation takes the representative \(s \le (n-1)/2\) (BIP-62),
   which the deployed signer always emits (\texttt{secp256k1} crate,
   \texttt{sign\_ecdsa}, whose libsecp256k1 backend documents the
-  created signature as always in lower-\(s\) form; called from the
-  \texttt{zcash\_transparent} crate, \texttt{src/builder.rs} and
-  \texttt{src/pczt/\allowbreak signer.rs}) and which script
+  created signature as always in lower-\(s\) form) and which script
   evaluation checks only under the \texttt{LowS} flag, one the
   consensus check
   does not set (\texttt{zcash\_script} crate,
@@ -10434,10 +10378,8 @@ elements against another---compared with one pairing precomputed
 once per circuit. Deployed Zcash uses Groth16
 over BLS12-381 for every Sapling spend and output proof (protocol
 specification \href{https://zips.z.cash/protocol/protocol.pdf\#groth}{\S~5.4.10.2}; proofs produced and verified by the
-\texttt{bellman} crate's \texttt{groth16} module,
-\texttt{src/groth16/\allowbreak prover.rs} and
-\texttt{src/groth16/\allowbreak verifier.rs}, consumed through the
-\texttt{zcash\_proofs} crate, \texttt{src/prover.rs}). PLONK, the
+\texttt{bellman} crate's \texttt{groth16} module, consumed through the
+\texttt{zcash\_proofs} crate). PLONK, the
 third generation, is the recipe of Theorem~\ref{zk:thm:recipe}
 below with the KZG scheme of Construction~\ref{commitments:def:kzg}
 as its commitment: the gate-and-permutation arithmetisation Halo~2
@@ -10649,25 +10591,16 @@ and each ingredient can be pointed to in the deployed source. The
 Poly-IOP is a PLONKish arithmetisation---custom gates declared as
 polynomial expressions, lookup arguments asserting that witness
 values lie in a declared table, and a permutation argument enforcing
-copy constraints (\texttt{halo2\_proofs} crate,
-\texttt{src/plonk/circuit.rs} for the gate expressions,
-\texttt{src/plonk/lookup.rs} and
-\texttt{src/plonk/\allowbreak permutation.rs} for the two argument
-types). The polynomial commitment is the inner-product-argument
+copy constraints. The polynomial commitment is the inner-product-argument
 scheme over a single elliptic curve, \emph{transparent}---the
 generators are derived by hashing to the curve from the fixed
 domain string \texttt{Halo2-Parameters}, so the setup holds no
-trapdoor---with logarithmic-size openings
-(\texttt{src/poly/commitment.rs}, \texttt{Params::new} for the
-parameter derivation; \texttt{src/poly/commitment/prover.rs} for
-the folding rounds of the opening argument). Fiat--Shamir over a
+trapdoor---with logarithmic-size openings. Fiat--Shamir over a
 concrete hash makes the argument non-interactive: the transcript is
 a running BLAKE2b state into which every prover message is
 absorbed, domain-separated by type, and out of which every
 challenge is squeezed---the entire-prefix discipline of
-Definition~\ref{zk:def:fs} enforced by construction
-(\texttt{src/transcript.rs}, \texttt{Blake2bWrite} and
-\texttt{Blake2bRead}).
+Definition~\ref{zk:def:fs} enforced by construction.
 
 The linear cost of each IPA opening check
 (Proposition~\ref{commitments:prop:ipa-props}) makes the deployed
@@ -10686,10 +10619,7 @@ not use recursion: each Orchard proof is verified directly, and
 what the deployed verifier takes from the Halo idea is the deferral
 alone, exploited for \emph{batching}---many proofs' deferred final
 checks collapsing into one multiscalar multiplication
-(\texttt{src/poly/commitment/verifier.rs}, the
-\texttt{Accumulator} and \texttt{Guard} types;
-\texttt{src/plonk/verifier/batch.rs}, \texttt{BatchVerifier};
-consumed for Orchard bundles as described in
+(consumed for Orchard bundles as described in
 Remark~\ref{commitments:rem:kzg-vs-ipa}). These claims rest on model and
 composition hypotheses beyond the generic recipe
 (Remark~\ref{zk:rem:rom-caveats}).
@@ -11346,18 +11276,15 @@ internal call prepends the \(10\)-bit encoded layer index to the two
 the fixed-length-per-personalisation regime in
 which the deployed Sinsemilla hash is collision resistant
 (\S\ref{commitments:subsec:sinsemilla})---with \emph{all} layers
-sharing one Sinsemilla instance (\texttt{orchard} crate,
-\texttt{src/tree.rs}, \texttt{MerkleHashOrchard::\allowbreak
+sharing one Sinsemilla instance (\texttt{MerkleHashOrchard::\allowbreak
 combine}, prepending \texttt{i2lebsp\_k(level)} to two
 \texttt{L\_ORCHARD\_MERKLE} \(= 255\)-bit child encodings;
-constants in \texttt{src/constants/\allowbreak sinsemilla.rs};
 protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#merklecrh}{\S~5.4.1.3}). Separation between
 \emph{distinct} Sinsemilla instances comes from the personalisation
 string---here \texttt{z.cash:\allowbreak Orchard-MerkleCRH}---fed to
 hash-to-curve to derive the instance-specific base point \(Q\), while
 the generator table \(S\) is shared across all instances
-(\texttt{sinsemilla} crate, \texttt{src/lib.rs}:
-\texttt{HashDomain::\allowbreak new} derives \(Q\) from the
+(\texttt{HashDomain::\allowbreak new} derives \(Q\) from the
 personalisation via the \texttt{z.cash:\allowbreak SinsemillaQ}
 hash-to-curve domain; the table derives from the fixed
 \texttt{z.cash:\allowbreak SinsemillaS}). Sinsemilla is collision
@@ -11526,10 +11453,9 @@ Descriptions').
 Per-proof soundness is then the fixed-root soundness theorem, once
 per anchor. The frontier is likewise the deployed representation of
 the growing tree (\texttt{incrementalmerkletree} crate,
-\texttt{src/frontier.rs}, types \texttt{Frontier} and
+types \texttt{Frontier} and
 \texttt{NonEmptyFrontier}; the empty-subtree labels are the
-\texttt{EMPTY\_ROOTS} table of \texttt{orchard}'s
-\texttt{src/tree.rs}).
+\texttt{EMPTY\_ROOTS} table of \texttt{orchard}).
 
 \begin{remark}[Why append-only, and what it costs]
 \label{merkle:rem-append-only}
@@ -11768,11 +11694,7 @@ constant-size proofs with fast verification, at the price of a
 trusted setup. Halo~2's IPA-based proofs grow logarithmically in
 size, but their verification is \emph{linear} in the circuit size;
 the deployment amortises it by batch-verifying many proofs in a
-single multiexponentiation (\texttt{halo2\_proofs} crate,
-\texttt{src/plonk/verifier/\allowbreak batch.rs},
-\texttt{BatchVerifier}; consumed through the \texttt{orchard}
-crate's \texttt{src/bundle/\allowbreak batch.rs},
-\texttt{BatchValidator}). The accumulation technique of the Halo
+single multiexponentiation. The accumulation technique of the Halo
 lineage---which would make per-proof verifier work sublinear by
 deferring the linear check across recursively composed proofs---is
 not deployed: each Orchard proof is verified, in batch, directly.
@@ -11798,11 +11720,7 @@ Remark~\ref{merkle:rem-poseidon}. Strictly, the leaf is the extracted
 \]
 a \(255\)-bit Pallas base-field element (\emph{Math Guide},
 \S``Pallas and Vesta assembled'') matching the child encodings of
-Remark~\ref{merkle:rem-poseidon} (\texttt{orchard} crate,
-\texttt{src/note/\allowbreak commitment.rs},
-\texttt{ExtractedNoteCommitment}, via \texttt{spec::extract\_p};
-appended through \texttt{src/tree.rs},
-\texttt{MerkleHashOrchard::\allowbreak from\_cmx}). The protocol
+Remark~\ref{merkle:rem-poseidon}. The protocol
 periodically publishes the current root---the \emph{anchor}---on
 chain, one per block.
 
@@ -11810,7 +11728,7 @@ To spend a note, its owner:
 \begin{enumerate}
 \item locates the leaf \(\mathsf{cm}_x\) in the public tree and reads
   off its authentication path \(\pi\) and position \(i\)
-  (\texttt{src/tree.rs}, \texttt{MerklePath::\allowbreak root}
+  (\texttt{MerklePath::\allowbreak root}
   recomputes the anchor from exactly these data);
 \item chooses a recent anchor \(\mathit{rt} = \mathsf{root}_m\) whose
   tree already contains the leaf---any recorded historical anchor
@@ -11825,11 +11743,9 @@ To spend a note, its owner:
   key on \(\mathsf{PRF}^{\mathsf{nfOrchard}}\) of
   \S\ref{hash:subsec:poseidon} by a construction of the
   \emph{Ironwood Guide}, \S``The nullifier, and the loop back to
-  minting'' (\texttt{orchard} crate,
-  \texttt{src/circuit.rs}: the recomputed root is constrained to
+  minting'' (the recomputed root is constrained to
   equal the public anchor, and the instance carries the anchor and
-  the nullifier; \texttt{src/note/\allowbreak nullifier.rs},
-  \texttt{Nullifier::\allowbreak derive}; protocol specification
+  the nullifier; protocol specification
   \href{https://zips.z.cash/protocol/protocol.pdf\#merklepath}{\S~4.9}, `Merkle Path Validity', and \href{https://zips.z.cash/protocol/protocol.pdf\#actionstatement}{\S~4.18.4}, `Action
   Statement');
 \item publishes the proof and the nullifier---but neither

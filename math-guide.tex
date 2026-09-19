@@ -8302,10 +8302,7 @@ where \(p\) and \(q\) are the two \(255\)-bit primes
 These are the primes that \cref{finitefields:rem:twoadicity} and
 \cref{numbertheory:rem:pasta-3mod4} handled as black boxes; here they
 finally acquire their curves. The constants are the deployed ones: the
-primes are the \texttt{MODULUS} values of the \texttt{pasta\_curves}
-crate, the
-curve equations \(y^2 = x^3 + 5\) are defined in
-\texttt{src/curves.rs}, and both are specified in
+primes and the curve equations \(y^2 = x^3 + 5\) are specified in
 \href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6} (``Pallas
 and Vesta'') of the Zcash protocol specification. The curve \(E_p\),
 defined over \(\Fp\),
@@ -8705,13 +8702,10 @@ the cost of more field operations per addition;
 \cref{ellipticcurves:con-complete} exhibits the deployed set and
 \cref{ellipticcurves:prop-complete} proves it complete. The distinction
 is load-bearing in later volumes. Halo~2's elliptic-curve gadgets provide
-complete addition (the \texttt{halo2\_gadgets} crate,
-\texttt{src/ecc/chip/add.rs}) and use incomplete gates only where their
+complete addition and use incomplete gates only where their
 callers justify the exclusions; the
 Sinsemilla hash of Orchard deliberately uses the \emph{incomplete}
-formulas nondeterministically
-(\texttt{halo2\_gadgets},
-\texttt{src/sinsemilla/chip/hash\_to\_point.rs})---an exceptional case
+formulas nondeterministically---an exceptional case
 does not violate the
 constraints but leaves the affected output unconstrained (the prover
 may choose the intermediate slope freely), which the specification
@@ -9062,8 +9056,7 @@ of affine coordinates---compute \(Z^{-1}\) once, then the needed powers
 of it by multiplication. Jacobian coordinates usually yield the faster
 doubling and are the standard choice in cryptographic libraries,
 including the implementation Halo~2 uses: the \texttt{pasta\_curves}
-crate carries its curve points in Jacobian coordinates
-(\texttt{src/curves.rs}). For curves
+crate carries its curve points in Jacobian coordinates. For curves
 \(y^2 = x^3 + b\) with \(a = 0\), the term \(a Z^4\) in the Jacobian
 doubling formulas vanishes, making doubling especially cheap---one
 reason the Pasta curves take \(a = 0\).

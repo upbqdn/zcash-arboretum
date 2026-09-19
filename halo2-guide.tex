@@ -614,7 +614,7 @@ circuit correction and the post-NU6.3 circuit version.
 \paragraph{Shape first, data second.}
 A circuit, to \texttt{halo2\_proofs}, is a type implementing the
 \texttt{Circuit} trait, whose two principal methods split the construction
-into phases (\texttt{halo2\_proofs}, \texttt{plonk/circuit.rs}). The static
+into phases. The static
 method \texttt{configure} receives a mutable \texttt{ConstraintSystem} and
 declares the \emph{shape}: it mints fixed, advice, and instance columns,
 allocates selectors, registers gates and lookups, and marks columns as
@@ -629,8 +629,8 @@ prover's witness. (The verifying-key and proving-key generation routines also ru
 against a witness-free backend that records fixed-cell values, selector
 activations, and copy constraints while ignoring advice; the prover runs the
 same code against a backend that records only advice. One synthesis
-procedure, two observers: \texttt{Assembly} in \texttt{plonk/keygen.rs} and
-\texttt{WitnessCollection} in \texttt{plonk/prover.rs}.)
+procedure, two observers: \texttt{Assembly} and
+\texttt{WitnessCollection}.)
 
 \paragraph{Gates are queried identities.}
 A call \texttt{meta.create\_gate(name, closure)} defines one custom gate.
@@ -638,14 +638,13 @@ Inside the closure, each \texttt{query\_advice(column, Rotation(r))} --- and
 its fixed and instance analogues --- yields a symbolic handle to ``the value
 of this column $r$ rows below the gate's own row'': the offsets $\omega^r X$
 of Definition~\ref{def:plonkish}, realised at evaluation time by querying
-the column polynomial at $\omega^r x$ (\texttt{halo2\_proofs},
-\texttt{poly/domain.rs}, \texttt{rotate\_omega}). The closure combines the
+the column polynomial at $\omega^r x$. The closure combines the
 handles by field arithmetic into an expression tree
 (\texttt{Expression}: constants, selector nodes, queried cells, negations,
 sums, products, scalings), one tree per constraint, and the helper
 \texttt{Constraints::with\_selector} multiplies every constraint $c$ by the
-gate's selector expression, storing $q \cdot c$
-(\texttt{plonk/circuit.rs}). This helper is the mechanical origin of the
+gate's selector expression, storing $q \cdot c$.
+This helper is the mechanical origin of the
 ``selector times polynomial'' shape of every deployed gate but one --- the
 generalisation, gate by gate, of the fixed vanilla-PLONK equation of
 \S\ref{sec:plonkish}. (The exception, the ECC chip's witness-point gate,
@@ -659,34 +658,27 @@ column, off everywhere by default, enabled row by row during synthesis. At
 key generation, \texttt{compress\_selectors} packs the selectors into
 genuine fixed columns --- several to a column wherever the circuit's degree
 bound leaves headroom --- and rewrites every selector node into a
-fixed-column expression (\texttt{plonk/circuit.rs},
-\texttt{plonk/keygen.rs}). The deployed Action circuit declares $56$
+fixed-column expression. The deployed Action circuit declares $56$
 selectors, whose compressed columns are among the $29$ fixed columns pinned
-in its verifying key; the pinned count is the post-compression one
-(\texttt{orchard}~0.15.3,
-\texttt{src/circuit\_data/\allowbreak circuit\_description\_fixed} and
-\texttt{circuit\_description\_post\_nu6\_3}).
+in its verifying key; the pinned count is the post-compression one.
 
 \paragraph{Regions, the layouter, and wiring.}
 Data enters at synthesis through a \texttt{Layouter}. A chip requests a
 \emph{region} --- a small rectangular window of cells addressed by relative
 offsets --- fills it cell by cell, and leaves the choice of the region's
-absolute starting row to the \emph{floor planner}
-(\texttt{halo2\_proofs}, \texttt{circuit.rs}). Values flow between regions
+absolute starting row to the \emph{floor planner}. Values flow between regions
 not by position but by \emph{copy constraints}: the call
 \texttt{enable\_equality(column)} enrols a column in the single global
 permutation of \S\ref{sec:perm}, and \texttt{constrain\_equal} --- or the
 assign-and-constrain combination \texttt{copy\_advice} --- merges the two
 cells' cycles in that permutation
-(\texttt{plonk/\allowbreak permutation/\allowbreak keygen.rs}; the halo2 book's
+(the halo2 book's
 \emph{Permutation argument} chapter documents the cycle-merging). Public
 inputs bind the same way, an advice cell copy-constrained to an instance
 cell (\S\ref{sec:instance}). The deployed circuit uses the measuring
 \texttt{V1} floor planner, which records every region's shape in a
 witness-free pass, sorts the regions by advice area, and first-fits the
-largest ones first (\texttt{circuit/\allowbreak
-floor\_planner/\allowbreak v1.rs}; the sort and first-fit in
-\texttt{v1/\allowbreak strategy.rs}); the
+largest ones first; the
 \texttt{orchard} crate additionally pins the planner's sort to a vendored
 Rust~1.56.1 \texttt{pdqsort} (feature
 \texttt{floor-planner-v1-legacy-pdqsort}) so that the layout --- and with it
@@ -722,7 +714,7 @@ well inside the deployed circuit's constraint-degree bound of nine (below).
 The \emph{complete}-addition companion gate, which branches over the
 identity, doubling, and inverse cases that this gate excludes, needs twelve
 constraint polynomials of degree up to six and five auxiliary witness cells
-per invocation (\texttt{ecc/chip/add.rs}); incompleteness is a bargain
+per invocation; incompleteness is a bargain
 wherever its promises can be kept.
 
 Synthesis for one invocation (\texttt{assign\_region}, same file) makes the
@@ -740,10 +732,8 @@ slope $\lambda$ is never written to any cell: the prover uses it to compute
 the answer, and the committed
 identities~\eqref{eq:add-inc-xr}--\eqref{eq:add-inc-yr} verify the answer
 without it. The division is not even performed here --- coordinates are
-carried as deferred fractions (\texttt{halo2\_proofs},
-\texttt{plonk/assigned.rs}), and every denominator falls to a single batch
-inversion when synthesis ends (\texttt{plonk/prover.rs},
-\texttt{batch\_invert\_assigned}). The output cells are returned as a new
+carried as deferred fractions, and every denominator falls to a single batch
+inversion when synthesis ends. The output cells are returned as a new
 non-identity point with no further on-curve check --- sound because, once
 the call site guarantees distinct $x$-coordinates on non-identity inputs,
 the two identities force $R = P + Q$, a non-identity curve point.
@@ -759,8 +749,7 @@ $i$     & $x_p$ & $y_p$ & $x_q$ & $y_q$ & $1$ \\
 $i+1$   & --    & --    & $x_r$ & $y_r$ & $0$ \\
 \bottomrule
 \end{tabular}
-\caption{The incomplete-addition region: two rows by four advice columns
-(\texttt{halo2\_gadgets}, \texttt{ecc/chip/add\_incomplete.rs}). The four
+\caption{The incomplete-addition region: two rows by four advice columns. The four
 input cells $x_p, y_p, x_q, y_q$ on the selector row $i$ are
 copy-constrained to the cells they came from; the result cells $x_r, y_r$
 occupy the \texttt{x\_qr}, \texttt{y\_qr} columns of row $i+1$, where the
@@ -783,9 +772,7 @@ different places. Non-identity travels with the type: the gate's inputs
 are \texttt{NonIdentityEccPoint} values. A fresh point entering the chip
 is witnessed under the gate
 \[
-q_{\text{point-non-id}} \cdot \bigl( y^2 - x^3 - 5 \bigr) = 0
-\qquad
-(\texttt{halo2\_gadgets}, \texttt{ecc/chip/witness\_point.rs}),
+q_{\text{point-non-id}} \cdot \bigl( y^2 - x^3 - 5 \bigr) = 0,
 \]
 which $(0,0)$ cannot satisfy because $5$ is not a square and $-5$ is not a
 cube in $\F_{p_{\Pallas}}$ (the halo2 book's \emph{Addition} chapter) ---
@@ -814,8 +801,7 @@ Prover-side, \texttt{assign\_region} rejects a \emph{known} bad witness
 with an error --- a developer diagnostic, not a constraint. (The
 circuit's other incomplete additions --- the variable-base
 ladder's fused double-and-add rounds and Sinsemilla's two per chunk --- are separate gates
-built on the same discipline; \texttt{ecc/chip/mul/\allowbreak incomplete.rs},
-\texttt{sinsemilla/chip.rs}.)
+built on the same discipline.)
 
 \paragraph{Non-algebraic relations become lookups.}
 A gate can assert only polynomial identities. ``This value has ten bits''
@@ -823,12 +809,10 @@ and ``this point is the $j$-th Sinsemilla generator'' are not identities but
 set memberships, and the circuit declares them as lookups: a call
 \texttt{meta.lookup(closure)} returns pairs of an input \emph{expression}
 and a table column, and pushes one lookup argument onto the constraint
-system (\texttt{halo2\_proofs}, \texttt{plonk/circuit.rs}). Each
+system. Each
 declaration is one instance of the argument of \S\ref{sec:lookup}, the
 input expressions playing $A_0, \dots, A_{m-1}$ and the table columns
-$S_0, \dots, S_{m-1}$. The deployed circuit carries exactly three
-(\texttt{orchard}~0.15.3, \texttt{src/circuit\_data/\allowbreak
-circuit\_description\_post\_nu6\_3}): one shared
+$S_0, \dots, S_{m-1}$. The deployed circuit carries exactly three: one shared
 range-check declaration, and the Sinsemilla generator declaration twice ---
 once per Sinsemilla chip instance, each on its own half of the ten advice
 columns.
@@ -842,14 +826,10 @@ S[j] :=
 \GroupHash\bigl(\texttt{"z.cash:SinsemillaS"},\, \mathrm{LE}_{32}(j)\bigr),
 \]
 in three table columns $(t_{\mathrm{idx}}, t_x, t_y)$; the generators ship
-as precomputed constants that the crate's own tests re-derive from the
-hash (\texttt{sinsemilla} crate, \texttt{src/sinsemilla\_s.rs};
-\texttt{halo2\_gadgets}, \texttt{utilities/\allowbreak
-lookup\_range\_check.rs} for the
-loading). After the assignment, the layouter fills every remaining usable
-row of each table column with that column's row-$0$ value
-(\texttt{halo2\_proofs}, \texttt{circuit/\allowbreak
-table\_layouter.rs}); a defaulted
+as precomputed constants that the \texttt{sinsemilla} crate's own tests
+re-derive from the hash. After the assignment, the layouter fills every
+remaining usable row of each table column with that column's row-$0$ value;
+a defaulted
 input row therefore still matches a genuine table row, and the type
 \texttt{TableColumn} hides its underlying fixed column exactly so that no
 chip can bypass this default-filling.
@@ -878,9 +858,7 @@ is looked up (checks of fewer than ten bits add a small bit-shift gate in
 the same file). Every range check in the Action circuit funnels through
 this one declaration, on a single advice column.
 
-The Sinsemilla declaration is the three-column instance
-(\texttt{halo2\_gadgets},
-\texttt{sinsemilla/\allowbreak chip/\allowbreak generator\_table.rs}):
+The Sinsemilla declaration is the three-column instance:
 \begin{equation}
 \label{eq:lookup-sinsemilla}
 \Bigl(\;
@@ -910,8 +888,7 @@ assertion of \S\ref{sec:lookup} holds on all rows. One API restriction is
 visible here: the selectors gating lookup inputs
 ($q_{\mathrm{lookup}}$, $q_{\mathrm{running}}$, $q_{S1}$) must be declared
 as \texttt{complex\_selector}s --- simple selectors are reserved for gates,
-where the key-generation compression is licensed to rewrite them
-(\texttt{halo2\_proofs}, \texttt{plonk/circuit.rs}).
+where the key-generation compression is licensed to rewrite them.
 
 \paragraph{The handoff.}
 When \texttt{synthesize} returns, the construction has produced nothing
@@ -921,18 +898,15 @@ resolved by one batch inversion and the reserved trailing rows filled with
 blinding randomness (\S\ref{sec:halo-zk}, Remark~\ref{rem:active-rows}).
 The prover commits to
 each advice column directly in the Lagrange basis
-(\texttt{halo2\_proofs}, \texttt{poly/commitment.rs},
-\texttt{commit\_lagrange} --- the same group element as committing the
+(\texttt{commit\_lagrange} --- the same group element as committing the
 interpolated coefficients, so the commitment even precedes interpolation)
 and then interpolates each column over $H$ by an inverse FFT
-(\texttt{poly/domain.rs}, \texttt{lagrange\_to\_coeff}): these are
+(\texttt{lagrange\_to\_coeff}): these are
 precisely the column polynomials of \S\ref{sec:plonkish}. Each gate's
 stored expression tree is then evaluated with the committed column
 polynomials substituted for the queried cells --- a query at rotation $r$
 reading the polynomial at $\omega^r X$ --- and the results are folded with
-powers of the challenge $y$ and divided by $Z_H(X) = X^n - 1$
-(\texttt{plonk/prover.rs}; \texttt{plonk/vanishing/prover.rs};
-\texttt{divide\_by\_vanishing\_poly} in \texttt{poly/domain.rs}). The gate
+powers of the challenge $y$ and divided by $Z_H(X) = X^n - 1$. The gate
 identities declared in \texttt{configure} have become the quotient $h(X)$
 of Phase~4 (\S\ref{sec:halo2-full}). This is the point where the worked
 example of \S\ref{sec:h2i-polys} resumes: it interpolates a four-row trace
@@ -948,10 +922,7 @@ instance column, and twenty-nine fixed columns, with a constraint-degree
 bound of nine across
 its gates and permutation and lookup expressions --- so the quotient splits
 into $9 - 1 = 8$ chunks, and the prover's FFTs run over an extended domain
-of size $2^{14} = 8 \cdot 2^{11}$ (\texttt{orchard}~0.15.3,
-\texttt{src/circuit\_data/\allowbreak circuit\_description\_post\_nu6\_3};
-\texttt{halo2\_proofs},
-\texttt{poly/domain.rs}). The next two subsections supply the arguments
+of size $2^{14} = 8 \cdot 2^{11}$. The next two subsections supply the arguments
 this construction leans on: the permutation argument behind every copy
 constraint, and the lookup argument behind
 declarations~\eqref{eq:lookup-range}
@@ -996,8 +967,7 @@ In the deployed degree-bounded construction, participating columns are split
 into chunks of at most $d-2$ columns, each with its own running product;
 boundary constraints link successive products. Orchard's fifteen equality columns (ten advice, one instance, and four fixed)
 at $d=9$ therefore use three products, not one. This is implemented in
-\texttt{halo2\_proofs}~0.3.2,
-\texttt{plonk/permutation/prover.rs} (\texttt{chunk\_len = cs\_degree - 2});
+\texttt{halo2\_proofs}~0.3.2 (\texttt{chunk\_len = cs\_degree - 2});
 the pinned Orchard circuit description lists the participating columns.
 
 \subsection{The lookup argument}\label{sec:lookup}
@@ -1442,8 +1412,7 @@ The prover's FFTs correspondingly run over an \emph{extended} domain
 whose size accommodates the \emph{quotient degree}, not necessarily
 $\deg C$. It evaluates the constraint expression pointwise on a coset disjoint
 from $H$, divides there by $Z_H$, then interpolates the quotient. For $d=9$,
-$8n$ points suffice for $h$ even though $C$ can have degree near $9n$
-(\texttt{poly/domain.rs}, \texttt{EvaluationDomain::new}).
+$8n$ points suffice for $h$ even though $C$ can have degree near $9n$.
 
 \paragraph{Phase 5 --- evaluation challenge $x$.}
 The verifier returns $x \in \F$. The prover evaluates every committed
