@@ -123,6 +123,7 @@ with tempfile.TemporaryDirectory() as tmp:
     concordance = (out / "concordance.html").read_text()
     assert landing.count("showImages: false") == 1
     assert landing.count(sitegen.SEARCH_OPTIONS) == 1
+    assert "sort: { 'reading-order': 'asc' }" in landing
     assert "details.arb-search" not in landing
     assert "ZIP 316" in concordance
     assert "<table></table>" not in concordance
@@ -188,6 +189,7 @@ Volume summary.
         '<html><head><link rel="stylesheet" '
         'href="_site/math-guide/arboretum.css"></head>'
         '<body><main class="ltx_page_content">'
+        '<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">Contents</nav>'
         '<section id="SS1"><h2 class="ltx_title">A subsection</h2></section>'
         '<section id="SS2"><h2>Squared '
         '<math alttext="x^2"><msup><mi>x</mi><mn>2</mn></msup></math>'
@@ -203,6 +205,13 @@ Volume summary.
         '</p><p>Done.\n∎</p></div></main>'
         '<footer><div>Generated on today by '
         '<a class="ltx_LaTeXML_logo">LaTeXML</a></div></footer></body></html>')
+    reading_order = [page, page.parent / "S1.html", page.parent / "S2.html",
+                     page.parent / "S10.html", out / "crypto-guide" / "index.html",
+                     out / "crypto-guide" / "S1.html",
+                     out / "frost-guide" / "S1.html"]
+    for sibling in reversed(reading_order[1:]):
+        sibling.parent.mkdir(exist_ok=True)
+        sibling.write_text(page.read_text())
     complete_page = out / "complete" / "index.html"
     complete_page.parent.mkdir()  # A failed prior build may leave the directory.
     run = sitegen.subprocess.run
@@ -215,6 +224,7 @@ Volume summary.
         complete_page.write_text(
             '<html><head><link rel="stylesheet" href="../arboretum.css"></head>'
             '<body><main class="ltx_page_content">'
+            '<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">Contents</nav>'
             '<section id="SS1"><h2>A complete subsection</h2></section></main>'
             '<footer><div></div></footer></body></html>')
 
@@ -229,6 +239,11 @@ Volume summary.
     assert "search.open = !search.open" in html
     assert "search.querySelector('.pagefind-ui__search-input').focus()" in html
     assert html.count('data-pagefind-meta="volume:Math Guide"') == 1
+    assert '<a class="volname" href="./#arb-contents"' in html
+    assert html.count('id="arb-contents"') == 1
+    for index, sibling in enumerate(reading_order, 1):
+        assert sibling.read_text().count(
+            f'data-pagefind-sort="reading-order:{index}"') == 1, sibling
     assert '<section id="SS1"><h2 class="ltx_title" id="SS1-heading">' in html
     assert 'data-pagefind-meta="heading-SS2-heading:Squared x^(2)"' in html
     assert "if (!search.contains(e.target)) search.open = false" in html
@@ -237,6 +252,7 @@ Volume summary.
     assert "e.key === 'Escape' && search.open" in html
     assert '<body data-arb="vol">' in html
     assert html.count("window.MathJax") == 1
+    assert html.count(sitegen.TOC_SCRIPT) == 1
     assert 'href="../arboretum.css?v=' in html
     assert 'href="_site/math-guide/arboretum.css"' not in html
     assert 'font: \'mathjax-stix2\'' in html
@@ -260,6 +276,11 @@ Volume summary.
     assert 'The Complete Arboretum' in complete_html
     assert '<section id="SS1"><h2 id="SS1-heading">' in complete_html
     assert 'data-pagefind-meta="volume:' not in complete_html
+    assert 'data-pagefind-sort=' not in complete_html
+    assert complete_html.count(sitegen.TOC_SCRIPT) == 1
+    assert complete_html.count('id="arb-contents"') == 1
+    assert ('<a class="volname" href="./#arb-contents"\ntitle="Table of contents">'
+            'The Complete Arboretum</a>') in complete_html
     assert (out / "mathjax" / "tex-chtml.js").is_file()
     boldsymbol = out / "mathjax" / "input" / "tex" / "extensions" / "boldsymbol.js"
     assert 'checkVersion("[tex]/boldsymbol","4.1.1"' in boldsymbol.read_text()
@@ -269,6 +290,15 @@ Volume summary.
     sitegen.postprocess(out)
     assert page.read_text() == html
     assert complete_page.read_text() == complete_html
+    # Adding an earlier page updates existing sort keys without duplicates.
+    earlier = page.parent / "S0.html"
+    earlier.write_text(html)
+    sitegen.postprocess(out)
+    for index, sibling in enumerate(reading_order[1:], 3):
+        assert sibling.read_text().count(
+            f'data-pagefind-sort="reading-order:{index}"') == 1, sibling
+    earlier.unlink()
+    sitegen.postprocess(out)
 
     # Previously finished HTML needs heading anchors and metadata too, without
     # duplicating existing controls, theorem links or formatting.

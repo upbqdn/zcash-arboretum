@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search appearance, navigation, dismissal and scrolling regression.
+"""Search reading order, appearance, navigation and scrolling regression.
 
 Run: uv run --with playwright python site/tools/check_search.py BASE_URL [ENGINE] [STYLESHEET]
 ENGINE defaults to chromium; firefox and webkit require their browser binaries.
@@ -9,34 +9,36 @@ STYLESHEET optionally replaces arboretum.css without changing served HTML/data.
 
 import asyncio
 import json
+import re
 import sys
 import unicodedata
+from urllib.parse import urlsplit
 
 from playwright.async_api import async_playwright
+from sitegen import VOLUMES
 
 
 async def check_promoted_results(page, base):
     # Compare the native UI with its indexed matches, not a duplicated title
-    # heuristic. Intro-only results must retain their page URL and excerpt.
+    # heuristic. Intro matches retain their page URL, but use their own excerpt.
     comparisons = await page.locator("#search").evaluate("""async (root, url) => {
         const pagefind = await import(url);
-        const {results} = await pagefind.search('note');
+        const {results} = await pagefind.search('note', {sort: {'reading-order': 'asc'}});
         const cards = [...root.querySelectorAll('.pagefind-ui__result')];
         const plain = html => new DOMParser().parseFromString(html, 'text/html')
             .body.textContent.replace(/\\s+/g, ' ').trim();
         return Promise.all(cards.map(async (card, i) => {
             const data = await results[i].data();
-            const best = (data.sub_results || []).filter(match => match.anchor)
-                .reduce((best, match) => !best || match.locations.length > best.locations.length
-                    ? match : best, null);
+            const first = [...data.sub_results].sort(
+                (a, b) => a.locations[0] - b.locations[0])[0];
             const title = match => data.meta[`heading-${match.anchor?.id}`] || match.title;
             const link = card.querySelector('.pagefind-ui__result-inner > .pagefind-ui__result-title > a');
             const excerpt = card.querySelector('.pagefind-ui__result-inner > .pagefind-ui__result-excerpt');
-            return {href: link.href, expected: new URL(best ? best.url : data.url, url).href,
-                title: link.textContent, expectedTitle: best ? title(best) : data.meta.title,
-                excerpt: plain(excerpt.innerHTML), expectedExcerpt: plain(best ? best.excerpt : data.excerpt),
+            return {href: link.href, expected: new URL(first.anchor ? first.url : data.url, url).href,
+                title: link.textContent, expectedTitle: first.anchor ? title(first) : data.meta.title,
+                excerpt: plain(excerpt.innerHTML), expectedExcerpt: plain(first.excerpt),
                 badge: card.querySelector('[data-pagefind-ui-meta="volume"]')?.textContent.trim(),
-                expectedBadge: 'Volume: ' + data.meta.volume, anchored: !!best,
+                expectedBadge: 'Volume: ' + data.meta.volume, anchored: !!first.anchor,
                 internalBadges: [...card.querySelectorAll('[data-pagefind-ui-meta]')]
                     .filter(el => el.dataset.pagefindUiMeta.startsWith('heading-')).length,
                 nested: [...card.querySelectorAll('.pagefind-ui__result-nested a')].map(link => {
@@ -56,22 +58,79 @@ async def check_promoted_results(page, base):
         assert result["internalBadges"] == 0, result
         for nested in result["nested"]:
             assert nested["title"] == nested["expectedTitle"], nested
-    seed_titles = [result["title"] for result in comparisons if "The note seed:" in result["title"]]
+    # Find mathematical headings by their indexed metadata, not stale section IDs
+    # or their position on the first page of relevance-ranked results.
+    titles = await page.evaluate("""async url => {
+        const pagefind = await import(url);
+        const titles = async (term, volume) => {
+            const {results} = await pagefind.search(term);
+            const data = await Promise.all(results.map(result => result.data()));
+            return data.filter(result => result.url.includes('/' + volume + '/'))
+                .flatMap(result => Object.entries(result.meta)
+                    .filter(([key]) => key.startsWith('heading-')).map(([, title]) => title));
+        };
+        return {seed: await titles('note seed', 'ironwood-guide'),
+            field: await titles('group structure', 'math-guide')};
+    }""", f"{base}/pagefind/pagefind.js")
+    seed_titles = [title for title in titles["seed"] if "The note seed:" in title]
     assert seed_titles, comparisons
     assert all("0x03" in unicodedata.normalize("NFKC", title).replace("\u2062", "")
                for title in seed_titles), seed_titles
     # A real indexed subscript must keep its grouping, not flatten F_p to Fp.
-    field_title = await page.evaluate("""async url => {
+    field_titles = [title for title in titles["field"] if "The group structure of" in title]
+    assert field_titles and all(re.search(r"[𝔽F]_\([^)]+\)", title)
+                                for title in field_titles), field_titles
+
+
+async def check_reading_order(page, base):
+    expected = await page.evaluate("""async url => {
         const pagefind = await import(url);
-        const {results} = await pagefind.search('group structure');
-        for (const result of results) {
+        const sorted = await pagefind.search('fiat-', {sort: {'reading-order': 'asc'}});
+        const unsorted = await pagefind.search('fiat-');
+        const rows = await Promise.all(sorted.results.map(async result => {
             const data = await result.data();
-            if (new URL(data.url, url).pathname.endsWith('/math-guide/S10.html'))
-                return data.meta['heading-SS8-heading'];
-        }
-        return null;
+            const matches = [...data.sub_results].sort((a, b) => a.locations[0] - b.locations[0]);
+            return {url: new URL(data.url, url).href,
+                primary: new URL(matches[0].url, url).href,
+                positions: Object.fromEntries(matches.map(match =>
+                    [new URL(match.url, url).href, match.locations[0]]))};
+        }));
+        return {rows, unsorted: await Promise.all(unsorted.results.map(async result =>
+            new URL((await result.data()).url, url).href))};
     }""", f"{base}/pagefind/pagefind.js")
-    assert field_title and "𝔽_(p)" in field_title, field_title
+
+    def reading_key(url):
+        parts = urlsplit(url).path.split("/")
+        volume = next(part for part in parts if part in VOLUMES)
+        return VOLUMES.index(volume), tuple(map(int, re.findall(r"\d+", parts[-1])))
+
+    rows = expected["rows"]
+    assert len(rows) > 5  # Exercise ordering across the native pagination boundary.
+    assert [row["url"] for row in rows] == sorted(expected["unsorted"], key=reading_key)
+    previous = None
+    for _ in range(2):
+        await page.locator("#search input").fill("")
+        await page.wait_for_function("!document.querySelector('#search .pagefind-ui__result')")
+        await page.locator("#search input").fill("fiat-")
+        await page.locator("#search .pagefind-ui__result-link").first.wait_for()
+        while True:
+            await page.wait_for_function("!document.querySelector('#search .pagefind-ui__loading')")
+            cards = await page.locator("#search .pagefind-ui__result").evaluate_all("""cards =>
+                cards.map(card => [...card.querySelectorAll('.pagefind-ui__result-link')]
+                    .map(link => link.href))""")
+            assert 0 < len(cards) <= len(rows), cards
+            for links, row in zip(cards, rows):
+                assert links[0] == row["primary"], (links, row)
+                positions = [row["positions"][link] for link in links]
+                assert positions == sorted(positions), (links, positions)
+            if len(cards) == len(rows):
+                break
+            await page.locator("#search .pagefind-ui__button").last.click()
+            await page.wait_for_function(
+                "n => document.querySelectorAll('#search .pagefind-ui__result').length > n",
+                arg=len(cards))
+        assert previous is None or cards == previous
+        previous = cards
 
 
 async def check_destination(page, target):
@@ -240,11 +299,19 @@ async def check_same_document(page, base):
     search = page.locator("details.arb-search")
     await search.locator("summary").click()
     await page.locator("#arb-search-ui input").fill("note")
-    card = page.locator("#arb-search-ui .pagefind-ui__result").filter(
-        has=page.locator(".pagefind-ui__result-inner > .pagefind-ui__result-title > "
-                         "a[href*='zsa-guide/S5.html#']")).first
-    await card.wait_for()
-    link = card.locator(".pagefind-ui__result-inner > .pagefind-ui__result-title > a")
+    # The first match can be in the introduction, so exercise a nested heading
+    # link rather than assuming the main card always has a fragment.
+    card = page.locator("#arb-search-ui .pagefind-ui__result-nested").filter(
+        has=page.locator("a[href*='zsa-guide/S5.html#']")).first
+    await page.locator("#arb-search-ui .pagefind-ui__result-link").first.wait_for()
+    while not await card.count():
+        await page.wait_for_function("!document.querySelector('#arb-search-ui .pagefind-ui__loading')")
+        count = await page.locator("#arb-search-ui .pagefind-ui__result").count()
+        await page.locator("#arb-search-ui .pagefind-ui__button").last.click()
+        await page.wait_for_function(
+            "n => document.querySelectorAll('#arb-search-ui .pagefind-ui__result').length > n",
+            arg=count)
+    link = card.locator(".pagefind-ui__result-link")
     point, target = await hit_point(page, card, link, True)
     await page.evaluate("window.__arbSameDocumentTest = true")
     await page.mouse.click(**point)
@@ -295,6 +362,7 @@ async def main():
         assert await page.locator("#search .pagefind-ui__result").first.is_visible()
         await check_promoted_results(page, base)
         await check_appearance(page, "#search")
+        await check_reading_order(page, base)
         await check_result_links(page, "#search", touch=True)
         await page.close()
         for width, height in ((320, 568), (390, 844), (768, 1024),
@@ -393,12 +461,20 @@ async def main():
             # Pagefind's own Escape handler clears the query.
             await field.fill("note")
             await check_result_links(page, "#arb-search-ui")
+            if (width, height) == (768, 1024):
+                guide = page.locator(".arb-bar a.volname")
+                assert await guide.get_attribute("title") == "Table of contents"
+                target = await guide.evaluate("el => el.href")
+                await guide.tap()
+                await page.wait_for_url(target)
+                assert await page.locator(".ltx_page_main .ltx_TOC").is_visible()
             await page.close()
         page = await context.new_page()
         await check_search_focus(page, base)
         await check_same_document(page, base)
         await browser.close()
     print(f"{engine}: search is legible in every theme without horizontal overflow; "
+          "reading order, pagination, repeat queries and guide-title TOC links pass; "
           "parent/nested cards follow native links from padding, excerpts and titles; "
           "touch, keyboard, Ctrl/middle-click, scrolling, load-more, dismissal "
           "and no thumbnails pass.")

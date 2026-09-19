@@ -743,10 +743,17 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
   border-bottom: 1px solid var(--leafline);
 }
 
-/* the TOC sidebar marks the page being read (LaTeXML tags it ref_self) */
-.ltx_page_navbar .ltx_ref_self {
+/* Style the current page's label, not the list item whose children would
+   otherwise inherit bold. Only the subsection being read is emphasised. */
+.ltx_page_navbar .ltx_ref.ltx_ref_self {
   color: var(--conifer);
   font-weight: 600;
+}
+.ltx_page_navbar a[aria-current="location"] {
+  color: var(--conifer);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* titles and paragraphs: small rhythm refinements */

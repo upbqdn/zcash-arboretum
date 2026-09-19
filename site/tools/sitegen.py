@@ -100,25 +100,58 @@ THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
 </script>"""
 
 SEARCH_OPTIONS = """showSubResults: true, showImages: false, excerptLength: 20,
+    sort: { 'reading-order': 'asc' },
     processResult: function (result) {
       const meta = { ...result.meta };
       const matches = (result.sub_results || []).map(match => ({
         ...match,
         title: meta[`heading-${match.anchor?.id}`] || match.title
-      }));
+      })).sort((a, b) => a.locations[0] - b.locations[0]);
       for (const key of Object.keys(meta))
         if (key.startsWith('heading-')) delete meta[key];
       result = { ...result, meta, sub_results: matches };
-      const best = matches.filter(match => match.anchor).reduce(
-        (best, match) => !best || match.locations.length > best.locations.length
-          ? match : best, null);
-      if (best) {
-        result.meta = { ...result.meta, title: best.title, url: best.url };
-        result.excerpt = best.excerpt;
-        result.sub_results = [best, ...matches.filter(match => match !== best)];
+      const first = matches[0];
+      if (first) {
+        if (first.anchor)
+          result.meta = { ...result.meta, title: first.title, url: first.url };
+        result.excerpt = first.excerpt;
       }
       return result;
     }"""
+
+TOC_SCRIPT = """<script>
+(function () {
+  const sidebar = document.querySelector('.ltx_page_navbar');
+  if (!sidebar) return;
+  const entries = [...sidebar.querySelectorAll('a[href^="#"]')]
+    .map(link => [link, document.getElementById(decodeURIComponent(link.hash.slice(1)))])
+    .filter(([, section]) => section);
+  if (!entries.length) return;
+  const bar = document.querySelector('.arb-bar');
+  let current, frame;
+  function update() {
+    frame = 0;
+    if (!sidebar.getClientRects().length) return;
+    const top = Math.max(bar?.getBoundingClientRect().bottom || 0,
+      parseFloat(getComputedStyle(entries[0][1]).scrollMarginTop) || 0) + 1;
+    let active;
+    for (const [link, section] of entries)
+      if (section.getBoundingClientRect().top <= top) active = link;
+    if (scrollY > 0 && scrollY + innerHeight >= document.documentElement.scrollHeight - 2)
+      active = entries.at(-1)[0];
+    if (active === current) return;
+    current?.removeAttribute('aria-current');
+    active?.setAttribute('aria-current', 'location');
+    current = active;
+  }
+  function schedule() { if (!frame) frame = requestAnimationFrame(update); }
+  addEventListener('scroll', schedule, {passive: true});
+  addEventListener('resize', schedule);
+  addEventListener('hashchange', schedule);
+  new ResizeObserver(schedule).observe(document.querySelector('.ltx_page_content'));
+  schedule();
+})();
+</script>"""
 
 MATHJAX = r"""<script>
 window.MathJax = {
@@ -648,12 +681,14 @@ def postprocess(outdir):
                  for vol, _group, _chip in VOLUME_META]
     documents.append(("complete", "The Complete Arboretum",
                       "arboretum-complete"))
+    reading_order = 0
     for vol, title, pdf in documents:
         vdir = out / vol
         if not vdir.is_dir():
             continue
         bar = f"""<header class="arb-bar"><a class="wordmark" href="../"><span
-class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{title}</span>
+class="wordmark-prefix">The Zcash </span>Arboretum</a><a class="volname" href="./#arb-contents"
+title="Table of contents">{title}</a>
 <a class="arb-pdf" href="../pdf/{pdf}.pdf">PDF</a>
 {THEME_PICKER}
 <details class="arb-search"><summary>search</summary>
@@ -691,12 +726,21 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
 }})();
 </script>"""
         n = 0
-        for page in vdir.glob("*.html"):
+        pages = sorted(vdir.glob("*.html"), key=lambda p: (
+            p.name != "index.html",
+            [int(part) if part.isdigit() else part
+             for part in re.split(r"(\d+)", p.name)]))
+        for page in pages:
+            reading_order += 1
             t = page.read_text()
             if match := UNEXPANDED_CREF_RE.search(t):
                 raise RuntimeError(
                     f"{page}: unexpanded cross-reference macro {match.group()}")
             t2 = heading_search_titles(heading_anchors(t))
+            if page.name == "index.html":
+                t2 = t2.replace('<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">',
+                                '<nav id="arb-contents" '
+                                'class="ltx_TOC ltx_list_toc ltx_toc_toc">', 1)
             t2 = t2.replace('class="arb-permalink" href=',
                             'class="arb-permalink" data-pagefind-ignore href=')
             if vol != "complete" and 'data-pagefind-meta="volume:' not in t2:
@@ -704,6 +748,13 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
                     r'(<[^>]+class="ltx_page_content"[^>]*)(>)',
                     lambda m: m.group(1) + ' data-pagefind-meta="volume:'
                     + escape(title, quote=True) + '">', t2, count=1)
+            if vol != "complete":
+                t2 = re.sub(r' data-pagefind-sort="reading-order:\d+"', '', t2)
+                t2 = re.sub(
+                    r'(<[^>]+class="ltx_page_content"[^>]*)(>)',
+                    lambda m: m.group(1)
+                    + f' data-pagefind-sort="reading-order:{reading_order}">',
+                    t2, count=1)
             if 'data-arb="vol"' in t:
                 if t2 != t:
                     page.write_text(t2)
@@ -744,7 +795,7 @@ class="wordmark-prefix">The Zcash </span>Arboretum</a><span class="volname">{tit
                 r'<span class="arb-proof-end">\1\2</span>', t2)
             t2 = re.sub(r'\s*∎(?=</p>)',
                         ' <span class="arb-qed">□</span>', t2)
-            t2 = t2.replace('</body>', MATHJAX + '\n</body>', 1)
+            t2 = t2.replace('</body>', MATHJAX + '\n' + TOC_SCRIPT + '\n</body>', 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1
