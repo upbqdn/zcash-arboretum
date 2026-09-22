@@ -58,9 +58,9 @@ Domain-separation byte constants appear as =\mathtt{0x..}=.
   Math Guide. They are required reading aids, not off-path material.
 - There is no length target. Remove unused subjects and redundancy, not
   the definitions, derivations and worked examples needed to teach a subject.
-- Claims about deployed behaviour cite the implementation (crate and file)
-  and the spec section; claims about design-stage protocols are classified
-  /specified/ | /designed-but-unspecified/ | /open problem/.
+- Claims about deployed behaviour cite the protocol specification section or
+  the ZIP. Never link to source code: no crate file paths, no function
+  names. A crate may be named when the behaviour is implementation-specific.
 - Prose wraps at 80 columns in =.tex= sources; comments and docstrings follow
   the surrounding file.
 

@@ -113,8 +113,10 @@ the layering.
 - No undefined terms: define every technical term before first use (or cite
   the lower volume that does). Off-critical-path machinery is omitted, not
   name-dropped.
-- Deployed-behaviour claims cite the implementation (crate + file) and spec
-  section; design-stage claims are classified *specified* /
+- Deployed-behaviour claims cite the protocol-spec section or ZIP; never
+  link to source code (no crate file paths, no function names; a crate
+  may be named when the behaviour is implementation-specific).
+  Design-stage claims are classified *specified* /
   *designed-but-unspecified* / *open problem*.
 
 ## Verification method
