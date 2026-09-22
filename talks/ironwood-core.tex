@@ -69,6 +69,12 @@
 \newcommand{\Glo}[1]{\ensuremath{#1_{\mathrm{lo}}}}
 \newcommand{\Ghi}[1]{\ensuremath{#1_{\mathrm{hi}}}}
 
+\definecolor{tierfull}{RGB}{210,140,40}
+\definecolor{tierin}{RGB}{60,130,180}
+\tikzset{box/.style={draw=arb,rounded corners,inner sep=4pt,align=center,font=\small},
+  flow/.style={-{Stealth[length=2mm]},thick,arb},
+  labeltext/.style={font=\small,text=arbdim,align=center}}
+\newcommand{\PI}{\mathrm{PI}}
 \newcommand{\divider}[1]{\begin{frame}[plain]\vfill\centering
   {\usebeamercolor[fg]{structure}\Huge\bfseries #1}\vfill\end{frame}}
 \newcommand{\grey}[1]{{\color{arbdim}#1}}
@@ -295,6 +301,19 @@ One zero-knowledge statement per Action carries all four; one proof per bundle.
 % ====================================================================
 \divider{Anchors}
 
+\begin{frame}{Arithmetic with a modulus}
+For a prime $p$, the field $\F_p$ is arithmetic modulo $p$.
+\[
+\F_{97} = \{0, 1, \ldots, 96\},\qquad 96 + 2 = 1,\qquad 5 \cdot 39 = 1 .
+\]
+\vfill
+Every nonzero element has an inverse: $5^{-1} = 39$ in $\F_{97}$.
+\vfill
+Addition, subtraction, multiplication, division by nonzero elements.
+The protocol's fields have $p \approx 2^{254}$; the toy $\F_{97}$ returns
+in the proof.
+\end{frame}
+
 \begin{frame}{A group and a hard problem}
 \[
 \Ep(\Fpp):\quad y^2 = x^3 + 5 \quad\text{over } \Fpp,\qquad
@@ -319,9 +338,11 @@ C(v, r) := [v]\,V + [r]\,R \qquad V, R \text{ independent points}
 \]
 \vfill
 \begin{itemize}\itemsep6pt
-  \item \textbf{Hiding:} $r$ uniform, so $C$ is a uniform point; $v$ is invisible.
-  \item \textbf{Binding:} two openings $(v, r) \ne (v', r')$ of one $C$ give
-    $\log_R V = (r' - r)/(v - v')$.
+  \item \textbf{Hiding:} $r \mapsto [r]\,R$ permutes the group, so
+    $[v]\,V + [r]\,R$ has the same distribution for every $v$.
+  \item \textbf{Binding:} two openings of one $C$ give
+    $[v_0 - v_1]\,V = [r_1 - r_0]\,R$, hence the forbidden
+    $\lambda = (v_0 - v_1)(r_1 - r_0)^{-1}$ with $V = [\lambda]\,R$.
   \item \textbf{Homomorphic:} $C(v_1, r_1) + C(v_2, r_2) = C(v_1 + v_2,\ r_1 + r_2)$.
 \end{itemize}
 \vfill
@@ -330,16 +351,49 @@ A sealed envelope that can be added to other sealed envelopes.
 
 \begin{frame}{Hashes and Merkle trees}
 \begin{columns}[c]
-\begin{column}{0.5\textwidth}
-\centering\TreeFig[path]
+\begin{column}{0.54\textwidth}
+\centering
+\begin{tikzpicture}[x=0.92cm,y=0.9cm,
+  lf/.style={draw,minimum size=6mm,inner sep=0pt,font=\small},
+  nd/.style={draw,circle,minimum size=6.5mm,inner sep=0pt,font=\small},
+  route/.style={fill=tierfull!25,draw=tierfull!85,very thick},
+  sibl/.style={fill=tierin!20,draw=tierin!80,thick},
+  faded/.style={draw=black!25,fill=black!4},
+  ed/.style={black!45,thick},
+  red/.style={draw=tierfull!75!black,very thick},
+  fed/.style={black!22,thick}]
+\node[lf] (L0) at (0,0) {};
+\node[lf] (L1) at (1,0) {};
+\node[lf,route] (L2) at (2,0) {$L_2$};
+\node[lf,sibl] (L3) at (3,0) {$L_3$};
+\node[lf,faded] (L4) at (4,0) {};
+\node[lf,faded] (L5) at (5,0) {};
+\node[lf,faded] (L6) at (6,0) {};
+\node[lf,faded] (L7) at (7,0) {};
+\node[nd,sibl] (A) at (.5,1) {$A$};
+\node[nd,route] (B) at (2.5,1) {$B$};
+\node[nd,faded] (C) at (4.5,1) {$C$};
+\node[nd,faded] (D) at (6.5,1) {$D$};
+\node[nd,route] (E) at (1.5,2) {$E$};
+\node[nd,sibl] (F) at (5.5,2) {$F$};
+\node[nd,route] (R) at (3.5,3) {$R$};
+\draw[ed] (E)--(A) (B)--(L3) (R)--(F) (A)--(L0) (A)--(L1);
+\draw[fed] (F)--(C) (F)--(D) (C)--(L4) (C)--(L5) (D)--(L6) (D)--(L7);
+\draw[red] (L2)--(B)--(E)--(R);
+\node[labeltext,below=1mm of L2] {$\cmx$};
+\node[labeltext,right=2mm of R] {anchor};
+\end{tikzpicture}
 \end{column}
-\begin{column}{0.46\textwidth}
-\begin{itemize}\itemsep6pt
-  \item Hash $\mathsf{H}$ collision resistant: nobody can find two inputs
-    with one output.
-  \item The root commits to every leaf.
-  \item Membership of leaf $p$: its $32$ siblings, hashed upward, reach the root.
-  \item Append only: old roots stay valid forever.
+\begin{column}{0.44\textwidth}
+\begin{gather*}
+B = \mathsf{H}(L_2, L_3),\qquad E = \mathsf{H}(A, B),\\
+R = \mathsf{H}(E, F) = \text{anchor}
+\end{gather*}
+\begin{itemize}\itemsep5pt
+  \item Nobody can find two inputs with one output.
+  \item Position $010_2$; siblings $(L_3, A, F)$. Depth $32$ in the protocol.
+  \item The tree is public; the leaf and the path stay hidden.
+  \item Append only: old roots stay valid.
 \end{itemize}
 \end{column}
 \end{columns}
@@ -422,11 +476,12 @@ about $2^{-240}$.
 \[
 n = (\,d,\ \pkd,\ v,\ \rho,\ \psi,\ \rcm\,)
 \]
-\[
-\cmsym = \NoteCommit_{\rcm}(\gd,\ \pkd,\ v,\ \rho,\ \psi),
-\qquad
+\begin{gather*}
+m = \gd^{\star}\,\|\,\pkd^{\star}\,\|\,\mathrm{LE}_{64}(v)\,\|\,
+    \mathrm{LE}_{255}(\rho)\,\|\,\mathrm{LE}_{255}(\psi),\\
+\cmsym = \NoteCommit_{\rcm}(m),\qquad
 \cmx = \Extract(\cmsym) \in \Fpp
-\]
+\end{gather*}
 \vfill
 \begin{tabular}{@{}ll@{}}
 $(d, \pkd)$ & the recipient's diversified address \\
@@ -466,8 +521,26 @@ On chain: $\cmx$ and a ciphertext. Nothing else about the note.
   \item Seeded by $\rho$, salted by $\psi$, bound to $\cmsym$.
   \item Chaining $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$: every note inherits
     the nullifier of the note spent beside it, so $\rho$ is unique.
+  \item The sum is taken in $\Fpp$, then read as a scalar ($p < q$).
   \item Unique, and unlinkable to $\cmsym$ without $\nksym$.
 \end{itemize}
+\end{frame}
+
+\begin{frame}{The proof and the node check different things}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[box] (old) at (0,1) {old note\\and $\nksym$};
+\node[box] (nf) at (4.2,1) {$\nfsym_{\mathrm{old}}$};
+\node[box] (new) at (9,1) {new note\\$\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$};
+\draw[flow] (old)--node[above,font=\small] {proof} (nf);
+\draw[flow] (nf)--(new);
+\node (set) at (4.2,-1) {$\nfsym \notin \mathcal{N}$};
+\draw[flow] (nf)--node[right,font=\small] {node checks} (set);
+\end{tikzpicture}
+\end{center}
+\vfill
+The set $\mathcal{N}$ holds every spent nullifier. Reject repeats; insert
+only when the transaction is accepted.
 \end{frame}
 
 \begin{frame}{Keys}
@@ -476,8 +549,19 @@ On chain: $\cmx$ and a ciphertext. Nothing else about the note.
 \end{frame}
 
 \begin{frame}{Diversified addresses}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node (d) at (0,0) {$d \in \{0,1\}^{88}$};
+\node[box] (gd) at (3.6,0) {$\gd$};
+\node[box] (pkd) at (8.4,0) {$\pkd = [\ivk]\,\gd$};
+\node (ivk) at (8.4,1.3) {$\ivk$};
+\draw[flow] (d)--node[above,font=\small] {hash to curve} (gd);
+\draw[flow] (gd)--(pkd);
+\draw[flow] (ivk)--(pkd);
+\end{tikzpicture}
+\end{center}
 \[
-d \in \{0,1\}^{88},\qquad \gd := \GroupHash(d),\qquad \pkd := [\ivk]\,\gd
+\mathsf{addr} = (d,\ \pkd)
 \]
 \vfill
 \begin{itemize}\itemsep6pt
@@ -503,6 +587,36 @@ d \in \{0,1\}^{88},\qquad \gd := \GroupHash(d),\qquad \pkd := [\ivk]\,\gd
 \end{columns}
 \end{frame}
 
+\begin{frame}{The statement, not the secret}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm,box/.append style={inner ysep=2pt}]
+\node[labeltext] at (0,2.3) {one private witness};
+\node[labeltext] at (5,2.3) {constraints};
+\node[labeltext] at (9,2.3) {public};
+\node[box] (w) at (0,0)
+  {old and new notes\\path; owner keys\\$\alpha$; $\rcv$};
+\node[box] (nc) at (5,1.6) {note commitments};
+\node[box] (m) at (5,.8) {membership};
+\node[box] (nf) at (5,0) {nullifier};
+\node[box] (o) at (5,-.8) {address; authority};
+\node[box] (c) at (5,-1.6) {value commitment};
+\node (cm) at (9,1.6) {$\cmx_{\mathrm{new}}$};
+\node (a) at (9,.8) {anchor};
+\node (n) at (9,0) {$\nfsym$};
+\node (rk) at (9,-.8) {$\rksym$};
+\node (cv) at (9,-1.6) {$\cvsym$};
+\draw[thick,arbdim] (w.east)--(2.65,0) (2.65,-1.6)--(2.65,1.6);
+\foreach \target in {nc,m,nf,o,c}
+  \draw[flow] (2.65,0 |- \target.west)--(\target.west);
+\draw[flow] (nc)--(cm);
+\draw[flow] (m)--(a); \draw[flow] (nf)--(n);
+\draw[flow] (o)--(rk); \draw[flow] (c)--(cv);
+\end{tikzpicture}
+\end{center}
+\vfill
+Every constraint uses the same notes and the same owner keys.
+\end{frame}
+
 \begin{frame}{The statement}
 \begin{center}
 \begin{tabular}{@{}lll@{}}
@@ -524,28 +638,60 @@ The witness: both notes, the path and position, the keys, $\alpha$, $\rcv$.\\
 The one check the proof cannot make: has this $\nfsym$ been seen before.
 \end{frame}
 
-\begin{frame}{Conservation without amounts}
+\begin{frame}{Conservation is a cancellation}
 \[
-\cvsym = [\,v_{\mathrm{old}} - v_{\mathrm{new}}\,]\,V + [\rcv]\,R
+\cvsym_i = [\,v_{\mathrm{old},i} - v_{\mathrm{new},i}\,]\,V + [\rcv_i]\,R
 \qquad\text{per Action}
 \]
+Let $b$ be the public net value leaving the pool ($\vbal$). The public
+binding key:
 \[
-\bvk := \sum_i \cvsym_i - [\vbal]\,V
-\;=\; [\,\textstyle\sum_i \rcv_i\,]\,R \quad\text{iff the books balance}
+\bvk := \sum_i \cvsym_i - [b]\,V
+= \Bigl[\underbrace{\textstyle\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i}) - b}_{\Delta:\ \text{imbalance}}\Bigr]\,V
++ \Bigl[\textstyle\sum_i \rcv_i\Bigr]\,R
+\]
+\vfill
+For a fully shielded transfer, $b$ is the fee.
+\end{frame}
+
+\begin{frame}{Why the binding signature enforces balance}
+A signature under $\bvk$ on base $R$ proves knowledge of $k$ with
+$\bvk = [k]\,R$. With $s := \sum_i \rcv_i$:
+\[
+[\Delta]\,V = [k - s]\,R
 \]
 \vfill
 \begin{itemize}\itemsep6pt
-  \item The balance $\vbal$ is public: the net flow out of the pool; for a fully
-    shielded transfer, the fee.
-  \item The binding signature is Schnorr under $\bvk$ on base $R$:
-    knowing its secret key means knowing $\sum \rcv$, which exists only
-    when the amounts cancel.
+  \item Balanced: $\Delta = 0$, and the author knows $k = s$.
+  \item Unbalanced: $\Delta \ne 0$ gives $\lambda = \Delta\,(k - s)^{-1}$
+    with $V = [\lambda]\,R$, the forbidden relation.
 \end{itemize}
+\vfill
+Schnorr again: a proof of knowledge of a discrete log, of a key that
+exists only when the books balance.
+\end{frame}
+
+\begin{frame}{Field equality is not yet integer equality}
+\[
+q - 1 = -1,\qquad q = 0 \qquad\text{in } \F_q
+\]
+\vfill
+So the proof also constrains every amount:
+\[
+0 \le v < 2^{64}
+\]
+\vfill
+Bounded amounts and a bounded number of Actions keep an integer
+imbalance from wrapping around modulo $q$.
 \end{frame}
 
 \begin{frame}{Authorisation without a fixed key}
+\begin{gather*}
+\aksym = [\asksym]\,G^{\mathsf{SpendAuth}},\qquad \pkd = [\ivk]\,\gd,\\
+\ivk = \CommitIvk_{\rivk}(\Extract(\aksym), \nksym)
+\end{gather*}
 \[
-\rksym := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}},
+\rksym := \aksym + [\alpha]\,G^{\mathsf{SpendAuth}} = [\rsk]\,G^{\mathsf{SpendAuth}},
 \qquad
 \rsk := \asksym + \alpha
 \]
@@ -636,8 +782,12 @@ compete for long, and one quickly wins.
 \divider{How Halo 2 proves}
 
 \begin{frame}{The claim becomes a table}
-``I know $x$ with $x^3 + x + 5 = 35$'' over $\F_{97}$. One operation per
-row, one gate equation on every row:
+``I know $x$ with $x^3 + x + 5 = 35$'' over $\F_{97}$; the witness $x = 3$:
+\[
+3 \xrightarrow{\ \text{square}\ } 9 \xrightarrow{\ \times 3\ } 27
+  \xrightarrow{\ + 3\ } 30 \xrightarrow{\ + 5\ } 35 .
+\]
+One operation per row, one gate equation on every row:
 \[
 q_M\, a\, b + q_L\, a + q_R\, b + q_O\, c + q_C + \mathrm{PI} = 0
 \]
@@ -660,9 +810,56 @@ Advice: the prover's secret trace. Fixed: the circuit. Instance: the public $35$
 Copy constraints wire the rows; range checks are lookups into a table.
 \end{frame}
 
+\begin{frame}{Equal values must be wired together}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\foreach \i/\av/\bv/\cvv in {0/3/3/9,1/9/3/27,2/27/3/30,3/30/0/0}{
+  \node[labeltext] at (0,-.85*\i) {row $\i$};
+  \node (a\i) at (2,-.85*\i) {$a_{\i}=\av$};
+  \node (b\i) at (4.2,-.85*\i) {$b_{\i}=\bv$};
+  \node (c\i) at (6.4,-.85*\i) {$c_{\i}=\cvv$};
+}
+\draw[very thick,arb] (a0.north) -- ++(0,.25) -| (3.2,0) -- (3.2,-1.7);
+\foreach \i in {0,1,2} \draw[very thick,arb] (3.2,-.85*\i)--(b\i.west);
+\draw[flow,tierin!85!black] (c0.east) -- ++(.6,0) -- ++(0,-.42) -| (a1.north);
+\draw[flow,tierin!85!black] (c1.east) -- ++(.6,0) -- ++(0,-.42) -| (a2.north);
+\draw[flow,tierin!85!black] (c2.east) -- ++(.6,0) -- ++(0,-.42) -| (a3.north);
+\end{tikzpicture}
+\end{center}
+\vfill
+Equal numbers in a table are not a constraint. These \emph{copy
+constraints} are enforced separately, by a permutation argument.
+\end{frame}
+
+\begin{frame}{Give the rows multiplicative labels}
+\begin{columns}[c]
+\begin{column}{0.42\textwidth}
+\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[box] (a) at (0,1.25) {$1$};
+\node[box] (b) at (2.6,1.25) {$22$};
+\node[box] (c) at (2.6,-.6) {$96$};
+\node[box] (d) at (0,-.6) {$75$};
+\draw[flow] (a)--node[above] {$\times 22$} (b);
+\draw[flow] (b)--node[right] {$\times 22$} (c);
+\draw[flow] (c)--node[below] {$\times 22$} (d);
+\draw[flow] (d)--node[left] {$\times 22$} (a);
+\end{tikzpicture}
+\end{column}
+\begin{column}{0.54\textwidth}
+\[
+\omega = 22,\qquad \omega^2 = 96 = -1,\qquad \omega^4 = 1
+\]
+\[
+H = \{1, 22, 96, 75\} \subset \F_{97}
+\]
+Row $i$ gets the label $\omega^i$: a cycle of field values.
+\end{column}
+\end{columns}
+\end{frame}
+
 \begin{frame}{Rows become polynomials}
-Name the rows by roots of unity: $\omega = 22$, $H = \{1, 22, 96, 75\}$,
-$\omega^4 = 1$.
+Row $i$ lives at $\omega^i \in H$. Interpolate each column:
 \[
 a(1) = 3,\ a(22) = 9,\ a(96) = 27,\ a(75) = 30
 \ \Longrightarrow\
@@ -687,7 +884,15 @@ the lie $x^2 = 10$ in row $0$ leaves a remainder $24\,(1 + X + X^2 + X^3) \ne 0$
 \end{frame}
 
 \begin{frame}{One random point}
-\begin{enumerate}\itemsep4pt
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[box] (c) at (0,0) {commit\\polynomials};
+\node[box] (z) at (4.2,0) {derive\\challenge $z$};
+\node[box] (o) at (8.5,0) {prove\\evaluations};
+\draw[flow] (c)--(z); \draw[flow] (z)--(o);
+\end{tikzpicture}
+\end{center}
+\begin{enumerate}\itemsep3pt
   \item The prover \emph{commits} to $a, b, c$ and $t$.
   \item The challenge $z := \mathsf{H}(\text{transcript})$ --- Fiat--Shamir.
   \item The prover opens $a(z), b(z), c(z), t(z)$.
@@ -702,6 +907,31 @@ The row-$0$ lie: $G^{*}(20) = 20 \ne 64$.
 \vfill
 A false identity is frozen before $z$ is drawn; it survives only if $z$
 is one of its few roots.
+\end{frame}
+
+\begin{frame}{A nonzero polynomial has few roots}
+The remainder $D(X) = 24\,(1 + X + X^2 + X^3)$ over $\F_{97}$: zeros at
+$22, 75, 96$ only.
+\begin{center}
+\begin{tikzpicture}[x=.105cm,y=.036cm]
+\draw[flow] (0,0)--(102,0) node[right] {$z$};
+\draw[flow] (0,0)--(0,104) node[above] {$D(z)$};
+\foreach \x in {0,...,96}{
+  \pgfmathtruncatemacro{\square}{mod(\x*\x,97)}
+  \pgfmathtruncatemacro{\cube}{mod(\square*\x,97)}
+  \pgfmathtruncatemacro{\residue}{mod(24*(1+\x+\square+\cube),97)}
+  \fill[arb!90] (\x,\residue) circle[radius=1.15pt];
+}
+\foreach \x in {22,75,96}{
+  \draw[tierin!85!black,thick,fill=white] (\x,0) circle[radius=2.2pt];
+  \node[below,font=\small,text=tierin!85!black] at (\x,-2) {$\x$};
+}
+\fill[arbred] (20,53) circle[radius=2.4pt];
+\node[above right,font=\small,text=arbred] at (20,53) {$(20, 53)$};
+\end{tikzpicture}
+\end{center}
+For uniform $z$ this cheat passes with probability $3/97$; over the
+protocol's field, about $2^{-240}$.
 \end{frame}
 
 \begin{frame}{Committing to a polynomial}
@@ -760,6 +990,22 @@ P + [v]\,U + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Binding does not by itself give privacy}
+An unblinded evaluation is an equation in the secret coefficients:
+\[
+f(z) = f_0 + f_1 z + \cdots + f_{d-1} z^{d-1} .
+\]
+\vfill
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[box] at (0,0) {random unused rows\\mask the evaluations};
+\node[box] at (7,0) {random commitment blinders\\hide the coefficients};
+\end{tikzpicture}
+\end{center}
+\vfill
+Zero knowledge: the proof reveals nothing beyond the public statement.
+\end{frame}
+
 \begin{frame}{The Orchard circuit}
 \begin{itemize}\itemsep6pt
   \item Size: $2^{11}$ rows, $10$ advice columns; arithmetic over $\Fpp$ so
@@ -776,6 +1022,20 @@ point, one inner-product argument.
 \end{frame}
 
 % ====================================================================
+\begin{frame}{Back to the transaction}
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{}ll@{}}
+\textcolor{arb}{Proof} & the hidden notes satisfy the statement \\
+\textcolor{arb}{Spend signatures} & the owners authorise this transaction \\
+\textcolor{arb}{Binding signature} & the committed amounts balance \\
+\textcolor{arb}{Node state} & anchor allowed; nullifiers unused \\
+\end{tabular}
+\end{center}
+\vfill
+No single equation replaces the other checks.
+\end{frame}
+
 \begin{frame}{The whole picture}
 \begin{center}
 \begin{tabular}{@{}lll@{}}
