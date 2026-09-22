@@ -27,4 +27,6 @@ math-rewrite.tex
 math-rewrite.pdf
 crypto-rewrite.tex
 crypto-rewrite.pdf
+halo2-rewrite.tex
+halo2-rewrite.pdf
 __pycache__/
