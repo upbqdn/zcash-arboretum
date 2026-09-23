@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Small regression check for shared generated-site controls."""
 
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -65,6 +66,15 @@ for volume in sitegen.VOLUMES:
     assert source.count(r"\tableofcontents") == 1, volume
     assert source.index(r"\tableofcontents") < source.index(r"\section{"), volume
     assert sitegen.FONT_BLOCK in source, volume
+
+# Table 2 introduces every Greek letter, with both lower-case and capital forms.
+greek_table = (sitegen.ROOT / "math-guide.tex").read_text().split(
+    r"\label{tab:notation-greek}")[0].rsplit(r"\begin{tabular}", 1)[1]
+greek_rows = re.findall(r"\\\((.+?)\\\) & \\\((.+?)\\\) & ([a-z]+) &", greek_table)
+assert len(greek_rows) == 24
+assert [name for lower, capital, name in greek_rows[::2] + greek_rows[1::2]] == (
+    "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu "
+    "nu xi omicron pi rho sigma tau upsilon phi chi psi omega").split()
 
 # Both guides' chapters survive in their original order under one Wallet TOC.
 WALLET_CHAPTERS = (
@@ -288,6 +298,8 @@ Volume summary.
     assert "replace(/%\\s+/g, '')" in html
     assert 'src="../mathjax-4.1.3/tex-chtml-nofont.js"' in html
     assert 'document.fonts.ready.then(() => MathJax.startup.defaultPageReady())' in html
+    assert 'MathJax.startup.promise = MathJax.startup.promise.then(async function' in html
+    assert "document.querySelector(':target')?.scrollIntoView()" in html
     assert ('<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
             '<a class="arb-permalink" data-pagefind-ignore href="#Thmtheorem1" '
             'aria-label="Permalink to this item" '

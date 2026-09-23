@@ -552,6 +552,20 @@ figure.ltx_table { overflow-x: auto; max-width: 100%; }
    the inner image cannot reach. */
 figure.ltx_figure { margin: 1.6rem 0; overflow-x: auto; max-width: 100%; }
 .ltx_transformed_outer { max-width: 100%; }
+/* The PDF resizebox survives LaTeXML around some pre-rendered diagrams.
+   Its negative translation clips the image against the figure's scroll box.
+   Size image-only wrappers normally; retain transforms on mathematical boxes. */
+figure.ltx_figure > .ltx_transformed_outer:has(> .ltx_transformed_inner > img:only-child) {
+  height: auto !important;
+}
+figure.ltx_figure > .ltx_transformed_outer > .ltx_transformed_inner:has(> img:only-child) {
+  position: static;
+  transform: none !important;
+}
+figure.ltx_figure > .ltx_transformed_outer > .ltx_transformed_inner > img:only-child {
+  display: block;
+  width: 100%;
+}
 figure.ltx_table figcaption,
 figure.ltx_figure figcaption {
   margin: .75rem 0 0;

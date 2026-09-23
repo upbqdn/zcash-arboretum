@@ -180,7 +180,8 @@ window.MathJax = {
 </script>
 <script src="../mathjax-4.1.3/tex-chtml-nofont.js"></script>
 <script>
-MathJax.startup.promise.then(function () {
+MathJax.startup.promise = MathJax.startup.promise.then(async function () {
+  await document.fonts.ready;
   function constrainMath() {
     document.querySelectorAll('.arb-math-scroll').forEach(function (math) {
       math.classList.remove('arb-math-scroll');
@@ -197,6 +198,8 @@ MathJax.startup.promise.then(function () {
     });
   }
   constrainMath();
+  // Inline overflow boxes can change line heights after MathJax's hash jump.
+  document.querySelector(':target')?.scrollIntoView();
   let width = innerWidth;
   let timer;
   addEventListener('resize', function () {

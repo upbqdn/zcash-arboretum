@@ -192,6 +192,18 @@ async def check_appearance(page, scope):
     await page.evaluate("delete document.documentElement.dataset.theme")
 
 
+async def check_math_anchor(context, base):
+    # Warm-font new tabs used to shift this heading under the sticky bar when
+    # inline overflow boxes changed line heights after MathJax's hash jump.
+    for _ in range(3):
+        page = await context.new_page()
+        await page.set_viewport_size({"width": 1280, "height": 720})
+        target = f"{base}/math-guide/S2.html#SS5-heading"
+        await page.goto(target)
+        await check_destination(page, target)
+        await page.close()
+
+
 async def hit_point(page, region, link, padding=False):
     # Click rendered coordinates, not the excerpt element hidden by a stretched
     # anchor. The hit target must be the right native link, including its hash.
@@ -355,6 +367,7 @@ async def main():
             await context.route("**/arboretum.css*", lambda route: route.fulfill(
                 path=stylesheet, content_type="text/css"))
         page = await context.new_page()
+        await check_math_anchor(context, base)
         await page.goto(f"{base}/")
         await page.locator("#search .pagefind-ui__search-input").fill("note")
         await page.locator("#search .pagefind-ui__result-link").first.wait_for()
