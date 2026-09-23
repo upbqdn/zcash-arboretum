@@ -5,22 +5,59 @@
 %% Compile: tectonic -Z shell-escape talks/zcash-private-transactions.tex
 \documentclass[aspectratio=169,11pt]{beamer}
 \usetheme{default}
+\usefonttheme{serif}
 \setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{footline}[frame number]
-\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{itemize items}{\textendash}
 \setbeamersize{text margin left=9mm,text margin right=9mm}
 \renewcommand{\appendixname}{Appendix}
-\usepackage{amsmath,amssymb,mathtools}
+\usepackage{amsmath,mathtools}
+\usepackage{fontspec,unicode-math}
+\setmainfont{STIX2Text}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
+\setmathfont{STIX2Math}[Path=../fonts/, Extension=.otf]
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
 
-\definecolor{arb}{RGB}{27,94,52}
-\definecolor{arbred}{RGB}{150,40,40}
-\definecolor{arbdim}{RGB}{100,100,100}
+% A mathematical handout on a slide: one text/math family, ink on white.
+\definecolor{arbink}{HTML}{252925}
+\definecolor{arb}{HTML}{355E4C}
+\definecolor{arbred}{HTML}{943F3B}
+\definecolor{arbdim}{HTML}{646C66}
+\setbeamercolor{normal text}{fg=arbink,bg=white}
 \setbeamercolor{structure}{fg=arb}
-\setbeamercolor{frametitle}{fg=arb}
+\setbeamercolor{frametitle}{fg=arbink}
 \setbeamercolor{alerted text}{fg=arbred}
+\setbeamercolor{itemize item}{fg=arbdim}
+\setbeamercolor{page number in head/foot}{fg=arbdim}
+\setbeamerfont{frametitle}{size=\fontsize{14}{17},series=\mdseries}
+\setbeamerfont{page number in head/foot}{size=\fontsize{7}{8}}
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip\vskip2mm
+  \begin{beamercolorbox}[wd=\textwidth,sep=0pt]{frametitle}
+    \usebeamerfont{frametitle}\strut\insertframetitle\strut\par
+    \ifx\insertframesubtitle\empty\else
+      {\usebeamerfont{framesubtitle}\usebeamercolor[fg]{framesubtitle}%
+        \insertframesubtitle\par}%
+    \fi
+  \end{beamercolorbox}
+  \vskip0.5mm}
+\setbeamertemplate{footline}{%
+  \hfill{\usebeamerfont{page number in head/foot}%
+    \usebeamercolor[fg]{page number in head/foot}\insertframenumber}%
+  \hspace*{9mm}\vskip1mm}
+\setbeamertemplate{title page}{%
+  \vspace*{14mm}
+  {\small\scshape\color{arb}The Zcash Arboretum\par}
+  \vskip8mm
+  {\fontsize{30}{34}\selectfont\inserttitle\par}
+  \vskip4mm
+  {\large\color{arbdim}\insertsubtitle\par}
+  \vskip10mm
+  {\small\insertauthor\par}}
+\tikzset{thick/.style={line width=0.6pt},
+  very thick/.style={line width=0.85pt}}
 
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\G}{\mathbb{G}}
@@ -56,10 +93,19 @@
 \newcommand{\Comm}{\ensuremath{\mathsf{Commit}}}
 \newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
 
-\newcommand{\divider}[1]{\begin{frame}[plain]\vfill\centering
-  {\usebeamercolor[fg]{structure}\Huge #1}\vfill\end{frame}}
+\newcommand{\divider}[2]{%
+  \section{#2}
+  \begin{frame}[plain,t]
+  \vspace*{14mm}
+  {\small\color{arb}#1\par}
+  \vskip8mm
+  \begin{minipage}{0.88\textwidth}\raggedright
+    \fontsize{27}{31}\selectfont #2\par
+  \end{minipage}
+  \end{frame}}
 \newcommand{\prevents}[1]{{\small\alert{Prevents:} #1}}
-\newcommand{\src}[1]{\vskip0pt plus 1filll{\tiny\color{arbdim}#1}}
+\newcommand{\src}[1]{\par\vskip0pt plus 1filll
+  {\fontsize{6}{7.2}\selectfont\color{arbdim}\raggedright #1\par}}
 
 \title{Zcash for Bitcoiners}
 \subtitle{how a shielded transaction is verified without being seen}
@@ -68,7 +114,7 @@
 
 \begin{document}
 
-\begin{frame}[plain]
+\begin{frame}[plain,t]
 \titlepage
 \end{frame}
 
@@ -77,7 +123,7 @@
 %% Frames only. Numbers: compute/a_bitcoin.py, a_checks.py, a_notes.py
 %% (outputs pasted above each frame). Defines no shared figure macro.
 
-\divider{What Bitcoin publishes, and what privacy must mean}
+\divider{Part A}{What Bitcoin publishes, and what privacy must mean}
 
 % a_bitcoin.py:
 %   input   2.0000 BTC = 200,000,000 sat
@@ -88,8 +134,8 @@
 \centering
 \scalebox{0.84}{%
 \begin{tikzpicture}[>={Stealth[length=2mm]}, font=\footnotesize,
-  box/.style={draw, rounded corners, inner sep=4pt, align=left},
-  ext/.style={draw, dashed, rounded corners, inner sep=4pt, align=center,
+  box/.style={draw, inner sep=4pt, align=left},
+  ext/.style={draw, dashed, inner sep=4pt, align=center,
     text=arbdim},
   tag/.style={font=\scriptsize\itshape, text=arbred, align=center}]
 \node[box] (tx) {\begin{tabular}{@{}l@{\ \ }l@{}}
@@ -403,7 +449,7 @@ two different notes could share one?}
 \newcommand{\Bahead}[1]{{\small\textcolor{arbdim}{\emph{Ahead:} #1}}}
 \newcommand{\Bpers}[1]{\ensuremath{\text{``}\mathtt{#1}\text{''}}}
 
-\divider{The toolbox, from Bitcoin's primitives up}
+\divider{Part B}{The toolbox, from Bitcoin's primitives up}
 
 %% ---------------------------------------------------------------- B1
 % b_primitives.py:
@@ -655,7 +701,7 @@ group order. A range check on every value closes the wrap.
   lf/.style={draw,minimum width=6mm},
   rt/.style={draw=arbred,thick,fill=arbred!15},
   sb/.style={fill=arb!25}]
-\node[draw,rounded corners,thick] {anchor}
+\node[draw,thick] {anchor}
   child {node[nd,rt] {}
     child {node[nd,sb] {}
       child {node[lf] {\cmx}}
@@ -902,6 +948,8 @@ For a fresh uniform $\alpha$ per spend --- added, never multiplied in:
 % (no numbers)
 \begin{frame}{Preview: a signature under a key nobody holds unless the
   values balance}
+\small
+\setlength{\abovedisplayskip}{3pt}\setlength{\belowdisplayskip}{3pt}
 Sum the Actions' value commitments and fold in the public balance:
 \[
   \mathsf{bvk} = \sum \cvsym - [\mathsf{valueBalance}]\,V
@@ -1156,7 +1204,7 @@ ZK proof & none & \raggedright Halo 2 zk-SNARK per bundle &
   \node[nd] (D) at (6.5,1) {};
   \node[nd,croute] (E) at (1.5,2) {};
   \node[nd,csib] (F) at (5.5,2) {};
-  \node[draw,rounded corners,fill=arb!15,croot] (R) at (3.5,3) {anchor};
+  \node[draw,fill=arb!15,croot] (R) at (3.5,3) {anchor};
   \draw[ed] (A)--(L0); \draw[ed] (A)--(L1); \draw[ed] (B)--(L3);
   \draw[ed] (C)--(L4); \draw[ed] (C)--(L5); \draw[ed] (D)--(L6);
   \draw[ed] (D)--(L7); \draw[ed] (E)--(A); \draw[ed] (F)--(C);
@@ -1169,7 +1217,7 @@ ZK proof & none & \raggedright Halo 2 zk-SNARK per bundle &
     \node[text=arbred,below=1pt of L2] {$p$};\fi
   \end{tikzpicture}}
 
-\divider{The data model}
+\divider{Part C}{The data model}
 
 %% compute/c_datamodel.py:
 %%   C1 Alice's note: 2 ZEC = 2 * 10^8 = 200000000 zatoshi
@@ -1487,7 +1535,7 @@ each pool & the note commitment tree & append every $\cmx$; a root per
 \src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
   ``Anchor choice, reorgs, and the anonymity set''; ``The wallet's
   witness: shardtree, shards, and the cap'';
-  \emph{Sync Guide}, ``Frontiers as scan seeds'';
+  \emph{Wallet Guide}, ``Frontiers as scan seeds'';
   protocol specification, ``Action Transfers and their Descriptions''}
 \end{frame}
 
@@ -1689,7 +1737,7 @@ How does it learn which are spent?
 % Shared with later fragments; defined here only.
 \newcommand{\LadderFig}{%
 \begin{tikzpicture}[font=\small, x=1cm, y=1cm,
-  k/.style={draw, rounded corners, inner sep=3pt, minimum height=6mm,
+  k/.style={draw, inner sep=3pt, minimum height=6mm,
             anchor=center, fill=arb!10},
   kspend/.style={k, fill=arbred!10},
   kfull/.style={k, fill=arb!22},
@@ -1733,7 +1781,7 @@ How does it learn which are spent?
 \node[tier] at (-2.2,-4.4) {receive (public)};
 \end{tikzpicture}}
 
-\divider{Keys and addresses}
+\divider{Part D}{Keys and addresses}
 
 % d_keys.py: seed 32..252 bytes, >= 256 bits entropy; sk 32 bytes = 256 bits
 % d_keys.py: hardened offset 2^31 = 2147483648; purpose 32' = 0x80000020
@@ -2115,21 +2163,21 @@ the layer already built''; ``Internal keys: change and auto-shielding'';
     hlcv/.style={}, hlrk/.style={}, hlcmx/.style={}, hlproof/.style={},
     hl#1/.style={draw=arbred, very thick, fill=arbred!15}}%
   \begin{tikzpicture}[font=\scriptsize, x=1cm, y=1cm,
-    ebox/.style={draw=black!60, fill=white, rounded corners=2pt,
+    ebox/.style={draw=black!60, fill=white,
       inner sep=2.5pt, align=center},
     elab/.style={inner sep=2pt, text=black!60}]
   % the bundle; a second Action behind the first
-  \draw[draw=black!50, dashed, rounded corners=3pt]
+  \draw[draw=black!50, dashed]
     (-2.45,-2.45) rectangle (4.75,2.5);
   \node[elab, anchor=north west, text=black!70, font=\scriptsize\bfseries]
     at (-2.45,2.5) {bundle};
-  \draw[draw=arb!40, rounded corners=3pt] (-2.0,-2.1) rectangle (2.4,2.1);
+  \draw[draw=arb!40] (-2.0,-2.1) rectangle (2.4,2.1);
   \node[elab, anchor=south east, text=arb!60] at (2.4,2.1) {$\times\,n$};
-  \node[draw=arb, thick, fill=white, rounded corners=3pt,
+  \node[draw=arb, thick, fill=white,
     minimum width=4.4cm, minimum height=3.9cm] (act) at (0,0) {};
   \node[anchor=north west, font=\scriptsize\bfseries, text=arb,
     inner sep=2pt] at (act.north west) {Action};
-  \node[draw=arb!60, fill=arb!8, rounded corners=2pt, inner sep=3pt,
+  \node[draw=arb!60, fill=arb!8, inner sep=3pt,
     align=center, anchor=north, text width=3.8cm] (wit) at (0,1.62)
     {\textbf{witness} --- never published\\
      old note, new note\\
@@ -2154,7 +2202,7 @@ the layer already built''; ``Internal keys: change and auto-shielding'';
   \node[ebox, anchor=west] (bsg) at (2.45,-1.6) {binding sig};
   \end{tikzpicture}}
 
-\divider{The Action statement}
+\divider{Part E}{The Action statement}
 
 % compute/e_action.py:
 %   OrchardAction bytes: 32 + 32 + 32 + 32 + 32 + 580 + 80 = 820
@@ -2762,13 +2810,15 @@ you?}
 proof''; ``One circuit, one verifying key''}
 \end{frame}
 
-\begin{frame}[plain]
-\vfill\centering
-{\usebeamercolor[fg]{structure}\Huge Break}\\[28pt]
-\begin{minipage}{0.8\textwidth}\centering\itshape
+\begin{frame}[plain,t]
+\vspace*{14mm}
+{\small\scshape\color{arb}Intermission\par}
+\vskip8mm
+{\fontsize{27}{31}\selectfont Break\par}
+\vskip6mm
+\begin{minipage}{0.8\textwidth}\raggedright\itshape
 Which clause would you delete to counterfeit, and what stops you?
 \end{minipage}
-\vfill
 \end{frame}
 
 %% ---- 06-balance.tex
@@ -2782,7 +2832,7 @@ Which clause would you delete to counterfeit, and what stops you?
 \newcommand{\EpSA}{\ensuremath{G^{\mathsf{SpendAuth}}}}
 \newcommand{\EpZ}{\ensuremath{\mathbb{Z}}}
 
-\divider{Balance and authority}
+\divider{Part E$'$}{Balance and authority}
 
 % compute/ep_balance.py:
 %   == E'1: three notes, CT-style, in the toy group
@@ -3145,7 +3195,7 @@ observing the note''; ``One Action, one payment: the walkthrough'';
     node[midway,left=1pt,rotate=90,anchor=south] {$2^{11}$ rows};
 \end{tikzpicture}}
 
-\divider{The proof system: from a statement to a few kilobytes}
+\divider{Part F}{The proof system: from a statement to a few kilobytes}
 
 \begin{frame}{A zk-SNARK, precisely enough}
 A \emph{relation} $R$ pairs a public statement $x$ with a private witness
@@ -3326,7 +3376,7 @@ everywhere.
     \]
 \end{enumerate}
 Honest trace, $z = 20$: $\GZH(20) = 46$, $t(20) = 67$,
-$G(20) = 75 = 67 \cdot 46$. \checkmark\ Every honest prover passes at
+$G(20) = 75 = 67 \cdot 46$. \(\checkmark\) Every honest prover passes at
 every $z$, because $G = t\,\GZH$ holds as polynomials.
 
 \medskip
@@ -3808,7 +3858,7 @@ Ironwood analogue''}
 %% Sources: Ironwood Guide "Minting: a note is born" (the note seed and the
 %% Ironwood trapdoor), "Delivery: the note reaches its owner" (both
 %% ciphertexts, trial decryption, synchronisation), "Resting: the note in
-%% the commitment tree" (shards, cap, anchors); Sync Guide "Compact blocks
+%% the commitment tree" (shards, cap, anchors); Wallet Guide "Compact blocks
 %% (ZIP-307)", "Commitment-tree synchronisation", "What the server learns";
 %% Wallet Guide "Internal keys: change and auto-shielding", "Transaction
 %% construction", "Broadcast, expiry, and the transaction lifecycle".
@@ -3824,7 +3874,7 @@ Ironwood analogue''}
 \newcommand{\Fivkint}{\ensuremath{\ivk^{\mathsf{int}}}}
 \newcommand{\Fkenc}{\ensuremath{K_{\mathrm{enc}}}}
 
-\divider{Delivery and light clients}
+\divider{Part G}{Delivery and light clients}
 
 %% compute/f_delivery.py:
 %% compact note plaintext = 1+11+8+32 = 52 B
@@ -3993,7 +4043,7 @@ Nothing on chain names a recipient, so Bob's wallet trial-decrypts
     the recipient, so there is nothing to ask for.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``Recipient: trial decryption and
-  re-derivation''; \emph{Sync Guide}, ``Compact blocks (ZIP-307)'';
+  re-derivation''; \emph{Wallet Guide}, ``Compact blocks (ZIP-307)'';
   protocol specification, ``Decryption using an Incoming Viewing Key
   (Sapling and Orchard)''}
 \end{frame}
@@ -4036,7 +4086,7 @@ Nothing on chain names a recipient, so Bob's wallet trial-decrypts
     for what matches; this client downloads every compact block in range
     and asks for no particular output.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
+\src{\emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
   messages''; ``Omissions and fetch-on-detect''; \emph{Ironwood Guide},
   ``Synchronisation, including from cold storage''}
 \end{frame}
@@ -4068,7 +4118,7 @@ Bob accept a note the chain did not commit to.
     then fetches the matching blocks. Here the ``filter'' is \ivk,
     applied to every block, and no match is ever requested.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Compact trial decryption''; \emph{Ironwood
+\src{\emph{Wallet Guide}, ``Compact trial decryption''; \emph{Ironwood
   Guide}, ``Recipient: trial decryption and re-derivation''}
 \end{frame}
 
@@ -4089,7 +4139,7 @@ Bob accept a note the chain did not commit to.
     where it stopped; one that fetches what it detected reveals what it
     detected.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Omissions and fetch-on-detect''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``Omissions and fetch-on-detect''; ``Leaks in the
   deployed pattern''}
 \end{frame}
 
@@ -4115,7 +4165,7 @@ to know \emph{where}.
     --- the txid itself named its interest. Bob names nothing; his
     position is his own arithmetic.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Scanning: spends, positions, and tree sizes'';
+\src{\emph{Wallet Guide}, ``Scanning: spends, positions, and tree sizes'';
   \emph{Ironwood Guide}, ``Synchronisation, including from cold storage''}
 \end{frame}
 
@@ -4145,7 +4195,7 @@ to know \emph{where}.
 \node[rt] (a) at (9,11) {}; \node[rt] (b) at (45,11) {};
 \node[rt,dashed] (c) at (72,11) {};
 \node[rt] (e) at (27,16) {};
-\node[draw,rounded corners,fill=arb!15] (R) at (49,21) {anchor};
+\node[draw,fill=arb!15] (R) at (49,21) {anchor};
 \foreach \i in {0,...,4} {\draw[ed] (s\i) -- (r\i);}
 \draw[ed] (a)--(r0); \draw[ed] (a)--(r1); \draw[ed] (b)--(r2);
 \draw[ed] (b)--(r3); \draw[ed,dashed] (c)--(r4);
@@ -4170,7 +4220,7 @@ to know \emph{where}.
     the anchor is ever public.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Sync Guide}, ``Client state: shards, cap, and
+  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
   retention''}
 \end{frame}
 
@@ -4193,7 +4243,7 @@ to know \emph{where}.
     snapshots that consensus never sees.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Sync Guide}, ``Client state: shards, cap, and
+  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
   retention''; ``Reorganisation detection and recovery''}
 \end{frame}
 
@@ -4217,7 +4267,7 @@ enough to keep appending, and enough to seed a shard tree.
     and a peer answers a filter, or an Electrum server answers by
     address.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Frontiers as scan seeds''; ``The account
+\src{\emph{Wallet Guide}, ``Frontiers as scan seeds''; ``The account
   birthday''; ``Shard completion and spendability''}
 \end{frame}
 
@@ -4243,7 +4293,7 @@ observable & reveals & mitigation status \tabularnewline
 \emph{Bitcoin contrast:} a BIP-157 client shows a peer the same kind of
 schedule --- which filter ranges it pulls, and when --- and then every
 block it fetches on top. Here the content holds and the schedule leaks.
-\src{\emph{Sync Guide}, ``The stated security model''; ``What never leaves
+\src{\emph{Wallet Guide}, ``The stated security model''; ``What never leaves
   the device''; ``Leaks in the deployed pattern''; ``Deployed
   mitigations''}
 \end{frame}
@@ -4271,7 +4321,7 @@ observable & reveals & mitigation status \tabularnewline
 \emph{Bitcoin contrast:} a BIP-37 client leaks its addresses up to the
 false-positive rate, a BIP-157 client its matched blocks; here content
 leaks only through what the wallet sends after detecting.
-\src{\emph{Sync Guide}, ``What never leaves the device''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the
   deployed pattern''; ``The submission channel''; ``Deployed
   mitigations''}
 \end{frame}
@@ -4296,7 +4346,7 @@ leaks only through what the wallet sends after detecting.
     contents, and none of it is inevitable; Tor, bucketing, jitter, and
     cover traffic can each change it.
 \end{itemize}
-\src{\emph{Sync Guide}, ``What never leaves the device''; ``Deployed
+\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Deployed
   mitigations''; ``Summary, and the structural reading''}
 \end{frame}
 
@@ -4442,7 +4492,7 @@ instead?
     BIP-157 client narrows that to the blocks it fetches after a match
     --- still by asking.
 \end{itemize}
-\src{\emph{Sync Guide}, ``What never leaves the device''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the
   deployed pattern''; ``The submission channel''}
 \end{frame}
 
@@ -4455,7 +4505,7 @@ instead?
 \newcommand{\Hvbo}{\ensuremath{v_{\mathrm{balance}}^{\mathsf{Orchard}}}}
 \newcommand{\Hd}[1]{\ensuremath{d_{\mathrm{#1}}}}
 
-\divider{The transaction and the turnstile}
+\divider{Part H}{The transaction and the turnstile}
 
 % compute/h_txsize.py:
 %   OrchardAction = 820 B; header = 20 B; signature = 64 B
@@ -4535,10 +4585,10 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
 \begin{frame}{The sighash (ZIP-244): a tree of digests}
 \begin{center}
 \begin{tikzpicture}[x=1mm,y=1mm,font=\scriptsize,
-  nd/.style={draw,rounded corners,inner sep=2.5pt,align=center,fill=arb!8},
-  sig/.style={draw,rounded corners,inner sep=2.5pt,align=center,
+  nd/.style={draw,inner sep=2.5pt,align=center,fill=arb!8},
+  sig/.style={draw,inner sep=2.5pt,align=center,
     fill=arbred!8,draw=arbred},
-  auth/.style={draw,dashed,rounded corners,inner sep=2.5pt,align=center,
+  auth/.style={draw,dashed,inner sep=2.5pt,align=center,
     draw=arbred,text=arbred},
   e/.style={-,thick,arbdim}]
 \node[nd] (root) at (0,0) {$\mathsf{txidDigest} = \mathrm{BLAKE2b}%
@@ -4613,7 +4663,7 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
 \begin{frame}{Pools and the doors}
 \begin{center}
 \begin{tikzpicture}[x=1mm,y=1mm,
-  pool/.style={draw,rounded corners,minimum width=24mm,minimum height=6.5mm,
+  pool/.style={draw,minimum width=24mm,minimum height=6.5mm,
     fill=arb!10,font=\scriptsize},
   sealed/.style={pool,fill=arbred!8,draw=arbred},
   flow/.style={-{Stealth[length=2mm]},thick,arb},
@@ -4781,6 +4831,7 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
 % compute/h_txsize.py: Alice v6 = 9166 B, proof 7264 B (79.2%)
 \begin{frame}{The public face of Alice's transaction}
 \begin{center}\small
+\setlength{\tabcolsep}{5.5pt}
 \begin{tabular}{@{}ll@{}}
 \toprule
 public field & Alice pays Bob $1.5$ ZEC from a $2$ ZEC note \\
@@ -5028,7 +5079,7 @@ What can a chain analyst conclude, and what can they not?
 \end{tikzpicture}
 \end{center}}
 
-\divider{Consensus: why one fork wins, and what the chain must remember}
+\divider{Part H$'$}{Consensus: why one fork wins, and what the chain must remember}
 
 \begin{frame}{Bitcoin's chain rule, weighed in work}
 \Ktree
@@ -5723,7 +5774,7 @@ theorem say about waiting?
 %% ---- 11-close.tex
 %% Part I --- Limits, frontier, takeaways
 
-\divider{Limits, frontier, takeaways}
+\divider{Part I}{Limits, frontier, takeaways}
 
 % compute/ep_actions.py:
 %   Actions: 2 (requested spends 1, outputs 2, padded to MIN_ACTIONS = 2)
@@ -5779,7 +5830,7 @@ server learns''. Two leaks survive the shipped mitigations:
 \alert{Bitcoin:} the scan leaks less than a BIP-157 client, which names
 each block it fetches after a filter hit; the fetch after a hit leaks
 more --- one txid, not a block (``Leaks, in both directions'').
-\src{\emph{Sync Guide}, ``The stated security model''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``The stated security model''; ``Leaks in the
 deployed pattern''; ``The submission channel''; ``Deployed mitigations''}
 \end{frame}
 
@@ -6110,7 +6161,7 @@ proved tag''; ``Scope, status, and sources''}
 \begin{frame}{Where each one sits}
 \begin{center}
 \begin{tikzpicture}[x=1cm, y=1cm, >={Stealth[length=2mm]},
-  layer/.style={draw, rounded corners=2pt, minimum height=7mm,
+  layer/.style={draw, minimum height=7mm,
     minimum width=34mm, font=\small, align=center},
   tag/.style={font=\small, text=arb, anchor=west}]
 \node[layer] (hdr) at (0,3.0) {block header};
@@ -6181,8 +6232,7 @@ payment''; ``What a node verifies, without ever observing the note'';
   \item \textbf{Deployed protocol} --- the \emph{Consensus Guide} (the
     consensus part), the \emph{Ironwood Guide} (the spine of this
     workshop), the
-    \emph{Wallet Guide} (keys, fees, the pipeline), the \emph{Sync Guide}
-    (what the server learns).
+    \emph{Wallet Guide} (keys, fees, the pipeline, and what the server learns).
   \item \textbf{Frontier} --- the \emph{FlyClient}, \emph{ZSA},
     \emph{Crosslink} and \emph{FROST Guides}, each with its bins visible.
 \end{itemize}
@@ -6196,7 +6246,7 @@ authoritative, and every volume cites the section it draws on.
 %% Frames only. Uses no shared figure macro; defines none.
 
 \appendix
-\divider{Backup}
+\divider{Appendix}{Backup}
 
 % compute/z_zips.py (statuses read from the pinned zips checkout):
 %   zips checkout: 69610984
@@ -6211,7 +6261,7 @@ authoritative, and every volume cites the section it draws on.
 \begin{frame}{Backup: sources --- the volumes, the specification, the ZIPs}
 \begin{itemize}
   \item Volumes drawn on: the \emph{Ironwood Guide} (the shielded critical
-    path); the \emph{Halo 2}, \emph{Wallet}, \emph{Sync}, \emph{Crypto},
+    path); the \emph{Halo 2}, \emph{Wallet}, \emph{Crypto},
     \emph{Consensus} and \emph{Math} Guides; one row each from the
     \emph{FROST}, \emph{FlyClient}, \emph{ZSA} and \emph{Crosslink}
     Guides. The volumes are non-normative.
@@ -6240,7 +6290,7 @@ transaction''; \emph{Consensus Guide}, ``Sources and their standing''}
 %   ironwood-guide.tex: orchard 0.15.0, bef8a27, e30517e4, 69610984, dd1667ff
 %   halo2-guide.tex: halo2_proofs 0.3.2, halo2_gadgets 0.5.0, orchard 0.15.3
 %   wallet-guide.tex: e30517e4, 91f448b5, c6b7035
-%   sync-guide.tex: e30517e4, 61fee32e, 0e057e22, 6961098
+%   wallet-guide.tex (synchronisation): e30517e4, 61fee32e, 0e057e22, 6961098
 %   consensus-guide.tex: 69610984, fa7657f1c, e30517e43, e753a6a3
 \begin{frame}{Backup: implementation snapshots, as the volumes cite them}
 \begin{center}\small
@@ -6256,7 +6306,7 @@ Halo 2 & \textsf{halo2\_proofs} 0.3.2; \textsf{halo2\_gadgets} 0.5.0;
   \textsf{orchard} 0.15.3 \\
 Wallet & \textsf{librustzcash} \texttt{e30517e4}, later snapshot
   \texttt{91f448b5}; \textsf{zips} \texttt{c6b7035} \\
-Sync & \textsf{librustzcash} \texttt{e30517e4}; \textsf{lightwalletd}
+  & \textsf{librustzcash} \texttt{e30517e4}; \textsf{lightwalletd}
   \texttt{61fee32e}; \textsf{Zaino} \texttt{0e057e22}; \\
   & \textsf{zips} \texttt{6961098} \\
 Consensus & \textsf{zips} \texttt{69610984}; \textsf{zebra}
@@ -6268,7 +6318,7 @@ Consensus & \textsf{zips} \texttt{69610984}; \textsf{zebra}
 \src{\emph{Ironwood Guide}, ``Two pools, one protocol: doors and the v6
 transaction''; \emph{Halo 2 Guide}, ``From statement to circuit:
 arithmetisation in practice''; \emph{Wallet Guide}, ``Diversified and
-unified addresses (ZIP-316)''; \emph{Sync Guide}, ``Normative status and
+unified addresses (ZIP-316)''; ``Normative status and
 wire-format history''; \emph{Consensus Guide}, ``Sources and their
 standing''}
 \end{frame}

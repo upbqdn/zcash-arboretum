@@ -693,7 +693,7 @@ The NIST finals (FIPS 203/204/205, published 2024-08-13) fix the sizes.
 Table~\ref{tab:pq-nist} lists the relevant tiers beside their classical
 counterparts as the series states them --- the $64$-byte RedPallas
 signature (ZIP-230 signature encodings; \emph{Ironwood Guide}, the v6
-transaction table), the $32$-byte ephemeral key (\emph{Sync Guide}),
+transaction table), the $32$-byte ephemeral key (\emph{Wallet Guide}),
 the $192$-byte Groth16 proof (\emph{Wallet Guide}). The ratios are the
 story.
 
@@ -737,7 +737,7 @@ is sharper still: a per-output ephemeral key of $32$ bytes becomes
 $1088$, taking the \textsf{CompactOrchardAction} payload from $148$
 bytes to about $1200$, an $8.1\times$ bandwidth multiplier on exactly
 the wire format the light-client stack was built to keep small
-(\emph{Sync Guide}). These substitutions do not define a working protocol:
+(\emph{Wallet Guide}). These substitutions do not define a working protocol:
 ML-DSA supplies neither RedPallas key re-randomisation nor the binding
 signature's Pedersen-balance relation, and a KEM integration needs new
 address, note-encryption, and circuit rules. Public-key distribution and

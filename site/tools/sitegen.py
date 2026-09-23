@@ -36,10 +36,8 @@ VOLUME_META = [
     ("consensus-guide", "Deployed protocol", "deployed"),
     ("ironwood-guide", "Deployed protocol", "deployed"),
     ("wallet-guide", "Deployed protocol", "deployed"),
-    ("sync-guide", "Deployed protocol", "deployed"),
     ("flyclient-guide", "Frontier", "design-stage"),
     ("zsa-guide", "Frontier", "frontier"),
-    ("crosslink-guide", "Frontier", "design-stage"),
     ("frost-guide", "Frontier", "frontier"),
 ]
 VOLUMES = [v for v, _, _ in VOLUME_META]
@@ -56,14 +54,14 @@ applicable ZIPs, and consensus rules remain authoritative.
 
 The order is layered.  The \emph{Math}, \emph{Crypto}, and \emph{Halo~2}
 Guides construct the foundations.  The \emph{Consensus}, \emph{Ironwood},
-\emph{Wallet}, and \emph{Sync} Guides explain the deployed system and its
+and \emph{Wallet} Guides explain the deployed system and its
 boundaries.  The remaining parts examine the unbuilt FlyClient bridge,
-shielded assets, trailing finality, and threshold authorization.
+shielded assets, and threshold authorization.
 
 Three reading paths cover most uses.  For prerequisites, begin with the first
 three parts; readers new to proof systems may start with the worked example
 that closes the Halo~2 Guide.  For the life of a shielded payment, read
-\emph{Ironwood}, then \emph{Wallet}, \emph{Sync}, and \emph{Consensus}.  For
+\emph{Ironwood}, then \emph{Wallet} and \emph{Consensus}.  For
 proposed changes, read the relevant frontier part only after its lower-layer
 dependencies.  Each part restarts its own section numbering so that citations
 agree with the separately published volume.

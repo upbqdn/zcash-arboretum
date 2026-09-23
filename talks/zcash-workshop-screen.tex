@@ -5550,8 +5550,7 @@ is the fee \tabularnewline
     (the proof system, in full).
   \item Deployed protocol: \emph{Consensus Guide} (the consensus part);
     \emph{Ironwood Guide} (the spine of this workshop); \emph{Wallet
-    Guide} (keys, fees, the pipeline); \emph{Sync Guide} (what the
-    server learns).
+    Guide} (keys, fees, the pipeline, and what the server learns).
   \item Frontier: \emph{FlyClient}, \emph{ZSA}, \emph{Crosslink} and
     \emph{FROST Guides}, each with its bins visible.
   \item ``all non-normative --- the protocol specification and the ZIPs
@@ -5571,7 +5570,7 @@ None of it is normative; every volume cites the section it draws on.
 \Write
 \begin{itemize}
   \item Volumes (non-normative): \emph{Ironwood} (the shielded critical
-    path);\\ \emph{Halo 2}, \emph{Wallet}, \emph{Sync}, \emph{Crypto},
+    path);\\ \emph{Halo 2}, \emph{Wallet}, \emph{Crypto},
     \emph{Consensus}, \emph{Math}; one row each from \emph{FROST},
     \emph{FlyClient}, \emph{ZSA}, \emph{Crosslink}.
   \item Normative: the protocol specification; the ZIPs.
@@ -5615,7 +5614,7 @@ Halo 2 & \textsf{halo2\_proofs} 0.3.2; \textsf{halo2\_gadgets} 0.5.0;
   \textsf{orchard} 0.15.3 \\
 Wallet & \textsf{librustzcash} \texttt{e30517e4}, later snapshot
   \texttt{91f448b5}; \textsf{zips} \texttt{c6b7035} \\
-Sync & \textsf{librustzcash} \texttt{e30517e4}; \textsf{lightwalletd}
+  & \textsf{librustzcash} \texttt{e30517e4}; \textsf{lightwalletd}
   \texttt{61fee32e}; \textsf{Zaino} \texttt{0e057e22}; \textsf{zips}
   \texttt{6961098} \\
 Consensus & \textsf{zips} \texttt{69610984}; \textsf{zebra}
@@ -5626,7 +5625,7 @@ Consensus & \textsf{zips} \texttt{69610984}; \textsf{zebra}
 \end{center}
 \Say
 Each volume pins the implementation it cites; this table answers
-``which version?'' for five of them. A Bitcoin Core release number does
+``which version?'' for four of them. A Bitcoin Core release number does
 the same job: a claim about a default is a claim about one version.
 \end{board}
 

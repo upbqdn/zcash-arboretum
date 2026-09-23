@@ -127,7 +127,7 @@
 Assuming the commitment foundations of the \emph{Crypto Guide}, the deployed
 chain-selection rules of the \emph{Consensus Guide}, the block structures of
 the \emph{Ironwood Guide}, and the light-client layer of the
-\emph{Sync Guide}, this volume of \emph{The
+\emph{Wallet Guide}, this volume of \emph{The
 Zcash Arboretum} documents succinct chain verification for Zcash: the
 FlyClient protocol as its paper constructs it, the ZIP-221 chain-history
 commitment that every post-activation Zcash block header has carried since
@@ -187,7 +187,7 @@ The distance is the volume's third subject
 (\S\ref{sec:fc-gap}): Zcash commits to FlyClient's tree substrate in every
 post-activation block and validates it in every full node, yet no deployed
 wallet, SDK, or light-client server exposes or consumes a proof; deployed light clients instead
-trust their server for chain state outright (\emph{Sync Guide},
+trust their server for chain state outright (\emph{Wallet Guide},
 \S``Architecture and authority'').
 
 \subsection{Sources and pinning}\label{sec:fc-sources}
@@ -233,7 +233,7 @@ This volume assumes the \emph{Ironwood Guide} for everything inside a block
 treatment of the note-commitment tree (\S``Resting: the note in the commitment
 tree'') rather than re-deriving Merkle mechanics;
 the general theory of commitments and collision resistance is the
-\emph{Crypto Guide}'s (\S``Commitment schemes''). The \emph{Sync Guide} owns
+\emph{Crypto Guide}'s (\S``Commitment schemes''). The \emph{Wallet Guide} owns
 the deployed light-client layer whose central trust assumption --- the
 node/proxy combination ``is trusted to provide a correct view of the current
 best chain state'' (ZIP~307, \S``The stated security model'') --- is precisely the
@@ -1735,7 +1735,7 @@ nodes or assembled proofs.
 
 The deployed light-client protocol was specified before ZIP-221 and
 never updated toward it: ZIP-307 does not reference ZIP-221 once, and
-its security model is the one the \emph{Sync Guide} documents at length
+its security model is the one the \emph{Wallet Guide} documents at length
 --- the node/proxy combination ``is trusted to provide a correct view
 of the current best chain state''. The negative results are uniform
 across the stack (rechecked 2026-09-05): \textsf{lightwalletd} contains
@@ -1748,7 +1748,7 @@ type, ``Optional fields may be added for: \texttt{hashLightClientRoot}
 Neither \textsf{zcash\_client\_backend} nor \textsf{zcash\_client\_sqlite} nor
 \textsf{zcash\_primitives} depends on \textsf{zcash\_history}; the
 Android SDK has no trace. What the wallet stack does instead is exactly
-the \emph{Sync Guide}'s subject: hash-chain continuity
+the \emph{Wallet Guide}'s subject: hash-chain continuity
 (\texttt{prevHash} and height) and nothing more --- ZIP-307's own text
 concedes its header-validation section ``has been only partially
 implemented: currently only \texttt{prevHash} is checked'', and a grep

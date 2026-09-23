@@ -2038,7 +2038,7 @@ broadcast.
 \src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
   ``Anchor choice, reorgs, and the anonymity set''; ``The wallet's
   witness: shardtree, shards, and the cap'';
-  \emph{Sync Guide}, ``Frontiers as scan seeds'';
+  \emph{Wallet Guide}, ``Frontiers as scan seeds'';
   protocol specification, ``Action Transfers and their Descriptions''}
 \end{board}
 
@@ -5376,7 +5376,7 @@ scripts; here the ``lookup'' is a decryption attempt on every output.
     agreements and bytes; put no seconds on the board.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``Recipient: trial decryption and
-  re-derivation''; \emph{Sync Guide}, ``Compact blocks (ZIP-307)'';
+  re-derivation''; \emph{Wallet Guide}, ``Compact blocks (ZIP-307)'';
   protocol specification, ``Decryption using an Incoming Viewing Key
   (Sapling and Orchard)''}
 \end{board}
@@ -5444,7 +5444,7 @@ asks for no particular output.
   \item ``A few hundred bytes'' for the Action. The Action is 820 bytes;
     its compact form is 148.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
+\src{\emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
   messages''; ``Omissions and fetch-on-detect''; \emph{Ironwood Guide},
   ``Synchronisation, including from cold storage''}
 \end{board}
@@ -5477,8 +5477,8 @@ no sender can make Bob accept a note the chain did not commit to.
 wallet's scripts; BIP-157 matches a per-block filter locally, then
 fetches the matching blocks. Here the ``filter'' is \ivk, applied to
 every block, and no match is ever requested.
-\src{\emph{Sync Guide}, ``Compact trial decryption''; \emph{Ironwood
-  Guide}, ``Recipient: trial decryption and re-derivation''}
+\src{\emph{Wallet Guide}, ``Compact trial decryption'';\\
+  \emph{Ironwood Guide}, ``Recipient: trial decryption and re-derivation''}
 \end{board}
 
 \begin{board}{Leaks, in both directions}{none --- privacy of the scan}
@@ -5511,7 +5511,7 @@ deployed client and server libraries ship no decoy policy.
 \textbf{Structural, not accidental.} A client that asks for ranges
 reveals where it stopped; one that fetches what it detected reveals what
 it detected.
-\src{\emph{Sync Guide}, ``Omissions and fetch-on-detect''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``Omissions and fetch-on-detect''; ``Leaks in the
   deployed pattern''}
 \end{board}
 
@@ -5553,7 +5553,7 @@ own arithmetic.
     on public sizes; $\rho$ never enters it, and the leaf index never
     enters the nullifier.
 \end{itemize}
-\src{\emph{Sync Guide}, ``Scanning: spends, positions, and tree sizes'';
+\src{\emph{Wallet Guide}, ``Scanning: spends, positions, and tree sizes'';
   \emph{Ironwood Guide}, ``Synchronisation, including from cold storage''}
 \end{board}
 
@@ -5628,7 +5628,7 @@ peer. Bob folds his own from public roots and asks for nothing ---
 asking for one note's path would say which note is his. Only the anchor
 is ever public.
 \src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Sync Guide}, ``Client state: shards, cap, and
+  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
   retention''}
 \end{board}
 
@@ -5663,7 +5663,7 @@ one.
 block hashes inside the node; these are wallet-local tree snapshots that
 consensus never sees.
 \src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Sync Guide}, ``Client state: shards, cap, and
+  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
   retention''; ``Reorganisation detection and recovery''}
 \end{board}
 
@@ -5700,7 +5700,7 @@ its own shard's block extent and the tip range are scanned, it is ready.
 \textbf{Bitcoin contrast.} A restored Bitcoin wallet also rescans from
 its birthday, but needs no tree state: the UTXO set is public, and a
 peer answers a filter, or an Electrum server answers by address.
-\src{\emph{Sync Guide}, ``Frontiers as scan seeds''; ``The account
+\src{\emph{Wallet Guide}, ``Frontiers as scan seeds''; ``The account
   birthday''; ``Shard completion and spendability''}
 \end{board}
 
@@ -5737,7 +5737,7 @@ there is nothing.
 of schedule --- which filter ranges it pulls, and when --- and then
 every block it fetches on top. Here the content holds and the schedule
 leaks.
-\src{\emph{Sync Guide}, ``The stated security model''; ``What never leaves
+\src{\emph{Wallet Guide}, ``The stated security model''; ``What never leaves
   the device''; ``Leaks in the deployed pattern''; ``Deployed
   mitigations''}
 \end{board}
@@ -5773,7 +5773,7 @@ give addresses outright; jitter covers one-use addresses only.
 \textbf{Bitcoin contrast.} A BIP-37 client leaks its addresses up to the
 false-positive rate, a BIP-157 client its matched blocks; here content
 leaks only through what the wallet sends after detecting.
-\src{\emph{Sync Guide}, ``What never leaves the device''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the
   deployed pattern''; ``The submission channel''; ``Deployed
   mitigations''}
 \end{board}
@@ -5813,7 +5813,7 @@ shielded fetch-on-detect.
 \textbf{The reading.} None of this is a property of compact-block
 contents, and none of it is inevitable; Tor, bucketing, jitter, and
 cover traffic can each change it.
-\src{\emph{Sync Guide}, ``What never leaves the device''; ``Deployed
+\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Deployed
   mitigations''; ``Summary, and the structural reading''}
 \end{board}
 
@@ -6011,7 +6011,7 @@ have given away instead?
   re-derivation''; ``The outgoing ciphertext''; \emph{Wallet Guide},
   ``Internal keys: change and auto-shielding''; ``Executing the
   proposal''; ``Confirmations, trust, and spendability''. Checkpoint:
-  \emph{Sync Guide}, ``What never leaves the device''; ``Leaks in the deployed
+  \emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the deployed
   pattern''; ``The submission channel''}
 \end{board}
 
@@ -7989,7 +7989,7 @@ exists in the client library; whether any deployment uses it is unknown.
 \textbf{The contrast runs both ways.} The scan leaks less than a BIP-157
 client, which names each block it fetches after a filter hit. The fetch
 after a hit leaks more: one txid, not a block.
-\src{\emph{Sync Guide}, ``The stated security model''; ``Leaks in the
+\src{\emph{Wallet Guide}, ``The stated security model''; ``Leaks in the
 deployed pattern''; ``The submission channel''; ``Deployed mitigations''}
 \end{board}
 
@@ -8681,8 +8681,7 @@ payment''; ``What a node verifies, without ever observing the note'';
     (the proof system, in full).
   \item Deployed protocol: \emph{Consensus Guide} (the consensus part);
     \emph{Ironwood Guide} (the spine of this workshop); \emph{Wallet
-    Guide} (keys, fees, the pipeline); \emph{Sync Guide} (what the
-    server learns).
+    Guide} (keys, fees, the pipeline, and what the server learns).
   \item Frontier: \emph{FlyClient}, \emph{ZSA}, \emph{Crosslink} and
     \emph{FROST Guides}, each with its bins visible.
   \item Bottom line: ``all non-normative --- the protocol specification
@@ -8710,7 +8709,7 @@ figure; three carry a table, given as rows in writing order.
 \Write
 \begin{itemize}
   \item Volumes (non-normative): \emph{Ironwood} (the shielded critical
-    path); \emph{Halo 2}, \emph{Wallet}, \emph{Sync}, \emph{Crypto},
+    path); \emph{Halo 2}, \emph{Wallet}, \emph{Crypto},
     \emph{Consensus}, \emph{Math}; one row each from \emph{FROST},
     \emph{FlyClient}, \emph{ZSA}, \emph{Crosslink}.
   \item Normative: the protocol specification; the ZIPs.
@@ -8729,7 +8728,7 @@ figure; three carry a table, given as rows in writing order.
 \textbf{Everything in this workshop traces to a volume, and every deployed
 claim to the specification or a ZIP.} The volumes are non-normative: the
 Ironwood Guide carries the shielded critical path; the Halo 2, Wallet,
-Sync, Crypto, Consensus and Math Guides carry the rest; the FROST,
+Crypto, Consensus and Math Guides carry the rest; the FROST,
 FlyClient, ZSA and Crosslink Guides each supplied one row.
 
 \textbf{Normative means the protocol specification and the ZIPs.} Read
@@ -8763,8 +8762,8 @@ transaction''; \emph{Consensus Guide}, ``Sources and their standing''}
   \item Halo 2: \textsf{halo2\_proofs} 0.3.2; \textsf{halo2\_gadgets}
     0.5.0; \textsf{orchard} 0.15.3.
   \item Wallet: \textsf{librustzcash} \texttt{e30517e4}, later snapshot
-    \texttt{91f448b5}; \textsf{zips} \texttt{c6b7035}.
-  \item Sync: \textsf{librustzcash} \texttt{e30517e4};
+    \texttt{91f448b5}; \textsf{zips} \texttt{c6b7035};
+    synchronisation: \textsf{librustzcash} \texttt{e30517e4};
     \textsf{lightwalletd} \texttt{61fee32e}; \textsf{Zaino}
     \texttt{0e057e22}; \textsf{zips} \texttt{6961098}.
   \item Consensus: \textsf{zips} \texttt{69610984}; \textsf{zebra}
@@ -8776,12 +8775,12 @@ Only the heading: \emph{snapshots, as the volumes cite them}. Write a row
 when a question asks for it; otherwise read the rows out.
 \Say
 \textbf{Each volume pins the implementation it cites.} This board is the
-answer to ``which version?'' for five of the volumes: the Ironwood
+answer to ``which version?'' for four of the volumes: the Ironwood
 Guide's \textsf{orchard} and \textsf{librustzcash}
 pins and its zips checkout with the recheck; the Halo 2 Guide's
 \textsf{halo2\_proofs}, \textsf{halo2\_gadgets} and \textsf{orchard}
-pins; the Wallet Guide's later \textsf{librustzcash} snapshot; the Sync
-Guide's \textsf{lightwalletd} and \textsf{Zaino} pins; the Consensus
+pins; the Wallet Guide's later \textsf{librustzcash} snapshot and its
+\textsf{lightwalletd} and \textsf{Zaino} pins; the Consensus
 Guide's \textsf{zebra} pin and its own zips recheck.
 
 \textbf{A Bitcoin Core release number does the same job.} A claim about
@@ -8790,7 +8789,7 @@ version lives.
 \src{\emph{Ironwood Guide}, ``Two pools, one protocol: doors and the v6
 transaction''; \emph{Halo 2 Guide}, ``From statement to circuit:
 arithmetisation in practice''; \emph{Wallet Guide}, ``Diversified and
-unified addresses (ZIP-316)''; \emph{Sync Guide}, ``Normative status and
+unified addresses (ZIP-316)''; ``Normative status and
 wire-format history''; \emph{Consensus Guide}, ``Sources and their
 standing''}
 \end{board}

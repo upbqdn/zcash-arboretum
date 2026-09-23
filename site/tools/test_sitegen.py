@@ -46,20 +46,35 @@ for warning in (r"Overfull \hbox (2.0pt too wide)",
                 "! Undefined control sequence."):
     assert log_errors(warning), warning
 
-PARKED = ("pq-guide", "tachyon-guide", "voting-guide")
-MERGED = "halo2-intuition-guide"
+PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
+MERGED = ("halo2-intuition-guide", "sync-guide")
 assert all((sitegen.ROOT / "parked" / f"{vol}.tex").is_file()
            for vol in PARKED)
+assert all((sitegen.ROOT / "parked" / f"{vol}.pdf").is_file()
+           for vol in PARKED)
+assert all(not (sitegen.ROOT / f"{vol}{suffix}").exists()
+           for vol in PARKED for suffix in (".tex", ".pdf"))
 assert set(PARKED).isdisjoint(sitegen.VOLUMES)
-assert MERGED not in sitegen.VOLUMES
-assert not (sitegen.ROOT / f"{MERGED}.tex").exists()
-assert not (sitegen.ROOT / f"{MERGED}.pdf").exists()
+assert set(MERGED).isdisjoint(sitegen.VOLUMES)
+assert all(not (sitegen.ROOT / f"{vol}{suffix}").exists()
+           for vol in MERGED for suffix in (".tex", ".pdf"))
 assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
             if vol == "flyclient-guide") == ("Frontier", "design-stage")
 for volume in sitegen.VOLUMES:
     source = (sitegen.ROOT / f"{volume}.tex").read_text()
     assert source.count(r"\tableofcontents") == 1, volume
     assert source.index(r"\tableofcontents") < source.index(r"\section{"), volume
+
+# Both guides' chapters survive in their original order under one Wallet TOC.
+WALLET_CHAPTERS = (
+    "sec:keys-zip32", "sec:addresses", "sec:fees", "sec:pipeline",
+    "sec:pczt", "sec:lifecycle", "sec:zip321", "sec:sync-compact",
+    "sec:sync-service", "sec:sync-scanning", "sec:sync-tree", "sec:sync-privacy",
+)
+wallet = (sitegen.ROOT / "wallet-guide.tex").read_text()
+positions = [wallet.index(r"\label{" + label + "}") for label in WALLET_CHAPTERS]
+assert positions == sorted(positions)
+assert all(wallet.count(r"\label{" + label + "}") == 1 for label in WALLET_CHAPTERS)
 
 # Existing section and heading links survive; new IDs cannot collide with any
 # existing element, including one that appears later in the document.
@@ -129,11 +144,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "<table></table>" not in concordance
     assert "<h2>Protocol specification</h2>" in concordance
     assert "&sect; 4.2.3" in concordance
-    for vol in PARKED:
+    for vol in PARKED + MERGED:
         assert f'href="{vol}/"' not in landing
         assert f'href="{vol}/"' not in concordance
-    assert f'href="{MERGED}/"' not in landing
-    assert f'href="{MERGED}/"' not in concordance
     assert landing.count('href="complete/"') == 2
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
@@ -154,8 +167,12 @@ with tempfile.TemporaryDirectory() as tmp:
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
     assert "\\section{Worked example: one computation," in complete_tex
-    for title in ("PQ Guide", "Tachyon Guide", "Voting Guide"):
+    for title in ("PQ Guide", "Tachyon Guide", "Voting Guide", "Crosslink Guide",
+                  "Sync Guide"):
         assert f"\\part{{{title}:" not in complete_tex
+    assert complete_tex.count(r"\part{Wallet Guide:") == 1
+    for label in WALLET_CHAPTERS:
+        assert complete_tex.count(r"\label{wallet:" + label + "}") == 1
 
     webdir = out / "web"
     webdir.mkdir()
@@ -165,6 +182,11 @@ with tempfile.TemporaryDirectory() as tmp:
         assert r"\mdfsetup" not in (webdir / f"{volume}.tex").read_text()
     assert "Statistical distance" in (webdir / "math-guide.tex").read_text()
     assert "FF1" in (webdir / "crypto-guide.tex").read_text()
+    web_wallet = (webdir / "wallet-guide.tex").read_text()
+    assert not (webdir / "sync-guide.tex").exists()
+    assert web_wallet.count(r"\tableofcontents") == 1
+    for label in WALLET_CHAPTERS:
+        assert web_wallet.count(r"\label{" + label + "}") == 1
     (webdir / "math-guide.tex").write_text(r"""\documentclass{article}
 \begin{document}
 \begin{abstract}
