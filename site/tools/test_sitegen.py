@@ -134,6 +134,105 @@ assert titled[titled.index('<math'):titled.index('</math>') + 7] in math_heading
 
 with tempfile.TemporaryDirectory() as tmp:
     out = Path(tmp)
+    for volume in ('math-guide', 'crypto-guide', 'complete'):
+        (out / volume).mkdir()
+        (out / volume / 'index.html').write_text('')
+    math_sections = (
+        '<section><h1 class="ltx_title_section">'
+        '<span class="ltx_tag">10 </span>Elliptic curves</h1>'
+        '<section id="SS12"><h2 class="ltx_title_subsection">'
+        '<span class="ltx_tag">10.12 </span>The '
+        '<math alttext="j"><mi>𝑗</mi></math>-invariant</h2></section>'
+        '<section id="SS13"><h2 class="ltx_title_subsection">'
+        'The discrete logarithm problem</h2></section></section>')
+    crypto_sections = (
+        '<section><h1 class="ltx_title_section">Hash functions</h1>'
+        '<section id="SS4"><h2 class="ltx_title_subsection">'
+        '<span class="ltx_tag">3.4 </span>The random oracle model</h2></section>'
+        '<section id="SS5"><h2 class="ltx_title_subsection">'
+        'The discrete logarithm problem</h2></section>'
+        '<section id="SS6"><h2 class="ltx_title_subsection">'
+        'Privacy-preserving membership via zero-knowledge paths</h2></section>'
+        '<div id="Thmtheorem1" class="ltx_theorem ltx_theorem_remark">'
+        '<h6 class="ltx_title_theorem"><span class="ltx_tag">Remark 3.1</span> '
+        '(Named remark).</h6></div></section>')
+    for volume, number, filename, html in (
+            ('math-guide', 1, 'S10.html', math_sections),
+            ('crypto-guide', 2, 'S3.html', crypto_sections)):
+        (out / volume / filename).write_text(html)
+        (out / 'complete' / f'Pt{number}.html').write_text('')
+        (out / 'complete' / f'V{number}.{filename}').write_text(html)
+    # An earlier page's named definition must not hide a later section with
+    # the same name. Explicit section citations take the section target.
+    (out / 'crypto-guide' / 'index.html').write_text(
+        '<div id="Thmtheorem1" class="ltx_theorem ltx_theorem_definition">'
+        '<h6 class="ltx_title_theorem"><span class="ltx_tag">Definition 1</span> '
+        '(The random oracle model).</h6></div>')
+    index = sitegen.reference_index(out)
+    source = (
+        '<p><span class="ltx_font_italic">Crypto\nGuide</span>, '
+        '§“The random oracle model” and §“The discrete logarithm problem”.</p>'
+        '<figcaption>Math Guide, §“The '
+        '<math alttext="j"><mi>𝑗</mi></math>-invariant”.</figcaption>'
+        '<td>Crypto Guide’s “Named remark”.</td>'
+        '<p>Crypto Guide, §Privacy-preserving membership via zero-knowledge paths.</p>'
+        '<p>Math Guide: “The discrete logarithm problem”.</p>'
+        '<p><a href="kept.html">Crypto Guide</a>, '
+        '<a href="kept-section.html">§“The random oracle model”</a>.</p>'
+        '<p><code>Crypto Guide, §“The random oracle model”</code>.</p>'
+        '<p>Crosslink Guide, §“The discrete logarithm problem”.</p>'
+        '<p>Crypto Guide owns this (ZIP 307, §“The random oracle model”).</p>'
+        '<p>Math Guide defers to ZIP-32 (§“Elliptic curves”).</p>'
+        '<p>Math Guide; the next section develops “The random oracle model”.</p>'
+        '<p>See §“The random oracle model”.</p>'
+        '<p>Crypto Guide, §“A title that does not exist”.</p>')
+    linked = sitegen.link_references(source, 'crypto-guide', index)
+    assert '../crypto-guide/S3.html#SS4-heading' in linked
+    assert '../crypto-guide/S3.html#SS5-heading' in linked
+    assert '../math-guide/S10.html#SS13-heading' in linked
+    assert '../math-guide/S10.html#SS12-heading' in linked
+    assert '../crypto-guide/S3.html#Thmtheorem1' in linked
+    assert '../crypto-guide/S3.html#SS6-heading' in linked
+    assert '>§Privacy-preserving membership via zero-knowledge paths</a>.' in linked
+    assert '../math-guide/S10.html">§“Elliptic curves”</a>' in linked
+    assert linked.count('href="../crypto-guide/S3.html#SS4-heading"') == 3
+    for untouched in (
+            '<a href="kept-section.html">§“The random oracle model”</a>',
+            '<code>Crypto Guide, §“The random oracle model”</code>',
+            'Crosslink Guide, §“The discrete logarithm problem”',
+            '(ZIP 307, §“The random oracle model”)',
+            '§“A title that does not exist”'):
+        assert untouched in linked, untouched
+    assert re.sub(r'<a class="arb-crossref" href="[^"]+">(.*?)</a>',
+                  r'\1', linked, flags=re.S) == source
+    assert sitegen.link_references(linked, 'crypto-guide', index) == linked
+    for tag in ('td', 'figcaption'):
+        paragraphs = f'<{tag}><p>Math Guide.</p><p>“Elliptic curves” is a label.</p></{tag}>'
+        result = sitegen.link_references(paragraphs, 'crypto-guide', index)
+        assert result.count('class="arb-crossref"') == 1
+        assert '<p>“Elliptic curves” is a label.</p>' in result
+    entities = '<p>Math&#32;Guide, &#167;&ldquo;Elliptic curves&rdquo;.</p>'
+    result = sitegen.link_references(entities, 'crypto-guide', index)
+    assert result.count('class="arb-crossref"') == 2
+    assert re.sub(r'<a class="arb-crossref" href="[^"]+">(.*?)</a>',
+                  r'\1', result, flags=re.S) == entities
+    complete = sitegen.link_references(source, 'complete', index, 'crypto-guide')
+    assert '../complete/Pt2.html' in complete
+    assert '../complete/V2.S3.html#SS4-heading' in complete
+    assert '../complete/V1.S10.html#SS12-heading' in complete
+    assert '../crypto-guide/' not in complete
+    assert sitegen.reference_key('Fiat–Shamir: \u00a0𝑗') == sitegen.reference_key('Fiat--Shamir: j')
+    for name in ('S4.html', 'S5.html'):
+        (out / 'crypto-guide' / name).write_text(
+            '<h1 class="ltx_title_section">Repeated title</h1>')
+    ambiguous = sitegen.reference_index(out)
+    assert ambiguous[1]['standalone', 'cryptoguide']['repeatedtitle'] is None
+    assert 'href="../crypto-guide/S4.html"' not in sitegen.link_references(
+        '<p>Crypto Guide, §“Repeated title”.</p>', 'math-guide', ambiguous)
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    out = Path(tmp)
     sitegen.landing(out)
     sitegen.concordance(out)
     for name in ("index.html", "concordance.html"):

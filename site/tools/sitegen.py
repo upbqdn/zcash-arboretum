@@ -20,8 +20,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import xml.etree.ElementTree as ET
 from html import escape, unescape
+from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -328,6 +330,169 @@ def heading_search_titles(text):
 
     return re.sub(
         r'(<h[1-6]\b[^>]*?)>(.*?)(</h[1-6]>)', heading, text, flags=re.S)
+
+
+def reference_key(text):
+    """Ignore typography, but not words, when matching authored titles."""
+    return ''.join(c for c in unicodedata.normalize('NFKC', text).casefold()
+                   if c.isalnum())
+
+
+class ReferenceText(HTMLParser):
+    """Visible text with source offsets, so adding links preserves the HTML."""
+    def __init__(self, source):
+        super().__init__(convert_charrefs=False)
+        self.lines = [0] + [m.end() for m in re.finditer('\n', source)]
+        self.text = ''
+        self.positions = []
+        self.parents = []
+        self.feed(source)
+
+    def source_offset(self):
+        line, column = self.getpos()
+        return self.lines[line - 1] + column
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in {'br', 'hr', 'img', 'input', 'meta', 'link', 'wbr', 'source'}:
+            self.parents.append((tag, self.source_offset()))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.parents) - 1, -1, -1):
+            if self.parents[i][0] == tag:
+                del self.parents[i:]
+                break
+
+    def handle_data(self, data):
+        start, parents = self.source_offset(), tuple(self.parents)
+        self.text += data
+        self.positions.extend((start + i, start + i + 1, parents)
+                              for i in range(len(data)))
+
+    def handle_entityref(self, name):
+        raw = '&' + name + ';'
+        value = unescape(raw)
+        start = self.source_offset()
+        self.text += value
+        self.positions.extend((start, start + len(raw), tuple(self.parents))
+                              for _ in value)
+
+    def handle_charref(self, name):
+        self.handle_entityref('#' + name)
+
+    def link_range(self, start, end):
+        positions = self.positions[start:end]
+        if (not positions or positions[0][2] != positions[-1][2]
+                or any(tag in {'a', 'code', 'pre', 'script', 'style'}
+                       for _, _, parents in positions for tag, _ in parents)):
+            return None
+        return positions[0][0], positions[-1][1]
+
+
+def reference_index(out):
+    """Index actual generated headings, separately for each reading edition."""
+    guides, sections = {}, {}
+    for number, volume in enumerate(VOLUMES, 1):
+        title = reference_key(vol_title(volume)[0])
+        for edition, paths, home in (
+                ('standalone', (out / volume).glob('*.html'), f'{volume}/'),
+                ('complete', (out / 'complete').glob(f'V{number}.S*.html'),
+                 f'complete/Pt{number}.html')):
+            home_path = out / home / 'index.html' if home.endswith('/') else out / home
+            if not home_path.is_file():
+                continue
+            guides[edition, title] = home
+            targets = sections.setdefault((edition, title), {})
+            objects = {}
+            for page in paths:
+                source = heading_anchors(page.read_text())
+                headings = []
+                for match in re.finditer(r'<h[1-6]\b([^>]*)>(.*?)</h[1-6]>', source, re.S):
+                    attrs, body = match.groups()
+                    if not re.search(r'\bltx_title_(?:section|subsection|subsubsection|paragraph)\b', attrs):
+                        continue
+                    heading_id = HTML_ID_RE.search(attrs)
+                    headings.append((body, unescape(heading_id.group(2)) if heading_id else '', targets))
+                headings.extend((match.group(3), unescape(match.group(2)), objects)
+                                for match in THEOREM_TITLE_RE.finditer(source))
+                for body, identifier, entries in headings:
+                    body = re.sub(r'<span\b[^>]*class="[^"]*\bltx_tag\b[^"]*"[^>]*>.*?</span>',
+                                  '', body, flags=re.S)
+                    key = reference_key(ReferenceText(body).text)
+                    href = page.relative_to(out).as_posix()
+                    if identifier:
+                        href += '#' + identifier
+                    # Repeated titles such as "Syntax" are not unique targets.
+                    entries[key] = href if key not in entries else None
+            # A definition may repeat its section's name; section citations
+            # still refer to the section, not the definition inside it.
+            for key, href in objects.items():
+                targets.setdefault(key, href)
+    return guides, sections
+
+
+REFERENCE_RE = re.compile(
+    r'(?P<guide>\b(?:[A-Z][A-Za-z]*|Halo\s+2)\s+Guide\b)'
+    r'|(?P<external>\bZIP[\s-]*\d+\s*,?\s*(?=§|[“"])|\bprotocol specification\b)'
+    r'|(?P<local>\b(?:this|next|previous) section\b)'
+    r'|(?P<title>(?:§\s*)?[“"](?P<name>[^”"]+)[”"])'
+    r'|(?P<unquoted>§(?=\s*[A-Za-z]))')
+
+
+def link_references(text, volume, index, current=None):
+    """Link explicit guide citations, without guessing across paragraph bounds."""
+    guides, sections = index
+    edition = 'complete' if volume == 'complete' else 'standalone'
+    current = (reference_key(vol_title(current or volume)[0])
+               if current or volume != 'complete' else None)
+
+    def block(match):
+        source = match.group(0)
+        parsed = ReferenceText(source)
+        guide, paragraph, links = None, None, []
+        for citation in REFERENCE_RE.finditer(parsed.text):
+            href = None
+            start, end = citation.span()
+            parent = next((parent for parent in reversed(parsed.positions[start][2])
+                           if parent[0] == 'p'), None)
+            if parent != paragraph:
+                guide, paragraph = None, parent
+            if any(tag in {'code', 'pre', 'script', 'style', 'math'}
+                   for tag, _ in parsed.positions[start][2]):
+                continue
+            if citation.lastgroup == 'guide':
+                guide = reference_key(citation.group())
+                href = guides.get((edition, guide))
+            elif citation.lastgroup == 'external':
+                guide = ''  # An external section must not fall back to this guide.
+            elif citation.lastgroup == 'local':
+                guide = current
+            elif citation.lastgroup == 'unquoted':
+                context = guide if guide is not None else current
+                targets = sections.get((edition, context), {})
+                for stop in range(end + 1, len(parsed.text) + 1):
+                    key = reference_key(parsed.text[end:stop])
+                    if key and not any(title.startswith(key) for title in targets):
+                        break
+                    if (key in targets and parsed.text[stop - 1].isalnum()
+                            and (stop == len(parsed.text) or not parsed.text[stop].isalnum())):
+                        href, span_end = targets[key], stop
+                if href:
+                    end = span_end
+            else:
+                context = guide if guide is not None else (
+                    current if citation.group().startswith('§') else None)
+                href = sections.get((edition, context), {}).get(
+                    reference_key(citation.group('name')))
+            if href and (span := parsed.link_range(start, end)):
+                start, end = span
+                links.append((start, end, '../' + href))
+        for start, end, href in reversed(links):
+            source = (source[:start] + f'<a class="arb-crossref" href="{escape(href)}">'
+                      + source[start:end] + '</a>' + source[end:])
+        return source
+
+    return re.sub(r'<(?P<block>p|figcaption|td)\b[^>]*>.*?</(?P=block)>',
+                  block, text, flags=re.S)
 
 
 def render():
@@ -688,6 +853,7 @@ def postprocess(outdir):
                  for vol, _group, _chip in VOLUME_META]
     documents.append(("complete", "The Complete Arboretum",
                       "arboretum-complete"))
+    references = reference_index(out)
     reading_order = 0
     for vol, title, pdf in documents:
         vdir = out / vol
@@ -744,7 +910,10 @@ title="Table of contents">{title}</a>
             if match := UNEXPANDED_CREF_RE.search(t):
                 raise RuntimeError(
                     f"{page}: unexpanded cross-reference macro {match.group()}")
-            t2 = heading_search_titles(heading_anchors(t))
+            part = re.match(r'(?:V|Pt)(\d+)', page.stem) if vol == 'complete' else None
+            current = VOLUMES[int(part.group(1)) - 1] if part else None
+            t2 = link_references(heading_search_titles(heading_anchors(t)), vol,
+                                 references, current)
             if page.name == "index.html":
                 t2 = t2.replace('<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">',
                                 '<nav id="arb-contents" '
