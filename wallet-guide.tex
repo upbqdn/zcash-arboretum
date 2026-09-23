@@ -143,6 +143,10 @@ quantity carries its exact derivation.
 The compact-block wire format is deployed but underspecified; where the
 draft ZIP and the deployed implementations disagree, this volume documents
 the deployment and flags the divergence.
+The protocol target is draft NU7, whose
+\href{https://zips.z.cash/zip-0259}{ZIP~259} leaves both activation heights
+unassigned as of 23~September 2026. Proposed rules and implementation-specific
+behaviour are distinguished where they affect the construction.
 \end{abstract}
 \clearpage
 \tableofcontents
@@ -1815,6 +1819,23 @@ with $\mathit{marginal\_fee} = 5000$ zatoshis per logical action and
 $\mathit{grace\_actions} = 2$ (ZIP-317, \emph{Fee calculation}).
 \end{definition}
 
+\begin{remark}[NU7 does not redefine the conventional fee]
+\label{rem:fees-nu7}
+The Draft \href{https://zips.z.cash/zip-0259}{ZIP~259} does not replace
+the \href{https://zips.z.cash/zip-0317}{ZIP~317} fee formula or its
+$5000$-zatoshi marginal fee.
+
+Nor is a logical action the unit used for NU7's proposed block work limit.
+For example, the fee counts the larger of Sapling's spend and output
+counts, whereas the proposed block limit counts their sum
+(\href{https://zips.z.cash/zip-0218}{ZIP~218}). Paying the conventional
+fee therefore does not guarantee that a transaction fits in a particular
+block. The proposed block limits and allocation of fees between miners and
+the sustainability mechanism are separate matters, constructed in the
+\emph{Consensus Guide}, \S``NU7: 25-second blocks and bounded shielded
+work''; they do not add a field to an ordinary v5 or v6 payment.
+\end{remark}
+
 The two byte-size divisors are the standard P2PKH sizes, chosen so that one
 typical transparent input or output weighs one logical action. The standard
 input size $150 = 36 + 110 + 4$ decomposes as the outpoint ($36$: the
@@ -2328,6 +2349,12 @@ budget to the hard-coded limit of $0$, so a \textsf{zebra} template
 carries no unpaid actions at all. Overpaying beyond $4\times$ the
 conventional fee therefore buys no further priority --- a deliberate
 flattening of the fee market that keeps the conventional fee focal.
+Under the proposed NU7 rules, both selection phases would also have to
+respect the shielded block-work budget of
+\href{https://zips.z.cash/zip-0218}{ZIP~218}, including Ironwood if the
+open correction in \href{https://github.com/zcash/zips/pull/1361}{pull
+request~1361} is adopted. That validity constraint is independent of the
+unpaid-logical-action policy just described.
 
 \paragraph{Deployment.} ZIP-317 fees became the wallet default in
 \textsf{zcashd} v5.5.0; the block-template algorithm shipped in
@@ -2722,16 +2749,10 @@ the per-pool anchors and Orchard/Ironwood padding choices, which normally
 select \texttt{BundleType::DEFAULT}; the Orchard builder exists only if NU5
 is active at the target height, and the Ironwood builder only for a format and
 branch supporting Ironwood.
-The expiry height is the target plus
-$\mathsf{DEFAULT\_TX\_EXPIRY\_DELTA} = 40$ blocks, the post-Blossom default
-of ZIP~203 (\texttt{builder.rs}, \texttt{DEFAULT\_TX\_EXPIRY\_DELTA};
-ZIP~203 \S~``Changes for Blossom'').
-The rustdoc on \texttt{Builder::new} still says ``20 blocks''; code and ZIP
-agree, the rustdoc is stale --- cite the constant, not the comment. The
-transaction version is \texttt{TxVersion::suggested\_for\_branch} of the
-target height's branch --- V5 for the NU5 through NU6.2 branches, V6 for
-the NU6.3 (Ironwood) branch --- and
-the lock time of built transactions is $0$.
+For NU7, \href{https://zips.z.cash/zip-0218}{ZIP~218} recommends an expiry
+delta of $120$ blocks (\S\ref{sec:lifecycle-expiry}). The builder must use
+the target height's consensus branch; NU7 retains v5 and v6, with v6 needed
+for an Ironwood component. The lock time of built transactions is $0$.
 
 \paragraph{Spends, outputs, and keys.} Sapling spends are added under the
 external or internal (change) full viewing key according to each note's
@@ -3368,13 +3389,13 @@ Sapling bundle $\{$spends, outputs, \texttt{value\_sum}, \texttt{anchor},
 (ZIP-374, Encoding and Data type encodings).
 \end{construction}
 
-\paragraph{A minimal PCZT, byte by byte.} The smallest PCZT the Creator can
-emit makes the positional encoding concrete. Instantiating the Creator for
-NU6.2 (branch \texttt{0x5437F330}), expiry height $10{,}000{,}000$, coin type
-$133$, and building with no spends or outputs then serializing explicitly
-with \texttt{v2::Pczt::serialize} yields the $32$-byte version-$2$ stream
-below (computed by script against the \textsf{pczt}
-crate; every byte is assertion-checked):
+\paragraph{A minimal PCZT, byte by byte.} A v6 PCZT with no spends or
+outputs makes the positional encoding concrete. Use NU7's proposed branch
+identifier \texttt{0x77190AD9}, illustrative expiry height $10{,}000{,}000$,
+and Mainnet coin type $133$. Serialising the fields under
+\href{https://zips.z.cash/zip-0374}{ZIP~374}'s version-$2$ rules yields
+the following $32$ bytes. This is an encoding example, not a payment or an
+assignment of an activation height.
 
 \begin{center}
 \small
@@ -3384,9 +3405,9 @@ offset & field & bytes \\
 \midrule
 $0$  & magic \texttt{"PCZT"}                    & \texttt{50 43 5a 54} \\
 $4$  & version $2$ (raw LE \texttt{u32})        & \texttt{02 00 00 00} \\
-$8$  & \texttt{tx\_version} $= 5$ (varint)      & \texttt{05} \\
-$9$  & \texttt{version\_group\_id} (varint)     & \texttt{8a ce 9c b5 02} \\
-$14$ & \texttt{consensus\_branch\_id} (varint)  & \texttt{b0 e6 df a1 05} \\
+$8$  & \texttt{tx\_version} $= 6$ (varint)      & \texttt{06} \\
+$9$  & \texttt{version\_group\_id} (varint)     & \texttt{98 ed 92 c4 0d} \\
+$14$ & \texttt{consensus\_branch\_id} (varint)  & \texttt{d9 95 e4 b8 07} \\
 $19$ & \texttt{fallback\_lock\_time} $=$ None   & \texttt{00} \\
 $20$ & \texttt{expiry\_height} (varint)         & \texttt{80 ad e2 04} \\
 $24$ & \texttt{coin\_type} $= 133$ (varint)     & \texttt{85 01} \\
@@ -3414,11 +3435,9 @@ modifiable bits --- transparent inputs (bit $0$) and outputs (bit $1$) ---
 plus ZIP-374's Zcash-specific shielded-modifiable bit $7$, per
 Definition~\ref{def:pczt-txmod}.
 
-The convenience \texttt{Pczt::serialize} does not always emit v2: since
-release 0.9.0 it chooses the minimum encoding version that can represent the
-logical PCZT. This empty NU6.2 example is representable in v1 and therefore
-needs the explicit v2 serializer to produce the table above; explicit v1
-output uses \texttt{v1::Pczt::serialize}.
+The convenience \texttt{Pczt::serialize} chooses the minimum encoding
+version that can represent the logical PCZT. A v6 transaction requires PCZT
+v2 even when its bundles are empty; PCZT v1 represents only v5 transactions.
 
 Extensibility is deliberately narrow. New fields cannot be added within
 an existing PCZT version, because the Postcard encoding is positional;
@@ -3436,9 +3455,13 @@ $\mathrm{serialize}(\mathrm{parse}(\mathrm{serialize}(p))) =
 
 The deployed Creator,
 \texttt{Creator::new(consensus\_branch\_id, expiry\_height, coin\_type,
-sapling\_anchor, orchard\_anchor)}, selects the transaction format from the
-consensus branch: NU5 through NU6.2 use v5
-($\texttt{version\_group\_id}=\mathtt{0x26A7270A}$), while NU6.3 uses v6.
+sapling\_anchor, orchard\_anchor)}, selects a transaction format compatible
+with the target branch. NU7 permits v5
+($\texttt{version\_group\_id}=\mathtt{0x26A7270A}$) and v6
+($\texttt{version\_group\_id}=\mathtt{0xD884B698}$); an Ironwood component
+requires v6. A Creator and Signer must recognise the NU7 branch identifier;
+retaining v6 encoding is not permission to retain an old branch commitment
+(\href{https://zips.z.cash/zip-0259}{ZIP~259}).
 It starts with
 $\texttt{tx\_modifiable} = \mathtt{0b1000\_0011}$ (bits $0$, $1$, $7$
 set), Orchard $\texttt{flags} = \mathtt{0b0000\_0011}$ (spends and
@@ -4353,44 +4376,40 @@ coinbase script height (ZIP-203, \emph{Changes for NU5}; protocol
 specification \href{https://zips.z.cash/protocol/protocol.pdf\#txnencodingandconsensus}{\S7.1}).
 \end{definition}
 
-\paragraph{The deployed default: exactly $40$ blocks.} ZIP-203 sets the
-default expiry delta at $20$ blocks before Blossom and, from Blossom
-activation, $40$ blocks from the current height --- about $50$ minutes at
-the $75$-second target spacing --- and permits nodes to override it
-(\textsf{zcashd}'s \texttt{-txexpirydelta} option; ZIP-203, \emph{RPC},
-\emph{Config}). The deployed light-wallet stack applies the delta to
-the target height, normally one above the chain tip, not to the current
-tip itself. The constructor \texttt{Builder::new} sets
+\paragraph{The NU7 expiry policy.}
+\href{https://zips.z.cash/zip-0218}{ZIP~218}, ``Default expiry delta'',
+recommends a default of $120$ blocks. Let $\delta$ denote the wallet's
+chosen expiry delta, normally $120$ under that recommendation. With the
+light-wallet convention of applying the delta to the next-block target
+height, construction sets
 \[
 \mathsf{nExpiryHeight} :=
 \begin{cases}
   \mathrm{targetHeight} & \text{coinbase},\\
-  \mathrm{targetHeight} + \mathtt{DEFAULT\_TX\_EXPIRY\_DELTA} &
+  \mathrm{targetHeight} + \delta &
     \text{otherwise},
 \end{cases}
 \]
-with $\mathtt{DEFAULT\_TX\_EXPIRY\_DELTA} = 40$,
-the coinbase rule applied regardless of network upgrade. A public override,
-\texttt{Builder::with\_expiry\_height}, replaces this: its documentation
-permits disabling expiry with height $0$ but discourages it as not yet
-well-tested end-to-end, and coinbase builders reject an override that
-differs from the target height. A wallet that accepts the default
-therefore expires its transactions exactly $40$ blocks after their target
-height. The rigidity is a feature: ZIP-315
-(Draft; see Remark~\ref{rem:lifecycle-zip315}) says wallets SHOULD use the
-default $40$-block expiry, and a wallet emitting idiosyncratic expiry
-deltas would fingerprint its transactions, exactly as an idiosyncratic fee
-would (\S\ref{sec:fees}).
+and the default target-time duration is
+\[
+120 \cdot 25 = 3000\ \text{seconds} = 50\ \text{minutes}.
+\]
+This is an estimate, not a guaranteed validity duration: actual block
+intervals vary. The recommendation is wallet policy, not a new consensus
+expiry predicate. ZIP~218 preserves explicitly configured overrides.
+Wallets should otherwise use a common delta, because idiosyncratic expiry
+heights fingerprint transactions just as idiosyncratic fees do
+(\href{https://zips.z.cash/zip-0315}{ZIP~315}). Expiry estimation,
+pending-input locking, rebroadcast, and the unknown-expiry fallback must
+agree with the delta actually used in construction. The coordinated
+migration schedule is separate (\S\ref{sec:pipeline}).
 
-\begin{remark}[Documentation divergence: the builder's stale delta]
+\begin{remark}[The policy and its implementation]
 \label{rem:lifecycle-builder-doc}
-The doc comment on \texttt{Builder::new} states that the expiry height is
-set to the target ``plus the default transaction expiry delta (20
-blocks)'', while the constant it actually adds is
-$\mathtt{DEFAULT\_TX\_EXPIRY\_DELTA} = 40$
-(\textsf{zcash\_primitives}, \texttt{src/transaction/builder.rs}). The
-code matches ZIP-203 post-Blossom; the comment preserves the pre-Blossom
-value. We follow the code.
+The pinned wallet implementation predates NU7 and does not implement the
+recommended delta. The formulas here expose $\delta$ explicitly rather
+than claiming that its defaults have already changed. An implementation
+must select the applicable policy for the transaction's target height.
 \end{remark}
 
 \paragraph{Mempool eviction is node policy, mining is consensus.} The
@@ -4410,45 +4429,25 @@ non-malleable txid to its rejection list with
 operationally with ZIP-203's ``block $N$ or earlier; block $N+1$ will be
 too late''.
 
-\paragraph{The expiring-soon door policy.} The \textsf{zcashd} node
-additionally
-refuses (as denial-of-service mitigation, not consensus) to accept into its
-mempool, or relay, a transaction that is \emph{expiring soon}: one that
-would be expired within $\mathtt{TX\_EXPIRING\_SOON\_THRESHOLD} = 3$ blocks
-of the next block height, where
-$\mathrm{IsExpiredTx}(t, h) = (t.\mathsf{nExpiryHeight} \neq 0 \wedge
-t \text{ not coinbase} \wedge h > t.\mathsf{nExpiryHeight})$
-(\textsf{zcashd}, \texttt{src/main.h}, \texttt{src/main.cpp}). The
-practical consequence for wallets: a transaction submitted with fewer than
-about four blocks of remaining life is refused at the mempool door.
-Zebra applies no such buffer: its only admission-time expiry check is the
-consensus rule itself, evaluated at the next block height. The mempool
-hands each candidate to the transaction verifier with height
-$\mathrm{tipHeight} + 1$ (\textsf{zebrad},
-\texttt{src/components/mempool/downloads.rs}), and the verifier's
-\texttt{non\_coinbase\_expiry\_height} rejects only when that height
-exceeds $t.\mathsf{nExpiryHeight}$ (\textsf{zebra-consensus},
-\texttt{src/transaction/check.rs}); no expiring-soon threshold appears
-anywhere in the mempool component. A transaction with a single block of
-remaining life is therefore accepted and relayed by Zebra but refused by
-\textsf{zcashd}.
+Relay policy may reject a transaction that consensus would still permit in
+the next block; eligibility for inclusion is not a promise of propagation.
+Wallets should submit before the final eligible block rather than rely on
+last-block acceptance.
 
-\paragraph{Expiry at a network upgrade.} The \textsf{zcashd} wallet clamps a
-new transaction's $\mathsf{nExpiryHeight}$ to one less than the next
-network-upgrade activation height (\textsf{zcashd}, \texttt{src/main.cpp}).
-The general \textsf{librustzcash} Builder does not: absent an override, it
-sets expiry to target height plus
-$\mathsf{DEFAULT\_TX\_EXPIRY\_DELTA}=40$, which can cross an activation.
-Such a transaction is nevertheless bound to the branch and transaction
-format for which it was built and cannot be mined under incompatible
-post-upgrade rules. The SQLite parser's unmined-transaction path assumes the
-expiry height lies in the same epoch and uses
-$\texttt{BranchId::for\_height}(\mathsf{nExpiryHeight})$ when no mined height
-is available; callers constructing pre-v5 transactions must therefore avoid
-a cross-activation expiry. An unmined v4 transaction with expiry $0$ carries
-no epoch hint at all and cannot be parsed until mined
-(\textsf{zcash\_primitives}, \texttt{transaction/builder.rs};
-\textsf{zcash\_client\_sqlite}, \texttt{src/wallet.rs}, \texttt{parse\_tx}).
+\paragraph{Expiry at a network upgrade.} The expiry height does not
+determine the consensus branch for which a transaction is valid.
+This matters at NU7 even though v5 and v6 retain their layouts.
+The Draft \href{https://zips.z.cash/zip-0259}{ZIP~259} proposes branch
+identifier $\mathtt{0x77190AD9}$: signatures for the old branch do not
+authorise the new one. Once the activation height is assigned, a wallet
+must either complete a pre-upgrade payment before it or reconstruct and
+authorise the payment for the new branch. An expiry height extending past
+activation does not extend the old signature's validity. Under
+\href{https://zips.z.cash/zip-2003}{ZIP~2003}, v4 transactions would be
+invalid from that height even if their expiry were zero. Sprout funds,
+spendable only through v4, would then be inaccessible; this does not disable
+Sapling, transparent, Orchard, or Ironwood components supported by the
+remaining formats.
 
 \subsection{Tracking a pending transaction}\label{sec:lifecycle-tracking}
 
@@ -4558,12 +4557,15 @@ while any of the following holds
   \mathtt{min\_observed\_height} + \mathrm{certaintyDepth}\bigr),
 \end{array}
 \]
-where $\mathrm{certaintyDepth} := \mathtt{PRUNING\_DEPTH} +
-\mathtt{DEFAULT\_TX\_EXPIRY\_DELTA} = 100 + 40 = 140$ blocks, and the
-result is unioned with explicit \texttt{tx\_retrieval\_queue} entries. A
+where $\mathrm{certaintyDepth} := \mathtt{PRUNING\_DEPTH} + \delta$
+blocks, using the expiry delta defined in \S\ref{sec:lifecycle-expiry}.
+This parameterised form separates the policy from the pinned
+implementation's old default. The result is unioned with explicit
+\texttt{tx\_retrieval\_queue} entries. A
 transaction with known nonzero expiry is thus polled until unminedness is
 confirmed at or beyond its expiry height; one with unknown expiry until
-$140$ blocks past first observation; and one with expiry $0$ only until
+$\mathrm{certaintyDepth}$ blocks past first observation; and one with
+expiry $0$ only until
 unminedness is first confirmed --- only the first disjunct can hold for it,
 so a single \texttt{TxidNotRecognized} or \texttt{NotInMainChain} reply ends
 the polling. The in-code comment above the query promises to ``continue to
@@ -4599,7 +4601,8 @@ Storing a transaction locked its inputs (\S\ref{sec:lifecycle-broadcast});
 expiry is what unlocks them. Note selection excludes a note appearing in
 \texttt{*\_received\_note\_spends} only when the spending transaction is
 still \emph{unexpired} in the following sense, evaluated at the target
-height $H$ of the new proposal:
+height $H$ of the new proposal, with the expiry-policy parameter $\delta$
+of \S\ref{sec:lifecycle-expiry}:
 \begin{equation}\label{eq:unexpired}
 \begin{array}{l@{\quad}l}
 \mathtt{mined\_height} < H
@@ -4609,7 +4612,7 @@ height $H$ of the new proposal:
 \;\vee\; \mathtt{expiry\_height} \ge H
   & \text{(unexpired)} \\
 \;\vee\; \bigl(\mathtt{expiry\_height} \text{ IS NULL} \wedge
-  \mathtt{min\_observed\_height} + 40 \ge H\bigr)
+  \mathtt{min\_observed\_height} + \delta \ge H\bigr)
   & \text{(default-delta guess).}
 \end{array}
 \end{equation}
@@ -4626,7 +4629,7 @@ The final disjunct of \eqref{eq:unexpired} is a guess that the originating
 wallet used the default delta. Reading the predicate directly: if the
 sender in fact used a \emph{larger} delta or disabled expiry, the
 transaction is treated as \emph{expired} from height
-$\mathtt{min\_observed\_height} + 41$ onward while it is actually still
+$\mathtt{min\_observed\_height} + \delta + 1$ onward while it is still
 mineable --- its inputs unlock prematurely, and a respend can conflict with
 a late mining of the original. If the sender used a \emph{smaller} delta,
 the inputs merely stay locked slightly longer than necessary. Either
@@ -4674,10 +4677,10 @@ confirmation policy before treating outputs as spendable.
 \begin{remark}[ZIP-315 is a Draft]\label{rem:lifecycle-zip315}
 ZIP-315 (``Best Practices for Wallet Implementations'') has
 Status Draft. The deployed stack nonetheless implements its central
-recommendations --- the $3/10$ confirmation split, zero-conf shielding, the
-fixed anchor depth, the $40$-block expiry --- so throughout this section
-ZIP-315 is cited as the (draft)
-rationale, not as a finalised standard.
+recommendations for the $3/10$ confirmation split, zero-conf shielding,
+and fixed anchor depth. ZIP-315 supplies their rationale, not a finalised
+standard. NU7's expiry recommendation is described in
+\S\ref{sec:lifecycle-expiry}.
 \end{remark}
 
 \begin{definition}[Confirmations policy]\label{def:lifecycle-confpolicy}
@@ -4692,6 +4695,19 @@ $1/1/\mathtt{true}$.
 Confirmations are counted since \emph{and including} the block in which a
 note was produced.
 \end{definition}
+
+\paragraph{Block counts are not elapsed time.} At NU7's proposed
+$25$-second target spacing, a ten-block interval corresponds to
+$10\cdot25=250$ seconds. Counts that
+include the mining block must still be distinguished from intervals
+\emph{after} that block. ZIP~218 explicitly recommends leaving the
+three-block anchor depth unchanged; it does not prescribe multiplying the
+wallet's trusted or untrusted confirmation counts by three. Neither an
+equal block count nor an equal elapsed time alone establishes equal
+double-spend risk: the attack model and confirmation policy belong to the
+\emph{Consensus Guide}, \S``NU7: 25-second blocks and bounded shielded
+work''. The defaults below describe the pinned wallet, not a newly
+standardised NU7 policy.
 
 The trusted/untrusted split is ZIP-315's: a \emph{trusted} TXO is one
 received from a party where the wallet trusts it will remain mined in its
@@ -4840,9 +4856,9 @@ blocks above the maximum scanned height with
 \texttt{ScanPriority::Verify} whenever that height is at or below the
 stable height $\mathrm{tip} - \mathtt{PRUNING\_DEPTH}$; ranges marked
 \texttt{Verify} must always be scanned before \texttt{ChainTip} ranges.
-The choice of $10$ blocks corresponds to roughly $12.5$ minutes, within
-which a user plausibly received a transaction without their wallet having
-scanned the block.
+At NU7's proposed $25$-second target spacing, that $10$-block lookahead
+covers $250$ target seconds. It is a scan-scheduling heuristic, not a
+consensus rule or a guarantee that no recent wallet transaction is missed.
 
 \paragraph{Recovery loop.} On a continuity error $e$, the documented
 algorithm is:
@@ -5779,6 +5795,43 @@ detects spends of the input note, while \texttt{cmx},
 \texttt{ephemeralKey}, and \texttt{ciphertext} detect and place the output
 note (\texttt{compact\_formats.proto}, lines~124--130; full Action encoding
 per protocol spec \href{https://zips.z.cash/protocol/protocol.pdf\#actionencodingandconsensus}{\S7.5}).
+
+\subsection{NU7: block frequency and scanning work}
+\label{sec:sync-nu7-work}
+
+At the $25$-second target spacing of
+\href{https://zips.z.cash/zip-0218}{ZIP~218}, a target day contains
+$86{,}400/25=3456$ blocks. Its shielded-work limit would bound scanning
+work per block. The calculation below uses the proposed shared
+$330$-unit budget including both Orchard and Ironwood, whose inclusion
+still awaits the open
+\href{https://github.com/zcash/zips/pull/1361}{pull request~1361}.
+
+Each Orchard or Ironwood Action contributes one $148$-byte compact field
+payload (Table~\ref{tab:sync-compact-sizes}); each Sapling spend or output
+uses one unit of the proposed budget and carries a smaller payload.
+Consequently, filling every unit with Orchard-protocol Actions gives
+\begin{align*}
+\text{Actions per target day} &= 330\cdot3456 = 1{,}140{,}480,\\
+\text{field bytes per target day} &= 148\cdot1{,}140{,}480
+  = 168{,}791{,}040.
+\end{align*}
+This is about $168.79$ decimal MB of \emph{shielded field payload}, not a
+bound on total network traffic. Serialising those Actions as repeated
+message elements already costs $159$ bytes each, or $181{,}336{,}320$
+bytes over the same target day, before transaction and block metadata,
+transparent data, transport overhead, and full-transaction fetches.
+Actual daily totals also vary with the number of blocks mined: target
+spacing is not a deterministic rate limit.
+
+Trial decryption remains per output and per candidate incoming viewing
+key. The Action-only case therefore calls for up to $1{,}140{,}480$
+attempts per key over that target day. It is not a universal two-key
+budget per account: \href{https://zips.z.cash/zip-0326}{ZIP~326} allows
+restoration to require more candidate keys before the account's received
+funds establish which derivation is in use. Faster blocks require updated
+throughput and retention estimates, not a new decryption algorithm or a
+new compact-note format.
 
 \subsection{Omissions and fetch-on-detect}\label{sec:sync-compact-omitted}
 
@@ -7405,9 +7458,9 @@ The \texttt{Verify} discipline is documented at the same site: because
 \texttt{Verify} outranks everything, the connectivity check --- and any
 rewind it forces --- runs before any \texttt{ChainTip} range from this or
 an earlier tip update is scanned. Constant
-$\mathsf{VERIFY\_LOOKAHEAD} = 10$ blocks is chosen as roughly $12.5$
-minutes at $75\,\mathrm{s}$ per block, a window within which a user may
-plausibly have received a transaction without leaving the wallet open; and
+$\mathsf{VERIFY\_LOOKAHEAD} = 10$ blocks covers $250$ target seconds at
+NU7's proposed spacing (\S\ref{sec:lifecycle-spend}). This is a pinned
+implementation heuristic, not a specified NU7 lookahead. In all cases,
 the \texttt{Verify} range is clamped to the stable region so that it cannot
 itself be reorganised away within the wallet's assumed depth window and
 interfere with later \texttt{Verify} ranges.
@@ -7688,30 +7741,20 @@ wallet's view of the chain tip so that the next
 the pinned commit truncation covers all three shard trees and the
 nullifier-map locators.
 
-\paragraph{The depth constant.} Constant $\mathsf{PRUNING\_DEPTH} = 100$
-blocks is \textsf{librustzcash}'s reorganisation-safety depth
-(\textsf{zcash\_client\_sqlite}, \texttt{src/lib.rs:169}), the nullifier-map
-pruning
-depth (\textsf{zcash\_client\_\allowbreak backend},
-\texttt{src/data\_api/ll/\allowbreak wallet.rs:55}),
-and
-ZIP~307's suggested witness-cache size --- the ZIP asserts $100$ blocks is
-reasonable ``as no full Zcash node will roll back the chain by more than
-100 blocks'' (ZIP~307 \S``Client operation''). The claim is grounded in
-\textsf{zcashd}: $\mathsf{MAX\_REORG\_LENGTH} =
-\mathsf{COINBASE\_MATURITY} - 1 = 99$ (\texttt{src/main.h:66}), and a
-node asked to reorganise deeper aborts
-(\texttt{src/main.cpp:4332--4337}). \textsf{Zebra}'s rollback window is
-$\mathsf{MAX\_BLOCK\_REORG\_HEIGHT} = 1000$, documented as local-only
-node policy, not consensus
-(\texttt{zebra-chain/src/\allowbreak parameters/\allowbreak
-constants.rs:20--30}), so the ZIP's
-``no full Zcash node'' claim no longer holds for Zebra-backed
-deployments; $\mathsf{PRUNING\_DEPTH} = 100$ matches the zcashd bound,
-as its doc comment says (\textsf{zcash\_client\_sqlite},
-\texttt{src/lib.rs:166--169}). The full spec-versus-deployment
-divergence register for these windows is the \emph{Consensus Guide}'s
-(\S``Reorg rails, maturity, and the finality floor'').
+\paragraph{The recovery window.} A wallet's chosen pruning depth bounds
+the recent checkpoint and nullifier history available for a direct rewind.
+The pinned \textsf{librustzcash} implementation uses
+$\mathsf{PRUNING\_DEPTH}=100$; this is an implementation assumption, not
+consensus finality.
+\href{https://zips.z.cash/zip-0218}{ZIP~218} recommends a $600$-block node
+rollback window at $25$-second spacing, while retaining $100$-block
+transparent coinbase maturity. This is a proposed node-policy target,
+not a consensus finality rule or a verified change to the pinned wallet's
+$100$-checkpoint cache. A wallet cannot infer rollback safety from the
+coinbase maturity constant or from a server's ability to follow a deeper
+reorganisation. Its checkpoints, nullifier history, scan queue, and restore
+path must support its chosen recovery window together. Durable anchors
+alone do not supply all of that state.
 
 \subsection{The reference sync loop}\label{sec:sync-loop}
 
@@ -8106,8 +8149,12 @@ block boundaries; a block containing no note commitment in any pool need
 not create a distinct checkpoint. From NU6.3 activation onward, established
 checkpoints at heights divisible by $288$ are additionally retained as
 durable anchors and are exempt from that automatic pruning. The $100$-block
-depth is the assumed maximum reorganisation depth and ZIP~307's cache-size
-guidance (\S\ref{sec:sync-tree-linear}).
+depth is the pinned wallet's assumed maximum reorganisation depth and
+ZIP~307's historical cache-size guidance
+(\S\ref{sec:sync-tree-linear}), not a NU7 consensus limit. The shorter
+block spacing and proposed node rollback policy require those assumptions
+to be reviewed together (\S\ref{sec:sync-reorg}); no automatic tripling of
+these implementation constants is specified here.
 
 What survives pruning is governed by per-node \emph{retention}:
 \begin{itemize}

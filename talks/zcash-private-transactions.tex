@@ -55,7 +55,7 @@
   \vskip4mm
   {\large\color{arbdim}\insertsubtitle\par}
   \vskip10mm
-  {\small\insertauthor\par}}
+  {\small\insertauthor\hfill\color{arbdim}\insertdate\par}}
 \tikzset{thick/.style={line width=0.6pt},
   very thick/.style={line width=0.85pt}}
 
@@ -110,7 +110,7 @@
 \title{Zcash for Bitcoiners}
 \subtitle{how a shielded transaction is verified without being seen}
 \author{m@rek.onl}
-\date{}
+\date{NU7 draft: 23 September 2026}
 
 \begin{document}
 
@@ -1568,16 +1568,14 @@ each pool & the note commitment tree & append every $\cmx$; a root per
 \end{frame}
 
 %% compute/c_datamodel.py:
-%%   C4 reorg depth handled: Zebra 1000 blocks (node policy); spec
-%%     describes 100
 \begin{frame}{When the anchor vanishes: reorganisations}
 \begin{itemize}
   \item A reorganisation that strikes the anchoring block from the
     main chain invalidates the anchor; deeper anchors make this rarer,
     no depth rules it out.
-  \item Reorg depth is node policy, not consensus: Zebra rolls back
-    automatically to at most $1000$ blocks; the specification describes
-    $100$.
+  \item Automatic rollback depth is node policy, not consensus.
+    ZIP-218 recommends $600$ blocks for NU7; a fork below a node's
+    retained rollback window needs recovery outside that window.
   \item Deployed wallets truncate to a checkpoint below the fork,
     rescan, and rebuild the transaction. The rebuilt spend reveals the
     same nullifiers, because each is a fixed function of its note.
@@ -4373,7 +4371,6 @@ leaks only through what the wallet sends after detecting.
 
 %% compute/f_lightclient.py:
 %% target = tip + 1; anchor <= target - 3 (= H - 3 with H the target);
-%%   expiry = target + 40
 %% confirmations: trusted 3, untrusted 10
 \begin{frame}{Which anchor: the wallet's policy, and whose reasons}
 \begin{itemize}
@@ -4395,12 +4392,11 @@ leaks only through what the wallet sends after detecting.
 
 %% compute/f_lightclient.py:
 %% target = tip + 1; anchor <= target - 3 (= H - 3 with H the target);
-%%   expiry = target + 40
 \begin{frame}{Expiry and broadcast}
 \begin{itemize}
   \item Expiry (ZIP-203): every transaction carries an expiry height,
     zero meaning none; a block that includes it above that height is
-    invalid. The wallet default is target $+ 40$; a uniform delta, like a
+    invalid. ZIP-218 recommends target $+ 120$; a uniform delta, like a
     uniform fee, is not a fingerprint.
   \item Store, then broadcast: the wallet persists the transaction and
     locks its inputs before the network sees it, then submits it in one
@@ -4564,8 +4560,8 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
     \emph{re-anchored} --- its membership proof rebased onto a later
     root --- with its txid unchanged: specified (ZIP-374 v2), wallet
     support pending.
-  \item Versions v4, v5 and v6 all remain valid; the Orchard-pool seal
-    binds whatever the version.
+  \item NU7 permits v5 and v6, not v4 (draft ZIP-259).
+    The Orchard-pool seal applies independently of the version.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``What the signatures sign: ZIP-244 digests
   and their v6 form''; ``The v6 transaction and the Ironwood component'';
@@ -4827,7 +4823,6 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
 %   change = 49990000 zatoshi = 0.4999 ZEC; valueBalanceIronwood = +10000
 %   zatoshi = fee
 %   nullifiers = 2; commitments = 2 (one each per Action)
-%   expiry = target + 40 blocks = 50 min at 75 s
 % compute/h_txsize.py: Alice v6 = 9166 B, proof 7264 B (79.2%)
 \begin{frame}{The public face of Alice's transaction}
 \begin{center}\small
@@ -4842,7 +4837,7 @@ nullifiers, commitments & $2$ and $2$ \\
 \Hvbi & $+10\,000$ zatoshi $=$ the fee \\
 anchor & the Ironwood root at the newest shared checkpoint at or below
   $H-3$ \\
-expiry & target height $+\,40$ blocks, about $50$ minutes \\
+expiry & target height $+\,120$ blocks, about $50$ minutes (ZIP-218) \\
 signatures & $2$ spend-authorisation $+$ $1$ binding \\
 size & $9166$ bytes, $7264$ of them proof \\
 \bottomrule
@@ -4860,7 +4855,6 @@ addresses stay inside the commitments.
   ``Expiry (ZIP-203)''}
 \end{frame}
 
-% compute/h_fee.py: expiry = target + 40 blocks = 50 min at 75 s
 \begin{frame}{The privacy sliders: pool, address type, timing}
 \small
 \begin{itemize}
@@ -4873,8 +4867,8 @@ addresses stay inside the commitments.
     transparent. A TEX address demands transparent funds, so the wallet
     builds two transactions through an ephemeral transparent output ---
     both public.
-  \item \textbf{Timing.} Expiry defaults to target $+\,40$ blocks and
-    wallets SHOULD keep it: an idiosyncratic delta fingerprints a
+  \item \textbf{Timing.} ZIP-218 recommends expiry at target $+\,120$
+    blocks: an idiosyncratic delta fingerprints a
     transaction as an idiosyncratic fee would. Migration wallets split
     value into canonical denominations $m \cdot 10^{k}$ ZEC,
     $m \in \{1, 2, 5\}$, and draw anchors and expiries from shared grids
@@ -5405,10 +5399,7 @@ binomial is that it is exact under the stated assumptions.
 \src{\emph{Consensus Guide}, ``Waiting for confirmations''}
 \end{frame}
 
-% compute/k_catchup.py:
-%   K5 blocks-not-time: 30 min = 3 Bitcoin or 24 Zcash confirmations;
-%   at q=0.1: r(0.1,3)=1.7120%, r(0.1,24)=3.2e-12; public blocks arrive
-%   at rate p, so 30/0.9 = 33.3 min
+% NU7 timing and risk: research/check_nu7.py.
 \begin{frame}{Blocks, not time}
 The catch-up formula contains neither $T_0$ nor any other time scale:
 a deficit's security is a function of block \emph{counts} alone. Two
@@ -5416,20 +5407,19 @@ chains with the same $q$ offer identical security per confirmation ---
 and therefore different security per minute.
 \medskip
 \begin{itemize}
-\item Zcash targets $75$-second blocks; \alert{Bitcoin} $600$. Thirty
-  minutes buys $3$ Bitcoin confirmations or $24$ Zcash ones in nominal
+\item NU7 targets $25$-second blocks; \alert{Bitcoin} $600$. Thirty
+  minutes buys $3$ Bitcoin confirmations or $72$ Zcash ones in nominal
   expected time; under a $10\%$ withholding attack either wait takes
   about $33.3$ minutes, since public blocks arrive at rate $p$.
 \item Conditional on those counts, at $q = 10\%$:
-  $r(0.1, 3) = 1.712\%$ against $r(0.1, 24) \approx 3.2 \times
-  10^{-12}$ --- nine orders of magnitude at the same nominal wait.
-  ZIP-208 makes this argument for the spacing.
+  $r(0.1, 3) = 1.712\%$ against $r(0.1, 72) \approx 9.35 \times
+  10^{-34}$ under the model's fixed-hash-share assumption.
 \item The caveat: the model has no network. Faster blocks make honest
   blocks race one another and self-orphan, which effectively raises
   $q$; the comparison holds $q$ fixed.
 \end{itemize}
 \src{\emph{Consensus Guide}, ``Playing catch-up''; ``Zcash time:
-  75-second blocks''}
+  25-second blocks''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5480,7 +5470,7 @@ attacker below $10\%$ and a tolerable risk below $0.1\%$; both figures
 are arbitrary.
 \end{columns}
 \src{\emph{Consensus Guide}, ``Waiting for confirmations''; ``What the
-  numbers say''; ``What wallets actually wait for''}
+  numbers say''; ``Wallet confirmation policy''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5490,7 +5480,7 @@ are arbitrary.
 %   K6   q=20%:   4   8  13
 %   K6   q=30%:   9  20  32
 %   K6   q=40%:  34  82 133
-%   K6   q=45%: 135 331 539  (11.2 h)
+%   K6   q=45%: 135 331 539  (3.74 h)
 \begin{frame}{Pick the adversary and the risk; read off $n$}
 \begin{columns}[T]
 \column{0.42\textwidth}
@@ -5511,8 +5501,8 @@ $45\%$ & $135$ & $331$ & $539$ \\
 \small
 The least $n$ pushing $r(q, n)$ below each target: logarithmic in the
 inverse risk, explosive in $q$. A $10\%$ attacker is answered by $6$
-confirmations, a $45\%$ attacker by $539$ --- about $11.2$ hours of
-Zcash blocks.
+confirmations, a $45\%$ attacker by $539$ --- about $3.74$ hours of
+$25$-second blocks.
 \medskip
 
 \textbf{No finite count is final:} $r(q, n) \geq 2q^{n} > 0$, since
@@ -5530,7 +5520,6 @@ price of a row differs.
 \end{frame}
 
 % compute/k_catchup.py:
-%   K7 B = 1.5625 ZEC x (1 - 0.2) = 1.25 ZEC + fees; o=20, k=5, alpha=1:
 %   v_max = floor(o/k B (1-r)/r) = floor(4 B (1-r)/r)
 \begin{frame}{The economics: when the attack pays}
 The attacker targets $k$ merchants at $v$ each; the goods are worth
@@ -5548,26 +5537,20 @@ non-positive whenever
   \frac{o}{k} \cdot \frac{B\,(1 - r)}{r} .
 \]
 \begin{itemize}
-\item The cost unit in ZEC: the block subsidy is $1.5625$ ZEC, of
-  which the funding streams take $20\%$, leaving the miner
-  $B = 1.25$ ZEC $+$ fees. Fees raise $B$, and the threshold, linearly.
+\item The cost unit $B$ is the miner's block income after the
+  applicable subsidy and fee allocation. Exposure scales linearly
+  with $B$; measure the payment in units of this income.
 \item \alert{Bitcoin:} Rosenfeld's $B = 25$ BTC with $o = 20$, $k = 5$,
   $\alpha = 1$ gives $v \leq 100\,(1/r - 1)$ BTC; the same choices here
   give $\lfloor 4B(1 - r)/r \rfloor$.
 \end{itemize}
 \src{\emph{Consensus Guide}, ``The economics of the attack'';
-  ``Instantiation in ZEC''; protocol specification, ``Calculating Block
+  ``Reward-normalised exposure''; protocol specification, ``Calculating Block
   Subsidy, Funding Streams, Lockbox Disbursement, and Founders'
   Reward''; ``ZIP 214 Funding Streams''; ZIP-1016}
 \end{frame}
 
 % compute/k_catchup.py:
-%   K7 v_max (ZEC), n = 1, 2, 4, 6, 8, 10:
-%   K7   q= 5%: 45 339 12,909 430,929 13,664,382 420,922,251
-%   K7   q=10%: 20 84 911 8,449 74,344 636,146
-%   K7   q=20%: 7 19 69 209 584 1,578
-%   K7   q=30%: 3 6 14 26 44 71
-%   K7   q=40%: 1 2 3 5 6 8
 \begin{frame}{The largest payment the modelled attack cannot profit from}
 \begin{center}
 \small
@@ -5575,26 +5558,26 @@ non-positive whenever
 \toprule
 $q$ & $n{=}1$ & $2$ & $4$ & $6$ & $8$ & $10$ \\
 \midrule
-$5\%$ & $45$ & $339$ & $12{,}909$ & $430{,}929$ & $13{,}664{,}382$ &
-  $420{,}922{,}251$ \\
-$10\%$ & $20$ & $84$ & $911$ & $8{,}449$ & $74{,}344$ & $636{,}146$ \\
-$20\%$ & $7$ & $19$ & $69$ & $209$ & $584$ & $1{,}578$ \\
-$30\%$ & $3$ & $6$ & $14$ & $26$ & $44$ & $71$ \\
-$40\%$ & $1$ & $2$ & $3$ & $5$ & $6$ & $8$ \\
+$5\%$ & $36$ & $271$ & $10{,}327$ & $344{,}743$ & $10{,}931{,}506$ &
+  $336{,}737{,}801$ \\
+$10\%$ & $16$ & $67$ & $729$ & $6{,}759$ & $59{,}475$ & $508{,}917$ \\
+$20\%$ & $6$ & $15$ & $55$ & $167$ & $467$ & $1{,}262$ \\
+$30\%$ & $2$ & $5$ & $11$ & $21$ & $35$ & $57$ \\
+$40\%$ & $1$ & $1$ & $2$ & $4$ & $5$ & $6$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-Whole-ZEC values $\lfloor 4B(1 - r)/r \rfloor$ with $B = 1.25$ ZEC ---
+Whole block-income units: $\lfloor 4(1 - r)/r \rfloor$ ---
 heuristic, as in Rosenfeld's Table~2: the unlimited-horizon $r(q, n)$
 stands in for the $o = 20$ stopping rule. Against a $30\%$ attacker,
-six confirmations make the attack unprofitable only up to about $26$
-ZEC. Patience buys safety exponentially; the required count grows only
+six confirmations admit $21$ whole units of $B$ under this heuristic.
+Patience buys safety exponentially; the required count grows only
 logarithmically in the value at stake.
 \medskip
 
 \alert{Bitcoin:} the same table with $B = 25$ BTC is Rosenfeld's
 Table~2.
-\src{\emph{Consensus Guide}, ``Instantiation in ZEC''}
+\src{\emph{Consensus Guide}, ``Reward-normalised exposure''}
 \end{frame}
 
 \begin{frame}{Majority is a different problem}
@@ -5611,24 +5594,24 @@ Table~2.
 \medskip
 \alert{Bitcoin:} Rosenfeld's remark is about Bitcoin; nothing in it
 depends on the chain.
-\src{\emph{Consensus Guide}, ``Instantiation in ZEC''}
+\src{\emph{Consensus Guide}, ``Reward-normalised exposure''}
 \end{frame}
 
 % compute/k_catchup.py:
-%   K8 1000-block window = 20.8 h; 100-block maturity = 125 min;
-%   DigiShield window 17, damping 4, clamps 16%/32%; Equihash (200, 9)
+%   NU7 averaging window 102, damping 4, clamps 16%/32%; Equihash (200, 9)
 %   K8 r(q, 100): q=0.3:3.68e-09 q=0.4:4.32e-03 q=0.45:1.57e-01
 %   K8 wallet policy: r(0.1,3)=1.7120% r(0.1,10)=0.0008% r(0.2,10)=0.3158%
-\begin{frame}{Deployed rails}
+\begin{frame}{NU7 rails}
 \small
 \begin{tabular}{@{}l p{6.3cm} p{3.6cm}@{}}
 \toprule
 Rail & Value & Standing \\
 \midrule
-Reorg window & $1000$ blocks ($\approx 20.8$ h) & Zebra policy; the
-  spec says $100$ \\
-Coinbase maturity & $100$ blocks ($125$ min), transparent & consensus \\
-Difficulty & every block; window $17$, damping $4$, clamp $16\%$/$32\%$
+Reorg window & $600$ blocks ($\approx 4.17$ h) & ZIP-218 node-policy
+  recommendation \\
+Coinbase maturity & $100$ blocks ($\approx 41.7$ min)
+  & consensus (transparent) \\
+Difficulty & every block; window $102$, damping $4$, clamp $16\%$/$32\%$
   & consensus \\
 Proof of work & Equihash $(200, 9)$, SHA-256d filter & consensus \\
 Wallet waits & $3$ trusted / $10$ untrusted; anchor $\leq H - 3$
@@ -5637,7 +5620,7 @@ Wallet waits & $3$ trusted / $10$ untrusted; anchor $\leq H - 3$
 \end{tabular}
 \medskip
 
-Miners wait $n = 100$ on their own income: $r(0.3, 100) \approx 3.7
+For transparent coinbase outputs, $n = 100$: $r(0.3, 100) \approx 3.7
 \times 10^{-9}$, $r(0.4, 100) \approx 0.43\%$, yet $r(0.45, 100)
 \approx 15.7\%$ --- porous near the majority line, as every fixed count
 must be. The window caps automatic rollback, not the theory: a fork
@@ -5647,9 +5630,31 @@ rooted below it needs operator intervention.
 \alert{Bitcoin:} maturity and the memoryless race are inherited;
 per-block retargeting and the block spacing are not.
 \src{\emph{Consensus Guide}, ``Difficulty in motion''; ``Reorg rails,
-  maturity, and the finality floor''; ``What wallets actually wait
-  for''; protocol specification, ``Transaction Consensus Rules'';
+  maturity, and the finality floor''; ``Wallet confirmation policy'';
+  protocol specification, ``Transaction Consensus Rules'';
   ``Difficulty adjustment''; ``Proof of Work''; draft ZIP-315}
+\end{frame}
+
+\begin{frame}{NU7: time and state}
+Draft ZIPs 218 and 259; activation heights still unassigned
+(23 September 2026).
+\[
+  \text{target spacing}:\quad 25\,\mathrm{s}
+\]
+\[
+  \text{difficulty window}:\quad 102\cdot25 = 2550\,\mathrm{s}
+\]
+\[
+  \text{expiry recommendation}:\quad
+  120\cdot25 = 3000\,\mathrm{s}
+\]
+\medskip
+No new transaction format: v5 and v6 remain; v4 is rejected.
+ZIP-237 adds delayed reissuance of funds removed from circulation
+to the halving-based subsidy.
+\src{\href{https://github.com/zcash/zips/pull/1363}{ZIP-259};
+  \href{https://zips.z.cash/zip-0218}{ZIP-218};
+  \href{https://github.com/zcash/zips/pull/1354}{ZIP-237}}
 \end{frame}
 
 \begin{frame}{Where the deployed rule departs from the model}
@@ -5668,11 +5673,11 @@ per-block retargeting and the block spacing are not.
   faces a fresh SHA-256d lottery, so headers are the Bernoulli trials
   of the model; what Equihash changes is granularity --- candidates
   arrive per solver run, and the exponential clock is good only while
-  a run is short against the $75$-second spacing.
+  a run is short against the NU7 target spacing of $25$ seconds.
 \end{itemize}
 \alert{Bitcoin:} its nodes keep the first-seen rule; its hash trials
 are the model's ideal.
-\src{\emph{Consensus Guide}, ``Chain selection in code''; ``Equihash
+\src{\emph{Consensus Guide}, ``Chain selection and the tie-break''; ``Equihash
   and the memoryless model''}
 \end{frame}
 
@@ -6140,7 +6145,7 @@ FlyClient & commitment \emph{deployed and consensus-critical} (ZIP-221,
 \addlinespace
 ZSA & core \emph{specified} in Draft ZIPs 226 and 227; the carrier ---
   v6 wire format, digests, lead byte, fees --- \emph{unspecified} since
-  the ZIPs that held it were withdrawn; upgrade inclusion \emph{open} \\
+  the ZIPs that held it were withdrawn; outside ZIP-259's NU7 scope \\
 \addlinespace
 Crosslink & \emph{design stage}: no ZIP, nothing activated on mainnet or
   testnet; a feature net runs prototype code; the construction rules

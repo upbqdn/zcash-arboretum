@@ -13,6 +13,17 @@ constructions. The [[https://zips.z.cash/protocol/protocol.pdf][Zcash protocol
 specification]], applicable [[https://zips.z.cash/][ZIPs]], and consensus rules
 remain authoritative. Where this text disagrees with them, this text is wrong.
 
+* NU7 specification snapshot
+
+The NU7 review is pinned to 23 September 2026. The merged but still Draft
+[[https://github.com/zcash/zips/blob/afa086bd976e316612a5c06fb139429958d07d84/zips/zip-0259.md][ZIP 259]]
+specifies 25-second blocks, halving-preserving Network Sustainability
+Mechanism issuance, and rejection of version 4 transactions; versions 5 and 6
+retain their formats. Activation and reissuance heights remain unassigned.
+The guides explain this target directly, distinguishing open amendments
+such as the Ironwood action limits from merged rules. Unresolved source
+conflicts are recorded in [[file:research/nu7-2026-09-23.md][the NU7 review]].
+
 * The volumes
 
 Layered; read each atop the ones it names.
@@ -34,7 +45,8 @@ Layered; read each atop the ones it names.
 4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
    double-spend race in the first-seen model (after Rosenfeld), the
    arithmetic of confirmations, and the deployed most-work rule, including
-   implementation divergences and local safety rails.
+   implementation divergences and local safety rails; the NU7 timing,
+   shielded-work limits, halving schedule, and reserve accounting.
 5. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
    the commitment tree and authentication paths, the key hierarchy, note
    encryption, value balance, the Action statement and circuit, the two-pool
@@ -115,7 +127,7 @@ The gate writes PDFs and logs under =build/pdf/= and fails on overfull boxes,
 unresolved references, duplicate labels or destinations, missing glyphs, or
 compilation errors. Add =--update-pdfs= to refresh the committed PDFs after
 every document passes. CI runs this gate, the site-tooling regression check,
-and the three =research/check_*.py= numerical checks on pushes and pull
+and the =research/check_*.py= numerical checks on pushes and pull
 requests.
 
 The website workflow also checks every generated local link and anchor with

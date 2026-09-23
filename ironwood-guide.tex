@@ -189,6 +189,14 @@ the same protocol. One protocol, two carriers: when a statement holds
 for the shared cryptography we say ``Orchard'', and when it depends on
 which pool a note lives in we name the pool.
 
+The next proposed upgrade, NU7, does not introduce another shielded pool
+or replace this cryptography. Its deployment document,
+\href{https://zips.z.cash/zip-0259}{ZIP~259}, remains Draft at the
+2026-09-23 source check: neither network has an assigned activation
+height. The changes relevant here concern which transactions a block may
+contain and how quickly blocks are targeted, not a new note lifecycle.
+This volume uses those proposed rules where they affect the construction.
+
 % brief c3-17 (one sentence per door; formalised in sec:pools)
 Value reaches a shielded pool through three doors, each public in
 amount. A \emph{shielding} transaction spends transparent value into
@@ -1840,14 +1848,11 @@ a competing branch (the \emph{Consensus Guide}, \S``Reorg rails,
 maturity, and the finality floor'') --- can strike the anchoring block
 from the main chain, invalidating the anchor and forcing Alice to
 rebuild the transaction; deeper anchors make the event rarer, but no
-depth rules it out. The often-cited $100$-block figure is the
-specification's description of the reorganisation depth nodes are
-expected to handle (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S\,3.3}); the deployed
-validator, Zebra, actually rolls back automatically to a depth of at
-most $1000$ blocks (constant \texttt{MAX\_BLOCK\_REORG\_HEIGHT}, crate
-\texttt{zebra-chain}, \texttt{src/parameters/\allowbreak
-constants.rs}). Both figures are node policy rather than consensus, as
-the \emph{Consensus Guide} section just cited develops.
+depth rules it out. The Draft
+\href{https://zips.z.cash/zip-0218}{ZIP~218} recommends a $600$-block
+node rollback window for NU7. This is local recovery policy, not a
+consensus limit on reorganisations or a bound on admissible anchor age,
+as the \emph{Consensus Guide} section just cited develops.
 
 Deployed wallets nevertheless anchor close to the tip, by deliberate
 choice rather than necessity. The anchor's tree is the anonymity set in
@@ -1864,7 +1869,10 @@ is the next-block target height. The trusted confirmation count fixes
 this bound independently of whether a selected note is trusted;
 untrusted notes separately require $10$ confirmations. Checkpoint gaps
 can make the anchor older --- balancing reorg robustness, set size,
-and uniformity.
+and uniformity. ZIP~218 recommends keeping the three-block anchor depth
+at NU7's $25$-second target spacing. The shorter spacing changes the
+elapsed-time interpretation, not the membership statement or the
+consensus admissibility of older main-chain anchors.
 Consensus mandates none of this; it is wallet policy. Nor is an old
 anchor a soundness hole: membership in an older, smaller tree implies
 the note was committed even earlier, which is precisely what Alice must
@@ -2900,7 +2908,10 @@ release, cited for the circuit and cross-address work it carries),
 \texttt{protocol.tex} and the ZIPs at \texttt{zips} commit
 \texttt{69610984}. The later deployment and migration status of ZIPs~258
 and~318 is rechecked against \texttt{zips} commit \texttt{dd1667ff}
-(2026-09-01). Forward-looking claims carry one of three epistemic bins:
+(2026-09-01). The NU7 proposals are checked against \texttt{zips}
+commit \texttt{afa086bd} and open pull requests on 2026-09-23; this
+does not advance the pinned implementation baseline. Forward-looking
+claims carry one of three epistemic bins:
 \emph{specified}, \emph{designed but unspecified}, or \emph{open problem}.
 
 \subsection{The doors: shielding, coinbase, migration}
@@ -3017,9 +3028,9 @@ $\mathsf{flagsOrchard}$ now carrying $\mathsf{enableCrossAddress}$, the
 flag whose semantics \S\ref{sec:turnstile} constructs --- plus an
 Ironwood component that reuses the \texttt{OrchardAction} encoding
 byte-for-byte ($820$ bytes per Action; ZIP-229), laid out field by
-field in Table~\ref{tab:iw-v6}. Transaction versions v4, v5, and v6 all
-remain valid from NU6.3 onward, and the Orchard-pool sealing rules bind
-regardless of version (\S\ref{sec:turnstile}).
+field in Table~\ref{tab:iw-v6}. NU7 retains v5 and v6, with v6 required
+for an Ironwood component. The Orchard-pool sealing rules bind regardless
+of the permitted transaction version (\S\ref{sec:turnstile}).
 
 % numbers: brief c5-13 (all field sizes; proofsIronwood 2720 + 2272n,
 %   same formula as the Orchard component)
@@ -3066,6 +3077,43 @@ the Orchard one, already constructed alongside the spend's signatures
 (Figure~\ref{fig:sighash-tree}, \S\ref{sec:spend-sighash}). Everything
 NU6.3 changes is collected, one row per change with its owning
 section, in Table~\ref{tab:nu63-delta} (\S\ref{sec:turnstile}).
+
+\subsection{NU7: the same protocol under new block rules}
+\label{sec:pools-nu7}
+
+The Draft \href{https://zips.z.cash/zip-0259}{ZIP~259} preserves both
+the v5 and v6 formats: it adds no Ironwood component field, note format,
+Action circuit, or verifying key. It proposes consensus branch identifier
+$\mathtt{0x77190AD9}$, but leaves the activation heights and minimum
+network protocol versions unassigned. Because signatures commit to the
+branch identifier (\S\ref{sec:spend-sighash}), an unchanged format does
+not make a pre-NU7 transaction valid after activation. Nor does v6's
+ability to replace anchors and proofs without changing its effecting
+data remove that branch commitment.
+
+The proposed block target spacing is $25$ seconds
+(\href{https://zips.z.cash/zip-0218}{ZIP~218}). The same proposal limits
+shielded work per block; it does not shrink either commitment tree or
+discard its existing notes. The open
+\href{https://github.com/zcash/zips/pull/1361}{pull request~1361}
+proposes including both pools in one shared
+$330$-unit block budget: each Orchard or Ironwood Action consumes one
+unit, and work in other shielded pools consumes the remaining budget.
+It does not grant each pool an independent allowance of $330$ Actions
+in the same block. This is \emph{specified in an open proposal}, not
+an active limit. The complete accounting is constructed in the
+\emph{Consensus Guide},
+\S``NU7: 25-second blocks and bounded shielded work''.
+
+The separate \href{https://zips.z.cash/zip-2003}{ZIP~2003} removes v4
+transactions at NU7. Only v4 can carry Sprout transfers, so remaining
+Sprout funds would become unspendable; their balance would remain issued,
+not be burned or transferred into Ironwood. This is different from the
+Orchard seal: Orchard-pool notes remain spendable through v5 or v6 under
+the existing one-way migration rules. The proposed issuance and reserve
+accounting belongs to block consensus, not the Action relation, and is
+developed in the \emph{Consensus Guide}, \S``NU7: 25-second blocks and
+bounded shielded work''.
 
 \subsection{One circuit, one verifying key}\label{sec:pools-onekey}
 
@@ -3369,7 +3417,11 @@ Orchard --- into the Ironwood pool, the only pool whose output notes
 are recoverable (\S\ref{sec:mint}; the analysis in
 \S\ref{sec:pq-zip2005}),
 and SHOULD treat the sweep as an ongoing process rather than a
-one-off event.
+one-off event. For Sprout, that recommendation has a proposed deadline:
+the v4 prohibition in \href{https://zips.z.cash/zip-2003}{ZIP~2003}
+would prevent further migration at NU7 activation
+(\S\ref{sec:pools-nu7}); it does not impose the same prohibition on
+Sapling or Orchard-pool spends.
 
 Deployed change-routing logic implements the turnstile's grain, and is
 the routing rule the walkthrough of \S\ref{sec:action-walk} deferred:
@@ -4055,7 +4107,10 @@ non-native to arithmetic constraints, hence costly in-circuit.
 Decisively, a flaw in BCTV14 discovered in 2018 would have allowed
 undetected counterfeiting; the pool was deprecated, and users were
 enabled and encouraged to migrate shielded Sprout value to later pools.
-Residual Sprout value may remain.
+Residual Sprout value may remain. NU7's proposed v4 prohibition would
+disable spending that value, without treating it as unissued
+(\href{https://zips.z.cash/zip-2003}{ZIP~2003};
+\S\ref{sec:pools-nu7}).
 
 \subsection{Sapling (2018--present)}
 \label{sec:lineage-sapling}

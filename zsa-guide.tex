@@ -142,13 +142,9 @@ the divergence is flagged.
 
 Zcash Shielded Assets (ZSA) is the proposed extension of Orchard that carries
 user-issued assets in the shielded pool. Two consensus ZIPs define it:
-ZIP~226, ``Transfer and Burn of Zcash Shielded Assets'', and ZIP~227,
-``Issuance of Zcash Shielded Assets'' --- both Status Draft, Category
-Consensus, created 2022-05-01, owned by Pablo Kogan and Vivek Arte (QED-it),
-Daira-Emma Hopwood, and Jack Grigg, with credits to Daniel Benarroch,
-Aurelien Nicolas, Deirdre Connolly, and Teor, and discussed in the single
-thread zcash/zips\#618 (\texttt{zip-0226.rst} and \texttt{zip-0227.rst}
-lines~1--18 @ \texttt{69610984}). The combined protocol, OrchardZSA, enables
+\href{https://zips.z.cash/zip-0226}{ZIP~226, Transfer and Burn}, and
+\href{https://zips.z.cash/zip-0227}{ZIP~227, Issuance}, both drafts.
+The combined protocol, OrchardZSA, enables
 issuance (ZIP~227) and transfer and burn (ZIP~226) of Custom Assets on the
 Zcash chain; ZIP~227 must only be implemented in conjunction with ZIP~226, and
 issuance is deliberately transparent --- issuance outputs are unencrypted ---
@@ -206,147 +202,34 @@ sections construct their objects without requalifying each of them with it.
 
 \subsection{Status}\label{sec:zsa-status}
 
-Both ZIPs are Status Draft. ZIP~226's Deployment section reads: ``The Zcash
-Shielded Assets protocol is scheduled to be deployed in Network Upgrade~7
-(NU7). This ZIP currently assumes that this will be the case''
-(\texttt{zip-0226.rst} lines~425--426). ZIP~227's Deployment section is
-``TBD'', and its Test Vectors and Reference Implementation entries read ``LINK
-TBD'' (\texttt{zip-0227.rst} lines~661--675).
+ZSAs are not part of NU7. Its deployment draft,
+\href{https://zips.z.cash/zip-0259}{ZIP~259}, introduces no transaction
+format and retains versions~5 and~6 without a ZSA carrier. ZIPs~226
+and~227 remain draft proposals for a future upgrade; their mechanisms are
+not rules an NU7 validator enforces.
 
-The network-upgrade reality is thinner than the assumption. ZIP~254, the NU7
-deployment ZIP, is Withdrawn and delegates to \texttt{draft-arya-deploy-nu7}
-(Status Draft), which fixes the consensus branch ID $\mathtt{0x77190AD8}$ and
-the minimum network protocol versions 170150 (testnet) and 170160 (mainnet),
-leaves the activation height TBD on both networks, and lists no feature ZIPs
-at all (\texttt{zip-0254.md}, \texttt{draft-arya-deploy-nu7.md} @
-\texttt{69610984}). The repository README's ``NU7 Candidate ZIPs'' list
-(218, 230, 231, 233, 234, 235, 2002, 2003, plus a possible ZIP~317 update)
-does not include ZIP~226 or ZIP~227, still names the withdrawn ZIP~230, and is
-explicitly non-decisional: ``no decision has been made on whether to include
-each of these ZIPs''; the deployment draft ``will define which ZIPs are
-included in NU7'' (\texttt{README.rst} lines~70--92 @ \texttt{69610984}). In
-the current \textsf{zips} tree, ZIP-204 assigns NU7 protocol versions
-$170180$ (Testnet) and $170190$ (Mainnet), but
-\texttt{draft-arya-deploy-nu7} still says $170150$ and $170160$; the draft is
-therefore internally stale even though its activation heights remain TBD
-(\textsf{zips} \texttt{e753a6a3}, ZIP-204 and
-\texttt{draft-arya-deploy-nu7}). The Zcash Foundation's February 2026 NU7
-sentiment polls record split support
-for ZSAs: ZCAP supported them at 70.4\%, the coinholder poll ran 98.6\%
-against, and the Foundation did not recommend ZSAs for NU7, writing that
-``before any decision is made, we need to understand why coinholders oppose
-ZSAs so strongly'' (zfnd.org, ``NU7 Polling Results: What We Heard and Where
-We Go From Here'', 2026-02-23,
-\url{https://zfnd.org/nu7-polling-results-what-we-heard-and-where-we-go-from-here/}).
+The essential distinction is between a cryptographic construction and its
+\emph{carrier}: the transaction fields that encode it, together with the
+digests signed by its participants. ZIP~226 assumes the recoverability
+changes of \href{https://zips.z.cash/zip-2005}{ZIP~2005}, but its carrier
+references the withdrawn ZIPs~230 and~246. The deployed version~6 format
+is \href{https://zips.z.cash/zip-0229}{ZIP~229}, which does not carry ZSAs.
+The extensible version~7 draft,
+\href{https://zips.z.cash/zip-0248}{ZIP~248}, lists potential ZSA bundles
+without specifying their encodings or digests. The experimental format
+below is therefore not a standardised ZSA transaction format.
 
-The specification's baseline moved beneath it in 2026. ZIP~226 is now defined
-relative to the protocol with ZIP~2005 (Ironwood Quantum Recoverability;
-Status Proposed, specified for deployment with NU6.3 ``Ironwood'') applied,
-and states that
-ZIP~2005 ``is expected to deploy before any ZSA activation''
-(\texttt{zip-0226.rst} line~45, which still cites the ZIP under its older
-name ``Orchard Quantum Recoverability''; \texttt{zip-2005.md} header). The
-dependency points upward: if the NU6.3 content changes, the ZSA specification
-inherits the change.
-
-The carrier format has no live specification. ZIP~226 defines its transaction
-structure and sighash by deferring to ZIP~230 (the v6 transaction format) and
-ZIP~246 (the v6 digests) (\texttt{zip-0226.rst} lines~373--405, 456--462);
-both are now Withdrawn. ZIP~230 is retitled ``Withdrawn Version 6 Transaction
-Format'' and warns: ``This ZIP has been obsoleted by ZIP 229, and will not be
-deployed. Transaction version number 6 is now defined by ZIP 229''
-(\texttt{zip-0230.rst} lines~5, 14, 37--40; withdrawal commit
-\texttt{04db8968}, 2026-05-16). ZIP~246 is retitled ``Digests for the
-Withdrawn Version 6 Transaction Format'' (\texttt{zip-0246.rst} lines~4--11,
-36--44; commit \texttt{00f37219}, merged 2026-07-09). The ZIP~229 that now
-owns transaction version~6 (Status Draft, created 2026-06-13, for NU6.3)
-excludes ZSA by declared non-requirement: ``The v6 transaction format need not
-support ZSAs, the zip233Amount field, the explicit fee field, or
-per-transparent-input sighash information that appeared in the withdrawn ZIP
-230, or those features and other extensibility affordances planned for ZIP
-248'', and ``The value 6 for the transaction version number need not avoid
-collisions with the withdrawn ZIP 230 or with the current draft of ZIP 248''
-(\texttt{zip-0229.md} lines~154--162). ZIP~248, the intended extensible-format
-home for the ZIP~230/231/246 material, merged as a Draft on 2026-09-03
-(zcash/zips\#1156, commit \texttt{e753a6a3}). It defines a generic V7 carrier
-and lists OrchardZSA and ZSA issuance only under ``Potential Future Bundle
-Types'': the former has a provisional variant and the latter no allocated
-bundle type. It does not specify their V7 encodings or digests. The rot also
-reaches into the ZSA texts themselves:
-ZIP~227's SigHash consensus rule cites ``modifications described in ZIP 226
-[\#zip-0226-txiddigest]'', an anchor ZIP~226 no longer contains
-(\texttt{zip-0227.rst} lines~474, 693). This volume therefore bins the entire
-transaction-format layer --- wire format, digest tree, sighash --- as designed
-but unspecified (\S\ref{sec:zsa-method}), even though the cryptographic core
-above it is specified.
-
-The v6 note-plaintext lead byte is formally unassigned. Occurrences of
-ZIP~230's constant (originally $\mathtt{0x03}$) were changed to the
-placeholder \texttt{\{\{LEADBYTE\}\}} ``to clarify that this ZIP does not
-reserve that lead byte value, and to avoid confusion with the different
-specification of lead byte 0x03 in ZIP 2005''; ZIP~226 correspondingly
-requires the placeholder \texttt{\{\{ZSALEADBYTE\}\}} (\texttt{zip-0230.rst}
-lines~41--44; \texttt{zip-0226.rst} line~162; commit \texttt{8418662},
-2026-05-16). The pinned implementation ships $\mathtt{0x03}$
-(\S\ref{sec:zsa-sources}).
-
-The ZSA fee terms lost their upstream home on 2026-06-26: ZIP~317's change
-history for that date records ``Removed the ZSA issuance and asset-creation
-fee contributions (ZIP 227)'', so ZIP~227's ``Changes to ZIP 317'' section now
-points at a fee calculation that contains no ZSA terms (\texttt{zip-0317.rst}
-lines~11--15, 668--676; \texttt{zip-0227.rst} lines~604--610). The issuance
-and asset-creation contributions survive only in the QED-it zips fork and in
-\texttt{librustzcash-zsa} (\S\ref{sec:zsa-sources}); they are binned designed
-but unspecified.
-
-Two claims commonly attached to ZSA are stated here at exactly the rigor the
-sources support. ZIP~226 lists reference implementations --- the
-QED-it forks of zcashd, \texttt{orchard}, \texttt{librustzcash}, and
-\texttt{halo2} --- and test vectors at QED-it/zcash-test-vectors
-(\texttt{zip-0226.rst} lines~428--439). No artifact in the local corpus
-records an audit of ZSA (a repository-wide search over the ZIP texts and all
-three QED-it forks finds none), and none documents a testnet deployment; the
-only local traces of node integration are the \texttt{temporary-zebra} cargo
-feature and the fork ecosystem itself. Both claims therefore rest on web
-sources, pinned here by URL and date, and both are scoped. Audit: Least
-Authority TFA GmbH, \emph{OrchardZSA Protocol Security Audit Report}
-(commissioned by ZCG as Zcash Ecosystem Security Lead), Updated Final Audit
-Report 30 January 2025. Scope: the QED-it \texttt{orchard}
-\texttt{zsa1}-vs-\texttt{main} diff (PR QED-it/orchard\#7) for compatibility
-with the ZIPs, excluding the circuit from that comparison; the QED-it
-\texttt{halo2} gadget changes (PR QED-it/halo2\#18); and the Orchard
-\texttt{src/circuit} folder, including dependencies that differed from
-upstream. The initial revisions were Orchard \texttt{a7c02d22} and Halo~2
-\texttt{290bc565}; verification used Orchard \texttt{01e85a5f}. The report
-found no issues and made four suggestions, three resolved and one planned.
-\url{https://leastauthority.com/wp-content/uploads/2025/01/Least-Authority-ZCG-OrchardZSA-Protocol-Updated-Final-Audit-Report.pdf}.
-The audit does not cover \texttt{librustzcash-zsa} or the v6 transaction
-format layer, and the audited revisions predate the pinned
-\texttt{cf801a5d}. Testnet: QED-it's \texttt{zcash\_tx\_tool} repository
-documents public Zebra endpoints hosted by QED-it and test flows for issuance,
-transfer, and burn (HEAD \texttt{655298f4}, README and the Running tx-tool
-wiki, checked 2026-09-05,
-\url{https://github.com/QED-it/zcash_tx_tool}); its README labels the tool
-Alpha and says its feature set is incomplete. ZecHub had described a
-\emph{feature-complete version} on that testnet on 2025-12-17
-(\url{https://zechub.substack.com/p/zcash-shielded-news-vol61}), but that
-historical description is not promoted to a claim about the current tool.
-This volume accordingly asserts \emph{audited} only of the scoped Orchard and
-Halo~2 code at those revisions, and only the existence of QED-it's public test
-environment for the stack as a whole.
+Two other assignments remain incomplete: ZIP~226 leaves the note-plaintext
+lead byte unassigned, and the conventional fee rule in ZIP~317 defines no
+ZSA issuance or asset-creation terms. The fork-specific choices below are
+identified where used; neither is silently promoted to consensus.
 
 \subsection{Sources}\label{sec:zsa-sources}
 
-Table~\ref{tab:zsa-sources} lists the primary sources, each pinned to a
-commit. All facts in this volume were verified firsthand at the stated
-commits; the web sources cited are pinned by URL and date --- the Least
-Authority OrchardZSA audit report (2025-01-30), QED-it's public-testnet
-documentation (HEAD \texttt{655298f4}, checked 2026-09-05), ZecHub
-\emph{Shielded News} Vol.\,61 (2025-12-17), and the Zcash Foundation's NU7
-Polling Results post (2026-02-23), all in \S\ref{sec:zsa-status}; and the
-unversioned \emph{OrchardZSA circuit} document linked from ZIP~226 (checked
-2026-09-05), used only to bound the circuit description's scope in
-\S\ref{sec:zsa-circuit}.
+ZIPs~226 and~227 define the proposed constructions. The experimental
+implementation is not identical to those texts; Table~\ref{tab:zsa-sources}
+fixes which versions supply the fork-specific formulas below. Current
+upgrade scope follows ZIP~259, not the experimental code's feature names.
 
 \begin{table}[htbp]
 \centering
@@ -367,20 +250,8 @@ Artifact & Pin / date & Role \\
 \end{tabular}
 \caption{Primary ZSA sources, pinned.}
 \label{tab:zsa-sources}
+\label{tab:zsa-sources-integration}
 \end{table}
-
-\paragraph{Current-head boundary (2026-09-05).} The QED-it forks have moved
-since the source snapshot: \textsf{orchard} \texttt{837ddd1} is based on
-0.15.0, adds the NU6.3 cross-address restriction to the ZSA circuit, and
-includes later internal circuit refactors, while \textsf{librustzcash}
-\texttt{c5c232d} synchronises the NU6.2-era upstream transaction changes.
-Upstream ZIP~248 is now a merged Draft for a generic V7 carrier, but it leaves
-the ZSA-specific bundle encodings and digests to future specifications;
-ZIPs~230 and~246 remain withdrawn, ZIPs~226 and~227 remain Draft, and the NU7
-deployment draft still does not select them. Detailed wire, circuit, and fee
-claims below therefore continue to describe the explicit pins in
-Table~\ref{tab:zsa-sources}; later fork behaviour is not silently attributed
-to that public-testnet snapshot.
 
 \paragraph{Upstream versus fork.} Upstream ZIP~226 diverged from the fork text
 at \texttt{fd71419a} in three substantive ways: it added the ZIP~2005
@@ -414,30 +285,9 @@ $\mathsf{valueBurn}$ bound wording --- are inventoried in
 \S\ref{sec:zsa-impl}, \S\ref{sec:zsa-issuance-state}, and
 \S\ref{sec:zsa-burn}.
 
-\paragraph{Pin consistency.} The two implementation forks are not mutually
-consistent snapshots: \texttt{librustzcash-zsa} @ \texttt{3f9b53fc} patches
-\texttt{orchard} to QED-it rev \texttt{77d3274c}, older than the
-\texttt{orchard-zsa} checkout head \texttt{cf801a5d}; it also pins
-\texttt{sapling-crypto} @ \texttt{59535fb5} and \texttt{zcash\_spec} @
-\texttt{d5e84264}, while \texttt{orchard-zsa} pins
-\texttt{halo2\_proofs}/\texttt{halo2\_gadgets} @ \texttt{ef3d0ba2} and the
-same \texttt{zcash\_spec} (\texttt{Cargo.toml} lines~234--239 and 118--123
-respectively). Each fork is cited at its own pin; where the gap between them
-is load-bearing, the text says so.
-
-\paragraph{Gating.} In \texttt{librustzcash-zsa}, all ZSA and v6 code sits
-behind \texttt{cfg(zcash\_unstable = "nu7")}; in \texttt{orchard-zsa},
-issuance sits behind the cargo feature \texttt{zsa-issuance} (which pulls in
-\texttt{secp256k1}) and node integration behind \texttt{temporary-zebra}.
-
-\paragraph{Non-sources.} The branch \texttt{ltf/zsa} of upstream
-\texttt{zcash/orchard} points at \texttt{a799082e} (2025-11-25), an ancestor
-of \texttt{main}, and contains no ZSA code; it is not usable ground truth.
-Node-side enforcement is a second gap: ZIP~227 specifies chained per-node
-issuance state (the \texttt{issued\_assets} map), but no node implementation
-is checked out locally, so the supply and burn logic verified for this volume
-is library-side only (\texttt{orchard-zsa}
-\texttt{src/bundle/burn\_validation.rs}, \texttt{src/issuance.rs}).
+The two library pins are separate snapshots, not a single deployed stack.
+Checks of the implementation below establish library behaviour, not
+node-side enforcement of ZIP~227's issuance state.
 %% TODO: pin a QED-it node fork (zebra or zcashd) before asserting any
 %% node-side enforcement behaviour of the issued_assets state machine.
 
@@ -454,7 +304,7 @@ circuit delta and the carrier layer: the v6 wire format, digest tree and
 sighash, note-plaintext lead byte, and ZSA fee terms. Those details are fixed
 only by implementation, an externally hosted unversioned circuit description,
 withdrawn ZIPs, or the QED-it fork texts (\S\ref{sec:zsa-status}). Bin~(iii)
-holds NU7 inclusion and activation, the
+holds assignment to a future network upgrade and activation, the
 eventual lead-byte assignment, and the carrier format's future home. Formulas
 below identify whether their source is ZIP text, pinned code, or an explicitly
 labelled derivation in this volume.
@@ -993,17 +843,10 @@ chain.
 \section{Issuance and finalization (ZIP-227)}\label{sec:zsa-issuance}
 
 The transfer mechanism below moves Custom Assets between shielded notes; this
-section brings them into existence. ZIP-227 (Status Draft, Category Consensus;
-owners Pablo Kogan and Vivek Arte of QEDit, Daira-Emma Hopwood, and Jack
-Grigg) specifies the issuance mechanism for Custom Assets on the Zcash
+section brings them into existence. ZIP-227 specifies issuance on the Zcash
 chain: a per-transaction \emph{issuance bundle} in which a publicly named
 issuer creates new notes, a per-Asset \emph{finalize} switch that ends
-issuance forever, and a node-maintained global supply map. The draft's Test
-Vectors, Reference Implementation, and Deployment sections all read TBD
-(ZIP-227, header and closing sections @ zips \texttt{69610984}). Deployment
-standing --- Draft ZIPs, externally audited at the stated Orchard/Halo~2 scope,
-exercised in QED-it's Alpha public test environment, contested for NU7 --- is
-fixed once in \S\ref{sec:zsa-scope} and not relitigated here.
+issuance forever, and a node-maintained global supply map.
 
 Issuance is deliberately \emph{not} shielded. The ZIP's Motivation states:
 ``This ZIP only enables \emph{transparent} issuance. As a first step,
@@ -1016,45 +859,11 @@ reveal the nullifier key, so a later spend is designed to be unlinkable to the
 public issue-note description. The mandatory all-zero-key reference note is an
 explicit exception (\S\ref{sec:zsa-issuance-notes}).
 
-\paragraph{Encoding ground truth.} One sourcing decision governs every
-wire format and digest below, and we state it once. ZIP-227 normatively
-cites ZIP-230 for all issuance encodings and ZIP-246 for all issuance
-digests, yet upstream both are Withdrawn: ZIP-230 is the ``Withdrawn
-Version 6 Transaction Format'', obsoleted by ZIP-229, its lead byte
-replaced by the placeholder \texttt{\{\{LEADBYTE\}\}}, and ZIP-246 carries
-``Digests for the Withdrawn Version 6 Transaction Format'', with v6
-digests now assigned to ZIP-229 (ZIP-230 and ZIP-246, headers and
-warnings @ zips \texttt{69610984}) --- and ZIP-229 carries no
-issuance-bundle fields. The QEDit fork of the ZIPs repository retains
-ZIP-230 and ZIP-246 at Status Draft with lead byte $\mathtt{0x03}$, and
-its copy of ZIP-227 differs from upstream only cosmetically (zips-zsa @
-\texttt{fd71419}). We therefore present the ZIP-230/246 issuance encoding
-as what it is: the fork-specified design, exercised in QED-it's public test
-environment (\S\ref{sec:zsa-status}) and
-implemented by the pinned fork libraries (at an older Orchard/Halo~2 revision
-audited by Least Authority, 2025-01-30), with no merged upstream v6
-specification behind it.
-The NU7 standing of the whole format stack is part of the deployment
-picture of \S\ref{sec:zsa-scope}.
-
-\paragraph{Implementation pins.} Claims about implemented behavior cite the
-QEDit libraries at fixed commits: \texttt{orchard-zsa} branch
-\texttt{zsa1} @ \texttt{cf801a5d} (2026-06-29), \texttt{librustzcash-zsa}
-branch \texttt{zsa1} @ \texttt{3f9b53fc} (2026-04-17), and the patched
-\texttt{zcash\_spec} (QED-it fork @ \texttt{d5e8426}) that carries the new
-PRF domain byte; upstream \texttt{orchard}'s branch \texttt{ltf/zsa} is
-context only, not ground truth (\S\ref{sec:zsa-sources},
-\emph{Non-sources}). All \texttt{librustzcash-zsa}
-transaction-format code sits behind
-\texttt{cfg(zcash\_unstable = "nu7")}; file paths we cite within that
-repository are relative to \texttt{zcash\_primitives/src/}. Except
-where flagged inline,
-everything in this section is \emph{specified}: ZIP text at rigor,
-mirrored by these libraries. Three flags recur: fork-only specification
-(the wire format above, and fees, \S\ref{sec:zsa-issuance-fees});
-library-versus-ZIP divergence, noted where it occurs; and node-side
-enforcement of global state, which no local repository exhibits
-(\S\ref{sec:zsa-issuance-state}).
+\paragraph{Encoding boundary.} The issuance mechanism follows ZIP~227.
+Its encodings and digests below follow the experimental ZIP~230/246
+carrier, not ZIP~229's deployed v6 format (\S\ref{sec:zsa-status}).
+Fork-only fee rules and differences between the ZIP and the pinned libraries
+are marked where they affect a construction.
 
 \subsection{Issuance keys and the issuer identifier}%
 \label{sec:zsa-issuer-keys}
@@ -1750,18 +1559,9 @@ validators track in perpetuity
 (\S\ref{sec:zsa-issuance-state}), and the two-orders-of-magnitude
 creation cost disincentivizes junk assets.
 
-Upstream, these contributions no longer exist: ZIP-317's change history
-records, on 2026-06-26, ``Removed the ZSA issuance and asset-creation
-fee contributions (ZIP 227)'' (ZIP-317, change history @ zips
-\texttt{69610984}) --- while ZIP-227's own \emph{Changes to ZIP 317}
-section still claims the conventional fee accounts for both. The
-formulas above survive only in the QEDit fork and its libraries:
-\emph{fork-specified}, implemented in \texttt{librustzcash-zsa} behind
-\texttt{cfg(zcash\_unstable = "nu7")}
-(\texttt{transaction/fees/zip317.rs},
-\texttt{CREATION\_COST} $= 100$ @ \texttt{3f9b53fc}), and awaiting an
-upstream resolution that the NU7 process (\S\ref{sec:zsa-scope}) has yet
-to provide.
+ZIP~317 defines neither contribution. These formulas are
+\emph{fork-specified}: they describe the experimental ZSA fee policy,
+not the conventional fee rule for deployed transactions.
 
 \section{Transfer and burn (ZIP-226)}\label{sec:zsa-transfer}
 
@@ -1781,24 +1581,9 @@ computational per-asset balance check and gives burn its consensus meaning
 the extended Action statement (\S\ref{sec:zsa-circuit}) and the carrier
 format with its digests and fees (\S\ref{sec:zsa-carrier}).
 
-Ground truth for this section: upstream \texttt{zips} at commit
-\texttt{69610984}, the QEDit fork \texttt{zips-zsa} at \texttt{fd71419a},
-crate \texttt{orchard-zsa} at \texttt{cf801a5d} (branch \texttt{zsa1}), and
-\texttt{librustzcash-zsa} at \texttt{3f9b53fc} (branch \texttt{zsa1}); we
-verified every cited artifact at these commits. ZIP-226 names the QED-it
-\texttt{zcash-test-vectors} and the QED-it forks of \texttt{zcashd},
-\texttt{orchard}, \texttt{librustzcash}, and \texttt{halo2} as its test
-vectors and reference implementations. Deployment standing is fixed once, in
-\S\ref{sec:zsa-scope}, and not relitigated per object; two upstream facts
-nonetheless shape the text. First, ZIP-226 states that ZSA ``is scheduled to
-be deployed in Network Upgrade 7 (NU7)'' and ``currently assumes that this
-will be the case'', while the transaction format it rides on has been
-withdrawn upstream (\S\ref{sec:zsa-carrier}). Second, upstream ZIP-226 is now
-defined relative to the protocol with ZIP-2005 (Ironwood Quantum
-Recoverability) applied, which is expected to deploy before any ZSA
-activation; the QEDit fork's ZIP-226 lacks this clause, and the pinned
-implementation does not implement ZIP-2005 constructs. Where the difference
-is material --- the split-note $\psi^{\nfsym}$
+ZIP~226 assumes ZIP~2005's recoverability changes, whereas the experimental
+fork does not implement them. Where the difference affects a construction
+--- the split-note $\psi^{\nfsym}$
 (\S\ref{sec:zsa-split}) and the lead byte (\S\ref{sec:zsa-carrier}) --- we
 flag it in place.
 
@@ -2216,16 +2001,10 @@ ZIP-230).
 \subsection{The carrier: transaction format, digests, and fees}
 \label{sec:zsa-carrier}
 
-The byte-level carrier has no merged deployment path upstream. Upstream
-ZIP-230 (the OrchardZSA v6 transaction format) is Status: Withdrawn, as is
-upstream ZIP-246 (its digests), and the new ZIP-229 (Version 6 Transaction
-Format; Draft, created 2026-06-13) states as a non-requirement that ``the
-v6 transaction format need not support ZSAs''. The QEDit fork retains
-ZIP-230 and ZIP-246 as Draft. We therefore document the carrier from the
-withdrawn upstream texts, the fork, and the implementation, and bin it
-accordingly: the transfer/burn cryptography above is Draft-specified, while
-the encoding it rides on is \emph{designed and implemented but not
-specified upstream} (\S\ref{sec:zsa-scope}).
+The following encodings belong to the experimental ZIP~230/246 carrier,
+not ZIP~229's deployed v6 format (\S\ref{sec:zsa-status}). The transfer
+and burn constructions are draft-specified; their transaction encoding
+remains \emph{designed but unspecified} for deployment.
 
 \paragraph{Note plaintext.} The OrchardZSA note plaintext adds
 $\mathsf{asset\_base}$ ($32$ bytes) after $\mathsf{rseed}$. Per withdrawn
@@ -2330,7 +2109,7 @@ ZIP-317 contains no ZSA changes. The conventional-fee baseline is the
 %% Ground truth verified at: zcash/zips main @ 69610984 (2026-07-09); QEDit
 %% forks: orchard-zsa branch zsa1 @ cf801a5d ("Merge upstream 20260609
 %% (#251)", 2026-06-29), zips-zsa zsa1 @ fd71419a, librustzcash-zsa zsa1 @
-%% 3f9b53fc. Deployment status (Draft ZIPs, testnet, NU7-contested) is
+%% 3f9b53fc. Deployment status (Draft ZIPs, testnet, outside NU7 scope) is
 %% stated once in this volume's scope section and not restated here.
 
 \section{Split notes and the counterfeiting boundary}\label{sec:zsa-split}
@@ -2954,73 +2733,25 @@ This section places them in a transaction: the v6 wire format (ZIP-230), the
 digest tree that yields transaction identifiers, sighashes, and the
 authorizing-data commitment (ZIP-246), the transaction-level consensus rules
 of ZIP-226/227, the fee treatment (ZIP-317), the state of the QED-it
-implementation stack at commit-pinned sources, the obligations the format
-imposes on wallets, and the deployment outlook. Deployment status --- Draft
-ZIPs, externally audited at the stated Orchard/Halo~2 scope, exercised in
-QED-it's Alpha public test environment, contested for NU7 --- is stated once
-in the scope section (\S\ref{sec:zsa-status}) and not relitigated per object;
-what this section adds is the classification of each format artifact, because
-the ZSA transaction layer is the part of the protocol where specification and
-implementation have diverged furthest. Table~\ref{tab:zsa-sources-integration}
-pins the sources; all repository facts below were verified firsthand at the
-stated commits, most recently on 2026-09-05.
+implementation stack at the pins in Table~\ref{tab:zsa-sources}, and the
+obligations the format imposes on wallets. The format is experimental;
+\S\ref{sec:zsa-status} states its deployment boundary.
 
-\begin{table}[htbp]
-\centering\small
-\begin{tabular}{@{}llll@{}}
-\toprule
-Source & Commit & Date & Role \\
-\midrule
-\texttt{zcash/zips} & \texttt{69610984} & 2026-07-09
-  & upstream ZIP texts \\
-QED-it \texttt{zips} fork & \texttt{fd71419} & 2026-02-11
-  & fork ZIP texts (pre-withdrawal) \\
-QED-it \texttt{orchard} fork, \texttt{zsa1} & \texttt{cf801a5d} & 2026-06-29
-  & OrchardZSA bundle, circuit, issuance \\
-QED-it \texttt{librustzcash} fork, \texttt{zsa1} & \texttt{3f9b53fc}
-  & 2026-04-17 & v6 assembly, digests, fees \\
-\bottomrule
-\end{tabular}
-\caption{Pinned sources for this section. The upstream tracking branch excluded
-in \S\ref{sec:zsa-sources} contains no ZSA implementation and is not a source.}
-\label{tab:zsa-sources-integration}
-\end{table}
-
-\subsection{Format status: version 6 no longer means OrchardZSA}
+\subsection{Experimental and deployed carriers}
 \label{sec:zsa-format-status}
 
-The carrier format for everything in this volume is ZIP-230, the OrchardZSA
-v6 transaction format, with its digests in ZIP-246. Both are \emph{withdrawn}
-upstream. ZIP-230 is retitled ``Withdrawn Version 6 Transaction Format''; its
-warning states that it is obsoleted by ZIP-229 and ``will not be deployed.
-Transaction version number 6 is now defined by ZIP 229.''
-(\texttt{zip-0230.rst}, header and warning). ZIP-246 is likewise withdrawn
-(``Digests for the Withdrawn Version 6 Transaction Format''); v6 transaction
-identifiers, authorizing-data commitments, and signature digests are now
-specified by ZIP-229 (\texttt{zip-0246.rst}, header). The QED-it fork copies
-of both remain Status: Draft under their original titles --- the fork
-(@~\texttt{fd71419}) predates the withdrawal.
+The carrier below is the experimental OrchardZSA format of ZIP~230, with
+digests from ZIP~246. Both ZIPs are withdrawn. Its version number~6 must not
+be confused with \href{https://zips.z.cash/zip-0229}{ZIP~229}'s deployed
+version~6 format, which carries Ironwood and no ZSA bundles. The two byte
+formats are incompatible despite the shared number.
 
-ZIP-229 (Status: Draft, created 2026-06-13) redefines v6 for NU6.3,
-introducing the Ironwood pool in the aftermath of the Orchard soundness
-vulnerability whose mitigation deployed as NU6.2 (ZIP-257, Status: Final).
-Its Non-requirements state explicitly that ``the v6 transaction format need
-not support ZSAs, the \texttt{zip233Amount} field, the explicit fee field, or
-per-transparent-input sighash information that appeared in the withdrawn
-ZIP 230,'' and that version number~6 need not avoid collision with withdrawn
-ZIP-230 or draft ZIP-248 (ZIP-229, Non-requirements). The same transaction
-version number therefore now denotes two incompatible byte formats, and the
-ZSA one is the orphan.
+We use the experimental format to explain how the note, issuance, burn,
+and signature constructions compose into one transaction. Its fields and
+digests are \emph{designed but unspecified} for deployment; the remaining
+specification obligations are in \S\ref{sec:zsa-outlook}.
 
-Under the three-bin classification of \S\ref{sec:zsa-method}, the byte-level
-format below is fixed at ZIP rigor only by withdrawn upstream text and pinned
-fork code --- \emph{designed but unspecified} ---
-with no deployment path under its current ZIP numbers. We document it because
-it is the format the pinned implementation speaks and the reference against
-which any respecification will be diffed; \S\ref{sec:zsa-outlook} states what
-would have to happen for it to become normative again.
-
-\subsection{The v6 wire format (ZIP-230)}\label{sec:zsa-v6}
+\subsection{The experimental wire format (ZIP-230)}\label{sec:zsa-v6}
 
 \paragraph{Common and transparent fields.} The common header carries
 \texttt{header} (\texttt{fOverwintered} and the version),
@@ -3066,14 +2797,9 @@ atomic swaps. ZIP-228 is now a Draft that uses this field to expire swap
 orders, but it still depends on the withdrawn ZIP-230/246 carrier; for the
 core OrchardZSA proposal the field is zero
 by consensus (ZIP-230, Rationale for \texttt{nAGExpiryHeight};
-\S\ref{sec:zsa-tx-rules}). A normative rule of ZIP-230 (its consensus-rule
-list, not the rationale) states ``In NU7, \texttt{nExpiryHeight} MUST be set
-to 0'' --- read literally, a constraint on
-the transaction-level ZIP-203 field that would contradict ordinary expiry
-semantics; context, the ZIP-227 consensus rule, and the implementation (which
-constrains only \texttt{nAGExpiryHeight}) all indicate
-\texttt{nAGExpiryHeight} is meant. We flag this as an apparent editorial
-defect in the withdrawn text. Burn fields sit inside each Action Group
+\S\ref{sec:zsa-tx-rules}). This restriction concerns
+\texttt{nAGExpiryHeight}, not the transaction-level expiry field
+\texttt{nExpiryHeight}. Burn fields sit inside each Action Group
 rather than at transaction level so that, in a future multi-party Action
 Group world, each party can burn assets within its own group (ZIP-230,
 Rationale for including Burn fields inside OrchardZSA Action Groups).
@@ -3148,10 +2874,7 @@ The machinery buys the ability to introduce --- and, critically, to retire
 
 \paragraph{Coinbase.} For coinbase transactions the
 \texttt{enableSpendsOrchard} and \texttt{enableZSAs} bits MUST be zero
-(ZIP-230, consensus rules). Its mining discussion says draft ZIP-235 would
-require all coinbase transactions to use this v6 format from that proposal's
-then-planned NU7 activation (ZIP-230, Implications for Mining); neither
-withdrawn ZIP-230 nor draft ZIP-235 supplies a current deployment rule.
+(ZIP-230, consensus rules).
 
 \subsection{Digests: txid, sighash, and authorizing data (ZIP-246)}
 \label{sec:zsa-digests}
@@ -3358,7 +3081,7 @@ OrchardZSA notes of each Action; then, per Issue Action, the issue-note
 commitments (ZIP-227, Specification: Consensus Rule Changes). Wallets and
 nodes must agree on this order to agree on note positions.
 
-\subsection{Fees (ZIP-317): specified in the fork, removed upstream}
+\subsection{The experimental fee policy}
 \label{sec:zsa-fees}
 
 The fee treatment chains through three documents: ZIP-226 (Transaction Fees)
@@ -3375,14 +3098,9 @@ All variants share the conventional-fee form documented in the
 with $\mathsf{marginalFee} = 5000$~zatoshis and $\mathsf{graceActions} = 2$
 (ZIP-317, Fee calculation).
 
-The pointer now dangles upstream: ZIP-317 (Last-Updated 2026-06-26) removed
-the ZSA contributions --- its Change History records ``Removed the ZSA
-issuance and asset-creation fee contributions (ZIP 227)'' --- leaving
-Revision~0 (active base), Revision~1 (Ironwood-pool Actions, NU6.3), and
-Revision~2 (memo bundles, draft) (ZIP-317, Revisions and Change History).
-The ZSA treatment survives in the QED-it fork copy
-(@~\texttt{fd71419}): a requirement that ``users should be discouraged from
-issuing new `garbage' Custom Assets,'' the parameter
+ZIP~317 contains no ZSA fee contributions. The experimental fork adds a
+charge for creating an asset, to discourage permanent state growth from
+unused assets: the parameter
 $\mathsf{creationCost} = 100$ logical actions, and two contributions summed
 into $\mathsf{logicalActions}$ alongside the base terms of the deployed
 rule:
@@ -3396,12 +3114,8 @@ $\mathsf{nAssetCreations}$ counts Custom Assets newly added to the global
 issuance state (fork ZIP-317, Fee calculation). The rationale is a one-time
 charge for state growth: each new asset adds an $\mathsf{issued\_assets}$ row
 tracked in perpetuity, while subsequent issuance, finalization, and burn only
-mutate the row. The implementation matches the fork text:
-\texttt{zcash\_primitives}' \texttt{transaction/fees/zip317.rs} defines
-\texttt{CREATION\_COST} $= 100$ behind
-\texttt{cfg(zcash\_unstable = "nu7")} and adds
-$\mathsf{nZSAIssueNotes} + 100 \cdot \mathsf{nAssetCreations}$ to the
-standard logical-action count. As with the deployed rule (the \emph{Wallet
+mutate the row. The implementation uses the same contributions. As with
+the deployed rule (the \emph{Wallet
 Guide}, \S``The deployed fee rule''), paying the conventional fee is not a
 consensus requirement in any ZIP-317 variant. Classification: the ZSA fee
 rule is \emph{fork-specified}; whether it returns upstream as a ZIP-317
@@ -3409,14 +3123,8 @@ revision, as Ironwood's did, is undecided.
 
 \subsection{Implementation status at the pinned commits}\label{sec:zsa-impl}
 
-\paragraph{Constants and serialization.} All NU7 code in the librustzcash
-fork sits behind the configuration gate
-\texttt{cfg(zcash\_unstable = "nu7")}. The constants are
-$\texttt{V6\_TX\_VERSION} = 6$, $\texttt{V6\_VERSION\_GROUP\_ID} =
-\mathtt{0x77777777}$, $\texttt{BranchId::Nu7} = \mathtt{0x77190AD8}$, with
-NU7 activation \texttt{None} on Mainnet, $4{,}000{,}000$ on Testnet, $1$ on
-Regtest (\texttt{zcash\_protocol}, \texttt{constants.rs} and
-\texttt{consensus.rs}). The v6 reader parses the header fragment, one
+\paragraph{Serialization.} The experimental reader parses the header,
+one
 \texttt{vSighashInfo} per transparent input (required to equal the version-0
 encoding), the Sapling v6 bundle, the Orchard v6 bundle, and the issuance
 bundle (\texttt{zcash\_primitives}, \texttt{transaction/mod.rs}). The
@@ -3498,27 +3206,6 @@ changes private witness construction but is not enforced by the circuit.
   \texttt{circuit.rs}).
 \end{enumerate}
 
-\paragraph{Audit scope.} Public reporting supports both standing claims,
-at scope: Least Authority's \emph{OrchardZSA Protocol Security Audit
-Report} (ZCG-commissioned, Updated Final 30 January 2025) reviewed the
-QED-it \texttt{orchard} \texttt{zsa1}-vs-\texttt{main} diff for ZIP
-compatibility (PR QED-it/orchard\#7, excluding the circuit from that
-comparison), the QED-it \texttt{halo2} changes (PR QED-it/halo2\#18), and
-the Orchard \texttt{src/circuit} folder. Initial revisions were Orchard
-\texttt{a7c02d22} and Halo~2 \texttt{290bc565}; verification used Orchard
-\texttt{01e85a5f}. The report identified no issues. QED-it's
-current test-tool documentation exposes public Zebra endpoints and labels the
-tool Alpha with an incomplete feature set; the earlier ZecHub report's
-\emph{feature-complete} description is retained only as a dated report.
-Sources are pinned in \S\ref{sec:zsa-status}. Neither the audit nor those
-testnet claims establish coverage of \texttt{librustzcash-zsa} or the v6
-carrier layer, and the audited revisions predate \texttt{cf801a5d}.
-Two facts bound what the past audit covers: the audited revisions predate
-both the NU6.2 Orchard circuit remediation (ZIP-257) --- and the ZSA
-circuit is a fork of the Orchard circuit --- and the ZIP-2005-relative
-rebasing of upstream ZIP-226. A mainnet path implies re-audit against
-both.
-
 \subsection{Wallet integration}\label{sec:zsa-wallets}
 
 The withdrawn ZIP-230 and ZIP-226 design imposes two obligations. First, all
@@ -3551,32 +3238,6 @@ ZSAs is unspecified in any draft.
 
 \subsection{Outlook}\label{sec:zsa-outlook}
 
-ZIP-226 and ZIP-227 remain Status: Draft. ZIP-226's Deployment section reads
-``The Zcash Shielded Assets protocol is scheduled to be deployed in Network
-Upgrade 7 (NU7). This ZIP currently assumes that this will be the case'';
-ZIP-227's Deployment is TBD and its test-vector and reference-implementation
-entries are ``LINK TBD,'' with ZIP-226 naming the QED-it forks and
-\texttt{QED-it/zcash-test-vectors} as reference artifacts (ZIP-226/227,
-Deployment). The deployment vehicle is thinner still: the NU7 deployment
-draft is unnumbered (\texttt{draft-arya-deploy-nu7}, Status: Draft,
-replacing the withdrawn ZIP-254), fixes
-$\texttt{CONSENSUS\_BRANCH\_ID} = \mathtt{0x77190AD8}$ and minimum protocol
-versions ($170150$ Testnet, $170160$ Mainnet) with activation heights TBD,
-and lists \emph{no} ZIPs. Those version numbers now conflict with ZIP-204's
-NU7 assignment of $170180$ and $170190$, so the deployment draft needs an
-editorial update. The repository's NU7 candidate list (ZIPs 218,
-230, 231, 233, 234, 235, 2002, 2003, plus a possible ZIP-317 update) does
-not include ZIP-226/227, still names the withdrawn ZIP-230, and states that
-``no decision has been made on whether to include each of these ZIPs''
-(\texttt{zcash/zips} README, NU7 Candidate ZIPs). Governance sentiment is
-split: in the February 2026 NU7 sentiment polls, ZCAP supported ZSAs at
-70.4\% while the coinholder poll ran 98.6\% against; the Zcash Foundation
-did not recommend ZSAs for NU7, writing that ``before any decision is
-made, we need to understand why coinholders oppose ZSAs so strongly''
-(zfnd.org, ``NU7 Polling Results: What We Heard and Where We Go From
-Here'', 2026-02-23,
-\url{https://zfnd.org/nu7-polling-results-what-we-heard-and-where-we-go-from-here/}).
-
 Between the pinned implementation and any deployment stand three
 cross-cutting respecification problems.
 \begin{enumerate}[itemsep=2pt]
@@ -3588,19 +3249,13 @@ cross-cutting respecification problems.
   provisional variant and ZSA issuance without an allocated bundle type,
   under ``Potential Future Bundle Types''; it does not specify either
   bundle's encoding or digest. The ZSA-specific transaction format therefore
-  remains incomplete: if ZSAs are selected for NU7, the byte format of
+  remains incomplete: before a future ZSA deployment, the byte format of
   \S\ref{sec:zsa-v6} must be mapped or respecified for V7, and
   \S\ref{sec:zsa-digests} re-anchored to the resulting digest rules.
-\item \emph{A base protocol.} Upstream ZIP-226 is now ``defined relative to
-  the Zcash protocol with the changes specified in ZIP 2005 applied,'' with
-  ZIP-2005 (Ironwood Quantum Recoverability) ``expected to deploy before any
-  ZSA activation'' (ZIP-226, header notes). NU6.3 (ZIP-258, testnet
-  activation $4{,}134{,}000$, Mainnet $3{,}428{,}143$) introduces the
-  Ironwood pool and itself restricts transfers into the Orchard pool; its
-  intended supporting ZIP-2006 remains only a Reserved stub. No ZIP specifies
-  whether OrchardZSA then targets the restricted
-  Orchard pool or is rebased onto Ironwood; the audited revisions
-  predate the entire NU6.2/NU6.3 pivot. Classification: \emph{open}.
+\item \emph{A base protocol.} ZIP~226 assumes ZIP~2005's recoverability
+  changes, but the experimental implementation does not. No ZIP specifies
+  whether OrchardZSA targets the restricted Orchard pool or is rebased onto
+  Ironwood. Classification: \emph{open}.
 \item \emph{Reconvergence of spec and code.} The divergence list of
   \S\ref{sec:zsa-impl} --- fee field, memo bundles, lead byte,
   $\psi^{\mathsf{nf}}$ --- plus the orphaned fee treatment of

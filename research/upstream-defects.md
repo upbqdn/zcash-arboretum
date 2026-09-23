@@ -2595,6 +2595,12 @@ implementation''); librustzcash `91f448b`
 
 ## 59. zcash/zips — the NU7 deployment draft conflicts with ZIP-204
 
+**2026-09-23 status:** this finding concerns the older unnumbered draft.
+The newly merged Draft [ZIP 259](https://zips.z.cash/zip-0259) leaves minimum
+network protocol versions unassigned; it does not assign the conflicting
+values below. See the [NU7 source review](nu7-2026-09-23.md). Retained as
+historical evidence, not a current finding against ZIP 259.
+
 **DRAFT. Severity: low.**
 
 **Title:** `draft-arya-deploy-nu7` assigns Testnet/Mainnet protocol versions

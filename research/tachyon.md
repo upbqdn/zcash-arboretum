@@ -1,5 +1,10 @@
 # Project Tachyon: rigor inventory
 
+The NU7 scope discussion below is historical. The
+[23 September 2026 NU7 review](nu7-2026-09-23.md) supersedes its deployment
+status: merged Draft ZIP 259 does not include Tachyon or a new transaction
+format. The mechanism/source inventory retains its original pins.
+
 Ground truth: zcash/zips `c6b70358` (2026-07-05, verified equal to origin/main 2026-07-08);
 tachyon-zcash/tachyon `26fdc165` (2026-07-07, local `/home/m/zcash/tachyon`); tachyon-zcash/ragu
 `830bbcda` (2026-07-05, local `/home/m/zcash/ragu-tachyon`); tachyon-zcash/zips fork `a2a71f2b`

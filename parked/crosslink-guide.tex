@@ -186,6 +186,12 @@ maturity'' (zebra-crosslink @ \texttt{6d02a1b},
 \texttt{book/src/design.md} line~7). This is therefore a design-stage
 volume: it fixes a moving design against commit-pinned sources, classifies
 every claim by rigor, and asserts nothing normatively.
+The later \href{https://zips.z.cash/zip-0259}{NU7 deployment draft,
+ZIP~259} (\textsf{zips} \texttt{afa086bd}, checked 2026-09-23) does not
+include Crosslink. Its selection of ZIP~218's 25-second spacing changes
+the timing of the underlying proof-of-work chain, not its finality model;
+activation heights remain TBD. The prototype parameters below retain their
+dated source context and are not NU7 consensus constants.
 The design corpus splits three
 ways --- a construction book that has been static since 2024-12-13, an
 implementation whose design has since moved past the book in documented
@@ -3320,10 +3326,11 @@ verification has been done on the security or performance of these
 parameters'' (\texttt{zebra-crosslink/src/chain.rs}:206--222;
 crosslink\_monolith @ \texttt{807b995},
 \texttt{librustzcash/zcash\_primitives/src/bft.rs}:388--404). Wall-clock statements
-are additionally provisional: block target spacing is 75\,s today, and ZIP
-218 (Status: Draft) proposes 25\,s at NU7, describing itself as
-``complementary to \ldots{} finality mechanisms such as Crosslink''
-(\texttt{zips/zip-0218.md}:3, 76--78).
+are additionally provisional: block target spacing is 75\,s before NU7,
+while \href{https://zips.z.cash/zip-0259}{ZIP~259 (Draft)} selects
+\href{https://zips.z.cash/zip-0218}{ZIP~218}'s 25\,s target at NU7.
+Neither draft deploys Crosslink or assigns its production parameters; a
+fixed block count must not silently retain its old wall-clock duration.
 
 \paragraph{Classification.} \emph{Designed but unspecified} throughout:
 Definition~\ref{def:xl-ledger-views} and
@@ -4464,9 +4471,10 @@ refined ``as the prototype approaches maturity''
 pre-drafts appeared in Shielded Labs' ZIP fork at \texttt{7cdceca}
 (2026-05-27), but neither is present on that fork's current main branch or
 in the official repository. They have no normative standing.
-NU8 scoping is an open governance discussion (``NU8 Decision Framework'',
-forum thread opened 2026-02-11) in which Crosslink competes with the
-25-second-blocks proposal and with Tachyon; their asserted independence is
+The ``NU8 Decision Framework'' discussion (forum thread opened 2026-02-11)
+considered Crosslink alongside shorter blocks and Tachyon; that historical
+discussion is not a deployment assignment. ZIP~259 now selects 25-second
+blocks for NU7 without Crosslink or Tachyon. Their asserted independence is
 recorded in \S\ref{sec:xl-services}. Shielded Labs' roadmap shows
 Milestones 1--5 complete (2025-03-21 through 2026-04-15) and a
 productionization phase running Q2~2026 -- Q2~2027 --- testnet

@@ -160,9 +160,9 @@ At this volume's July 2026 pins, Tachyon has neither a consensus
 specification nor a merged core ZIP or a deployed network implementation.
 It nevertheless warrants a volume now, for two reasons. First, its standing:
 of all proposals in the February 2026 NU7 sentiment poll, Tachyon drew the
-most unambiguous support (\S\ref{sec:tachyon-standing}), so it is the
-direction Zcash's shielded layer is most likely to take, and the design
-deserves scrutiny \emph{before} it hardens into consensus rules. Second, its
+most unambiguous support (\S\ref{sec:tachyon-standing}); the design
+deserves scrutiny \emph{before} it hardens into consensus rules, without
+inferring an upgrade assignment from that support. Second, its
 volatility: the design is single-committer, actively churning, and
 self-admittedly stale in places
 (\S\ref{sec:tachyon-sources}); fixing its current state against commit-pinned
@@ -255,6 +255,18 @@ the July snapshot's repeated statements that ZIP~248 is unmerged are
 historical, not current status. It does not itself specify Tachyon's core
 protocol or validate the mock-based construction documented here.
 
+\paragraph{NU7 scope update (2026-09-23).} The numbered deployment draft,
+\href{https://zips.z.cash/zip-0259}{ZIP~259}, merged on 2026-09-22
+(\textsf{zips} \texttt{afa086bd};
+\href{https://github.com/zcash/zips/pull/1363}{PR~1363}). It selects
+25-second blocks and shielded action limits, halving-preserving reissuance,
+and rejection of version~4 transactions. It keeps transaction versions~5
+and~6 and introduces no new format. Tachyon, memo bundles, and ZIP~248's
+extensible V7 format are outside this scope, not withdrawn by that
+decision. NU7 activation heights remain TBD. The February poll and empty
+deployment draft discussed in the July snapshot are historical evidence,
+not the current upgrade definition.
+
 \paragraph{The eprint note.} The canonical publication is Bowe and Miers, ``A
 Note on Notes: Towards Scalable Anonymous Payments via Evolving Nullifiers and
 Oblivious Synchronization'' (eprint 2025/2031; received 2025-11-02, revised
@@ -296,9 +308,9 @@ ZIP-0-conformant drafts, but only as PRs \#1--\#4 on the project's own
 since 2026-05-26). Upstream \texttt{zcash/zips} @ \texttt{c6b70358} contains
 zero Tachyon ZIPs: a repository-wide search finds only the ZIP editor list,
 one author affiliation in \texttt{protocol/protocol.tex}, and one footnote
-citing the founding blog post. The NU7 deployment draft
-(\texttt{draft-arya-deploy-nu7.md}, Status Draft, branch \texttt{0x77190AD8},
-activation heights TBD) schedules no Tachyon ZIP --- nor any other.
+citing the founding blog post. At that July pin, the unnumbered NU7
+deployment draft selected no feature ZIPs. It is no longer the current
+scope: ZIP~259 selects a bounded upgrade without Tachyon, as recorded above.
 
 \paragraph{Ragu.} The proof layer lives in \texttt{tachyon-zcash/ragu}
 @ \texttt{830bbcda} (2026-07-05): a working PCD pipeline over the Pasta cycle,
@@ -328,7 +340,8 @@ Foundation's February 2026 NU7 sentiment poll, Tachyon drew ``universal or
 near-universal support across every group'' --- ``the most unambiguous signal
 from the entire poll'' --- with the stated next step to ``assess technical
 readiness and scope for inclusion in NU7'' (zfnd.org, 2026-02-23). Support is
-not scheduling: as noted above, the NU7 deployment draft lists no ZIPs at all.
+not scheduling: the later NU7 deployment draft, ZIP~259, does not include
+Tachyon (\S\ref{sec:tachyon-sources}).
 Second, editorship: Sean Bowe and Tal Derei serve as ZIP editors ``associated
 with Project Tachyon'' (\texttt{zip-0000.rst} line~196 @ \texttt{c6b70358}),
 and the protocol specification's author block carries the same affiliation
@@ -2358,15 +2371,12 @@ period is itself untuned (tachyon-zcash/tachyon issue \#79). The near-term
 environment is fixed without Tachyon: NU6.2 is settled (ZIP 257, Status:
 Final --- the emergency Action-circuit correction), NU6.3 carries the
 Ironwood pool and the ZIP 2005 recoverability programme (ZIPs 258, 229,
-2005; Draft/Draft/Proposed), and Tachyon's own standing is a mandate
-without a vehicle: ``universal or near-universal support across every group
-\ldots{} the most unambiguous signal from the entire poll'' in the February
-2026 NU7 sentiment poll, with the stated next step only to ``assess
-technical readiness and scope for inclusion in NU7'' (zfnd.org, NU7 Polling
-Results, 2026-02-23), while the deployment draft
-(\texttt{draft-arya-deploy-nu7.md}, heights TBD, zips @ \texttt{c6b70358})
-lists no Tachyon ZIP. Beyond NU7 there is nothing to relate Tachyon to: the
-ZIP corpus contains no NU8 artifact of any kind (repository-wide search of
+2005; Draft/Draft/Proposed). The current NU7 draft,
+\href{https://zips.z.cash/zip-0259}{ZIP~259}, includes neither Tachyon nor
+Crosslink; its shorter block spacing does not deploy either design.
+The February 2026 support for Tachyon is therefore not an upgrade
+assignment. At the July source pin, the
+ZIP corpus contained no NU8 artifact of any kind (repository-wide search of
 \texttt{zcash/zips} @ \texttt{c6b70358}, 2026-07-08); the relation to NU8
 becomes statable only when an NU8 deployment draft exists.
 

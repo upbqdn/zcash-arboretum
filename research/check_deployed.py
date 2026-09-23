@@ -79,9 +79,9 @@ cells = 0
 for q, row in rows("tab:cons-vmax"):
     for cell, n in zip(row, (1, 2, 4, 6, 8, 10), strict=True):
         r = risk(q, n)
-        assert number(cell) == int(5 * (1 - r) / r), (q, n, cell)
+        assert number(cell) == int(4 * (1 - r) / r), (q, n, cell)
         cells += 1
-print(f"Subsidy-only heuristic profit table: {cells} exact floors pass")
+print(f"Reward-normalised heuristic profit table: {cells} exact floors pass")
 
 # An independent binomial-tail expression checks the negative-binomial race.
 for q in (F(1, 50), F(1, 10), F(1, 5), F(3, 10), F(12, 25)):

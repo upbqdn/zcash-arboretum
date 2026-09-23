@@ -1470,15 +1470,25 @@ NU5 & \texttt{0xC2D6D0B4} & 1{,}687{,}104 & 1{,}842{,}420 & V2 (+
 Orchard trio) \\
 NU6.3 & \texttt{0x37A5165B} & 3{,}428{,}143 & 4{,}134{,}000 & V3 (+
 Ironwood trio) \\
+NU7 (Draft) & \texttt{0x77190AD9} & TBD & TBD & V3 (unchanged) \\
 \bottomrule
 \end{tabular}
 \caption{Chain-history activation constants. Sources: ZIP~250, ZIP~252,
-ZIP~258 (Draft). The NU5 testnet height is the second activation: a
-first testnet NU5 at height 1{,}599{,}200 under branch
-\texttt{0x37519621} (an earlier Orchard circuit) was rolled back, the
-testnet forking from height 1{,}599{,}199.}
+ZIP~258 (Draft), and \href{https://zips.z.cash/zip-0259}{ZIP~259 (Draft)}.
+Each row introduces a node format or the target NU7 epoch.}
 \label{tab:fc-activations}
 \end{table}
+
+The NU7 row describes a proposal, not an activated branch. ZIP~259
+assigns the new branch ID but leaves activation heights TBD. It introduces
+neither a transaction format nor history-node fields: the Ironwood V3
+metadata remains sufficient. At activation, the existing epoch-reset rule
+of \S\ref{sec:fc-epoch} still applies even though the node format is
+unchanged. The proposed 25-second spacing and larger difficulty-averaging
+window of \href{https://zips.z.cash/zip-0218}{ZIP~218} change the chain
+environment, not the sampling theorem's assumptions: that theorem does not
+become a proof of security for Zcash's retarget rule merely because blocks
+arrive faster.
 
 
 %% FlyClient Guide, section "Deployed implementations": the zcash_history
