@@ -1,26 +1,16 @@
 /* The Zcash Arboretum — site stylesheet.
-   Pagella prose and mathematics, with quiet monospace metadata. */
+   EB Garamond prose, Pagella mathematics, and quiet monospace metadata. */
 
 /* ---------- faces ---------- */
 @font-face {
-  font-family: "TeX Gyre Pagella";
-  src: url("fonts/texgyrepagella-regular.woff2") format("woff2");
-  font-weight: 400; font-style: normal; font-display: swap;
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
 }
 @font-face {
-  font-family: "TeX Gyre Pagella";
-  src: url("fonts/texgyrepagella-italic.woff2") format("woff2");
-  font-weight: 400; font-style: italic; font-display: swap;
-}
-@font-face {
-  font-family: "TeX Gyre Pagella";
-  src: url("fonts/texgyrepagella-bold.woff2") format("woff2");
-  font-weight: 700; font-style: normal; font-display: swap;
-}
-@font-face {
-  font-family: "TeX Gyre Pagella";
-  src: url("fonts/texgyrepagella-bolditalic.woff2") format("woff2");
-  font-weight: 700; font-style: italic; font-display: swap;
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
+  font-weight: 400 800; font-style: italic; font-display: swap;
 }
 @font-face {
   font-family: "TeX Gyre Pagella Math";
@@ -42,7 +32,7 @@
   --plaque-ink: #59636e;
   --tierin-mix: 6%;
   --tierfull-mix: 7%;
-  --serif: "TeX Gyre Pagella", "Palatino Linotype", Palatino, Georgia, serif;
+  --serif: "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
   --display: var(--serif);
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
 }

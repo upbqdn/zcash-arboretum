@@ -361,12 +361,13 @@ Volume summary.
         raise AssertionError("unexpanded cross-reference macro was accepted")
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
-assert '--serif: "TeX Gyre Pagella"' in css
+assert '--serif: "EB Garamond"' in css
 assert 'font-family: "TeX Gyre Pagella Math",' in css
-for style in ("regular", "italic", "bold", "bolditalic", "math"):
-    face = f"texgyrepagella-{style}.woff2"
+for face in ("EBGaramond.woff2", "EBGaramond-Italic.woff2", "texgyrepagella-math.woff2"):
     assert f'url("fonts/{face}")' in css
     assert (sitegen.ROOT / "site" / "fonts" / face).is_file()
+assert 'font-weight: 400 800; font-style: normal' in css
+assert 'font-weight: 400 800; font-style: italic' in css
 assert ':root[data-theme="warm"]' in css
 assert ':root[data-theme="dark"]' in css
 assert ':root[data-theme="midnight"]' in css
