@@ -1,7 +1,17 @@
 /* The Zcash Arboretum — site stylesheet.
-   STIX Two Text throughout, with quiet monospace metadata. */
+   EB Garamond prose, STIX mathematics, and quiet monospace metadata. */
 
 /* ---------- faces ---------- */
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
+  font-weight: 400 800; font-style: italic; font-display: swap;
+}
 @font-face {
   font-family: "STIX Two Text";
   src: url("fonts/stix-two-text-latin-400-normal.woff2") format("woff2");
@@ -37,7 +47,7 @@
   --plaque-ink: #59636e;
   --tierin-mix: 6%;
   --tierfull-mix: 7%;
-  --serif: "STIX Two Text", "STIX Two Math", Charter, Georgia, serif;
+  --serif: "EB Garamond", "STIX Two Text", "STIX Two Math", Georgia, serif;
   --display: var(--serif);
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
 }
@@ -104,8 +114,8 @@ body {
   background: var(--desk);
   color: var(--ink);
   font-family: var(--serif);
-  font-size: 1.0625rem;
-  line-height: 1.6;
+  font-size: 1.25rem;
+  line-height: 1.5;
 }
 a { color: var(--conifer); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -261,14 +271,14 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 .plate a.title {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 1.22rem;
+  font-size: 1.375rem;
   color: var(--ink);
   display: block;
 }
 .plate a.title:hover { color: var(--conifer); text-decoration: none; }
 .plate .sub {
   color: var(--muted);
-  font-size: .92rem;
+  font-size: 1.0625rem;
   margin: .15rem 0 .5rem;
 }
 .plate .links {
@@ -336,14 +346,14 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
   letter-spacing: .025em;
 }
 :is(#search, #arb-search-ui) .pagefind-ui__result-title {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.35;
 }
 :is(#search, #arb-search-ui) .pagefind-ui__result-excerpt {
   min-width: 0;
   margin-top: .3rem;
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -420,7 +430,7 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
   .ltx_page_main { margin: 0 auto; border: 0; box-shadow: none;
     padding: .5rem 1.2rem 3rem; }
 }
-.ltx_document { line-height: 1.62; }
+.ltx_document { line-height: 1.5; }
 
 /* LaTeXML wraps list-item paragraphs in an inline-block .ltx_para, which
    shrink-wraps to content and lets a wide child (a display equation) jut
@@ -466,7 +476,7 @@ h2.ltx_title_section, .ltx_title_section {
 }
 h3.ltx_title_subsection, .ltx_title_subsection {
   font-family: var(--display); font-weight: 600;
-  font-size: 1.18rem; margin-top: 1.8rem;
+  font-size: 1.3rem; margin-top: 1.8rem;
 }
 .ltx_tag_section, .ltx_tag_subsection { color: var(--muted); }
 
@@ -531,7 +541,7 @@ mjx-container.arb-math-scroll {
   vertical-align: middle;
 }
 
-.ltx_tabular { font-size: .95rem; }
+.ltx_tabular { font-size: 1.125rem; }
 .ltx_tabular .ltx_td, .ltx_tabular .ltx_th { padding: .25rem .6rem; }
 /* a table wider than the column scrolls inside its own box instead of
    pushing the page. Floated tables sit in a figure.ltx_table wrapper (scroll
@@ -550,7 +560,7 @@ figure.ltx_figure { margin: 1.6rem 0; overflow-x: auto; max-width: 100%; }
 figure.ltx_table figcaption,
 figure.ltx_figure figcaption {
   margin: .75rem 0 0;
-  color: var(--muted); font-size: .9rem; line-height: 1.45;
+  color: var(--muted); font-size: 1rem; line-height: 1.45;
   text-align: left !important;
 }
 figcaption .ltx_tag { color: var(--ink); font-weight: 600; }
@@ -581,7 +591,7 @@ body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
   max-height: calc(100vh - 2.6rem);
   overflow-y: auto;
   padding: 1.1rem 1rem 2rem 1.2rem;
-  font-size: .84rem;
+  font-size: 1rem;
   line-height: 1.45;
 }
 /* the site bar already names the volume; drop the navbar's giant title */

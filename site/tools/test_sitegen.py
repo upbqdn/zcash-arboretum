@@ -343,6 +343,11 @@ Volume summary.
         raise AssertionError("unexpanded cross-reference macro was accepted")
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
+assert '--serif: "EB Garamond"' in css
+assert 'font-family: "STIX Two Math",' in css
+for face in ("EBGaramond.woff2", "EBGaramond-Italic.woff2"):
+    assert f'url("fonts/{face}")' in css
+    assert (sitegen.ROOT / "site" / "fonts" / face).is_file()
 assert ':root[data-theme="warm"]' in css
 assert ':root[data-theme="dark"]' in css
 assert ':root[data-theme="midnight"]' in css
