@@ -157,11 +157,15 @@ window.MathJax = {
   options: { enableMenu: false },
   tex: { macros: { qed: '\\tag*{□}' } },
   output: {
-    font: 'mathjax-stix2',
+    font: 'mathjax-pagella',
+    matchFontHeight: false,
     displayOverflow: 'linebreak',
     linebreaks: { inline: true, width: '100%', lineleading: .2 }
   },
   startup: {
+    pageReady() {
+      return document.fonts.ready.then(() => MathJax.startup.defaultPageReady());
+    },
     ready() {
       document.querySelectorAll('math[alttext]').forEach(function (math) {
         const tex = math.getAttribute('alttext').replace(/%\s+/g, '');
@@ -174,7 +178,7 @@ window.MathJax = {
   }
 };
 </script>
-<script src="../mathjax/tex-chtml.js"></script>
+<script src="../mathjax-4.1.3/tex-chtml-nofont.js"></script>
 <script>
 MathJax.startup.promise.then(function () {
   function constrainMath() {
@@ -230,10 +234,12 @@ DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
 FONT_BLOCK = """\\usepackage{amsmath,amsthm,mathtools}
 \\usepackage{fontspec}
 \\usepackage{unicode-math}
-\\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\\AtBeginDocument{\\let\\setminus\\smallsetminus}
 """
 FONT_CLASSIC = "\\usepackage{amsmath,amssymb,amsthm,mathtools}\n"
 DESIGN_BLOCK_RE = re.compile(
@@ -464,7 +470,7 @@ def omnibus(srcdir=ROOT, out=None):
                 seen.add(ln)
                 macro_free.append(ln)
     parts = ["\n".join(macro_free),
-             "\\setlength{\\headheight}{20pt}",
+             "\\setlength{\\headheight}{21pt}",
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
              "\\large Foundations, deployed protocol, and frontier designs}",
@@ -673,7 +679,7 @@ def postprocess(outdir):
             "--navigationtoc=context", "--css=../arboretum.css",
             "--timeout=1800", "build/web/arboretum-complete.tex",
         ], cwd=ROOT, check=True)
-    for asset in ("mathjax", "@mathjax"):
+    for asset in ("mathjax-4.1.3", "@mathjax"):
         shutil.copytree(ROOT / "site" / asset, out / asset, dirs_exist_ok=True)
     documents = [(vol, vol_title(vol)[0], vol)
                  for vol, _group, _chip in VOLUME_META]
@@ -709,7 +715,8 @@ title="Table of contents">{title}</a>
       search.querySelector('.pagefind-ui__search-input').focus();
   }});
   document.addEventListener('click', function (e) {{
-    if (!search.contains(e.target)) search.open = false;
+    // Pagefind can remove the clicked load-more button before this bubbles.
+    if (!e.composedPath().includes(search)) search.open = false;
     if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey
         && e.target.closest('.arb-search a.pagefind-ui__result-link'))
       search.open = false;

@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=../fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=../fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -456,7 +458,8 @@ modified Halo recursive SNARK with no trusted setup over the Pasta cycle. A
 working pipeline exists in code --- application registration, \texttt{seed}
 (leaf proofs), \texttt{fuse} (binary merge), \texttt{rerandomize},
 \texttt{verify}, with passing multi-node PCD-tree integration tests
-(\texttt{crates/ragu\_pcd/src/\{lib.rs,fuse/mod.rs,verify.rs\}} at commit
+(\texttt{crates/\allowbreak ragu\_pcd/\allowbreak src/\allowbreak
+\{lib.rs,\allowbreak fuse/mod.rs,\allowbreak verify.rs\}} at commit
 \texttt{830bbcda}, 2026-07-05). The same code is explicit that it is
 pre-release: the \texttt{Proof} struct carries full polynomials and
 verification is linear-time (no inner-product opening argument or decider

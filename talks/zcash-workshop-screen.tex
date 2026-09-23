@@ -1,6 +1,13 @@
 \documentclass[11pt]{article}
 \usepackage[paperwidth=160mm,paperheight=90mm,margin=7mm,top=6mm,bottom=6mm]{geometry}
-\usepackage{amsmath,amssymb,mathtools}
+\usepackage{amsmath,mathtools}
+\usepackage{fontspec,unicode-math}
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
@@ -14,6 +21,7 @@
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt}
+\emergencystretch=3em
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\G}{\mathbb{G}}
 \newcommand{\Ep}{\ensuremath{\mathcal{E}}}
@@ -2081,7 +2089,8 @@ n_{\mathrm{act}}(s, o) = \max\bigl(\max(s, o),\, 2\bigr)
 \Write
 \begin{itemize}[leftmargin=1em]
   \item dummy spend: value $0$, fresh random spending key,
-    $\rho = \Extract(\text{random Pallas point})$; still publishes a
+    \[\rho = \Extract(\text{random Pallas point});\]
+    still publishes a
     nullifier
   \item dummy output: value $0$, fresh random address,
     $\rho := \wbEnf$ like any output's

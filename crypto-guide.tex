@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{bm}

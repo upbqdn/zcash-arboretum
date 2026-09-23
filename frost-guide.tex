@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -1626,7 +1628,9 @@ and the randomised verifying share by adding the
 \texttt{randomizer\_element}; struct \texttt{RandomizedParams} carries
 the \texttt{randomizer} (``also called alpha'' in its documentation),
 $\mathtt{randomizer\_element} = [\mathtt{randomizer}]\,G$, and
-$\mathtt{randomized\_verifying\_key} = PK + \mathtt{randomizer\_element}$.
+\[
+\mathtt{randomized\_verifying\_key} = PK + \mathtt{randomizer\_element}.
+\]
 The current flow differs instructively from a literal reading of the
 ZIP: the Coordinator sends a randomizer \emph{seed}, not the
 randomizer, and each participant recomputes the randomizer from that seed

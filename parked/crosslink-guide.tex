@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=../fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=../fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -279,6 +281,7 @@ checked 2026-09-05.
 \begin{table}[htbp]
 \centering
 \small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lll@{}}
 \toprule
 Artifact & Pin / date & Role and rigor \\
@@ -1280,7 +1283,7 @@ $\mathsf{fin}_i^t \sim_{\mathrm{bc}} \mathsf{fin}_j^u$.
 \end{definition}
 
 \begin{theorem}[Safety from either subprotocol; \texttt{tfl-book} @
-\texttt{fe6e1d6f}, \texttt{security-analysis.md}]
+\texttt{fe6e1d6f}, \linebreak\texttt{security-analysis.md}]
 \label{thm:xl-assured-either}
 Prefix Agreement of $\Pi_{\mathrm{bc}}$ at confirmation depth $\sigma$
 implies Assured Finality; and, independently, Final Agreement of
@@ -1411,7 +1414,7 @@ machine-checked coverage of the ebb-and-flow model itself is nil.
 
 \paragraph{What is checked.} As formalized
 (\texttt{validity.md}, ``Validity Function''), the check is
-$\mathsf{isValid}(\mathit{bft\_store},\allowbreak
+$\mathsf{isValid}(\allowbreak\mathit{bft\_store},\allowbreak
 \mathit{pow\_store},\allowbreak p)$ requiring:
 the store contains $p.\mathit{block}$; the proposal context equals
 \texttt{bft\_store.last()}; \textsf{sigmaConfirmed} --- a fork-free tail
@@ -2088,7 +2091,7 @@ agreement between different nodes is the additional safety property.
 
 \paragraph{Why $\mathsf{candidate}(H)$, not
 $\mathsf{snapshot}(\mathsf{LF}(H))$.} The Last Final Snapshot rule
-guarantees $\mathsf{snapshot}(\mathsf{LF}(H))\allowbreak
+guarantees $\mathsf{snapshot}(\allowbreak\mathsf{LF}(H))\allowbreak
 \preceq_{\mathrm{bc}} H$,
 but \emph{not} that its depth relative to $H$ is at least $\sigma$. Using
 $\mathsf{candidate}(H)$ ensures the finalization point is at least
@@ -2415,7 +2418,8 @@ the pinned-commit sense. Milestone~5
 (``Pre-Productionization'') completed 2026-04-15, productionization is
 ongoing with no confirmed mainnet activation date, and the first
 independent security and mechanism-design review is complete
-(\url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706};
+({\def\UrlBreaks{\do\/\do\-\do\.}%
+\url{https://forum.zcashcommunity.com/t/shielded-labs-crosslink-deployment-updates/49706}};
 \url{https://shieldedlabs.net/roadmap/}; checked 2026-09-05). The four-item list is pinned
 to historical commit \texttt{6d02a1b}; the current-delta paragraph is pinned
 to \texttt{807b995}. Neither is deployed construction.
@@ -2843,7 +2847,8 @@ automatic, protocol-level slashing in this design, so the power lies
 fully in the stakers' hands to reward and censure node operators''
 (forum t/52154, 2025-09-12); the audit proposal restates the constraint
 as ``no protocol-level slashing in V1''
-(\texttt{book/src/design/analysis/history/2025-12-11-mech-design/}
+(\texttt{book/src/design/analysis/\allowbreak
+history/\allowbreak 2025-12-11-mech-design/}
 \texttt{proposal.md} at \texttt{6d02a1b8}).
 
 This prohibition describes automatic, evidence-triggered slashing in the

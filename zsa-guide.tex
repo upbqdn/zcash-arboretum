@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -2501,7 +2503,11 @@ being by the \emph{witnessed} $\mathsf{AssetBase}$ and nothing else
 \texttt{circuit.rs}, lines 151--185).
 
 The flag interactions are tested asymmetrically: the three legal
-combinations of $(\mathsf{is\_zatoshi\_asset},$ $\mathsf{split\_flag})$ ---
+combinations of
+\[
+(\mathsf{is\_zatoshi\_asset},\mathsf{split\_flag})
+\]
+---
 $(1,0)$, $(0,1)$, and $(0,0)$ --- are proven passing, while the $(1,1)$
 combination is excluded at witness-generation time by the test helper's
 assertion (``We cannot create a split note with a zatoshi asset''), so

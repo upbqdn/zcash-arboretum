@@ -1,6 +1,13 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=22mm]{geometry}
-\usepackage{amsmath,amssymb,mathtools}
+\usepackage{amsmath,mathtools}
+\usepackage{fontspec,unicode-math}
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
@@ -11,6 +18,7 @@
 \definecolor{arbred}{RGB}{150,40,40}
 \definecolor{arbdim}{RGB}{100,100,100}
 \setlist{nosep,leftmargin=*}
+\emergencystretch=3em
 \newcommand{\F}{\mathbb{F}}
 \newcommand{\G}{\mathbb{G}}
 \newcommand{\Ep}{\ensuremath{\mathcal{E}}}
@@ -44,7 +52,7 @@
 \newcommand{\CommitIvk}{\ensuremath{\mathsf{Commit}^{\mathsf{ivk}}}}
 \newcommand{\Comm}{\ensuremath{\mathsf{Commit}}}
 \newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
-\newcommand{\src}[1]{\par\smallskip{\footnotesize\color{arbdim}Source: #1}}
+\newcommand{\src}[1]{\par\smallskip{\footnotesize\color{arbdim}\raggedright Source: #1\par}}
 % One whiteboard's worth of material.
 \newcounter{board}
 \newenvironment{board}[2]{\stepcounter{board}%

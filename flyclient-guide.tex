@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -1625,7 +1627,7 @@ producers, too, consume the tree.
 \subsection{zcashd}\label{sec:fc-zcashd}
 
 The zcashd node keeps the tree behind an FFI whose Rust side is thin
-(\texttt{src/rust/\allowbreak src/history.rs}): fixed-width byte arrays
+(\texttt{src/\allowbreak rust/\allowbreak src/\allowbreak history.rs}): fixed-width byte arrays
 (244-byte
 nodes, 253-byte entries --- version 0.4.0's V2 maxima), three entry
 points (\texttt{append}, \texttt{remove}, \texttt{hash\_node}), and a

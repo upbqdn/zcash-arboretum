@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -504,11 +506,13 @@ In the same sequence, let $H_n$ be the event that the honest network
 reaches $n$ blocks before the attacker does, and $A_n$ the reverse.
 Then $H_n$ and $A_n$ partition the sample space, and
 \[
+\begin{gathered}
   \Pr[H_n] = \sum_{m=0}^{n-1} \binom{m+n-1}{m} p^n q^m,
   \qquad
   \Pr[A_n] = \sum_{h=0}^{n-1} \binom{h+n-1}{h} q^n p^h,
-  \qquad
+  \\
   \Pr[H_n] + \Pr[A_n] = 1.
+\end{gathered}
 \]
 \end{lemma}
 

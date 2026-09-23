@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -380,7 +382,8 @@ full-viewing capability, per the series palette.}\label{fig:zip32-path}
 \paragraph{Deployed path derivation.} Function
 \texttt{SpendingKey::from\_zip32\_seed(seed, coin\_type, account)} rejects
 $\mathit{coin\_type} \ge 2^{31}$ with \texttt{Error::InvalidChildIndex},
-runs \texttt{ExtendedSpendingKey::}\allowbreak\texttt{from\_path} over the three hardened
+runs \texttt{ExtendedSpendingKey}\linebreak\texttt{::}\allowbreak%
+\texttt{from\_path} over the three hardened
 indices of Definition~\ref{def:zip32-path}, and returns only the $32$-byte
 account spending key --- the chain code is discarded, so the wallet layer
 retains no Orchard child-derivation capability below the account level.
@@ -1435,9 +1438,10 @@ We trace the pipeline on the smallest deployed shape --- an Orchard-only
 mainnet UA --- using the test vector derived from the $32$-byte seed
 $\mathtt{000102 \ldots 1f}$ at account $9$, diversifier index $j = 1$
 (\textsf{zcash\_address},
-\texttt{kind/unified/address/test\_vectors.rs}). Every value below is
+\texttt{kind/\allowbreak unified/\allowbreak address/\allowbreak
+test\_\allowbreak vectors.rs}). Every value below is
 script-computed; the key half runs the deployed
-\texttt{SpendingKey::from\_zip32\_seed} and
+\texttt{SpendingKey::\allowbreak from\_\allowbreak zip32\_\allowbreak seed} and
 \texttt{FullViewingKey::address\_at}.
 
 \emph{Receiver.} The account key at $m/32'/133'/9'$ yields the full
@@ -1906,9 +1910,10 @@ crates \textsf{librustzcash} builds against (commit \texttt{e30517e4}:
 \begin{itemize}[leftmargin=*]
 \item \emph{Sapling}:
 a \texttt{Transactional} bundle with any spend or output requested (or with
-\texttt{bundle\_required} set) uses
+\texttt{bundle\_\allowbreak required} set) uses
 $\mathit{num\_outputs} = \max(\mathit{outputs}, 2)$, the constant $2$
-being \texttt{MIN\_SHIELDED\_OUTPUTS}. Spends are never padded under
+being \texttt{MIN\_\allowbreak SHIELDED\_\allowbreak OUTPUTS}.
+Spends are never padded under
 \texttt{BundleType::DEFAULT}: $\mathit{num\_spends}$ equals
 $\mathit{spends}$ when $\mathit{spends} > 0$ and $0$ otherwise, so an
 output-only bundle has zero spend descriptions; the floor
@@ -2070,7 +2075,8 @@ The fee rule does not act alone; it is consulted by a \emph{change
 strategy} that turns a tentative selection of inputs and payments into a
 balanced transaction. Two ZIP-317 strategies exist:
 \texttt{SingleOutputChangeStrategy}, producing one change output, and
-\texttt{MultiOutputChangeStrategy}, splitting change across several notes
+\texttt{MultiOutput\allowbreak ChangeStrategy}, splitting change across
+several notes
 according to a \texttt{SplitPolicy} so the wallet maintains a target number
 of spendable notes.
 
@@ -3637,9 +3643,12 @@ variants for externally produced signatures (a hardware device), and
 \texttt{finish()}. To sign an Orchard
 spend, \texttt{alpha} must be present; with the wallet's $\ask$:
 \[
+\begin{gathered}
 \rsk := \ask + \alpha
-\quad\text{(the RedPallas SpendAuth randomization)}, \qquad
+\quad\text{(the RedPallas SpendAuth randomization)},
+\\
 \text{require } \mathrm{VerificationKey}(\rsk) = \rk
+\end{gathered}
 \]
 --- failing with \texttt{WrongSpendAuthorizingKey} otherwise --- then
 \[
@@ -3703,8 +3712,9 @@ algorithm; RedJubjub/RedPallas signatures; and a source of randomness ---
 no proving circuitry (\textsf{pczt}, \texttt{src/roles/signer/mod.rs},
 module doc). For dependency-constrained environments a
 \texttt{low\_level\_signer::Signer} variant (not feature-gated) exposes
-\texttt{sign\_ironwood\_with}/\texttt{sign\_orchard\_with}/%
-\texttt{sign\_sapling\_with}/%
+\texttt{sign\_ironwood\_with}/\allowbreak
+\texttt{sign\_orchard\_with}/\allowbreak
+\texttt{sign\_sapling\_with}/\allowbreak
 \texttt{sign\_transparent\_with} closures over the parsed bundles plus
 \texttt{tx\_modifiable}.
 
@@ -3717,13 +3727,14 @@ the action's \texttt{rcv} and the bundle anchor; delegating proving
 therefore reveals note private data, but not spending authority (ZIP-374,
 Prover). The deployed role (\textsf{pczt} feature \texttt{prover}) offers
 \texttt{requires\_sapling\_proofs} (any Sapling spend or output missing
-its \texttt{zkproof}), \texttt{requires\_orchard\_proof}, and
-\texttt{requires\_ironwood\_proof} (actions non-empty and the corresponding
+its \texttt{zkproof}), \texttt{requires\_\allowbreak orchard\_proof}, and
+\texttt{requires\_\allowbreak ironwood\_proof} (actions non-empty and the
+corresponding
 bundle \texttt{zkproof} \texttt{None}), letting a
 wallet skip downloading the Sapling parameters when they are unneeded;
-\texttt{create\_orchard\_proof(pk)} parses the bundle and calls the
-\textsf{orchard} crate's \texttt{Bundle::create\_proof};
-\texttt{create\_ironwood\_proof(pk)} does the same for Ironwood.
+\texttt{create\_\allowbreak orchard\_proof(pk)} parses the bundle and calls the
+\textsf{orchard} crate's \texttt{Bundle::\allowbreak create\_proof};
+\texttt{create\_\allowbreak ironwood\_proof(pk)} does the same for Ironwood.
 
 \begin{construction}[Orchard proof creation from a PCZT]%
 \label{def:pczt-proof}
@@ -4853,7 +4864,8 @@ $\texttt{is\_continuity\_error()} = \texttt{true}$. To surface
 reorganisations \emph{promptly} rather than on the next unlucky scan,
 \texttt{update\_chain\_tip} marks the $\mathtt{VERIFY\_LOOKAHEAD} = 10$
 blocks above the maximum scanned height with
-\texttt{ScanPriority::Verify} whenever that height is at or below the
+\texttt{ScanPriority::\allowbreak Verify} whenever that height is at or below
+the
 stable height $\mathrm{tip} - \mathtt{PRUNING\_DEPTH}$; ranges marked
 \texttt{Verify} must always be scanned before \texttt{ChainTip} ranges.
 At NU7's proposed $25$-second target spacing, that $10$-block lookahead
@@ -5258,7 +5270,7 @@ Parsing proceeds in four stages.
   recognized'').
 \item Group parameters by payment index, rejecting any duplicate --- the
   same parameter kind, or the same other-parameter name, twice at one index
-  (\texttt{Zip321Error::DuplicateParameter}).
+  (\texttt{Zip321Error::\allowbreak DuplicateParameter}).
 \item For each index, build a \texttt{Payment}. An address parameter must
   be present, an explicit amount of $0$ must not target a transparent-only
   address, and a memo requires \texttt{can\_receive\_memo()} on its
@@ -5357,7 +5369,7 @@ network and assigns an output pool:
   before NU6.3 and to Ironwood from NU6.3 onward (the Ironwood bundle delivers
   to the same Orchard-protocol receiver); otherwise it maps to Sapling if a
   supported Sapling receiver is present, then to its transparent receiver, or
-  fails (\texttt{GreedyInputSelectorError::UnsupportedAddress}).
+  fails (\texttt{GreedyInputSelectorError::\allowbreak UnsupportedAddress}).
 \end{itemize}
 The selector then chooses spendable shielded notes to at least the required
 amount, preferring the pool matching the outputs, computes change under the
@@ -5377,7 +5389,8 @@ one step is rejected
 \paragraph{Step validation.} Constructor \texttt{Step::from\_parts} enforces
 that the keys of $\mathrm{payment\_pools}$ exactly match the request's
 payment indices, and that each selected pool satisfies
-\texttt{recipient\_address()}\allowbreak\texttt{.can\_receive\_as(pool)};
+\texttt{recipient\_\allowbreak address()}\allowbreak%
+\texttt{.can\_receive\_as(pool)};
 an Ironwood assignment is also accepted when the recipient can receive as
 Orchard, because the pools share the receiver protocol. It further checks
 that every payment has an amount, and the balance equation
@@ -5537,7 +5550,7 @@ surface that carries compact blocks is catalogued in
 \label{sec:sync-compact-status}
 
 ZIP~307 carries Status: Draft, covers Sapling only, and nowhere mentions
-Orchard, \texttt{ChainMetadata}, or transparent compact data
+Orchard, \texttt{Chain\allowbreak Metadata}, or transparent compact data
 (\texttt{zip-0307.rst}, header and whole file). Its message definitions are
 stale relative to deployment: the ZIP text defines
 \texttt{CompactBlock\{BlockID id = 1; vtx = 3\}} and
@@ -5847,7 +5860,8 @@ touches, and MUST convey the privacy reduction to the user (ZIP~307,
 ``Transaction privacy'').
 
 The deployed pipeline expresses the fetch as data: scanning emits
-\texttt{TransactionDataRequest::}\allowbreak\texttt{Enhancement(txid)} ---
+\texttt{TransactionData\allowbreak Request::}\allowbreak%
+\texttt{Enhancement(txid)} ---
 ``download of complete raw transaction data'' --- which the caller
 satisfies via \texttt{GetTransaction} and feeds to
 \texttt{wallet::}\allowbreak\texttt{decrypt\_and\_store\_transaction}
@@ -5934,7 +5948,8 @@ divergence in \S\ref{sec:sync-compact-divergences}.
 
 \paragraph{Spend detection.} The scanner parses every compact nullifier
 field up front: each
-\texttt{CompactSapling}\allowbreak\texttt{Spend.}\allowbreak\texttt{nf}
+\texttt{Compact\allowbreak Sapling}\allowbreak%
+\texttt{Spend.}\allowbreak\texttt{nf}
 and each
 \texttt{CompactOrchardAction.}\allowbreak\texttt{nullifier}. A malformed
 length yields \texttt{ScanError::}\allowbreak\texttt{EncodingInvalid}
@@ -5963,7 +5978,8 @@ Positions are load-bearing, not merely convenient: the
 \texttt{TreeSizeUnknown} doc-comment records that without the tree size it
 is ``impossible to construct the nullifier for a detected note'' --- the
 Sapling nullifier depends on the note's position, via $\rho =
-\mathsf{MixingPedersenHash}(\cmsym, \mathsf{NotePosition})$; Orchard's does
+\mathsf{MixingPedersenHash}(\cmsym,\allowbreak \mathsf{NotePosition})$;
+Orchard's does
 not, but both pools need positions for witnesses
 (protocol spec, \href{https://zips.z.cash/protocol/protocol.pdf\#rhoandnullifiers}{``Computing $\rho$ values and Nullifiers''} and \href{https://zips.z.cash/protocol/protocol.pdf\#dummynotes}{``Dummy
 Notes''}).
@@ -6902,7 +6918,9 @@ defaults to \texttt{/var/lib/lightwalletd}; \texttt{-{}-nocache} disables
 the disk cache; \texttt{-{}-sync-from-height} and
 \texttt{-{}-redownload} control cache rebuild; the darkside mock mode
 (\texttt{-{}-darkside-very-insecure}) auto-terminates after 30 minutes
-(\textsf{lightwalletd}, \texttt{cmd/root.go:139--180,375--424,498--499}).
+(\textsf{lightwalletd},
+\texttt{cmd/\allowbreak root.go:\allowbreak
+139--180,\allowbreak 375--424,\allowbreak 498--499}).
 
 \subsection{Zaino: the successor indexer}\label{sec:sync-zaino}
 
@@ -7180,8 +7198,8 @@ well beyond ZIP~307's message definitions. A block is
 \end{center}
 where field $1$ (\texttt{protoVersion}) has been removed and
 \texttt{ChainMetadata} carries the running per-pool note commitment tree
-sizes \texttt{saplingCommitmentTreeSize=1},
-\texttt{orchardCommitmentTreeSize=2}, and
+sizes \texttt{saplingCommitmentTree\allowbreak Size=1},
+\texttt{orchardCommitmentTree\allowbreak Size=2}, and
 \texttt{ironwoodCommitmentTreeSize=3} --- the field on which position
 tracking (\S\ref{sec:sync-scan}) depends. Each \texttt{CompactTx} carries
 its index, txid, fee, Sapling \texttt{spends} and \texttt{outputs}, Orchard
@@ -7625,10 +7643,12 @@ sequential blocks in increasing height order with \texttt{from\_state} the
 chain state prior to the first block. The backend implementation validates,
 for the first block $b_0$ and every pool,
 \[
-\mathsf{fromState.height} + 1 = \mathsf{height}(b_0)
+\begin{gathered}
+\mathsf{fromState.height} + 1 = \mathsf{height}(b_0)\\
 \quad\text{and}\quad
 \mathsf{fromState.treeSize} + |\mathsf{commitments}(b_0)| =
 \mathsf{finalTreeSize}(b_0),
+\end{gathered}
 \]
 each subsequent height being the predecessor plus one; violation is
 \texttt{NonSequentialBlocks}. In \textsf{zcash\_client\_sqlite} the whole
@@ -8041,16 +8061,18 @@ the limit is reached
 \texttt{doc/release-notes/}\allowbreak\texttt{release-notes-5.6.0.md:28}).
 The records are
 maintained by the validator's incremental tree: \textsf{zcashd} stores
-$\texttt{SubtreeData}\{\mathsf{leadbyte},\allowbreak \mathsf{root},
+$\texttt{SubtreeData}\{\allowbreak\mathsf{leadbyte},\allowbreak \mathsf{root},
 \allowbreak \mathsf{nHeight}\}$ and
-$\texttt{LatestSubtree}\{\mathsf{leadbyte},\allowbreak \mathsf{index},
+$\texttt{LatestSubtree}\{\allowbreak\mathsf{leadbyte},\allowbreak
+\mathsf{index},
 \allowbreak \mathsf{root},\allowbreak \mathsf{nHeight}\}$ records under
 a \texttt{uint64\_t}
-subtree index, fixes $\mathsf{TRACKED\_SUBTREE\_HEIGHT} = 16$, and
+subtree index, fixes
+$\mathsf{TRACKED\_}\allowbreak\mathsf{SUBTREE\_HEIGHT} = 16$, and
 produces a completed subtree root exactly when the tree size crosses a
 $2^{16}$ boundary (\textsf{zcashd},
 \texttt{src/zcash/}\allowbreak
-\texttt{IncrementalMerkleTree.hpp:20--70,\allowbreak 409--411};
+\texttt{IncrementalMerkleTree.hpp:\allowbreak 20--70,\allowbreak 409--411};
 \texttt{IncrementalMerkleTree.cpp:\allowbreak 913--925}):
 \[
 \texttt{current\_subtree\_index()} \;=\; \mathsf{size}() \gg
@@ -8127,7 +8149,8 @@ level $\mathrm{SHARD\_HEIGHT}$, and
 $\texttt{max\_subtree\_index()} =
 2^{\mathrm{DEPTH} - \mathrm{SHARD\_HEIGHT}} - 1$. The wallet API
 instantiates one such tree per pool as
-$\texttt{ShardTree}\langle \mathsf{Store}, \mathrm{DEPTH} = 32,
+$\texttt{ShardTree}\langle\allowbreak \mathsf{Store},\allowbreak
+\mathrm{DEPTH} = 32,\allowbreak
 \mathrm{SHARD\_HEIGHT} = 16 \rangle$ with block heights as checkpoint
 identifiers, via \texttt{with\_sapling\_\allowbreak tree\_mut} /
 \texttt{with\_orchard\_\allowbreak tree\_mut} /

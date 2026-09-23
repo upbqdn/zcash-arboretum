@@ -41,7 +41,7 @@ invocation.
 
 ## The shared-preamble contract
 
-Volumes share the STIX Two font and PDF design blocks: the font setup
+Volumes share the TeX Gyre Pagella text/math fonts and PDF design blocks: the font setup
 (`fontspec` + `unicode-math`, OTFs in `fonts/`; no `amssymb`), theorem
 environments, the mdframed kind-coded theorem bars and fancyhdr running
 heads, the `\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*`

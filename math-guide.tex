@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{tikz}
@@ -402,6 +404,7 @@ conventional name in those volumes for a protocol or problem), \(\Phi\),
 \begin{table}[ht]
 \centering
 \small
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}cll@{}}
 \toprule
 Symbol & Said & Meaning \\
@@ -3634,10 +3637,12 @@ nonnegative integers, which cannot continue forever; so some
 \emph{The gcd property.} \Cref{polynomials:lem:euclid-step}, applied at
 each division, preserves the \emph{set} of common divisors:
 \[
+\begin{aligned}
 \{\text{common divisors of } (f,g)\}
-= \{\text{common divisors of } (r_1,r_2)\}
-= \dots
+&= \{\text{common divisors of } (r_1,r_2)\} \\
+&= \dots
 = \{\text{common divisors of } (r_N, 0)\},
+\end{aligned}
 \]
 and the last set is exactly the set of divisors of \(r_N\), since every
 polynomial divides \(0\). Thus \(r_N\) divides both \(f\) and \(g\), and
@@ -6447,7 +6452,7 @@ w_{k+1} = c_{k+1}^{-1} \Bigl( v_{k+1} - \sum_{i \le k} a_i v_i
   - \sum_{j > k+1} c_j w_j \Bigr).
 \]
 Every vector of the stage-\(k\) list therefore lies in the span of the
-stage-\((k{+}1)\) list \(v_1, \dots, v_{k+1}, w_{k+2}, \dots, w_n\)
+stage-\((k{+}1)\) list \(v_1, \dots, v_{k+1},\allowbreak w_{k+2}, \dots, w_n\)
 ---the \(v_i\) and the remaining \(w_j\) trivially, \(w_{k+1}\) by the
 display---so by Proposition~\ref{linalg:prop-span-subspace} the
 stage-\((k{+}1)\) list spans \(V\), completing the induction.
@@ -10160,12 +10165,16 @@ This holds whether or not the \(X_i\) are independent.
 \begin{proof}
 Directly from the definition,
 \[
+\begin{aligned}
 \E[aX + bY]
-= \sum_{\omega \in \Omega} \bigl(aX(\omega) + bY(\omega)\bigr)
+&= \sum_{\omega \in \Omega} \bigl(aX(\omega) + bY(\omega)\bigr)
   \Pr[\omega]
-= a \sum_{\omega} X(\omega)\Pr[\omega]
+\\
+&= a \sum_{\omega} X(\omega)\Pr[\omega]
   + b \sum_{\omega} Y(\omega)\Pr[\omega]
-= a\,\E[X] + b\,\E[Y],
+\\
+&= a\,\E[X] + b\,\E[Y],
+\end{aligned}
 \]
 splitting the finite sum and extracting the constants. The \(n\)-term
 statement follows by induction on \(n\).

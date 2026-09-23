@@ -7,11 +7,13 @@
 \setbeamersize{text margin left=10mm,text margin right=10mm}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=fonts/, Extension=.otf]
-\usepackage{booktabs}
+\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
+\usepackage{array,booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
 \definecolor{arb}{RGB}{27,94,52}
@@ -285,7 +287,7 @@ Hide the sender, the receiver and the amount --- while a stranger still
 runs all four checks.
 \vfill
 \begin{center}
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.75\textwidth}@{}}
 \toprule
 check & mechanism \\
 \midrule
@@ -630,7 +632,7 @@ Every constraint uses the same notes and the same owner keys.
 
 \begin{frame}{The statement}
 \begin{center}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}ll>{\raggedright\arraybackslash}p{0.66\textwidth}@{}}
 \toprule
 check & clause & the proof establishes \\
 \midrule

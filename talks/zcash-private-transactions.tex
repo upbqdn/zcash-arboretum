@@ -12,10 +12,12 @@
 \renewcommand{\appendixname}{Appendix}
 \usepackage{amsmath,mathtools}
 \usepackage{fontspec,unicode-math}
-\setmainfont{STIX2Text}[Path=../fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=../fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage{booktabs}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,calc}
@@ -176,7 +178,7 @@
 %   (4) conserved        Bitcoin: sum(in) >= sum(out)
 \begin{frame}{The validator's four checks}
 {\ttfamily\small
-\begin{tabular}{@{}l@{\qquad}l@{\qquad}l@{}}
+\begin{tabular}{@{}l@{\quad}l@{\quad}l@{}}
 validate(tx): & & \\
 \quad for input in tx.inputs: & & \\
 \quad\quad coin = utxo[input.prev\_out]
@@ -949,13 +951,13 @@ For a fresh uniform $\alpha$ per spend --- added, never multiplied in:
 \begin{frame}{Preview: a signature under a key nobody holds unless the
   values balance}
 \small
-\setlength{\abovedisplayskip}{3pt}\setlength{\belowdisplayskip}{3pt}
+\setlength{\abovedisplayskip}{2pt}\setlength{\belowdisplayskip}{2pt}
 Sum the Actions' value commitments and fold in the public balance:
 \[
   \mathsf{bvk} = \sum \cvsym - [\mathsf{valueBalance}]\,V
   \quad\text{(public)}.
 \]
-\begin{itemize}
+\begin{itemize}\setlength{\itemsep}{2pt}
   \item Every group element is some multiple of $R$; what matters is who
     can compute the multiplier. If the hidden values balance, the $V$ terms
     cancel, $\mathsf{bvk} = [\sum \rcv]\,R$, and the author knows
@@ -1310,7 +1312,7 @@ regardless of its version:
   \item \textbf{No entry.} Per transaction, $\Cvb \ge 0$: net value
     may leave the pool, never enter.
 \end{enumerate}
-\medskip
+\smallskip
 \begin{itemize}
   \item Motive: legacy notes are unrecoverable under a quantum break
     (Part I); consensus stops their circulation and drains the pool
@@ -1671,7 +1673,7 @@ G^{\mathsf{nf}} := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard},\
 \begin{frame}{Alice's leaf: the position is a secret}
 \begin{columns}[c]
 \begin{column}{0.56\textwidth}
-\begin{itemize}
+\begin{itemize}\setlength{\itemsep}{2pt}
   \item Alice's $2$~ZEC note sits at position $p$, recorded by her
     wallet when trial decryption succeeded; $p$ and its $32$ siblings
     are private witness, only the anchor public.
@@ -2041,6 +2043,11 @@ d := \Dff_{\dk}(j), \qquad
     of Bob's addresses, learns nothing about the other.
   \item Only the holder of $(\dk, \ivk)$ can check --- by re-deriving the
     address at the decrypted index under that \ivk.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Unlinkability: the wallet boundary}
+\begin{itemize}
   \item One rule for implementers: never offer a chosen-diversifier
     oracle (an address for an attacker's $d$ under your \ivk): it breaks
     unlinkability for every address of that \ivk.
@@ -2068,6 +2075,11 @@ $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions''}
   \item What a sender does: use the most preferred receiver it supports
     --- Orchard over Sapling over transparent; a wallet may refuse a type,
     never reorder.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Unified addresses: pools and viewing keys}
+\begin{itemize}
   \item Which pool: an Orchard receiver names the protocol, not a pool,
     and all new value enters the Ironwood pool, so a payment to it lands
     in the Ironwood tree; the receiver has no string form of its own.
@@ -2232,7 +2244,7 @@ the layer already built''; ``Internal keys: change and auto-shielding'';
 \end{itemize}
 \end{column}
 \end{columns}
-\smallskip
+\vspace{0pt}
 \small A Bitcoin input names its coin and shows its script; a Bitcoin
 output shows its amount and its script. Here every field is a
 commitment, a serial number, a disguised key, or a ciphertext.
@@ -2542,7 +2554,7 @@ statement, formally''}
 \centering\ActionBox[nf]
 \end{column}
 \begin{column}{0.46\textwidth}
-\begin{itemize}\small
+\begin{itemize}\small\setlength{\itemsep}{0pt}
   \item Clause A5 binds the published serial to the spent note under
     the witnessed $\nksym$; otherwise a spender could invent a fresh
     serial per spend and the set would never repeat.
@@ -2552,7 +2564,7 @@ statement, formally''}
     The opening's three lines: membership (A3), serial (A5), balance
     (A4, \emph{Balance and authority}).
 \end{itemize}
-\smallskip
+\vspace{-2pt}
 \alert{Which check?}\pause\ --- not spent twice.
 \end{column}
 \end{columns}
@@ -2688,7 +2700,7 @@ formally''}
   \item Elements' range proof exists for the same reason; here it lives
     inside the Action proof, with the opening.
 \end{itemize}
-\smallskip
+\vspace{1pt}
 \alert{Which check?}\pause\ --- conserved.
 \end{column}
 \end{columns}
@@ -3033,6 +3045,11 @@ node per transaction component.
 \item For the shielded signatures the sighash type is fixed at ALL:
   nothing like ANYONECANPAY, SINGLE or NONE. One message, all of it,
   for the spend-authorisation and binding signatures alike.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What the signatures sign: the anchor and the txid}
+\begin{itemize}
 \item One field the digest used to cover no longer is: from v6 the
   anchor joins the proofs and signatures in authorizing data. The proof
   pins it as a public input (A3), and the block commits to authorizing
@@ -3500,6 +3517,9 @@ accepts iff
 P + [v]\,U + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
 \overset{?}{=} [a]\,G^{(0)} + [r^{*}]\,H + [a \cdot b^{(0)}]\,U .
 \]
+\end{frame}
+
+\begin{frame}{The inner-product argument: verification and binding}
 \begin{itemize}
   \item The scalar $b^{(0)} = \prod_{\ell}(u_\ell^{-1} + u_\ell\,
     x^{2^{\ell-1}})$ costs $O(\log d)$ field operations.
@@ -3713,6 +3733,7 @@ analogue''}
 %   Halo 2: 2720 + 2272*1 = 4992 B; 2720 + 2272*2 = 7264 B
 \begin{frame}{Three generations}
 {\centering\small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}llll@{}}
 \toprule
 & Sprout & Sapling & Orchard, Ironwood \\
@@ -3785,6 +3806,9 @@ parameters''; ``The v6 transaction and the Ironwood component'';
     encodings --- distinct from the node's parsing of public encodings
     (Part E).
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Three circuit versions, one selected verifying key}
 Three Action-circuit versions exist --- the original, a correction, the
 Ironwood circuit with the cross-address input --- and consensus selects
 the verifying key by branch, so every Action in either pool now verifies
@@ -3810,12 +3834,12 @@ verifying key''}
 inputs, ten field elements; the two points enter by coordinates; the
 flags as the Ironwood component sets them.
 
-\medskip
+\vspace{2pt}
 \textbf{Advice}: both notes; $32$ siblings and the position;
 $\aksym$, $\nksym$, $\rivk$, $\ivk$; $\alpha$; $\rcv$;
 $(\mathrm{magnitude}, \mathrm{sign}) = (50\,000\,000, +1)$.
 
-\medskip
+\smallskip
 Copy constraints tie each instance cell to the advice cell holding the
 same value; the verifier computes the instance commitment itself, so a
 proof for other values fails the opening.
@@ -4512,6 +4536,7 @@ instead?
 \begin{frame}{A v6 transaction beside a Bitcoin transaction}
 \vspace*{-4pt}
 \begin{center}\small
+\setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}lp{0.28\textwidth}p{0.43\textwidth}@{}}
 \toprule
  & Bitcoin & Zcash v6 \\
@@ -4827,7 +4852,7 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
 \begin{frame}{The public face of Alice's transaction}
 \begin{center}\small
 \setlength{\tabcolsep}{5.5pt}
-\begin{tabular}{@{}ll@{}}
+\begin{tabular}{@{}lp{0.71\textwidth}@{}}
 \toprule
 public field & Alice pays Bob $1.5$ ZEC from a $2$ ZEC note \\
 \midrule
@@ -5305,6 +5330,9 @@ and so is the already-ahead tail. Hence
   \;=\; 2 \sum_{m=0}^{n-1} \binom{m+n-1}{m} p^{m} q^{n}
   \;=\; 2 \Pr[A_n] .
 \end{gather*}
+\end{frame}
+
+\begin{frame}{Rosenfeld eq.~(1): the race doubling}
 \textbf{The race doubling.} Under the one-pre-mined-block convention
 the catch-up half equals the already-ahead half exactly; the
 double-spend probability is twice the chance of winning a first-to-$n$
@@ -5380,7 +5408,9 @@ two offsetting conventions:
   term for term; the conventions cancel and the Poisson step is the
   entire gap.
 \end{itemize}
-\medskip
+\end{frame}
+
+\begin{frame}{Satoshi's approximation: comparison with the exact risk}
 \begin{center}
 \begin{tabular}{@{}rrrr@{}}
 \toprule
@@ -5392,7 +5422,7 @@ $10\%$ & $10$ & $0.0001\%$ & $0.0008\%$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-\medskip
+\smallskip
 In each pair the approximation understates the risk; the direction is
 not uniform over all $(q, n)$. The reason to prefer the negative
 binomial is that it is exact under the stated assumptions.
@@ -5869,7 +5899,7 @@ created transactions (PCZT)''; \emph{FROST Guide}, ``Scope''}
 A CRQC --- a quantum computer running Shor's algorithm at scale --- takes
 discrete logarithms in polynomial time; every group assumption falls.
 \begin{center}
-\begin{tikzpicture}[x=1.05cm, y=0.7cm, >={Stealth[length=2mm]},
+\begin{tikzpicture}[x=1.05cm, y=0.69cm, >={Stealth[length=2mm]},
   lab/.style={font=\small, align=center}]
 \draw[->, thick] (0,0) -- (12,0) node[right, font=\small] {time};
 \fill (2,0) circle (2pt);
@@ -6045,6 +6075,11 @@ trapdoor.
     commitment to two honestly derived notes is a collision-type event,
     with no group structure for Shor. Bound $O(q^3/N)$ in the QROM, about
     $2^{-74}$ at $q = 2^{60}$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The hashed trapdoor: ownership after a quantum break}
+\begin{itemize}
   \item The composite is post-quantum binding \emph{provided a verifier
     checks the derivation}. No deployed clause does --- that check is the
     Recovery Statement's job.
@@ -6103,7 +6138,7 @@ posture''}
 
 \begin{frame}{Beyond the core: what each one adds}
 \begin{center}\small
-\begin{tabular}{@{}p{0.10\textwidth}p{0.50\textwidth}p{0.30\textwidth}@{}}
+\begin{tabular}{@{}p{0.11\textwidth}p{0.49\textwidth}p{0.30\textwidth}@{}}
 \toprule
  & what it adds & Bitcoin \\
 \midrule
@@ -6131,7 +6166,7 @@ verification''; \emph{ZSA Guide}, ``Method: the three bins for ZSA'';
 
 \begin{frame}{Beyond the core: the bins}
 \begin{center}\small
-\begin{tabular}{@{}p{0.10\textwidth}p{0.84\textwidth}@{}}
+\begin{tabular}{@{}p{0.11\textwidth}p{0.83\textwidth}@{}}
 \toprule
  & bin, as the volume states it \\
 \midrule
@@ -6280,6 +6315,11 @@ authoritative, and every volume cites the section it draws on.
     at the recheck \texttt{dd1667ff}), 326 (wallets after the seal),
     374 (PCZT). Proposed: ZIP-2005 (quantum recoverability). Reserved
     stub: ZIP-2006 (the cross-address restriction).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: the standing of sources}
+\begin{itemize}
   \item A deployed claim on a slide cites a specification section or a
     ZIP; a design-stage claim carries its bin: \emph{specified},
     \emph{designed but unspecified}, \emph{open problem}.
@@ -6546,12 +6586,12 @@ anchors''; protocol specification, ``Sinsemilla commitments''}
 \begin{frame}{Backup: Sinsemilla beside Confidential Transactions}
 \vspace*{-8pt}
 \setlength{\abovedisplayskip}{3pt}\setlength{\belowdisplayskip}{3pt}
-\[
+\begin{gather*}
 \text{CT: } [v]\,V + [r]\,R; \quad
-\text{Pedersen hash: } \textstyle\sum_{j} [m_j]\,P_j; \quad
+\text{Pedersen hash: } \textstyle\sum_{j} [m_j]\,P_j; \\
 \text{Sinsemilla: } [2^{\ell}]\,Q(D) + \textstyle\sum_{i}
   \bigl[2^{\ell - i}\bigr]\, P[m_i].
-\]
+\end{gather*}
 \begin{itemize}\small
   \item The bridge: Confidential Transactions' $[v]V + [r]R$ is the
     one-slot Pedersen commitment; the Pedersen \emph{hash} extends it to
@@ -6654,6 +6694,9 @@ bind every transaction \emph{regardless of its version} (ZIP-258):
     $v_{\mathrm{balance}}^{\mathsf{Orchard}} \ge 0$: net value may leave
     the pool, never enter.
 \end{enumerate}
+\end{frame}
+
+\begin{frame}{Backup: why the seal lives in consensus}
 \begin{itemize}
   \item The second is the deepest, because it lives in the circuit: an
     Orchard-pool spend can pay only its own receiver. The motive is
@@ -6674,7 +6717,7 @@ bind every transaction \emph{regardless of its version} (ZIP-258):
 %   instance elements: 1+2+1+2+1+1+1+1 = 10; disableCrossAddress at index 9
 %   A10 product constraints: 2 points x 2 coordinates = 4
 \begin{frame}{Backup: the cross-address restriction, A10, in full}
-\vspace*{-4pt}
+\vspace*{-5pt}
 \setlength{\abovedisplayskip}{3pt}\setlength{\belowdisplayskip}{3pt}
 With $\delta := \mathsf{disableCrossAddress}$ and $x(\cdot), y(\cdot)$ the
 affine coordinates of a Pallas point, A10 is four equalities in \Fpp:
@@ -6686,7 +6729,7 @@ affine coordinates of a Pallas point, A10 is four equalities in \Fpp:
 \qquad
 \delta \cdot \bigl(y(\pkd_{\mathrm{old}}) - y(\pkd_{\mathrm{new}})\bigr) = 0.
 \end{gather*}
-\begin{itemize}\small
+\begin{itemize}\small\setlength{\itemsep}{0pt}
   \item The input $\delta$ is the tenth public input (index $9$), after
     $\mathsf{anchor}$, the two coordinates of $\cvsym$, $\nfsym$, the two
     of $\rksym$, $\cmx$, $\mathsf{enableSpends}$, $\mathsf{enableOutputs}$.

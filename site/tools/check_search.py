@@ -154,7 +154,7 @@ async def check_destination(page, target):
 
 async def check_appearance(page, scope):
     await page.evaluate("document.fonts.ready")
-    assert await page.evaluate("""document.fonts.check('16px "EB Garamond"')""")
+    assert await page.evaluate("""document.fonts.check('16px "TeX Gyre Pagella"')""")
     for theme in ("light", "warm", "dark", "midnight"):
         await page.evaluate("theme => document.documentElement.dataset.theme = theme",
                             theme)
@@ -181,7 +181,7 @@ async def check_appearance(page, scope):
         }""")
         assert appearance, (scope, theme)
         for style in appearance:
-            assert style["font"].split(",")[0].strip('"') == "EB Garamond", (theme, style)
+            assert style["font"].split(",")[0].strip('"') == "TeX Gyre Pagella", (theme, style)
             assert style["size"] >= 14, (theme, style)
             assert style["line"] >= 1.3 * style["size"], (theme, style)
             assert style["opacity"] == "1", (theme, style)
@@ -311,6 +311,9 @@ async def check_same_document(page, base):
         await page.wait_for_function(
             "n => document.querySelectorAll('#arb-search-ui .pagefind-ui__result').length > n",
             arg=count)
+        # The final load-more button is removed by Pagefind's click handler;
+        # its bubbling event is still inside the search, not an outside click.
+        assert await search.evaluate("el => el.open")
     link = card.locator(".pagefind-ui__result-link")
     point, target = await hit_point(page, card, link, True)
     await page.evaluate("window.__arbSameDocumentTest = true")

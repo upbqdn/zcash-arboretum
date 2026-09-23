@@ -1,35 +1,30 @@
 /* The Zcash Arboretum — site stylesheet.
-   EB Garamond prose, STIX mathematics, and quiet monospace metadata. */
+   Pagella prose and mathematics, with quiet monospace metadata. */
 
 /* ---------- faces ---------- */
 @font-face {
-  font-family: "EB Garamond";
-  src: url("fonts/EBGaramond.woff2") format("woff2");
-  font-weight: 400 800; font-style: normal; font-display: swap;
-}
-@font-face {
-  font-family: "EB Garamond";
-  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
-  font-weight: 400 800; font-style: italic; font-display: swap;
-}
-@font-face {
-  font-family: "STIX Two Text";
-  src: url("fonts/stix-two-text-latin-400-normal.woff2") format("woff2");
+  font-family: "TeX Gyre Pagella";
+  src: url("fonts/texgyrepagella-regular.woff2") format("woff2");
   font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
-  font-family: "STIX Two Text";
-  src: url("fonts/stix-two-text-latin-400-italic.woff2") format("woff2");
+  font-family: "TeX Gyre Pagella";
+  src: url("fonts/texgyrepagella-italic.woff2") format("woff2");
   font-weight: 400; font-style: italic; font-display: swap;
 }
 @font-face {
-  font-family: "STIX Two Text";
-  src: url("fonts/stix-two-text-latin-600-normal.woff2") format("woff2");
-  font-weight: 600; font-style: normal; font-display: swap;
+  font-family: "TeX Gyre Pagella";
+  src: url("fonts/texgyrepagella-bold.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
 }
 @font-face {
-  font-family: "STIX Two Math";
-  src: url("fonts/stix-two-math-regular.woff2") format("woff2");
+  font-family: "TeX Gyre Pagella";
+  src: url("fonts/texgyrepagella-bolditalic.woff2") format("woff2");
+  font-weight: 700; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "TeX Gyre Pagella Math";
+  src: url("fonts/texgyrepagella-math.woff2") format("woff2");
   font-weight: 400; font-style: normal; font-display: swap;
 }
 
@@ -47,7 +42,7 @@
   --plaque-ink: #59636e;
   --tierin-mix: 6%;
   --tierfull-mix: 7%;
-  --serif: "EB Garamond", "STIX Two Text", "STIX Two Math", Georgia, serif;
+  --serif: "TeX Gyre Pagella", "Palatino Linotype", Palatino, Georgia, serif;
   --display: var(--serif);
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
 }
@@ -665,6 +660,9 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
 
 /* mobile: stack the prev/next crumbs so long section titles never collide */
 @media (max-width: 640px) {
+  /* Narrow lines need natural word spacing, especially around inline math. */
+  .ltx_page_main .ltx_para > .ltx_p,
+  .ltx_page_main .ltx_abstract > .ltx_p { text-align: left; }
   .arb-bar { gap: .75rem; }
   .arb-bar .volname { display: none; }
   .arb-bar .wordmark-prefix { display: none; }
@@ -784,9 +782,9 @@ h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
   a { color: #000; text-decoration: none; }
 }
 
-/* MathML: serve the math face the font stack already names. Without
-   this, readers lacking a local STIX Two Math get system-font glyph
+/* MathML: serve the matching math face. Without
+   this, readers lacking a local Pagella Math get system-font glyph
    soup with broken script placement and stretchy delimiters. */
 math {
-  font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math;
+  font-family: "TeX Gyre Pagella Math", "Cambria Math", math;
 }

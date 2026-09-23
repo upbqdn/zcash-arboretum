@@ -3,10 +3,12 @@
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage{unicode-math}
-\setmainfont{STIX2Text}[Path=../fonts/, Extension=.otf,
-  UprightFont=*-Regular, ItalicFont=*-Italic,
-  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-\setmathfont{STIX2Math}[Path=../fonts/, Extension=.otf]
+\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-regular, ItalicFont=*-italic,
+  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
+\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
+% Pagella uses U+2216 for set difference.
+\AtBeginDocument{\let\setminus\smallsetminus}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -390,8 +392,10 @@ cross-layer frame adds four members the core analysis does not cover.
 \paragraph{The transparent layer.} Script signatures are ECDSA over
 secp256k1 (specification \S`Signature'), verified in deployment by the
 retired \textsf{zcashd}'s own C++ interpreter bundled as a crate
-(\textsf{libzcash\_script}, \texttt{depend/zcash/src/pubkey.cpp:23--42},
-driven from \texttt{zebra-script/src/lib.rs:62--76}). Exposure is
+(\textsf{libzcash\_script},
+\texttt{depend/\allowbreak zcash/\allowbreak src/\allowbreak pubkey.cpp:23--42},
+driven from \texttt{zebra-script/\allowbreak src/\allowbreak lib.rs:62--76}).
+Exposure is
 per-output and public-key-shaped: an address spent from before has its
 key on chain --- forgeable the day a CRQC exists, no acceptance of any
 new object required beyond an ordinary transaction; an unspent P2PKH or

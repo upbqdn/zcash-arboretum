@@ -64,6 +64,7 @@ for volume in sitegen.VOLUMES:
     source = (sitegen.ROOT / f"{volume}.tex").read_text()
     assert source.count(r"\tableofcontents") == 1, volume
     assert source.index(r"\tableofcontents") < source.index(r"\section{"), volume
+    assert sitegen.FONT_BLOCK in source, volume
 
 # Both guides' chapters survive in their original order under one Wallet TOC.
 WALLET_CHAPTERS = (
@@ -162,7 +163,7 @@ with tempfile.TemporaryDirectory() as tmp:
         r"\def\thesection@ID{V\arabic{arbvolume}.S\@section@ID}")
     assert native_section_id not in complete_tex
     assert sitegen.OMNIBUS_INTRO in complete_tex
-    assert r"\setlength{\headheight}{20pt}" in complete_tex
+    assert r"\setlength{\headheight}{21pt}" in complete_tex
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
@@ -178,8 +179,11 @@ with tempfile.TemporaryDirectory() as tmp:
     webdir.mkdir()
     with patch.object(sitegen, "WEBDIR", webdir):
         sitegen.webprep()
-    for volume in ("math-guide", "crypto-guide", "arboretum-complete"):
-        assert r"\mdfsetup" not in (webdir / f"{volume}.tex").read_text()
+    for volume in (*sitegen.VOLUMES, "arboretum-complete"):
+        prepared = (webdir / f"{volume}.tex").read_text()
+        assert r"\mdfsetup" not in prepared, volume
+        assert r"\setmainfont" not in prepared, volume
+        assert r"\setmathfont" not in prepared, volume
     assert "Statistical distance" in (webdir / "math-guide.tex").read_text()
     assert "FF1" in (webdir / "crypto-guide.tex").read_text()
     web_wallet = (webdir / "wallet-guide.tex").read_text()
@@ -268,7 +272,7 @@ Volume summary.
             f'data-pagefind-sort="reading-order:{index}"') == 1, sibling
     assert '<section id="SS1"><h2 class="ltx_title" id="SS1-heading">' in html
     assert 'data-pagefind-meta="heading-SS2-heading:Squared x^(2)"' in html
-    assert "if (!search.contains(e.target)) search.open = false" in html
+    assert "if (!e.composedPath().includes(search)) search.open = false" in html
     assert "e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey" in html
     assert "e.target.closest('.arb-search a.pagefind-ui__result-link')" in html
     assert "e.key === 'Escape' && search.open" in html
@@ -277,11 +281,13 @@ Volume summary.
     assert html.count(sitegen.TOC_SCRIPT) == 1
     assert 'href="../arboretum.css?v=' in html
     assert 'href="_site/math-guide/arboretum.css"' not in html
-    assert 'font: \'mathjax-stix2\'' in html
+    assert 'font: \'mathjax-pagella\'' in html
+    assert 'matchFontHeight: false' in html
     assert "macros: { qed: '\\\\tag*{□}' }" in html
     assert "linebreaks: { inline: true" in html
     assert "replace(/%\\s+/g, '')" in html
-    assert 'src="../mathjax/tex-chtml.js"' in html
+    assert 'src="../mathjax-4.1.3/tex-chtml-nofont.js"' in html
+    assert 'document.fonts.ready.then(() => MathJax.startup.defaultPageReady())' in html
     assert ('<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
             '<a class="arb-permalink" data-pagefind-ignore href="#Thmtheorem1" '
             'aria-label="Permalink to this item" '
@@ -303,10 +309,10 @@ Volume summary.
     assert complete_html.count('id="arb-contents"') == 1
     assert ('<a class="volname" href="./#arb-contents"\ntitle="Table of contents">'
             'The Complete Arboretum</a>') in complete_html
-    assert (out / "mathjax" / "tex-chtml.js").is_file()
-    boldsymbol = out / "mathjax" / "input" / "tex" / "extensions" / "boldsymbol.js"
-    assert 'checkVersion("[tex]/boldsymbol","4.1.1"' in boldsymbol.read_text()
-    assert (out / "@mathjax" / "mathjax-stix2-font" / "chtml.js").is_file()
+    assert (out / "mathjax-4.1.3" / "tex-chtml-nofont.js").is_file()
+    boldsymbol = out / "mathjax-4.1.3" / "input" / "tex" / "extensions" / "boldsymbol.js"
+    assert 'checkVersion("[tex]/boldsymbol","4.1.3"' in boldsymbol.read_text()
+    assert (out / "@mathjax" / "mathjax-pagella-font" / "chtml.js").is_file()
 
     # A second finishing pass must not duplicate controls, scripts or IDs.
     sitegen.postprocess(out)
@@ -343,9 +349,10 @@ Volume summary.
         raise AssertionError("unexpanded cross-reference macro was accepted")
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
-assert '--serif: "EB Garamond"' in css
-assert 'font-family: "STIX Two Math",' in css
-for face in ("EBGaramond.woff2", "EBGaramond-Italic.woff2"):
+assert '--serif: "TeX Gyre Pagella"' in css
+assert 'font-family: "TeX Gyre Pagella Math",' in css
+for style in ("regular", "italic", "bold", "bolditalic", "math"):
+    face = f"texgyrepagella-{style}.woff2"
     assert f'url("fonts/{face}")' in css
     assert (sitegen.ROOT / "site" / "fonts" / face).is_file()
 assert ':root[data-theme="warm"]' in css
@@ -358,7 +365,7 @@ search_panel = css.split('.arb-bar .arb-search-panel {', 1)[1].split('}', 1)[0]
 assert 'max-height: calc(100dvh - 4rem)' in search_panel
 assert 'overflow-y: auto' in search_panel
 assert 'overscroll-behavior-y: contain' in search_panel
-assert (sitegen.ROOT / "site" / "mathjax" / "tex-chtml.js").is_file()
-assert (sitegen.ROOT / "site" / "@mathjax" / "mathjax-stix2-font"
+assert (sitegen.ROOT / "site" / "mathjax-4.1.3" / "tex-chtml-nofont.js").is_file()
+assert (sitegen.ROOT / "site" / "@mathjax" / "mathjax-pagella-font"
         / "chtml.js").is_file()
 print("site generator checks passed")
