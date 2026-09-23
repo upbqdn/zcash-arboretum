@@ -78,6 +78,8 @@
 \newcommand{\divider}[1]{\begin{frame}[plain]\vfill\centering
   {\usebeamercolor[fg]{structure}\Huge\bfseries #1}\vfill\end{frame}}
 \newcommand{\grey}[1]{{\color{arbdim}#1}}
+\newcommand{\types}[1]{\par\smallskip{\small\color{arbdim}#1}\par}
+\newcommand{\Vs}{\ensuremath{\mathcal{V}}}
 
 % ---- The commitment tree (depth 3 toy; the real tree has depth 32).
 \newcommand{\CTreeMode}{none}
@@ -324,6 +326,7 @@ p \approx 2^{254},\quad |\Ep| = q \text{ prime}
 \qquad\qquad
 \text{given } G \text{ and } [a]\,G,\ \text{find } a:\ \text{infeasible}
 \]
+\types{$G, [a]\,G \in \Ep$ points; $a \in \F_q$ a scalar; both fields $\approx 2^{254}$.}
 \vfill
 \begin{itemize}
   \item Pallas: points over $\Fpp$, scalars in $\F_q$.
@@ -336,6 +339,7 @@ p \approx 2^{254},\quad |\Ep| = q \text{ prime}
 \[
 C(v, r) := [v]\,V + [r]\,R \qquad V, R \text{ independent points}
 \]
+\types{$v, r \in \F_q$; $V, R, C \in \Ep$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item \textbf{Hiding:} $r \mapsto [r]\,R$ permutes the group, so
@@ -389,6 +393,7 @@ A sealed envelope that can be added to other sealed envelopes.
 B = \mathsf{H}(L_2, L_3),\qquad E = \mathsf{H}(A, B),\\
 R = \mathsf{H}(E, F) = \text{anchor}
 \end{gather*}
+\types{leaves and nodes in $\Fpp$.}
 \begin{itemize}\itemsep5pt
   \item Nobody can find two inputs with one output.
   \item Position $010_2$; siblings $(L_3, A, F)$. Depth $32$ in the protocol.
@@ -407,6 +412,7 @@ Prover knows $x$ with $X = [x]\,G$.
 \[
 \text{Verifier checks}\qquad [s]\,G \overset{?}{=} R + [c]\,X
 \]
+\types{$x, k, c, s \in \F_q$; $G, X, R \in \Ep$.}
 \end{frame}
 
 \begin{frame}{Why it proves, and why it hides}
@@ -461,6 +467,7 @@ D \ne 0,\ \deg D \le d
 \quad\Longrightarrow\quad
 \Pr_{z \leftarrow \F}\bigl[D(z) = 0\bigr] \le \frac{d}{|\F|}
 \]
+\types{$D \in \F[X]$ a polynomial over a field $\F$; $z \in \F$.}
 \vfill
 A nonzero polynomial has at most $d$ roots. Fix $D$ first, draw $z$
 second: one random probe catches it.
@@ -482,6 +489,7 @@ m = \gd^{\star}\,\|\,\pkd^{\star}\,\|\,\mathrm{LE}_{64}(v)\,\|\,
 \cmsym = \NoteCommit_{\rcm}(m),\qquad
 \cmx = \Extract(\cmsym) \in \Fpp
 \end{gather*}
+\types{$d \in \{0,1\}^{88}$; $\pkd, \gd, \cmsym \in \Ep$; $v \in [0, 2^{64})$; $\rho, \psi \in \Fpp$; $\rcm \in \F_q$; $\cmx \in \Fpp$.}
 \vfill
 \begin{tabular}{@{}ll@{}}
 $(d, \pkd)$ & the recipient's diversified address \\
@@ -514,6 +522,7 @@ On chain: $\cmx$ and a ciphertext. Nothing else about the note.
 \[
 \nfsym := \Extract\bigl(\,[\,F_{\nksym}(\rho) + \psi\,]\,G^{\mathsf{nf}} + \cmsym\,\bigr)
 \]
+\types{$\nksym, \rho, \psi, F_{\nksym}(\rho) \in \Fpp$; $G^{\mathsf{nf}}, \cmsym \in \Ep$; $\nfsym \in \Fpp$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item Keyed by $\nksym$, the owner's nullifier key; $F_{\nksym}$ is
@@ -546,6 +555,7 @@ only when the transaction is accepted.
 \begin{frame}{Keys}
 \centering
 \LadderFig
+\types{$\asksym, \rivk \in \F_q$; $\nksym \in \Fpp$; $\aksym \in \Ep$; $\ivk \in \Fpp$, used as a scalar ($p < q$); $\dk, \ovk$ byte strings; $d \in \{0,1\}^{88}$; $\pkd \in \Ep$.}
 \end{frame}
 
 \begin{frame}{Diversified addresses}
@@ -563,6 +573,7 @@ only when the transaction is accepted.
 \[
 \mathsf{addr} = (d,\ \pkd)
 \]
+\types{$d \in \{0,1\}^{88}$; $\gd, \pkd \in \Ep$; $\ivk \in \Fpp$ as a scalar.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item Some $2^{88}$ addresses per key, all paid into one wallet.
@@ -650,6 +661,7 @@ binding key:
 = \Bigl[\underbrace{\textstyle\sum_i (v_{\mathrm{old},i} - v_{\mathrm{new},i}) - b}_{\Delta:\ \text{imbalance}}\Bigr]\,V
 + \Bigl[\textstyle\sum_i \rcv_i\Bigr]\,R
 \]
+\types{$v \in [0, 2^{64})$; $\rcv_i \in \F_q$; $\cvsym_i, \bvk, V, R \in \Ep$; $b$ a signed $64$-bit integer; $\Delta \in \F_q$.}
 \vfill
 For a fully shielded transfer, $b$ is the fee.
 \end{frame}
@@ -660,6 +672,7 @@ $\bvk = [k]\,R$. With $s := \sum_i \rcv_i$:
 \[
 [\Delta]\,V = [k - s]\,R
 \]
+\types{$k, s, \Delta, \lambda \in \F_q$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item Balanced: $\Delta = 0$, and the author knows $k = s$.
@@ -695,6 +708,7 @@ imbalance from wrapping around modulo $q$.
 \qquad
 \rsk := \asksym + \alpha
 \]
+\types{$\asksym, \alpha, \rsk \in \F_q$; $\aksym, \rksym \in \Ep$; $\ivk, \nksym \in \Fpp$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item One $\aksym$ per wallet; publishing it would stamp every spend.
@@ -713,6 +727,7 @@ K := \mathsf{KDF}(\mathsf{s}, \epk)
 \[
 \Ecenc := \mathsf{AEAD}_K(\,\mathtt{0x03}, d, v, \mathsf{rseed}, \mathsf{memo}\,)
 \]
+\types{$\esk \in \F_q$; $\gd, \pkd, \epk, \mathsf{s} \in \Ep$; $K \in \{0,1\}^{256}$; $\Ecenc$: $580$ bytes.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item One-shot Diffie--Hellman to the diversified base, then
@@ -774,6 +789,7 @@ probability $q$.
 \[
 a_z = \Pr[\text{lead ever reaches } -1] = (q/p)^{\,z+1}\qquad (q < p)
 \]
+\types{here $p, q \in [0,1]$ are hashrate shares, $p + q = 1$, not the primes.}
 Each block of deficit multiplies the chance by $q/p$: two forks cannot
 compete for long, and one quickly wins.
 \end{frame}
@@ -791,6 +807,7 @@ One operation per row, one gate equation on every row:
 \[
 q_M\, a\, b + q_L\, a + q_R\, b + q_O\, c + q_C + \mathrm{PI} = 0
 \]
+\types{every cell in $\F_{97}$.}
 \begin{center}\small
 \begin{tabular}{@{}c ccc ccccc c l@{}}
 \toprule
@@ -868,6 +885,7 @@ a(X) = 90 + 61X + 22X^2 + 24X^3
 \[
 G(X) := q_M a b + q_L a + q_R b + q_O c + q_C + \mathrm{PI}
 \]
+\types{$a, b, c, q_\bullet, \mathrm{PI} \in \F_{97}[X]$ of degree $< 4$; $G \in \F_{97}[X]$ of degree $\le 9$.}
 \vfill
 \[
 \GZH(X) := \prod_{h \in H}(X - h) = X^4 - 1
@@ -901,6 +919,7 @@ the lie $x^2 = 10$ in row $0$ leaves a remainder $24\,(1 + X + X^2 + X^3) \ne 0$
   G(z) \overset{?}{=} t(z)\, \GZH(z)
   \]
 \end{enumerate}
+\types{$z \in \F_{97}$ in the toy; $z \in \Fpp$ in the protocol.}
 \vfill
 Honest, $z = 20$: $G(20) = 75 = 67 \cdot 46$. \quad
 The row-$0$ lie: $G^{*}(20) = 20 \ne 64$.
@@ -942,6 +961,7 @@ P := \ip{\vec a}{\vec G} + [r]\,H,\qquad
 \[
 a(z) = \ip{\vec a}{\vec b},\qquad \vec b := (1, z, z^2, \dots, z^{d-1})
 \]
+\types{$a_i, r, z \in \Fpp$; $\vec G, H, P \in \Vs$, the Vesta curve, whose scalar field is $\Fpp$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item A Pedersen commitment to the coefficient vector: hiding, binding.
@@ -967,6 +987,7 @@ Challenge $u$; both sides fold:
 P + [v]\,U + [u^2]\,L + [u^{-2}]\,R
 = \ip{\vec a'}{\vec G'} + [r + u^2 \ell + u^{-2} r_R]\,H + [\ip{\vec a'}{\vec b'}]\,U
 \]
+\types{$u \in \Fpp^{\times}$; $L, R, U, H \in \Vs$; $\ell, r_R \in \Fpp$.}
 \vfill
 The same claim at half the length. The verifier folds $\vec G$ and $\vec b$
 itself and never sees $\vec a$.
@@ -979,6 +1000,7 @@ points $(L_j, R_j)$, one scalar $a$, one blinder $r^{*}$.
 P + [v]\,U + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
 \overset{?}{=} [a]\,G^{(0)} + [r^{*}]\,H + [a\cdot b^{(0)}]\,U
 \]
+\types{$a, b^{(0)}, r^{*}, u_j \in \Fpp$; $G^{(0)}, L_j, R_j \in \Vs$.}
 \vfill
 \begin{itemize}\itemsep6pt
   \item The scalar $b^{(0)} = \prod_j (u_j^{-1} + u_j\, z^{2^{j-1}})$, with $u_1$
