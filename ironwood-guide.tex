@@ -908,10 +908,10 @@ power than the one above.
 \node[spendn] (rivk) at (3.4,-1.6) {$\rivk$};
 
 % ===== outgoing viewing key: paired with ivk as in/out viewing =====
-\node[inoutn] (ovk)  at (-2.6,-6.4) {$\ovk$};
+\node[inoutn] (ovk)  at (-5.0,-6.4) {$\ovk$};
 
 % ===== diversifier key + address row (the FF1-AES256 formula is in the gutter) =====
-\node[recvn]  (dk)   at (-2.6,-8.0) {$\dk$};
+\node[inoutn] (dk)   at (-2.6,-6.4) {$\dk$};
 \node[inputn] (dpln) at (-4.5,-9.2) {$d_{\mathrm{plain}}$};
 \node[recvn]  (d)    at (-2.6,-9.2) {$d$};
 
@@ -934,9 +934,9 @@ power than the one above.
 \draw[fork] (rivk.south) to[out=-90,in=80] (fvkrivk);
 
 % the full viewing key derives all three sub-keys: ivk (spine), ovk, dk
-\draw[fork] ([yshift=-1.6mm]fvk.west) to[out=-150,in=80] (ovk.north);
-% swings left around the IN/OUT VIEW box, then back in to dk
-\draw[fork] ([yshift=1.6mm]fvk.west) .. controls (-4.4,-5.2) and (-4.6,-7.5) .. (dk.west);
+\draw[fork] ([yshift=-1.6mm]fvk.west) to[out=-150,in=80] (dk.north);
+% the outgoing viewing key sits at the far left of the same tier
+\draw[fork] ([yshift=1.6mm]fvk.west) to[out=-165,in=80] (ovk.north);
 
 % diversifier: chosen index d_plain, keyed by dk, gives d, which enters addr
 \draw[fork] (dpln) -- (d.west);
@@ -948,7 +948,7 @@ power than the one above.
 \node[op] at (\gx,-3.2)  {$\aksym := [\ask]\,G^{\mathsf{SpendAuth}}$};
 \node[op] at (\gx,-4.8)  {bundle $\aksym,\nksym,\rivk$ into the tuple $\fvk$};
 \node[op] at (\gx,-6.4)  {$\ivk := \CommitIvk_{\rivk}(\Extract(\aksym),\nksym)$};
-\node[op] at (\gx,-8.0)  {$(\dk,\ovk) :=$ the two halves of\\[1pt]
+\node[op] at (\gx,-7.4)  {$(\dk,\ovk) :=$ the two halves of\\[1pt]
                           $\mathsf{PRFexpand}_{\rivk}(\mathtt{0x82}\,\|\,\aksym\,\|\,\nksym)$};
 \node[op] at (\gx,-9.2) {$d := \mathsf{FF1\text{-}AES256}_{\dk}(d_{\mathrm{plain}})$;\\[1pt]
                           $\gd := \GroupHash^{\Pallas}(\mathtt{z.cash:Orchard\text{-}gd},d)$,\\[1pt]
@@ -963,9 +963,9 @@ power than the one above.
 \node[draw=tierfull, dashed, line width=0.9pt, rounded corners=3pt,
       fit=(ak)(fvk), inner sep=7pt] (Tfull) {};
 \node[draw=tierin, dashed, line width=0.9pt, rounded corners=3pt,
-      fit=(ivk)(ovk), inner sep=7pt] (Tin) {};
+      fit=(ivk)(dk)(ovk), inner sep=7pt] (Tin) {};
 \node[draw=tierrecv, dashed, line width=0.9pt, rounded corners=3pt,
-      fit=(dk)(d)(addr), inner sep=7pt] (Trecv) {};
+      fit=(dpln)(d)(addr), inner sep=7pt] (Trecv) {};
 \end{scope}
 % tier labels: SPEND and FULL VIEW on the left edge, IN/OUT VIEW on the
 % right, the wide bottom one set below
@@ -982,17 +982,16 @@ one-way: the bundling edges ($\aksym,\nksym,\rivk$ into the tuple $\fvk$;
 $d$ into the address) invert by projection, and the FF1 edge is a keyed
 permutation the $\dk$ holder inverts --- the tiers are separated by the
 one-way steps $\mathsf{sk}\to(\ask,\nksym,\rivk)$, $\ask\to\aksym$,
-$\fvk\to(\ivk,\dk,\ovk)$, and $\ivk\to\pkd$. The pair $(\dk,\ivk)$ is
-the incoming viewing key. The $\dk$ and
-$\ovk$ keys are the two halves of one $\mathsf{PRFexpand}_{\rivk}$ output (tag
-$\mathtt{0x82}$, input $\aksym\|\nksym$); they play different roles and land
-in different tiers --- $\ovk$ is the \emph{outgoing} viewing key, grouped with
-the incoming-viewing scalar $\ivk$ as the IN/OUT viewing tier, whereas
-$\dk$ is the \emph{diversifier} key, which sits in the address layer because
-it generates diversified addresses. Concretely $d$ is the format-preserving
-encryption $\mathsf{FF1\text{-}AES256}$ of a chosen index $d_{\mathrm{plain}}$
-under the key $\dk$ (the dashed edge marks $\dk$ entering as the cipher key),
-and $\pkd=[\ivk]\,\gd$, so the address binds both keys.
+$\fvk\to(\ivk,\dk,\ovk)$, and $\ivk\to\pkd$. The IN/OUT VIEW tier holds
+the incoming viewing key, the pair $(\dk,\ivk)$, and the outgoing viewing
+key $\ovk$. The $\dk$ and $\ovk$ keys are the two halves of one
+$\mathsf{PRFexpand}_{\rivk}$ output (tag $\mathtt{0x82}$, input
+$\aksym\|\nksym$); $\ivk$ alone decrypts incoming notes, and $\dk$ keys
+the diversifier permutation of the address layer below: $d$ is the
+format-preserving encryption $\mathsf{FF1\text{-}AES256}$ of a chosen
+index $d_{\mathrm{plain}}$ under the key $\dk$ (the dashed edge marks
+$\dk$ entering as the cipher key), and $\pkd=[\ivk]\,\gd$, so the
+address binds both halves of the incoming viewing key.
 \emph{The shaded nodes are wallet-held rather than on-chain values; the
 exception within them is $\aksym$, a public validation key ordinarily
 kept inside the full viewing key. The chosen index $d_{\mathrm{plain}}$

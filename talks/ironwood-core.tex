@@ -146,8 +146,8 @@
 \node[kspend] (mid)   at (0,-1.1)    {$\asksym,\ \nksym,\ \rivk$};
 \node[kfull]  (fvk)   at (0,-2.2)    {$\fvk = (\aksym,\ \nksym,\ \rivk)$};
 \node[kint]   (int)   at (-3.7,-2.2) {$\Dint{\fvk}$};
-\node[k]      (ivk)   at (-1.3,-3.3) {$\ivk$};
-\node[k]      (dkovk) at (1.3,-3.3)  {$(\dk,\ \ovk)$};
+\node[k]      (ivk)   at (-1.3,-3.3) {$(\dk,\ \ivk)$};
+\node[k]      (dkovk) at (1.3,-3.3)  {$\ovk$};
 \node[kpub]   (addr)  at (0,-4.4)    {$\mathsf{addr} = (d,\ \pkd)$};
 \draw[ow] (sk)  -- (mid);
 \draw[ow] (mid) -- (fvk);
@@ -155,7 +155,6 @@
 \draw[ow] (fvk) -- (dkovk);
 \draw[ow] (fvk) -- node[elab, above=1pt]{internal scope} (int);
 \draw[ow] (ivk) -- (addr);
-\draw[inv] (dkovk) -- node[elab, right=1pt]{$\dk$ inverts} (addr);
 \node[op] at (2.6,-0.55)
   {$\asksym, \nksym, \rivk := \Dprf{\mathsf{sk}}(\mathtt{06}), (\mathtt{07}), (\mathtt{08})$};
 \node[op] at (2.6,-1.65)
