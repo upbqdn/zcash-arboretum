@@ -88,6 +88,42 @@ async def main(base):
                 if action == "math":
                     await page.screenshot(path=str(output / f"{edition}-math-target-768.png"))
                 print(f"{edition} {width}px {action}: {phrase} → {target}", flush=True)
+            # LaTeXML has already resolved these references; MathJax must
+            # retain their numbers and links, not replace them with ???.
+            path = 'complete/V5.S2.html' if complete else 'ironwood-guide/S2.html'
+            table_id = '#Ex639' if complete else '#Ex1'
+            prefix = 'V5.' if complete else ''
+            expected = [(prefix + name, label) for name, label in (
+                ('S3.html', '3'), ('S7.html', '7'), ('S3.html', '3'),
+                ('S4.html', '4'), ('S3.html', '3'), ('S6.html', '6'),
+                ('S7.html', '7'))] + [('#SS3', '2.3')]
+            for width in (390, 768, 1440):
+                await page.set_viewport_size({'width': width, 'height': 1000})
+                for index in (0, 7):
+                    await ready(page, f'{base}/{path}')
+                    table = page.locator(table_id)
+                    # MathJax's accessible explorer owns links inside math.
+                    links = table.locator('mjx-container a[data-mjx-href]')
+                    actual = await links.evaluate_all(
+                        'links => links.map(a => [a.dataset.mjxHref, a.textContent])')
+                    assert actual == [list(item) for item in expected], (path, actual)
+                    assert '???' not in await table.inner_text(), path
+                    assert not await page.locator('mjx-merror, merror').count(), path
+                    if width == 768 and index == 0:
+                        await table.scroll_into_view_if_needed()
+                        await page.screenshot(path=str(output / f'{edition}-domain-separators-768.png'))
+                    target = await links.nth(index).evaluate(
+                        'a => new URL(a.dataset.mjxHref, location.href).href')
+                    if width == 1440:
+                        await table.locator('mjx-container').focus()
+                        await page.keyboard.press('Enter')
+                        for _ in range(index + 1):
+                            await page.keyboard.press('Tab')
+                        await page.keyboard.press('Enter')
+                    else:
+                        await links.nth(index).tap()
+                    await check_destination(page, target)
+                print(f'{edition} {width}px: domain-separator references passed', flush=True)
         assert not errors, errors
         await browser.close()
     print("Cross-guide links passed in both editions at phone, tablet and desktop widths.")

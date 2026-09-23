@@ -464,6 +464,7 @@ h3.ltx_title_subsection, .ltx_title_subsection {
   font-size: 1.3rem; margin-top: 1.8rem;
 }
 .ltx_tag_section, .ltx_tag_subsection { color: var(--muted); }
+.ltx_title > .arb-heading-link { color: inherit; }
 
 /* theorem plates: same family as the specimen cards */
 .ltx_theorem {
@@ -728,7 +729,9 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
   h1.ltx_title_section, h2.ltx_title_section,
   h2.ltx_title_subsection, h3.ltx_title_subsection { position: relative; }
   .ltx_title_section > .ltx_tag_section,
-  .ltx_title_subsection > .ltx_tag_subsection {
+  .ltx_title_subsection > .ltx_tag_subsection,
+  .ltx_title_section > .arb-heading-link > .ltx_tag_section,
+  .ltx_title_subsection > .arb-heading-link > .ltx_tag_subsection {
     position: absolute;
     right: calc(100% + .55rem);
     top: .45em;

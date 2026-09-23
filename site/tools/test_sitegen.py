@@ -47,6 +47,29 @@ for warning in (r"Overfull \hbox (2.0pt too wide)",
                 "! Undefined control sequence."):
     assert log_errors(warning), warning
 
+math_refs = (
+    '<math id="refs" alttext="'
+    + r'\text{See \S\ref{sec:first}, \S\ref{sec:%'
+    + '\nsecond}.}" display="block"><mrow><mtext>See §</mtext>'
+    '<mtext><a class="ltx_ref" href="S3.html">3</a></mtext>'
+    '<mtext>, §</mtext><mtext><a href="#SS3" class="ltx_ref">2.3</a></mtext>'
+    '</mrow></math>')
+resolved_math = sitegen.math_reference_links(math_refs)
+assert r'\text{See \S\href{S3.html}{3}, \S\href{#SS3}{2.3}.}' in resolved_math
+assert resolved_math.split('<mrow>')[1] == math_refs.split('<mrow>')[1]
+assert sitegen.math_reference_links(resolved_math) == resolved_math
+assert sitegen.math_reference_links('<math alttext="x"><mi>x</mi></math>') == (
+    '<math alttext="x"><mi>x</mi></math>')
+for broken in (math_refs.replace(r'\ref{sec:first}', '3'),
+               math_refs.replace('href="S3.html"', ''),
+               math_refs.replace('>3</a>', '>??</a>')):
+    try:
+        sitegen.math_reference_links(broken)
+    except ValueError as error:
+        assert 'unresolved math references' in str(error)
+    else:
+        raise AssertionError('unresolved math reference was silently accepted')
+
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
 MERGED = ("halo2-intuition-guide", "sync-guide")
 assert all((sitegen.ROOT / "parked" / f"{vol}.tex").is_file()
@@ -106,6 +129,36 @@ assert '<section><h1>Page introduction</h1></section>' in anchored
 assert '<section id="SS4"><h2 id="SS4-heading-3">' in anchored
 assert '<section id="A&amp;B"><h2 id="A&amp;B-heading-2">' in anchored
 assert sitegen.heading_anchors(anchored) == anchored
+
+# Whole titles are ordinary links: native keyboard access and copy-link work,
+# while existing IDs, mathematical markup and authored citation links survive.
+self_link_source = (
+    '<h1 class="ltx_title ltx_title_section">'
+    '<span class="ltx_tag ltx_tag_section">2 </span>Section title</h1>'
+    '<span id="section-heading"></span>'
+    '<h2 class="ltx_title ltx_title_subsection" id="kept">A '
+    '<math alttext="x"><mi>x</mi></math> subsection</h2>'
+    '<h3 class="ltx_title ltx_title_paragraph" id="paragraph">A paragraph</h3>'
+    '<h1 class="ltx_title ltx_title_document">Guide title</h1>'
+    '<h1 class="ltx_title ltx_title_part">Part title</h1>'
+    '<div id="result" class="ltx_theorem"><h6 class="ltx_title">'
+    '<span class="ltx_tag">Theorem 1</span> (A result).'
+    '<a class="arb-permalink" data-pagefind-ignore href="#result">#</a>'
+    '</h6></div>'
+    '<div id="citing" class="ltx_theorem"><h6 class="ltx_title">'
+    'Theorem 2 (<a href="#result">Theorem 1</a> revisited).</h6></div>')
+self_linked = sitegen.heading_self_links(self_link_source)
+assert self_linked.count('class="arb-heading-link"') == 6
+for identifier in ('section-heading-2', 'kept', 'paragraph',
+                   'document-heading', 'part-heading', 'result'):
+    assert f'class="arb-heading-link" href="#{identifier}"' in self_linked
+assert '<math alttext="x"><mi>x</mi></math>' in self_linked
+assert '<span class="ltx_tag ltx_tag_section">2 </span>Section title</a></h1>' in self_linked
+assert 'Theorem 2 (<a href="#result">Theorem 1</a> revisited).' in self_linked
+assert self_linked.count('class="arb-permalink"') == 1
+assert sitegen.heading_self_links(self_linked) == self_linked
+assert 'data-pagefind-ignore' not in re.search(
+    r'<a class="arb-heading-link"[^>]*>', self_linked).group()
 
 for expression, expected in (
         ('<msup><mi>x</mi><mn>2</mn></msup>', 'x^(2)'),
@@ -423,6 +476,8 @@ Volume summary.
     assert (out / "mathjax-4.1.3" / "tex-chtml-nofont.js").is_file()
     boldsymbol = out / "mathjax-4.1.3" / "input" / "tex" / "extensions" / "boldsymbol.js"
     assert 'checkVersion("[tex]/boldsymbol","4.1.3"' in boldsymbol.read_text()
+    html_extension = out / "mathjax-4.1.3" / "input" / "tex" / "extensions" / "html.js"
+    assert 'checkVersion("[tex]/html","4.1.3"' in html_extension.read_text()
     assert (out / "@mathjax" / "mathjax-pagella-font" / "chtml.js").is_file()
 
     # A second finishing pass must not duplicate controls, scripts or IDs.

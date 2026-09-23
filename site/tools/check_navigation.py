@@ -72,12 +72,59 @@ async def check(page, base, path):
     print(f"Navigation passed: {path}")
 
 
+async def check_titles(page, base, path):
+    for width in (390, 768, 1440):
+        await page.set_viewport_size({"width": width, "height": 1024})
+        await ready(page, f"{base}/{path}")
+        assert not await page.locator('a a').count(), path
+        assert await page.locator('.arb-heading-link').evaluate_all("""links =>
+            links.length > 5 && links.every(link => {
+                const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
+                return target && link.textContent.trim() &&
+                    getComputedStyle(link).color === getComputedStyle(link.parentElement).color;
+            })"""), path
+        number = page.locator('.ltx_title_section .ltx_tag_section').first
+        assert await number.evaluate("node => getComputedStyle(node).position") == (
+            'absolute' if width >= 1100 else 'static'), (path, width)
+        for kind in ('section', 'subsection', 'paragraph', 'theorem'):
+            link = page.locator(f'.ltx_title_{kind} > .arb-heading-link').first
+            target = await link.evaluate('link => link.href')
+            await link.scroll_into_view_if_needed()
+            if width == 1440:
+                await link.focus()
+                await page.keyboard.press('Enter')
+            else:
+                await link.tap()
+            await page.wait_for_url(target)
+            await page.wait_for_function("""() => {
+                const node = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+                const top = node.getBoundingClientRect().top;
+                return top >= document.querySelector('.arb-bar').getBoundingClientRect().bottom - 1
+                    && top < innerHeight;
+            }""")
+        if width == 1440:
+            await link.focus()
+            assert await link.evaluate("node => getComputedStyle(node).outlineStyle") != 'none'
+        assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1')
+        print(f"Title links passed: {path}, {width}px", flush=True)
+
+
 async def main(base):
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(executable_path="/usr/bin/chromium")
         page = await browser.new_page(has_touch=True)
         for path in ("crypto-guide/S5.html", "complete/V2.S5.html"):
             await check(page, base.rstrip("/"), path)
+        for path in ("ironwood-guide/S2.html", "complete/V5.S2.html"):
+            await check_titles(page, base.rstrip("/"), path)
+        for path in ("math-guide/S10.html", "complete/V1.S10.html"):
+            await page.set_viewport_size({"width": 768, "height": 1024})
+            await ready(page, f'{base.rstrip("/")}/{path}')
+            link = page.locator('.ltx_title_subsection > .arb-heading-link:has(mjx-container)').first
+            target = await link.evaluate('link => link.href')
+            await link.locator('mjx-container').first.tap()
+            await page.wait_for_url(target)
+            print(f"Mathematical title link passed: {path}", flush=True)
         await browser.close()
 
 

@@ -282,6 +282,53 @@ def heading_anchors(text):
     return SECTION_HEADING_RE.sub(heading, text)
 
 
+def heading_self_links(text):
+    """Make authored titles shareable without changing their text or targets."""
+    used = {unescape(m.group(2)) for m in HTML_ID_RE.finditer(text)}
+
+    def link(body, identifier):
+        return (f'<a class="arb-heading-link" href="#{escape(identifier)}" '
+                f'title="Link to this heading">{body}</a>')
+
+    def theorem(match):
+        start, identifier, body, end = match.groups()
+        if 'class="arb-heading-link"' in body:
+            return match.group(0)
+        body = re.sub(r'<a\b[^>]*class="arb-permalink"[^>]*>.*?</a>',
+                      '', body, flags=re.S)
+        if re.search(r'<a\b', body):
+            # Preserve citations inside a title rather than nesting anchors.
+            body += ('<a class="arb-permalink" data-pagefind-ignore '
+                     f'href="#{identifier}" aria-label="Permalink to this item" '
+                     'title="Permalink">#</a>')
+        else:
+            body = link(body, unescape(identifier))
+        return start + body + end
+
+    text = THEOREM_TITLE_RE.sub(theorem, text)
+
+    def heading(match):
+        tag, attrs, body = match.groups()
+        if re.search(r'<a\b', body):
+            return match.group(0)
+        identifier = HTML_ID_RE.search(attrs)
+        if identifier:
+            identifier = unescape(identifier.group(2))
+        else:
+            kind = re.search(r'\bltx_title_(document|part|section)\b', attrs)
+            if not kind:
+                return match.group(0)
+            base = kind.group(1) + '-heading'
+            identifier, suffix = base, 2
+            while identifier in used:
+                identifier, suffix = f'{base}-{suffix}', suffix + 1
+            used.add(identifier)
+            attrs += f' id="{escape(identifier)}"'
+        return f'<{tag}{attrs}>' + link(body, identifier) + f'</{tag}>'
+
+    return re.sub(r'<(h[1-6])\b([^>]*)>(.*?)</\1>', heading, text, flags=re.S)
+
+
 def math_search_text(math):
     """Read the simple MathML forms used in headings without losing scripts."""
     def read(node):
@@ -493,6 +540,41 @@ def link_references(text, volume, index, current=None):
 
     return re.sub(r'<(?P<block>p|figcaption|td)\b[^>]*>.*?</(?P=block)>',
                   block, text, flags=re.S)
+
+
+def math_reference_links(text):
+    """Carry LaTeXML's resolved references into the TeX sent to MathJax."""
+    reference = re.compile(r'\\ref\s*\{[^}]+\}')
+
+    def math(match):
+        source = match.group(0)
+        alt = re.search(r'''\balttext=(["'])(.*?)\1''', source, re.S)
+        if not alt:
+            return source
+        tex = re.sub(r'%\s+', '', unescape(alt.group(2)))
+        count = len(reference.findall(tex))
+        if not count:
+            return source
+        node = ET.fromstring(source)
+        links = [(a.get('href'), ''.join(a.itertext()).strip())
+                 for a in node.iter()
+                 if a.tag.rsplit('}', 1)[-1] == 'a'
+                 and 'ltx_ref' in a.get('class', '').split()]
+        # ponytail: pair references in LaTeXML order; reject mismatches rather
+        # than inventing a separate cross-document TeX label resolver.
+        if len(links) != count or any(not href or not label or '?' in label
+                                      for href, label in links):
+            raise ValueError(f"unresolved math references in {node.get('id', 'math')}")
+        links = iter(links)
+
+        def resolved(_):
+            href, label = next(links)
+            return r'\href{' + href + '}{' + label + '}'
+
+        tex = reference.sub(resolved, tex)
+        return source[:alt.start(2)] + escape(tex, quote=True) + source[alt.end(2):]
+
+    return re.sub(r'<math\b[^>]*>.*?</math>', math, text, flags=re.S)
 
 
 def render():
@@ -912,8 +994,8 @@ title="Table of contents">{title}</a>
                     f"{page}: unexpanded cross-reference macro {match.group()}")
             part = re.match(r'(?:V|Pt)(\d+)', page.stem) if vol == 'complete' else None
             current = VOLUMES[int(part.group(1)) - 1] if part else None
-            t2 = link_references(heading_search_titles(heading_anchors(t)), vol,
-                                 references, current)
+            t2 = heading_self_links(heading_anchors(math_reference_links(t)))
+            t2 = link_references(heading_search_titles(t2), vol, references, current)
             if page.name == "index.html":
                 t2 = t2.replace('<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">',
                                 '<nav id="arb-contents" '
@@ -952,13 +1034,6 @@ title="Table of contents">{title}</a>
                 t2 = t2.replace('class="ltx_page_content"',
                                 'class="ltx_page_content" data-pagefind-body',
                                 1)
-            t2 = THEOREM_TITLE_RE.sub(
-                lambda m: (f'{m.group(1)}{m.group(3)}'
-                           '<a class="arb-permalink" data-pagefind-ignore '
-                           f'href="#{m.group(2)}" '
-                           f'aria-label="Permalink to this item" '
-                           f'title="Permalink">#</a>'
-                           f'{m.group(4)}'), t2)
             t2 = re.sub(
                 r'Generated\s+on [^<]+ by '
                 r'(<a [^>]*class="ltx_LaTeXML_logo"[\s\S]*?</a>)',
