@@ -323,9 +323,10 @@ divergences and stale citation apparatus).
 side agrees on both (`consensus.rs:529` = `4_134_000` = `zip-0258.md:69`), so the
 divergence is strictly the Mainnet height. Likely a benign pre-finalization
 placeholder rather than a true bug: an implementation ahead of an unfinalized
-spec. The Ironwood Guide already reads the spec correctly and flags this
-(`ironwood-guide.tex:2050-2055`). Not a duplicate of the existing ZIP-258 mention
-in this dossier (entry 2 is the `ScanSummary` counters gap).
+spec. The Ironwood Guide read the spec correctly and flagged this when
+observed; the current volume gives no activation parameter (``Scope and
+status''). Not a duplicate of the existing ZIP-258 mention in this dossier
+(entry 2 is the `ScanSummary` counters gap).
 
 Observed at librustzcash `e30517e4` (`components/zcash_protocol/src/consensus.rs:496,529`);
 zcash/zips `69610984` (`zip-0258.md:68-70`).
@@ -364,12 +365,18 @@ cross-address transfers disabled, "enforced by the Action circuit verifying key"
 The gap is acknowledged as deferred: `zip-0258.md:146-148` ("Many changes are
 required throughout the specification ... not spelled out here"); the owning
 circuit ZIP-2006 is a 273-byte `Reserved` stub; ZIP-229/258 are Draft and NU6.3
-is unactivated. The Ironwood Guide documents the flag correctly (Def A10,
-`ironwood-guide.tex:1517-1525`; remark `1528-1547`, noting the detail is
-reconstructable only from the implementation).
+is unactivated. The Ironwood Guide states the flag as condition A10 of
+Definition ``Orchard Action statement'' (``The Action statement''), citing
+protocol.tex ``Action Descriptions'' for its meaning and asserting no position
+for the input.
 
 Observed at zcash/zips `69610984` (protocol.tex `662dc87`, `§7.1.5.4`); orchard
 `bef8a27` (`src/circuit.rs:76,88,920-960,1052-1053,1599-1601`).
+
+**2026-09-24 status:** at zcash/zips `afa086bd`, ``Action Descriptions''
+defines `enableCrossAddress` and passes `disableCrossAddress` as the eighth
+primary input (`protocol.tex:6228-6235`); the Action Statement's conditions
+still end at the enable-output flag (`8116`).
 
 ---
 
@@ -2623,3 +2630,76 @@ rather than a deployed interoperability failure.
 Observed at zcash/zips `ad30e59` (`zips/zip-0204.rst`, ``Assigning Protocol
 Versions to Network Upgrades''; `zips/draft-arya-deploy-nu7.md`, ``NU7
 deployment'').
+
+---
+
+## 60. zcash/zips — the coinbase value rule omits the Ironwood pool's value balance
+
+**DRAFT. Severity: low-to-medium.**
+
+**Title:** Transaction Consensus Rules define the total output value of a
+coinbase transaction minus vBalance(Sapling) and vBalance(Orchard) but not
+vBalance(Ironwood), although from NU6.3 a coinbase transaction may carry
+Ironwood-pool outputs
+
+**Body:**
+
+In `protocol.tex`, ``Transaction Consensus Rules'', the total output value of
+a coinbase transaction is the value of its transparent outputs, minus
+vBalance(Sapling), minus vBalance(Orchard), plus totalDeferredOutput(height);
+from NU6 it must equal the total input value, the block subsidy plus fees
+plus totalDeferredInput(height) (`protocol.tex:13713-13726`). From NU6.3 a
+coinbase transaction has no Orchard-pool Actions but may have Ironwood-pool
+Actions with `enableSpendsIronwood` = 0 (`13730-13732`; ZIP 229, ``Consensus
+Rules''), whose outputs ZIP 258 requires to use lead byte `0x03`. The value of
+those outputs, −vBalance(Ironwood), is absent from the equation. Read
+literally, a coinbase transaction may pay the full subsidy and fees
+transparently and create further value in the Ironwood pool, while a
+coinbase transaction that pays part of them into the Ironwood pool fails the
+equality.
+
+ZIP 229 leaves ``purely editorial generalizations'' unenumerated, but adding a
+subtrahend is not a renaming, and ZIP 229 lists the other NU6.3 coinbase rules
+explicitly. Zebra subtracts vBalance(Ironwood) and quotes the rule with the
+term (``minus vbalanceOrchard, minus vbalanceIronwood''), text that
+`protocol.tex` does not contain. The fix is `\nusixthree{, minus
+$\vBalance{\IronwoodPoolId}$}` in the definition, plus a matching line in
+ZIP 229, ``Consensus Rules''.
+
+Observed at zcash/zips `afa086bd` (`protocol/protocol.tex:13620,13713-13732`;
+`zips/zip-0229.md:238-243,297-310`; `zips/zip-0258.md:166-168`); zebra
+`5c8cd19d1` (`zebra-consensus/src/block/check.rs:332-351`).
+
+---
+
+## 61. zcash/zips — ZIP 218's action limits do not count Ironwood-pool Actions
+
+**DRAFT. Severity: low-to-medium.**
+
+**Title:** `OrchardBlockActionLimit` and `GlobalShieldedBudget` count
+`nActionsOrchard` only, so Ironwood-pool Actions are bounded by neither
+
+**Body:**
+
+ZIP 218, ``Shielded pool action limits'', requires
+Σ nActionsOrchard(tx) ≤ 330 per block (`zip-0218.md:367-369`) and defines the
+shielded cost of a block as Σ nActionsOrchard + Σ (nSpendsSapling +
+nOutputsSapling) + 2 · Σ nJoinSplit ≤ 330 (`383-387`). Neither sum contains
+`nActionsIronwood`, the Ironwood-pool Action count of the v6 format (ZIP 229,
+`zip-0229.md:208`), and ZIP 218 never names the Ironwood pool. Its rationale
+nonetheless states that the global budget ``ensures that the worst-case
+shielded sync bandwidth per block is bounded regardless of which combination
+of pools is used'' (`392-393`). As written, Ironwood-pool Actions are limited
+only by `nActionsIronwood` < 2^16 per transaction (`zip-0229.md:260`) and the
+2 MB block size (`zip-0218.md:396-397`), so the worst-case sync and
+verification figures of ZIP 218, ``Security'', do not hold. From NU6.3,
+payments between users create Ironwood-pool notes (ZIP 229, ``Abstract''),
+so the uncounted pool is the one that carries payments.
+
+ZIP 218 and ZIP 259, which deploys it in NU7 (`zip-0259.md:87`), are Draft. The
+NU7 review (`nu7-2026-09-23.md`) records open zcash/zips PR 1361 as the
+amendment that adds Ironwood to the shared budget; this entry stands until it
+merges.
+
+Observed at zcash/zips `afa086bd` (`zips/zip-0218.md:6,97-148,352-397`;
+`zips/zip-0229.md:67-74,208,260`; `zips/zip-0259.md:5,87`).
