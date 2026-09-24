@@ -370,10 +370,9 @@ prose.
 nullifier derivation, \CommitIvk{}, the \Sinsemilla{} Merkle instance,
 RedPallas, the ZIP-244 sighash, and ZIP-32 key derivation --- each specified
 in the Zcash protocol specification and the ZIPs, constructed in the
-\emph{Ironwood Guide} (\S``The note and its commitment'', \S``The nullifier,
-and the loop back to minting'', \S``The recipient: keys and addresses'',
-\S``Resting: the note in the commitment tree'', \S``Spend authorisation:
-RedPallas re-randomisation''), and reused unchanged through the
+\emph{Ironwood Guide} (\S``Note commitments'', \S``The nullifier'',
+\S``Keys and addresses'', \S``The Merkle hash and the tree'', \S``The RedPallas
+signature scheme''), and reused unchanged through the
 \texttt{unstable-voting-circuits} feature (zcash/orchard @
 \texttt{c0b6b917}). No governance-specific object has a specification of
 that rigor.
@@ -591,7 +590,7 @@ circuit.rs:1497-1805}):
   true Orchard nullifier
   $\nfsym = \mathsf{DeriveNullifier}_{\nksym}(\rho, \psi, \cmsym)$ --- the
   deployed Orchard rule, constructed in the \emph{Ironwood Guide}
-  (\S``The nullifier, and the loop back to minting'') --- in-circuit and
+  (\S``The nullifier'') --- in-circuit and
   \emph{never publishes it}: it exists only as a private wire feeding
   conditions~13 and~14 (\texttt{circuit.rs:1682-1701}).
 \item \emph{Snapshot non-spentness} (condition~13). The circuit proves
@@ -962,7 +961,7 @@ Poseidon hash of everything the delegation publishes,
 the arity-$7$ fixed-length instance (\texttt{rho\_binding\_hash},
 \texttt{circuit.rs:176-190}). Condition~2 then derives the keystone
 nullifier by the deployed Orchard rule --- constructed in the
-\emph{Ironwood Guide} (\S``The nullifier, and the loop back to minting'') ---
+\emph{Ironwood Guide} (\S``The nullifier'') ---
 \[
 \nfsym_{\mathrm{signed}} =
 \mathsf{DeriveNullifier}_{\nksym}\bigl(\rho_{\mathrm{signed}},\
@@ -990,7 +989,7 @@ intended hardware-wallet consent guarantee could be asserted.
 The remaining circuit conditions are supporting:
 condition~4 proves $\rk = [\alpha]\,\mathsf{SpendAuthG} + \aksym$ for a
 witnessed randomizer $\alpha$ (the \emph{Ironwood Guide},
-\S``Spend authorisation: RedPallas re-randomisation''); condition~5 ties $\aksym$,
+\S``Randomised validating keys''); condition~5 ties $\aksym$,
 $\nksym$, and $\rivk$ to the same \CommitIvk{} chain the real-note slots
 use (\S\ref{sec:vote-zkp1}, condition~11); conditions~1 and~6 recompute
 the keystone and output note commitments from witnessed openings ---
@@ -1543,10 +1542,9 @@ the protocol has to a spec.
 nullifier derivation, \CommitIvk{}, the \Sinsemilla{} Merkle instance,
 RedPallas, the ZIP-244 sighash, and ZIP-32 derivation, each specified in
 the protocol specification and the ZIPs, constructed in the \emph{Ironwood
-Guide} (\S``The note and its commitment'',
-\S``The nullifier, and the loop back to minting'', \S``The recipient: keys and
-addresses'', \S``Resting: the note in the commitment tree'', \S``Spend
-authorisation: RedPallas re-randomisation''), and reused unchanged through the
+Guide} (\S``Note commitments'', \S``The nullifier'', \S``Keys and
+addresses'', \S``The Merkle hash and the tree'', \S``The RedPallas signature
+scheme''), and reused unchanged through the
 \texttt{unstable-voting-circuits} feature (zcash/orchard @
 \texttt{c0b6b917}). No governance-specific object reaches this bin.
 

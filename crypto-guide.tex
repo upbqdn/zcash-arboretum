@@ -3239,7 +3239,7 @@ permutations'' later in this volume---deployed as
 \(\mathsf{PRF}^{\mathsf{nfOrchard}}\) (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#concreteprfs}{\S~5.4.2}), from which Orchard constructs the
 nullifier---a construction developed in the \emph{Ironwood Guide},
-\S``The nullifier, and the loop back to minting''; this volume
+\S``The nullifier''; this volume
 supplies only the PRF. One contrast deserves note: unlike the Pedersen
 and Sinsemilla hashes constructed in the next section, whose collision
 resistance reduces to a clean assumption (discrete log), Poseidon's
@@ -11744,8 +11744,8 @@ To spend a note, its owner:
   double-spending, computed from the note and the spender's nullifier
   key on \(\mathsf{PRF}^{\mathsf{nfOrchard}}\) of
   \S\ref{hash:subsec:poseidon} by a construction of the
-  \emph{Ironwood Guide}, \S``The nullifier, and the loop back to
-  minting'' (the recomputed root is constrained to
+  \emph{Ironwood Guide}, \S``The nullifier'' (the recomputed root is
+  constrained to
   equal the public anchor, and the instance carries the anchor and
   the nullifier; protocol specification
   \href{https://zips.z.cash/protocol/protocol.pdf\#merklepath}{\S~4.9}, `Merkle Path Validity', and \href{https://zips.z.cash/protocol/protocol.pdf\#actionstatement}{\S~4.18.4}, `Action
@@ -11773,8 +11773,8 @@ hash and its personalised domains are the discipline of
 \S\ref{sec:hash} instantiated by Sinsemilla; the nullifier is derived
 under the spender's nullifier key from a PRF of \S\ref{sec:prf},
 instantiated by Poseidon (\S\ref{hash:subsec:poseidon}), by the
-construction of the \emph{Ironwood Guide}, \S``The nullifier, and the
-loop back to minting''; the proof is a
+construction of the \emph{Ironwood Guide}, \S``The nullifier''; the
+proof is a
 zk-SNARK of \S\ref{sec:zk} for the relation
 \(R_{\mathrm{mem}}\) extended with the note's opening; and the
 authorising signatures over the spend---re-randomised RedDSA for

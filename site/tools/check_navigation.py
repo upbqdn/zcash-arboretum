@@ -115,7 +115,7 @@ async def main(base):
         page = await browser.new_page(has_touch=True)
         for path in ("crypto-guide/S5.html", "complete/V2.S5.html"):
             await check(page, base.rstrip("/"), path)
-        for path in ("ironwood-guide/S2.html", "complete/V5.S2.html"):
+        for path in ("crypto-guide/S6.html", "complete/V2.S6.html"):
             await check_titles(page, base.rstrip("/"), path)
         for path in ("math-guide/S10.html", "complete/V1.S10.html"):
             await page.set_viewport_size({"width": 768, "height": 1024})

@@ -47,11 +47,12 @@ Layered; read each atop the ones it names.
    arithmetic of confirmations, and the deployed most-work rule, including
    implementation divergences and local safety rails; the NU7 timing,
    shielded-work limits, halving schedule, and reserve accounting.
-5. *Ironwood Guide* (=ironwood-guide.tex=) — notes, commitments, nullifiers,
-   the commitment tree and authentication paths, the key hierarchy, note
-   encryption, value balance, the Action statement and circuit, the two-pool
-   split (legacy Orchard, current Ironwood), and the deployed stack's
-   post-quantum security boundary.
+5. *Ironwood Guide* (=ironwood-guide.tex=) — the Orchard protocol for a
+   shielded payment in its Ironwood pool: keys and addresses, notes and their
+   commitments, the commitment tree, nullifiers, spend authorisation, value
+   commitments and the binding signature, the Action statement and its proof,
+   note encryption, and the transaction rules, closing with theorems of value
+   conservation, double-spend resistance, spend authority, and privacy.
 6. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
    key derivation, unified addresses (ZIP-316), fees (ZIP-317), transaction
    construction, and light-client synchronisation: ZIP-307 compact blocks,

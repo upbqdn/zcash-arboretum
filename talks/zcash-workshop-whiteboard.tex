@@ -146,7 +146,7 @@ wallet; both follow from what the record has to contain.
 \textbf{Keep this shape on the board.} One $2$-coin input, $1.5$ to Bob,
 change back: the shielded running example has exactly this shape, with
 none of the labels.
-\src{\emph{Ironwood Guide}, ``The four requirements on a shielded payment''}
+\src{\emph{Ironwood Guide}, ``Requirements on a shielded payment''}
 \end{board}
 
 \begin{board}{The validator's four checks}{all four}
@@ -182,8 +182,8 @@ the outpoint again, every amount.
 
 \textbf{The fee is the fourth check's slack.} Sum of inputs minus sum of
 outputs: not a field, yet public to the satoshi.
-\src{\emph{Ironwood Guide}, ``The four requirements on a shielded payment'';
-  ``Resting: the note in the commitment tree''}
+\src{\emph{Ironwood Guide}, ``Requirements on a shielded payment''; ``The note
+  commitment tree''}
 \end{board}
 
 \begin{board}{Hide a field, lose a check}{all four}
@@ -228,8 +228,8 @@ workshop, means hiding the sender, the receiver and the amount while a
 stranger still performs all four checks. Every mechanism to come answers
 the same pair of questions: which of the four checks does it restore, and
 why can the node no longer do it the Bitcoin way?
-\src{\emph{Ironwood Guide}, ``The four requirements on a shielded payment'';
-  ``What a node verifies, without ever observing the note''}
+\src{\emph{Ironwood Guide}, ``Requirements on a shielded payment'';
+  ``Verification of a transaction''}
 \end{board}
 
 \begin{board}{What a privacy design must supply}{all four}
@@ -283,7 +283,7 @@ only checks a claim about hidden data; what hides is the commitment's
 hiding property and the keyed tag (key re-randomisation joins them on
 ``Four checks, four mechanisms''). Keep the proof in its column.
 \src{\emph{Crypto Guide}, ``Three questions''; ``The sealed envelope'';
-  \emph{Ironwood Guide}, ``The nullifier, and the loop back to minting''}
+  \emph{Ironwood Guide}, ``The nullifier''}
 \end{board}
 
 \begin{board}{Sealed envelopes that add}{conserved}
@@ -306,9 +306,8 @@ trick: amounts hidden, their sum still checkable.
 \textbf{Emphasise the gap and where it is closed.} The identity holds only
 modulo the group order; here the $64$-bit range check that closes the gap
 lives inside the proof.
-\src{\emph{Crypto Guide}, ``The Pedersen commitment''; \emph{Ironwood
-  Guide}, ``Conservation without disclosure: value commitments and the
-  binding signature''; ``The Action statement, formally''}
+\src{\emph{Crypto Guide}, ``The Pedersen commitment''; \emph{Ironwood Guide},
+  ``Value commitments''; ``The Action statement''}
 \end{board}
 
 \begin{board}{Notes versus UTXOs: what a coin is}{authorised, conserved}
@@ -338,9 +337,8 @@ timelocks, no HTLCs.
 \textbf{Threshold authority exists and is invisible on chain.} It is
 FROST, later in the workshop; on chain there is one ordinary signature
 under one per-spend key.
-\src{\emph{Ironwood Guide}, ``The note and its commitment''; ``Spend
-  authorisation: RedPallas re-randomisation''; \emph{FROST Guide}, ``The
-  three deployment surfaces''}
+\src{\emph{Ironwood Guide}, ``Notes''; ``Randomised validating keys'';
+  \emph{FROST Guide}, ``The three deployment surfaces''}
 \end{board}
 
 \begin{board}{Notes versus UTXOs: what the chain records}{exists, not twice}
@@ -371,8 +369,8 @@ $\cmx$ of depth $32$ and a set of $\nfsym$. Nothing is ever deleted.
 \textbf{Emphasise: the note never touches the chain.} Recorded are a
 commitment to it, an encrypted copy for its recipient, and at spend a tag
 derived from it.
-\src{\emph{Ironwood Guide}, ``The note and its commitment''; ``The tree, its
-  hash, and its anchors''; ``The nullifier, and the loop back to minting''}
+\src{\emph{Ironwood Guide}, ``Notes and note commitments''; ``The Merkle hash
+  and the tree''; ``Nullifier sets''}
 \end{board}
 
 \begin{board}{The three-line mental model}{all four}
@@ -417,9 +415,8 @@ Letting the position $i$ migrate into line 2. The index is a private
 witness of line 1 only; the nullifier is a tag derived from the note (the
 previous board), not from where the note sits in the tree.
 \src{\emph{Crypto Guide}, ``Privacy-preserving membership via zero-knowledge
-  paths''; ``A shielded spend, end to end''; \emph{Ironwood Guide},
-  ``Conservation without disclosure: value commitments and the binding
-  signature''}
+  paths''; ``A shielded spend, end to end''; \emph{Ironwood Guide}, ``Value
+  commitments and the binding signature''}
 \end{board}
 
 \begin{board}{Four checks, four mechanisms}{all four}
@@ -457,8 +454,8 @@ model; checks 4 and 2 follow, on the running example.
 \Avoid
 Glossing the re-randomised key as a multiple of $\aksym$. The disguise is
 additive; its formula comes later, and this table only names it.
-\src{\emph{Ironwood Guide}, ``The four requirements on a shielded payment'';
-  ``The Action statement, formally''}
+\src{\emph{Ironwood Guide}, ``Requirements on a shielded payment''; ``The Action
+  statement''}
 \end{board}
 
 \begin{board}{The route}{all four}
@@ -516,7 +513,7 @@ two different notes could share one?}
 ``A few hundred bytes'' for the proof: the route says a few kilobytes, and
 the proof-system part gives the number. The seed a new note inherits is
 the serial of the note spent beside it, not a position in the tree.
-\src{\emph{Ironwood Guide}, ``The nullifier, and the loop back to minting''}
+\src{\emph{Ironwood Guide}, ``Nullifiers''}
 \end{board}
 
 %% ---- 02-toolbox.tex
@@ -665,8 +662,8 @@ Timing claims: ``its prover paid for it'' stays qualitative; no seconds or
 minutes for the first generation's prover.
 \src{\emph{Crypto Guide}, ``Arithmetisation-friendly hashing: Poseidon'';
   ``Sinsemilla: an algebraic hash-based commitment''; \emph{Ironwood Guide},
-  ``Why Sinsemilla: in-circuit cost''; ``Lineage: three generations of
-  shielded proof''}
+  ``Sinsemilla: hash, commitment, and short forms'', Remark ``Cost inside a
+  proof''; protocol specification, ``JoinSplit Statement (Sprout)''}
 \end{board}
 
 %% ---------------------------------------------------------------- B2
@@ -914,7 +911,7 @@ verified by $32$ hashes} --- recomputed here inside the proof. Point at
 the tree: red is the leaf and its route, private; green the siblings,
 private; the anchor alone is public.
 \src{\emph{Crypto Guide}, ``Authentication paths and membership proofs'';
-  \emph{Ironwood Guide}, ``The tree, its hash, and its anchors''}
+  \emph{Ironwood Guide}, ``The Merkle hash and the tree''}
 \end{board}
 
 \begin{board}{What changes: append only, historical roots, private
@@ -954,7 +951,7 @@ proof names only the root and hides the leaf among every leaf beneath it.
 The tree, anchors and the nullifier set in Part C; clause A3 in Part E.
 \src{\emph{Crypto Guide}, ``Append-only and incrementally updatable trees'';
   ``Privacy-preserving membership via zero-knowledge paths'';
-  \emph{Ironwood Guide}, ``The tree, its hash, and its anchors''}
+  \emph{Ironwood Guide}, ``The note commitment tree''}
 \end{board}
 
 %% ---------------------------------------------------------------- B5
@@ -1041,8 +1038,7 @@ is discrete-log structure, and the forger holds $\nksym$ anyway.
 \Avoid
 The seed $\rho$ as a tree position: it is per-note randomness fixed at
 creation, and the leaf index never enters the nullifier.
-\src{\emph{Ironwood Guide}, ``The nullifier, and the loop back to
-  minting''; ``Nullifier uniqueness''}
+\src{\emph{Ironwood Guide}, ``The nullifier''; ``Nullifier uniqueness''}
 \end{board}
 
 %% ---------------------------------------------------------------- B6
@@ -1082,9 +1078,9 @@ reach $\mathsf{s} = [\esk]\,\pkd = [\ivk]\,\epk$.
 never online, and the sender learns nothing beyond the address. Cofactor
 $1$ leaves only the on-curve, non-identity check on $\epk$. Note
 encryption step by step in Part F.
-\src{\emph{Crypto Guide}, ``Elliptic-curve Diffie--Hellman'';
-  ``Shielded-note delivery as deployed hybrid encryption'';
-  \emph{Ironwood Guide}, ``Sender: one-shot Diffie--Hellman and the AEAD''}
+\src{\emph{Crypto Guide}, ``Elliptic-curve Diffie--Hellman''; ``Shielded-note
+  delivery as deployed hybrid encryption''; \emph{Ironwood Guide}, ``Encryption
+  to the recipient''}
 \end{board}
 
 \begin{board}{Encryption on top: KDF, AEAD, wrong-key rejection}{delivery,
@@ -1131,9 +1127,8 @@ Why is an all-zero nonce safe? Each key encrypts exactly once.
 Asked where the sender's outgoing key comes from: not from $\ivk$ ---
 Part D. Asked whether that second ciphertext is how the sender finds her
 change: no --- Part F.
-\src{\emph{Crypto Guide}, ``Key-derivation functions''; ``The
-  ChaCha20-Poly1305 AEAD''; \emph{Ironwood Guide}, ``Sender: one-shot
-  Diffie--Hellman and the AEAD''}
+\src{\emph{Crypto Guide}, ``Key-derivation functions''; ``The ChaCha20-Poly1305
+  AEAD''; \emph{Ironwood Guide}, ``Encryption to the recipient''}
 \end{board}
 
 %% ---------------------------------------------------------------- B7
@@ -1267,8 +1262,7 @@ unlike the BIP-32 tweak, which anyone holding the xpub recomputes.
 Multiplicative re-randomisation: $\rksym = \aksym +
 [\alpha]\,G^{\mathsf{SpendAuth}}$, never $[\alpha]\,\aksym$.
 \src{\emph{Crypto Guide}, ``Key re-randomisation and unlinkability'';
-  \emph{Ironwood Guide}, ``Spend authorisation: RedPallas
-  re-randomisation''}
+  \emph{Ironwood Guide}, ``Randomised validating keys''}
 \end{board}
 
 \begin{board}{Preview: a signature under a key nobody holds unless the
@@ -1409,7 +1403,8 @@ statement in Part E; the proof system in Part G.
 Timing claims: ``sublinear'' is the claim; no millisecond figure for
 verification, no seconds for proving.
 \src{\emph{Crypto Guide}, ``SNARKs: succinct non-interactive arguments of
-  knowledge''; \emph{Ironwood Guide}, ``Comparative summary''}
+  knowledge''; \emph{Ironwood Guide}, ``The Action circuit and the Halo 2
+  proof''}
 \end{board}
 
 \begin{board}{Proof sizes, with units}{all four}
@@ -1455,9 +1450,9 @@ size in Part H.
 setup'' without the Sapling caveat. A minimum-actions constant as the
 reason for $a = 2$: the two outputs fix it, and one dummy spend pads the
 spend list (Part E).
-\src{\emph{Ironwood Guide}, ``Comparative summary''; \emph{Crypto Guide},
-  ``SNARKs: succinct non-interactive arguments of knowledge''; protocol
-  specification, ``JoinSplit Descriptions''; ``Constants''}
+\src{\emph{Ironwood Guide}, ``The transaction format''; \emph{Crypto Guide},
+  ``SNARKs: succinct non-interactive arguments of knowledge'';
+  protocol specification, ``JoinSplit Descriptions''; ``Constants''}
 \end{board}
 
 \begin{board}{What the proof hides, and what it does not}{all four}
@@ -1497,8 +1492,9 @@ are consistent.
 ``The proof hides sender and receiver'': the proof hides the witness; the
 hiding of the published fields is the commitments', the PRF's, the
 re-randomisation's and the encryption's work.
-\src{\emph{Ironwood Guide}, ``Zero knowledge''; \emph{Crypto Guide},
-  ``Hiding and binding''; ``Key re-randomisation and unlinkability''}
+\src{\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof'';
+  ``Privacy''; \emph{Crypto Guide}, ``Hiding and binding''; ``Key
+  re-randomisation and unlinkability''}
 \end{board}
 
 %% ---------------------------------------------------------------- B9
@@ -1552,11 +1548,10 @@ commitment?
 \Avoid
 The seed $\rho$ as a tree position, when writing the deployed formula in
 the answer.
-\src{\emph{Crypto Guide}, ``The transparent layer's hashes''; ``Instantiation
-  on elliptic curves; the Pasta curves''; ``Shielded-note delivery as
-  deployed hybrid encryption''; ``RedDSA: re-randomisable Schnorr for
-  Orchard''; \emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
-  ``The nullifier, and the loop back to minting''}
+\src{\emph{Crypto Guide}, ``The transparent layer's hashes''; ``Instantiation on
+  elliptic curves; the Pasta curves''; ``Shielded-note delivery as deployed
+  hybrid encryption''; ``RedDSA: re-randomisable Schnorr for Orchard'';
+  \emph{Ironwood Guide}, ``The Merkle hash and the tree''; ``The nullifier''}
 \end{board}
 
 %% ---- 03-datamodel.tex
@@ -1669,8 +1664,8 @@ output in clear; every field of a note stays with its owner.
 ``$\rho$ is the note's position in the tree'' --- it is a seed fixed at
 creation, and the leaf index never enters the nullifier (later in
 this part).
-\src{\emph{Ironwood Guide}, ``The note and its commitment'';
-  ``The note seed: Ironwood derivations (lead byte 0x03)''}
+\src{\emph{Ironwood Guide}, ``Notes''; ``The note seed: Ironwood derivations
+  (lead byte 0x03)''}
 \end{board}
 
 \begin{board}{A note: content and machinery}{exists}
@@ -1696,8 +1691,8 @@ plaintext carries lead byte $\mathtt{0x03}$ (Part F).
 \textbf{Bitcoin publishes every field of an output; the note itself
 never touches the chain.} What does touch the chain comes on the next
 boards.
-\src{\emph{Ironwood Guide}, ``The note and its commitment'';
-  ``The note seed: Ironwood derivations (lead byte 0x03)''}
+\src{\emph{Ironwood Guide}, ``Notes''; ``The note seed: Ironwood derivations
+  (lead byte 0x03)''}
 \end{board}
 
 \begin{board}{Vocabulary: one protocol, two pools}{exists}
@@ -1736,8 +1731,8 @@ names consistently from here on.
 \Avoid
 ``the pool is auditable'' --- what is public is the pool's balance row,
 not what happens inside the pool.
-\src{\emph{Ironwood Guide}, ``Two pools, one protocol''; ``Two pools,
-  two trees''; ``Pool balances: ZIP-209 and its Ironwood analogue''}
+\src{\emph{Ironwood Guide}, ``The Orchard protocol and its two pools''; ``Chain
+  state and pool rules''}
 \end{board}
 
 \begin{board}{The seal: three rules}{conserved}
@@ -1774,7 +1769,7 @@ type; no longer created by coinbase, no longer funded from outside
 \Avoid
 ``the turnstile makes the pool auditable'' --- the turnstile is a public
 exit; it does not audit what the pool holds.
-\src{\emph{Ironwood Guide}, ``The seal: three rules''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules''}
 \end{board}
 
 \begin{board}{Sinsemilla: a hash built from curve additions}{exists}
@@ -1830,8 +1825,9 @@ the hash's in-circuit cost is the whole question.
 chunk, native to a circuit with lookups. A bit-oriented hash must be
 re-expressed through field arithmetic and range checks, and dominates a
 circuit.
-\src{\emph{Ironwood Guide}, ``Why Sinsemilla: in-circuit cost'';
-  \emph{Crypto Guide}, ``Arithmetisation-friendly hashing: Poseidon''}
+\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'',
+  Remark ``Cost inside a proof''; \emph{Crypto Guide},
+  ``Arithmetisation-friendly hashing: Poseidon''}
 \end{board}
 
 \begin{board}{The note commitment: what the chain stores}{exists}
@@ -1859,8 +1855,8 @@ consumes a field element, hence $\Extract$: the chain sees $\cmx$.
 \textbf{Emphasise:} recipient, amount, seeds and trapdoor all stay
 private; the chain holds one field element per note (plus a ciphertext,
 Part F).
-\src{\emph{Ironwood Guide}, ``The note and its commitment'';
-  ``Sinsemilla: hash, commitment, and short forms''}
+\src{\emph{Ironwood Guide}, ``Note commitments''; ``Sinsemilla: hash,
+  commitment, and short forms''}
 \end{board}
 
 \begin{board}{Hiding, binding, and the CT contrast}{exists}
@@ -1887,9 +1883,8 @@ recipient and amount, and is opened only inside the zero-knowledge proof
 \Avoid
 ``the proof hides the recipient and the amount'' --- the commitment's
 hiding does; the proof adds nothing beyond its statement (Part E).
-\src{\emph{Ironwood Guide}, ``The note and its commitment'';
-  ``Sinsemilla: hash, commitment, and short forms'';
-  \emph{Crypto Guide}, ``Hiding and binding''}
+\src{\emph{Ironwood Guide}, ``Note commitments''; ``Sinsemilla: hash,
+  commitment, and short forms''; \emph{Crypto Guide}, ``Hiding and binding''}
 \end{board}
 
 \begin{board}{Two structures that only grow}{exists, not twice}
@@ -1929,9 +1924,8 @@ is the ``deleted'' half, and nothing maps a nullifier back to a leaf.
 \textbf{Emphasise:} Bitcoin's set forgets a spent coin; these two forget
 nothing. The leaves are public $\cmx$ values, and there is one tree per
 pool.
-\src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
-  ``The nullifier, and the loop back to minting'';
-  protocol specification, ``Note Commitment Trees''; ``Nullifier Sets''}
+\src{\emph{Ironwood Guide}, ``The Merkle hash and the tree''; ``Nullifier
+  sets''; protocol specification, ``Note Commitment Trees''; ``Nullifier Sets''}
 \end{board}
 
 \begin{board}{The tree by the numbers}{exists}
@@ -1958,7 +1952,7 @@ Pallas point, so no leaf can collide with ``empty''.
 \textbf{Bitcoin contrast:} the txid tree is rebuilt per block with
 SHA-256d and its depth follows the transaction count; this tree is one,
 fixed in depth, and only ever extended.
-\src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
+\src{\emph{Ironwood Guide}, ``The Merkle hash and the tree'';
   protocol specification, ``Note Commitment Trees''}
 \end{board}
 
@@ -1999,10 +1993,8 @@ $\wbCenc$, $\wbCout$ --- opaque strings.
 
 \textbf{Emphasise:} the delivery fields are opaque to the validator; only
 their owners open them (Part F).
-\src{\emph{Ironwood Guide}, ``One Action, one payment: the
-  walkthrough''; ``Delivery: the note reaches its owner'';
-  ``Conservation without disclosure: value commitments and the binding
-  signature''}
+\src{\emph{Ironwood Guide}, ``Actions, bundles, and dummy notes''; ``Note
+  encryption''; ``Value commitments''}
 \end{board}
 
 \begin{board}{Resting: the frontier and the anchor}{exists}
@@ -2043,10 +2035,8 @@ as retained nodes and subtree roots (Part F).
 \textbf{Emphasise: no window.} Consensus accepts the anchor of any
 main-chain block since the pool's activation; proving is decoupled from
 broadcast.
-\src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
-  ``Anchor choice, reorgs, and the anonymity set''; ``The wallet's
-  witness: shardtree, shards, and the cap'';
-  \emph{Wallet Guide}, ``Frontiers as scan seeds'';
+\src{\emph{Ironwood Guide}, ``The Merkle hash and the tree''; ``Anchors'';
+  ``Authentication paths''; \emph{Wallet Guide}, ``Frontiers as scan seeds'';
   protocol specification, ``Action Transfers and their Descriptions''}
 \end{board}
 
@@ -2087,9 +2077,8 @@ whatever the tip.
 \Avoid
 Attributing the anonymity-set argument to ZIP-315 --- it is the Guide's;
 ZIP-315 states input availability and hiding the input's trusted status.
-\src{\emph{Ironwood Guide}, ``Anchor choice, reorgs, and the anonymity
-  set''; \emph{Wallet Guide}, ``Confirmations, trust, and
-  spendability''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Confirmations,
+  trust, and spendability''}
 \end{board}
 
 \begin{board}{When the anchor vanishes: reorganisations}{exists}
@@ -2123,9 +2112,8 @@ deferrable, and the proof rather than the signature pins them.
 
 \textbf{Bitcoin contrast:} a reorged transaction stays valid wherever its
 inputs survive; here the tree it named may no longer exist.
-\src{\emph{Ironwood Guide}, ``Anchor choice, reorgs, and the anonymity
-  set''; \emph{Wallet Guide}, ``Reorganisations: truncate and rescan'';
-  ``PCZT v2: deferred anchors and the Ironwood bundle''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisations:
+  truncate and rescan''; ``PCZT v2: deferred anchors and the Ironwood bundle''}
 \end{board}
 
 \begin{board}{Not a mixer}{exists}
@@ -2153,9 +2141,8 @@ whole input set.
 \textbf{What narrows the set here is metadata, not the proof:} publicly
 known dummy or spent leaves, timing, fees, transparent components
 (Part H). Tree size alone does not measure it.
-\src{\emph{Ironwood Guide}, ``Resting: the note in the commitment
-  tree''; ``Anchor choice, reorgs, and the anonymity set'';
-  ``Two pools, two trees''}
+\src{\emph{Ironwood Guide}, ``The note commitment tree''; ``Anchors''; ``Chain
+  state and pool rules''}
 \end{board}
 
 \begin{board}{The nullifier: a keyed serial number}{not twice}
@@ -2198,9 +2185,9 @@ pointer; it names no leaf.
 (or a random point's $\Extract$ for a dummy). Naming a minimum-actions
 constant as the reason for the dummy --- the Action count is set in
 Part E.
-\src{\emph{Ironwood Guide}, ``The nullifier, and the loop back to
-  minting''; \emph{Crypto Guide}, ``Arithmetisation-friendly hashing:
-  Poseidon''; protocol specification, ``Dummy Notes (Orchard)''}
+\src{\emph{Ironwood Guide}, ``The nullifier''; \emph{Crypto Guide},
+  ``Arithmetisation-friendly hashing: Poseidon''; protocol specification,
+  ``Dummy Notes (Orchard)''}
 \end{board}
 
 \begin{board}{Uniqueness and unlinkability, separately}{not twice}
@@ -2237,8 +2224,7 @@ one is unique because two names would break discrete log.
 ``the leaf position makes the nullifier unique'' --- position never
 enters; uniqueness rests on ingredients fixed at creation and on
 discrete log on Pallas.
-\src{\emph{Ironwood Guide}, ``The nullifier, and the loop back to
-  minting''; ``Nullifier uniqueness''}
+\src{\emph{Ironwood Guide}, ``Nullifier uniqueness and unlinkability''}
 \end{board}
 
 \begin{board}{Alice's leaf: the position is a secret}{exists, not twice}
@@ -2291,10 +2277,8 @@ UTXO set.
 ``the proof hides the sender and the receiver'' --- the proof runs the
 membership check; hiding comes from the commitment, the keyed nullifier
 PRF and key re-randomisation (Parts B, E).
-\src{\emph{Ironwood Guide}, ``The authentication path from public
-  data''; ``The nullifier, and the loop back to minting'';
-  ``What a node verifies, without ever observing the note'';
-  ``Synchronisation, including from cold storage''}
+\src{\emph{Ironwood Guide}, ``Authentication paths''; ``The nullifier'';
+  ``Verification of a transaction''; ``Trial decryption and note acceptance''}
 \end{board}
 
 %% ---- 04-keys.tex
@@ -2477,7 +2461,7 @@ find it.
     the outgoing key.
 \end{itemize}
 \src{\emph{Wallet Guide}, ``Internal keys: change and auto-shielding'';
-\emph{Ironwood Guide}, ``The doors: shielding, coinbase, migration''}
+\emph{Ironwood Guide}, ``Chain state and pool rules''}
 \end{board}
 
 % d_keys.py: sk 32 bytes; PRFexpand leads: spend 0x06/0x07/0x08, dk|ovk
@@ -2544,9 +2528,8 @@ diversified-addresses board says why.
   \item ``The pair $(\dk, \ovk)$ is derived from \ivk.'' Both branches
     leave \fvk; the incoming viewing key yields neither.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``The capability ladder''; ``Viewing keys'';
-``The Action statement, formally''; protocol specification, ``Orchard Key
-Components''}
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; ``Viewing keys'';
+``The Action statement''; protocol specification, ``Orchard Key Components''}
 \end{board}
 
 % d_keys.py: PRFexpand leads: spend 0x06/0x07/0x08, dk|ovk 0x82, internal
@@ -2602,9 +2585,8 @@ public.
   \item ``The pair $(\dk, \ovk)$ comes from \ivk.'' Row~4 starts at
     \fvk.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``The capability ladder''; \emph{Wallet Guide},
-``Diversified addresses''; protocol specification, ``Orchard Key
-Components''}
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; \emph{Wallet Guide},
+``Diversified addresses''; protocol specification, ``Orchard Key Components''}
 \end{board}
 
 \begin{board}{Graded capabilities: spend, full view, spent status}
@@ -2639,7 +2621,7 @@ spent status are what its public ledger shows to everyone.
 
 \textbf{Emphasise the middle row.} A full viewing key sees everything and
 moves nothing.
-\src{\emph{Ironwood Guide}, ``The capability ladder''; \emph{Wallet Guide},
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; \emph{Wallet Guide},
 ``From the account key to addresses: the layer already built''}
 \end{board}
 
@@ -2682,7 +2664,7 @@ paid and does nothing else.
   \item ``The pair $(\dk, \ovk)$ comes from \ivk.'' The incoming row
     holds no \ovk{} and cannot reach one.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``The capability ladder''; ``The outgoing
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; ``The outgoing
 ciphertext''; \emph{Wallet Guide}, ``Raw encodings''; ZIP-316, ``Deriving
 Internal Keys''}
 \end{board}
@@ -2722,9 +2704,8 @@ a processor --- and validation needs none of them.
     to whoever its holder chooses; nothing about the pool is readable
     without one, and the validator holds none.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``The capability ladder''; ``What a node
-verifies, without ever observing the note''; \emph{Wallet Guide},
-``Unified viewing keys''}
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; ``Verification of a
+transaction''; \emph{Wallet Guide}, ``Unified viewing keys''}
 \end{board}
 
 % d_keys.py: diversifier 88 bits; addresses per account per scope
@@ -2836,9 +2817,9 @@ incoming viewing key.
 
 \textbf{The Bitcoin contrast.} One Bitcoin address encodes one script
 type; here one address lets the sender's wallet choose the pool.
-\src{\emph{Wallet Guide}, ``Unified addresses''; ``String encoding:
-F4Jumble and Bech32m''; ``Unified viewing keys''; \emph{Ironwood Guide},
-``One ladder, both pools''; ZIP-316, ``Encoding of Unified Addresses''}
+\src{\emph{Wallet Guide}, ``Unified addresses''; ``String encoding: F4Jumble and
+Bech32m''; ``Unified viewing keys''; \emph{Ironwood Guide}, ``Key capabilities
+and scope''; ZIP-316, ``Encoding of Unified Addresses''}
 \end{board}
 
 % d_keys.py: Bob receives 1.5 ZEC = 150000000 zatoshi; Ironwood lead byte
@@ -2906,12 +2887,11 @@ it?
     the internal scope; the full viewing key covers it through the
     $\mathtt{0x83}$ step.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Sender: one-shot Diffie--Hellman and the
-AEAD''; ``The note and its commitment''; ``One ladder, both pools''; ``The
-capability ladder''; ``The outgoing ciphertext''; \emph{Wallet Guide},
-``Unified addresses''; ``Internal keys: change and auto-shielding'';
-``From the account key to addresses: the layer already built'';
-``Unified viewing keys''}
+\src{\emph{Ironwood Guide}, ``Encryption to the recipient''; ``Notes and note
+commitments''; ``Key capabilities and scope''; ``The outgoing ciphertext'';
+\emph{Wallet Guide}, ``Unified addresses''; ``Internal keys: change and
+auto-shielding''; ``From the account key to addresses: the layer already
+built''; ``Unified viewing keys''}
 \end{board}
 
 %% ---- 05-statement.tex
@@ -3029,8 +3009,8 @@ ciphertext.
 ``The proof hides the sender and receiver.'' The fields hide them ---
 each is a commitment, a serial number, a disguised key, or a ciphertext;
 the proof establishes the statement about them and nothing more.
-\src{\emph{Ironwood Guide}, ``One Action, one payment: the walkthrough'';
-``The outgoing ciphertext''; ``The Action statement, formally''}
+\src{\emph{Ironwood Guide}, ``Actions, bundles, and dummy notes''; ``The
+outgoing ciphertext''; ``The Action statement''}
 \end{board}
 
 \begin{board}{The bundle around it}{all four}
@@ -3076,8 +3056,8 @@ authority}.
 \Avoid
 ``A few hundred bytes.'' Alice's proof is $7264$ bytes for two Actions,
 and each Action adds $820$ public bytes.
-\src{\emph{Ironwood Guide}, ``What a node verifies, without ever
-observing the note''; ``The v6 transaction and the Ironwood component''}
+\src{\emph{Ironwood Guide}, ``Verification of a transaction''; ``Action
+descriptions and bundles''}
 \end{board}
 
 \begin{board}{Why a spend and an output are fused}{all four}
@@ -3113,8 +3093,8 @@ note's own receiver.
 $n_{\mathrm{act}} = 2$ comes from her two outputs; the dummy pads the
 spend list up to that count. The floor of two is a separate rule that
 gives the same number here.
-\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; \emph{Ironwood
-Guide}, ``Spending under the restriction''}
+\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling'';
+\emph{Ironwood Guide}, ``Actions, bundles, and dummy notes''}
 \end{board}
 
 \begin{board}{Dummies and the shuffle}{all four}
@@ -3152,9 +3132,9 @@ Writing $\rho$ as the note's position in the tree. The seed $\rho$ is a
 per-note uniqueness value: a dummy's is the $\Extract$ of a random
 point, an output's is the nullifier of the note spent beside it. Neither
 is a leaf index.
-\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; \emph{Ironwood
-Guide}, ``The nullifier, and the loop back to minting''; protocol
-specification, ``Dummy Notes (Orchard)''}
+\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling'';
+\emph{Ironwood Guide}, ``Actions, bundles, and dummy notes'';
+protocol specification, ``Dummy Notes (Orchard)''}
 \end{board}
 
 \begin{board}{The statement, in the validator's language}{all four}
@@ -3192,9 +3172,8 @@ nine is a proof for a different circuit, and it fails.
 validator runs \emph{your} script. This validator runs one verifier
 keyed to one fixed circuit; the transaction supplies inputs, never
 logic.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally''; ``One
-circuit, one verifying key''; protocol specification, ``Action Statement
-(Orchard)''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; ``The Action circuit and
+the Halo 2 proof''; protocol specification, ``Action Statement (Orchard)''}
 \end{board}
 
 \begin{board}{The ten clauses, ordered by the four checks}{all four}
@@ -3236,9 +3215,8 @@ cross-address transfers switched off, or not.
 \textbf{Emphasise.} Four of Bitcoin's checks become seven clauses; three
 more are consensus gates the flags drive. The remaining check --- ``has
 this serial been seen?'' --- is global history and stays with the node.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally''; ``The four
-requirements on a shielded payment''; ``What a node verifies, without
-ever observing the note''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; ``Requirements on a
+shielded payment''; ``Verification of a transaction''}
 \end{board}
 
 \begin{board}{Alice's two Actions against the ten clauses}{all four}
@@ -3293,8 +3271,8 @@ $v_{\mathrm{balance}}$ (\emph{Balance and authority}).
 Reading $\rho$ as where the note sits in the tree. In the A2 row the new
 note's $\rho$ is the nullifier of the note spent in the same Action; the
 $32$-sibling path of A3 is a private witness and never enters it.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally''; \emph{Wallet
-Guide}, ``Padding, dummies, and shuffling''; ``The conventional fee''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; \emph{Wallet Guide},
+``Padding, dummies, and shuffling''; ``The conventional fee''}
 \end{board}
 
 \begin{board}{What Alice's public fields carry}{all four}
@@ -3384,9 +3362,8 @@ public part is the anchor, one per bundle.
 arithmetic, not by a flag.
 \Ask
 ``Which of the four checks?'' --- coin exists.
-\src{\emph{Ironwood Guide}, ``The tree, its hash, and its anchors'';
-``Anchor choice, reorgs, and the anonymity set''; ``The Action
-statement, formally''}
+\src{\emph{Ironwood Guide}, ``Authentication paths''; ``Anchors''; ``The Action
+statement''}
 \end{board}
 
 \begin{board}{No double spend --- A5, the nullifier}{not twice}
@@ -3419,8 +3396,8 @@ balance (A4, \emph{Balance and authority}).
 Calling $\rho$ the note's tree position. The formula takes the note's
 seed $\rho$ and $\psi$ under $\nksym$; the leaf index is a private
 witness of A3 and never enters the nullifier.
-\src{\emph{Ironwood Guide}, ``The nullifier, and the loop back to
-minting''; ``What a node verifies, without ever observing the note''}
+\src{\emph{Ironwood Guide}, ``The nullifier''; ``Verification of a
+transaction''}
 \end{board}
 
 \begin{board}{Authorised --- the linkage problem first}{authorised}
@@ -3450,8 +3427,7 @@ and it is optional. Here it would be structural.
 \textbf{Needed.} A key that is fresh for every spend and still proves
 the same secret.
 \src{\emph{Crypto Guide}, ``Key re-randomisation and unlinkability'';
-\emph{Ironwood Guide}, ``Spend authorisation: RedPallas
-re-randomisation''}
+\emph{Ironwood Guide}, ``Randomised validating keys''}
 \end{board}
 
 \begin{board}{Authorised --- A6, a disguised key}{authorised}
@@ -3485,9 +3461,8 @@ re-randomisation is additive:
 $\rksym = \aksym + [\alpha]\,\wbEgsa$ and $\rsk = \asksym + \alpha$.
 Write it that way, never a variant.
 {\emergencystretch=1.5em
-\src{\emph{Ironwood Guide}, ``Spend authorisation: RedPallas
-re-randomisation''; \emph{Crypto Guide}, ``Key re-randomisation and
-unlinkability''}\par}
+\src{\emph{Ironwood Guide}, ``Randomised validating keys''; \emph{Crypto Guide},
+``Key re-randomisation and unlinkability''}\par}
 \end{board}
 
 \begin{board}{Authorised --- A7, one identity behind the address}{authorised}
@@ -3517,8 +3492,8 @@ owner's; the signature under $\rksym$ proves the spender holds it
 key's hash, so ``this key matches this coin'' is one hash comparison in
 the clear. Here the address is a commitment to the key, and the match
 is proved.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally''; ``Spend
-authorisation: RedPallas re-randomisation''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; ``Authorisation of
+spends''}
 \end{board}
 
 \begin{board}{Well-formed --- A1 and A2, both notes really are
@@ -3556,9 +3531,8 @@ nullifier.
 Treating $\rho$ as a tree position. The seed $\rho$ is part of the note ---
 fixed at creation as the nullifier of the note spent beside it --- not
 where the note lands in the tree.
-\src{\emph{Ironwood Guide}, ``The note and its commitment''; ``The
-nullifier, and the loop back to minting''; ``The Action statement,
-formally''}
+\src{\emph{Ironwood Guide}, ``Note commitments''; ``Nullifier chaining''; ``The
+Action statement''}
 \end{board}
 
 \begin{board}{Conserved --- A4, the value commitment}{conserved}
@@ -3588,8 +3562,7 @@ Unbounded, the books would ``balance'' while minting.
 reason; here it lives inside the Action proof, with the opening.
 \Ask
 ``Which check?'' --- conserved.
-\src{\emph{Ironwood Guide}, ``Conservation without disclosure: value
-commitments and the binding signature''; ``Balance preservation''}
+\src{\emph{Ironwood Guide}, ``Value commitments''; ``Value conservation''}
 \end{board}
 
 \begin{board}{Gated --- A8 and A9, the flags}{gated}
@@ -3615,9 +3588,8 @@ nothing else.
 \textbf{Coinbase.} A coinbase must clear $\wbEflag{enableSpends}$: its
 Actions spend dummies and create the block's shielded reward. Ordinary
 bundles set both flags, as Alice's does.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally''; ``The
-doors: shielding, coinbase, migration''; ``Flags, public inputs, and
-circuit parameters''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; ``Chain state and pool
+rules''; ``Bundle flags''}
 \end{board}
 
 \begin{board}{Sealed --- A10, the cross-address gate}{sealed}
@@ -3652,8 +3624,8 @@ component must clear it ($\mathtt{0b011}$): $\delta = 1$.
 \textbf{Bitcoin contrast.} The shape is A3's product gate again, on four
 more rows. A Bitcoin output type cannot be told ``pay only yourself'';
 this one can.
-\src{\emph{Ironwood Guide}, ``The cross-address restriction (A10)'';
-``Flags, public inputs, and circuit parameters''}
+\src{\emph{Ironwood Guide}, ``The Action statement'', Remark ``Meaning of A10'';
+``Bundle flags''}
 \end{board}
 
 \begin{board}{The seal: three rules, and two checks that are not
@@ -3696,10 +3668,10 @@ notes; delete A5 and spend one note under a fresh serial each time.
 What stops you: the circuit is fixed, and consensus selects its
 verifying key by branch. A proof of a weaker statement is a proof for a
 different circuit, and no node holds that key.
-\src{\emph{Ironwood Guide}, ``The seal: three rules''; ``Spending under
-the restriction''; ``What a node verifies, without ever observing the
-note''. Checkpoint: \emph{Ironwood Guide}, ``Guarantees provided by a
-valid Action proof''; ``One circuit, one verifying key''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules''; ``Actions, bundles,
+and dummy notes''; ``Verification of a transaction''. Checkpoint:
+\emph{Ironwood Guide}, ``The Action statement''; ``The Action circuit and the
+Halo 2 proof''}
 \end{board}
 
 %% ---- 06-balance.tex
@@ -3751,8 +3723,7 @@ under the net randomness, $[58\,748]\,R$.
 \textbf{The one thing to emphasise: only the author who drew the three
 $r$ knows that net randomness.} That knowledge is what the next boards
 turn into a signature.
-\src{\emph{Ironwood Guide}, ``Conservation without disclosure: value
-commitments and the binding signature''; \emph{Crypto Guide}, ``The
+\src{\emph{Ironwood Guide}, ``Value commitments''; \emph{Crypto Guide}, ``The
 Pedersen commitment''}
 \end{board}
 
@@ -3777,8 +3748,7 @@ net.} Each Action commits to its spend minus its output, $\wbEpvold -
 \wbEpvnew$, under a fresh trapdoor \rcv. Alice's bundle therefore
 publishes two envelopes for three notes and declares the net flow
 \wbEpvbal{} beside them.
-\src{\emph{Ironwood Guide}, ``Conservation without disclosure: value
-commitments and the binding signature''; \emph{Crypto Guide}, ``The
+\src{\emph{Ironwood Guide}, ``Value commitments''; \emph{Crypto Guide}, ``The
 Pedersen commitment''}
 \end{board}
 
@@ -3814,9 +3784,8 @@ bounded sum of bounded values cannot reach it.
 \textbf{The contrast.} Elements attaches a range proof to each output.
 Here the range check is one clause of the statement the Action proof
 already carries. Bitcoin reads each amount and bounds it.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally'';
-``Balance preservation''; \emph{Crypto Guide}, ``The Pedersen
-commitment''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; ``Value conservation'';
+\emph{Crypto Guide}, ``The Pedersen commitment''}
 \end{board}
 
 \begin{board}{The binding signature: a key only a balanced author
@@ -3850,10 +3819,9 @@ balance, revealing no amount and not \wbEpbsk{} itself.
 \textbf{The contrast.} Bitcoin's check is arithmetic on amounts it
 reads; this one is a signature check under a key derived from
 commitments.
-\src{\emph{Ironwood Guide}, ``Conservation without disclosure: value
-commitments and the binding signature''; ``Balance preservation'';
-\emph{Crypto Guide}, ``Binding signatures as a proof of knowledge of a
-discrete logarithm''}
+\src{\emph{Ironwood Guide}, ``The binding signature''; ``Value conservation'';
+\emph{Crypto Guide}, ``Binding signatures as a proof of knowledge of a discrete
+logarithm''}
 \end{board}
 
 \begin{board}{The one public amount: \wbEpvbal}{conserved}
@@ -3890,9 +3858,8 @@ leg the fee is again a difference of public amounts, as in Bitcoin.
 ``The pool is auditable'' --- \wbEpvbal{} is one transaction's crossing,
 and the pool's balance row is the public sum of such crossings; nothing
 inside the pool is audited.
-\src{\emph{Ironwood Guide}, ``Conservation without disclosure: value
-commitments and the binding signature''; ``The doors: shielding,
-coinbase, migration''; \emph{Wallet Guide}, ``The conventional fee''}
+\src{\emph{Ironwood Guide}, ``The balancing value''; ``Chain state and pool
+rules''; \emph{Wallet Guide}, ``The conventional fee''}
 \end{board}
 
 \begin{board}{Authorisation on the wire: two signatures, one
@@ -3932,9 +3899,9 @@ $\wbEpbsk = \sum \rcv$ means balance.
 \Avoid
 Multiplicative re-randomisation --- the key is $\aksym + [\alpha]\,
 \wbEpSA$ and the secret $\asksym + \alpha$, never $[\alpha]\,\aksym$.
-\src{\emph{Ironwood Guide}, ``Spend authorisation: RedPallas
-re-randomisation''; ``The v6 transaction and the Ironwood component'';
-\emph{Crypto Guide}, ``RedDSA: re-randomisable Schnorr for Orchard''}
+\src{\emph{Ironwood Guide}, ``The RedPallas signature scheme''; ``The
+transaction format''; \emph{Crypto Guide}, ``RedDSA: re-randomisable Schnorr for
+Orchard''}
 \end{board}
 
 \begin{board}{Authorisation on the wire: who checks what}{authorised}
@@ -3965,9 +3932,8 @@ unlinkable to \aksym{} and to every other \rksym.
 \Avoid
 Multiplicative re-randomisation --- the shift is additive, $\aksym +
 [\alpha]\,\wbEpSA$, never $[\alpha]\,\aksym$.
-\src{\emph{Ironwood Guide}, ``Spend authorisation: RedPallas
-re-randomisation''; \emph{Crypto Guide}, ``Key re-randomi\-sation and
-unlinkability''}
+\src{\emph{Ironwood Guide}, ``Randomised validating keys''; \emph{Crypto Guide},
+``Key re-randomi\-sation and unlinkability''}
 \end{board}
 
 \begin{board}{What the signatures sign}{authorised}
@@ -4011,9 +3977,8 @@ it.
 \Avoid
 ``The signature pins the anchor'' --- from v6 the digest does not cover
 the anchor; the proof pins it as a public input.
-\src{\emph{Ironwood Guide}, ``What the signatures sign: ZIP-244 digests
-and their v6 form''; \emph{Wallet Guide}, ``Build order and
-signatures''}
+\src{\emph{Ironwood Guide}, ``Transaction digests and signatures'';
+\emph{Wallet Guide}, ``Build order and signatures''}
 \end{board}
 
 \begin{board}{Alice's two Actions}{conserved, authorised}
@@ -4119,12 +4084,10 @@ or whether either is.
   does not learn, as listed; the hiding is the commitments', the keyed
   nullifier's and the re-randomised key's, not the proof's.
 \end{itemize}
-\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; ``Build
-order and signatures''; \emph{Ironwood Guide}, ``Conservation without
-disclosure: value commitments and the binding signature''. Checkpoint:
-\emph{Ironwood Guide}, ``What a node verifies, without ever observing
-the note''; ``One Action, one payment: the walkthrough''; ``The v6
-transaction and the Ironwood component''}
+\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; ``Build order and
+signatures''; \emph{Ironwood Guide}, ``The binding signature''. Checkpoint:
+\emph{Ironwood Guide}, ``Verification of a transaction''; ``Construction of a
+transaction''; ``The transaction format''}
 \end{board}
 
 %% ---- 07-proofs.tex
@@ -4236,8 +4199,8 @@ reasons the proof does not supply.
 ``The proof hides the sender and the receiver.'' Unlinkability of the
 published tuple is bought by hiding commitments, the keyed PRF and
 re-randomisation, not by $\pi$.
-\src{\emph{Crypto Guide}, ``The simulation paradigm and zero
-knowledge''; \emph{Ironwood Guide}, ``Zero knowledge''}
+\src{\emph{Crypto Guide}, ``The simulation paradigm and zero knowledge'';
+\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof''; ``Privacy''}
 \end{board}
 
 \begin{board}{Succinct, and non-interactive}{all four checks}
@@ -4766,9 +4729,8 @@ $\Fpp$: the coefficients are the circuit's own field elements.
 its validator verifies signatures, never circuits. And its base field,
 as the two-adicity board shows, cannot even host the prover's
 evaluation domain.
-\src{\emph{Ironwood Guide}, ``Flags, public inputs, and circuit
-parameters''; \emph{Math Guide}, ``Base fields, scalar fields, and the
-Pasta cycle''}
+\src{\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof'';
+\emph{Math Guide}, ``Base fields, scalar fields, and the Pasta cycle''}
 \end{board}
 
 \begin{board}{The Pasta cycle, once}{all four checks}
@@ -4904,11 +4866,10 @@ Orchard returns to none.
 rests on its MPC. ``The pool is auditable'': the balance is public, but
 counterfeit inside the pool is undetectable; the bound acts at the
 exit.
-\src{\emph{Crypto Guide}, ``Polynomial commitment schemes''; ``SNARKs:
-succinct non-interactive arguments of knowledge''; \emph{Halo 2 Guide},
-``The ``Halo'' in Halo 2: deferring the expensive check'';
-\emph{Ironwood Guide}, ``Pool balances: ZIP-209 and its Ironwood
-analogue''}
+\src{\emph{Crypto Guide}, ``Polynomial commitment schemes''; ``SNARKs: succinct
+non-interactive arguments of knowledge''; \emph{Halo 2 Guide}, ``The ``Halo'' in
+Halo 2: deferring the expensive check''; \emph{Ironwood Guide}, ``Chain state
+and pool rules''}
 \end{board}
 
 \begin{board}{Three generations}{all four checks}
@@ -4956,8 +4917,9 @@ Ironwood, on one circuit.
 Years. ``A few hundred bytes'': the sizes are $296$ B, $192$ B, and
 $2720 + 2272a$ B, with units. ``No ceremony'' as a blanket statement:
 Sapling's still stands.
-\src{\emph{Ironwood Guide}, ``Lineage: three generations of shielded
-proof''; ``Comparative summary''}
+\src{\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof''; ``The
+transaction format''; protocol specification, ``Zero-Knowledge Proving
+Systems''}
 \end{board}
 
 \begin{board}{The Orchard circuit by the numbers}{all four checks}
@@ -5008,9 +4970,8 @@ circuit, and independent of the anonymity set.
 ``A few hundred bytes'': it is $4992$ B for one Action. Millisecond
 verification figures: the deck states only $O(\log n)$ plus the shared
 MSM. ``A few seconds'' is the only timing phrase.
-\src{\emph{Ironwood Guide}, ``Flags, public inputs, and circuit
-parameters''; ``The v6 transaction and the Ironwood component'';
-\emph{Halo 2 Guide}, ``The complete Halo 2 protocol''}
+\src{\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof''; ``The
+transaction format''; \emph{Halo 2 Guide}, ``The complete Halo 2 protocol''}
 \end{board}
 
 \begin{board}{Five gadget families, three circuit versions}
@@ -5056,8 +5017,8 @@ output declares; this one runs a verifier keyed to one fixed circuit.
 Multiplicative re-randomisation: it is $\aksym + [\alpha]\,G$, never
 $[\alpha]\,\aksym$. The position as $\rho$: the position is a private
 witness of the Merkle gadget and never enters the nullifier.
-\src{\emph{Ironwood Guide}, ``The gadget set''; ``One circuit, one
-verifying key''}
+\src{\emph{Ironwood Guide}, ``The Action circuit and the Halo 2 proof'';
+\emph{Halo 2 Guide}, ``From statement to circuit: arithmetisation in practice''}
 \end{board}
 
 \begin{board}{Alice's Action as an instance}{all four checks}
@@ -5125,11 +5086,10 @@ do, what stops the analogue in Orchard, and what bounds the damage?
 and unlinkable for reasons outside $\pi$. Answering the checkpoint with
 ``decrypt notes'': toxic waste breaks soundness, not zero knowledge.
 ``The pool is auditable'': the bound acts at the exit, not inside.
-\src{\emph{Ironwood Guide}, ``The Action statement, formally'';
-\emph{Halo 2 Guide}, ``Instance columns and binding the public
-statement''; checkpoint: \emph{Crypto Guide}, ``SNARKs: succinct
-non-interactive arguments of knowledge''; \emph{Ironwood Guide}, ``Pool
-balances: ZIP-209 and its Ironwood analogue''}
+\src{\emph{Ironwood Guide}, ``The Action statement''; \emph{Halo 2 Guide},
+``Instance columns and binding the public statement''; checkpoint:
+\emph{Crypto Guide}, ``SNARKs: succinct non-interactive arguments of
+knowledge''; \emph{Ironwood Guide}, ``Chain state and pool rules''}
 \end{board}
 
 %% ---- 08-delivery.tex
@@ -5186,9 +5146,9 @@ everyone, and an OP\_RETURN note is public.
     seed, here the nullifier of the note spent in the same Action; the
     leaf index never enters it.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Sender: one-shot Diffie--Hellman and the
-  AEAD''; ``The note seed: Ironwood derivations (lead byte $\mathtt{0x03}$)'';
-  protocol specification, ``Note Plaintexts and Memo Fields''}
+\src{\emph{Ironwood Guide}, ``The note plaintext''; ``The note seed: Ironwood
+  derivations (lead byte $\mathtt{0x03}$)''; protocol specification, ``Note
+  Plaintexts and Memo Fields''}
 \end{board}
 
 \begin{board}{The Ironwood trapdoor: one hash over every note field}{exists}
@@ -5221,9 +5181,8 @@ applies.
 
 \textbf{Bitcoin contrast.} A Bitcoin output has no trapdoor at all:
 there is nothing hidden to bind.
-\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead
-  byte $\mathtt{0x03}$)''; ``Lead bytes across pools and the legacy
-  derivation''}
+\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead byte
+  $\mathtt{0x03}$)''; protocol specification, ``Sending Notes (Orchard)''}
 \end{board}
 
 \begin{board}{Why the detour through BLAKE2b: post-quantum binding}{exists}
@@ -5259,8 +5218,9 @@ Orchard- or Sapling-pool note. Parts H and I return to it.
 
 \textbf{Bitcoin contrast.} Nothing in a Bitcoin output is hidden, so
 nothing must stay bound after a break; here the hidden note must.
-\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead
-  byte $\mathtt{0x03}$)''; ``ZIP-2005: quantum recoverability''}
+\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead byte
+  $\mathtt{0x03}$)'', Remark ``Purpose of the hashed trapdoor''; ``The Action
+  statement'', Remark ``What the statement does not check''}
 \end{board}
 
 \begin{board}{Sealing the note: one-shot Diffie--Hellman, then an AEAD}{exists}
@@ -5293,9 +5253,8 @@ published pair $(\epk, \wbFenc)$.
 standing in for \esk{} --- no \epk{} is published --- to derive an
 output key the chain then shows in the clear; here the shared secret
 encrypts the note, amount and memo included.
-\src{\emph{Ironwood Guide}, ``Sender: one-shot Diffie--Hellman and the
-  AEAD''; protocol specification, ``In-band secret distribution (Sapling
-  and Orchard)''}
+\src{\emph{Ironwood Guide}, ``Encryption to the recipient'';
+  protocol specification, ``In-band secret distribution (Sapling and Orchard)''}
 \end{board}
 
 \begin{board}{The second ciphertext: the sender's own copy}{exists}
@@ -5339,9 +5298,9 @@ reads it.
   \item Deriving \ovk{} from \ivk. The outgoing key derives from \fvk{}
     beside \ivk{} (Part D), not from the incoming key.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``The outgoing ciphertext''; ``What a node
-  verifies, without ever observing the note''; protocol specification,
-  ``Decryption using an Outgoing Viewing Key (Sapling and Orchard)''}
+\src{\emph{Ironwood Guide}, ``The outgoing ciphertext''; ``The note plaintext'';
+  protocol specification, ``Decryption using an Outgoing Viewing Key (Sapling
+  and Orchard)''}
 \end{board}
 
 \begin{board}{Finding your money: detection is successful decryption}{exists}
@@ -5383,10 +5342,9 @@ scripts; here the ``lookup'' is a decryption attempt on every output.
   \item Timing claims. The slide gives the cost as a count of key
     agreements and bytes; put no seconds on the board.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Recipient: trial decryption and
-  re-derivation''; \emph{Wallet Guide}, ``Compact blocks (ZIP-307)'';
-  protocol specification, ``Decryption using an Incoming Viewing Key
-  (Sapling and Orchard)''}
+\src{\emph{Ironwood Guide}, ``Trial decryption and note acceptance'';
+  \emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; protocol specification,
+  ``Decryption using an Incoming Viewing Key (Sapling and Orchard)''}
 \end{board}
 
 \begin{board}{Compact blocks (ZIP-307): what a light client downloads}{exists,
@@ -5453,8 +5411,8 @@ asks for no particular output.
     its compact form is 148.
 \end{itemize}
 \src{\emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
-  messages''; ``Omissions and fetch-on-detect''; \emph{Ironwood Guide},
-  ``Synchronisation, including from cold storage''}
+  messages''; ``Omissions and fetch-on-detect''; \emph{Ironwood Guide}, ``Action
+  descriptions and bundles''; ``Transaction digests and signatures''}
 \end{board}
 
 \begin{board}{Accepting a note without its tag}{exists}
@@ -5485,8 +5443,8 @@ no sender can make Bob accept a note the chain did not commit to.
 wallet's scripts; BIP-157 matches a per-block filter locally, then
 fetches the matching blocks. Here the ``filter'' is \ivk, applied to
 every block, and no match is ever requested.
-\src{\emph{Wallet Guide}, ``Compact trial decryption'';\\
-  \emph{Ironwood Guide}, ``Recipient: trial decryption and re-derivation''}
+\src{\emph{Wallet Guide}, ``Compact trial decryption'';\\ \emph{Ironwood Guide},
+  ``Trial decryption and note acceptance''}
 \end{board}
 
 \begin{board}{Leaks, in both directions}{none --- privacy of the scan}
@@ -5562,7 +5520,7 @@ own arithmetic.
     enters the nullifier.
 \end{itemize}
 \src{\emph{Wallet Guide}, ``Scanning: spends, positions, and tree sizes'';
-  \emph{Ironwood Guide}, ``Synchronisation, including from cold storage''}
+  \emph{Ironwood Guide}, ``Authentication paths''}
 \end{board}
 
 \begin{board}{Shards and the cap: a witness without the whole tree}{exists}
@@ -5635,9 +5593,8 @@ roots; an unbegun shard is a per-level constant.
 peer. Bob folds his own from public roots and asks for nothing ---
 asking for one note's path would say which note is his. Only the anchor
 is ever public.
-\src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
-  retention''}
+\src{\emph{Ironwood Guide}, ``Authentication paths''; \emph{Wallet Guide},
+  ``Client state: shards, cap, and retention''}
 \end{board}
 
 \begin{board}{Checkpoints: the tree as of a block}{exists}
@@ -5670,9 +5627,8 @@ one.
 \textbf{Bitcoin contrast.} Bitcoin Core's checkpoints are hard-coded
 block hashes inside the node; these are wallet-local tree snapshots that
 consensus never sees.
-\src{\emph{Ironwood Guide}, ``The wallet's witness: shardtree, shards,
-  and the cap''; \emph{Wallet Guide}, ``Client state: shards, cap, and
-  retention''; ``Reorganisation detection and recovery''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Client state:
+  shards, cap, and retention''; ``Reorganisation detection and recovery''}
 \end{board}
 
 \begin{board}{The frontier as the scan seed}{exists}
@@ -5854,8 +5810,7 @@ problem.
 \textbf{Bitcoin contrast.} A Bitcoin input names one txid and index,
 and the validator looks it up. The anchor names a tree; the path into
 it never leaves the device.
-\src{\emph{Ironwood Guide}, ``Anchor choice, reorgs, and the anonymity
-  set''; ``The wallet's witness: shardtree, shards, and the cap''}
+\src{\emph{Ironwood Guide}, ``Anchors''; ``Authentication paths''}
 \end{board}
 
 \begin{board}{Which anchor: the wallet's policy, and whose reasons}{exists}
@@ -5889,9 +5844,8 @@ because the input is named either way.
   \item The anonymity-set argument as ZIP-315's. It is the Guide's;
     ZIP-315 states its own reasons (Part C).
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Anchor choice, reorgs, and the anonymity
-  set''; \emph{Wallet Guide}, ``Confirmations, trust, and spendability'';
-  ``Executing the proposal''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Confirmations,
+  trust, and spendability''; ``Executing the proposal''}
 \end{board}
 
 \begin{board}{Expiry and broadcast}{not twice}
@@ -6014,12 +5968,11 @@ have given away instead?
   \item Deriving \ovk{} from \ivk. Both derive from \fvk{} (Part D),
     neither from the other.
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Recipient: trial decryption and
-  re-derivation''; ``The outgoing ciphertext''; \emph{Wallet Guide},
-  ``Internal keys: change and auto-shielding''; ``Executing the
-  proposal''; ``Confirmations, trust, and spendability''. Checkpoint:
-  \emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the deployed
-  pattern''; ``The submission channel''}
+\src{\emph{Ironwood Guide}, ``Trial decryption and note acceptance''; ``The
+  outgoing ciphertext''; \emph{Wallet Guide}, ``Internal keys: change and
+  auto-shielding''; ``Executing the proposal''; ``Confirmations, trust, and
+  spendability''. Checkpoint: \emph{Wallet Guide}, ``What never leaves the
+  device''; ``Leaks in the deployed pattern''; ``The submission channel''}
 \end{board}
 
 %% ---- 09-chain.tex
@@ -6087,9 +6040,8 @@ ledger.
 \Avoid
 Never ``a few hundred bytes'': the numbers are $820$~B per Action, one
 proof of $7264$~B for Alice's two Actions, $9166$~B in all.
-\src{\emph{Ironwood Guide}, ``The v6 transaction and the Ironwood
-  component''; \emph{Crypto Guide}, ``The transparent layer's schemes:
-  ECDSA and BIP-340 over secp256k1''}
+\src{\emph{Ironwood Guide}, ``The transaction format''; \emph{Crypto Guide},
+  ``The transparent layer's schemes: ECDSA and BIP-340 over secp256k1''}
 \end{board}
 
 % compute/h_sighash.py:
@@ -6141,12 +6093,10 @@ The Orchard-pool seal applies independently of the version.
 \Avoid
 Do not present same-txid re-anchoring as deployed: it is specified
 (ZIP-374 v2), wallet support pending.
-\src{\emph{Ironwood Guide}, ``What the signatures sign: ZIP-244 digests
-  and their v6 form''; ``The v6 transaction and the Ironwood component'';
-  \emph{Crypto Guide}, ``The transparent layer's hashes'';
+\src{\emph{Ironwood Guide}, ``Transaction digests and signatures''; ``The
+  transaction format''; \emph{Crypto Guide}, ``The transparent layer's hashes'';
   \emph{FlyClient Guide}, ``Why an authorising-data root exists'';
-  \emph{Wallet Guide}, ``PCZT v2: deferred anchors and the Ironwood
-  bundle''}
+  \emph{Wallet Guide}, ``PCZT v2: deferred anchors and the Ironwood bundle''}
 \end{board}
 
 % compute/h_sighash.py:
@@ -6236,9 +6186,8 @@ its txid.
 \textbf{Emphasise what sits outside the tree:} proofs, signatures, the
 anchors --- authorizing data, committed through
 $\mathsf{hashAuthDataRoot}$ instead.
-\src{\emph{Ironwood Guide}, ``What the signatures sign: ZIP-244 digests
-  and their v6 form''; \emph{Wallet Guide}, ``Serialisation and the
-  transaction identifier''}
+\src{\emph{Ironwood Guide}, ``Transaction digests and signatures'';
+  \emph{Wallet Guide}, ``Serialisation and the transaction identifier''}
 \end{board}
 
 % compute/h_sighash.py:
@@ -6283,9 +6232,9 @@ attests to the spend, the proof pins the tree.
 
 \textbf{Alice has no transparent inputs.} Her two spend-authorisation
 signatures and her binding signature all sign her txid.
-\src{\emph{Ironwood Guide}, ``What the signatures sign: ZIP-244 digests
-  and their v6 form''; ``What a node verifies, without ever observing the
-  note''; \emph{Wallet Guide}, ``Signing''; ``Proving''}
+\src{\emph{Ironwood Guide}, ``Transaction digests and signatures'';
+  ``Verification of a transaction''; \emph{Wallet Guide}, ``Signing'';
+  ``Proving''}
 \end{board}
 
 % compute/h_pools.py:
@@ -6361,8 +6310,8 @@ latter through the turnstile; both balancing fields are cleartext.
 
 \textbf{Emphasise: every arrow on the board prints its amount.} Only the
 Orchard pool is sealed; Sapling's own doors are left off the drawing.
-\src{\emph{Ironwood Guide}, ``The doors: shielding, coinbase, migration'';
-  ``The turnstile and migration''}
+\src{\emph{Ironwood Guide}, ``The balancing value''; ``Chain state and pool
+  rules''}
 \end{board}
 
 % compute/h_pools.py:
@@ -6417,11 +6366,10 @@ balance at the door is public, and a counterfeit inside is undetectable
 until it tries to leave. Never ``no ceremony'' without the caveat: the
 Sapling pool still rests on its Groth16 ceremony, bounded by the
 turnstile.
-\src{\emph{Ironwood Guide}, ``Pool balances: ZIP-209 and its Ironwood
-  analogue''; ``The turnstile and migration''; ``Prospective breaks: the
-  discrete-log integrity stack''; ``Lineage: three generations of
-  shielded proof''; ZIP-209; protocol specification, ``Chain Value Pool
-  Balances''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules'', Remark ``Outflow
+  bound''; ZIP-2005, ``Effects of discrete-logarithm-breaking attacks before the
+  switch to the Recovery Protocol''; ZIP-209; protocol specification, ``Chain
+  Value Pool Balances''; ``BCTV14''}
 \end{board}
 
 % compute/b_seal.py:
@@ -6457,9 +6405,9 @@ turnstile, while owners can still spend what they hold.
 \textbf{The turnstile is the seal's accounting shape.} The Orchard pool's
 balance can only fall, every exit metered in cleartext by \wbHvbo, so the
 legacy pool drains through a public gate.
-\src{\emph{Ironwood Guide}, ``The seal: three rules''; ``One circuit,
-  one verifying key''; ``ZIP-2005: quantum recoverability''; ``Pool
-  balances: ZIP-209 and its Ironwood analogue''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules''; ``The Action circuit
+  and the Halo 2 proof''; ``The note seed: Ironwood derivations (lead byte
+  $\mathtt{0x03}$)'', Remark ``Purpose of the hashed trapdoor''}
 \end{board}
 
 % compute/h_fee.py:
@@ -6600,10 +6548,8 @@ stay inside the commitments; the proof only attests to the statement.
 Never ``a few hundred bytes'': $9166$ bytes, $7264$ of them proof. Do not
 give a two-Action minimum as the reason for the dummy: two outputs need
 two Actions, and the dummy pads the single spend.
-\src{\emph{Ironwood Guide}, ``The v6 transaction and the Ironwood
-  component''; ``Anchor choice, reorgs, and the anonymity set'';
-  ``Conservation without disclosure: value commitments and the binding
-  signature''; \emph{Wallet Guide}, ``Padding, dummies, and shuffling'';
+\src{\emph{Ironwood Guide}, ``The transaction format''; ``Anchors''; ``The
+  balancing value''; \emph{Wallet Guide}, ``Padding, dummies, and shuffling'';
   ``Expiry (ZIP-203)''}
 \end{board}
 
@@ -6643,9 +6589,9 @@ and expiries from shared grids for the same reason.
 
 \textbf{Emphasise: uniformity is the strategy.} The defaults protect only
 while everyone keeps them.
-\src{\emph{Wallet Guide}, ``Unified addresses''; ``Input selection'';
-  ``Expiry (ZIP-203)''; \emph{Ironwood Guide}, ``Scheduled
-  Orchard-to-Ironwood migration (ZIP-318)''}
+\src{\emph{Wallet Guide}, ``Unified addresses''; ``Input selection''; ``Expiry
+  (ZIP-203)''; ZIP-318, ``Amount selection, canonical quantization'';
+  ``Anchor-height bucketing and cohorts''}
 \end{board}
 
 % compute/h_pczt.py:
@@ -6816,12 +6762,11 @@ correlation is evidence.
 Never ``the pool is auditable'': the analyst reads two door amounts and a
 correlation, nothing inside the pool.
 \src{\emph{Wallet Guide}, ``Partially created transactions (PCZT)'';
-  ``Combining, redaction, and privacy''; ``The deployed wallet
-  pipeline''; ``PCZT v2: deferred anchors and the Ironwood bundle'';
-  \emph{Ironwood Guide}, ``The doors: shielding, coinbase, migration'';
-  ``Anchor choice, reorgs, and the anonymity set''; ``The nullifier, and
-  the loop back to minting''; ``Scheduled Orchard-to-Ironwood migration
-  (ZIP-318)''}
+  ``Combining, redaction, and privacy''; ``The deployed wallet pipeline'';
+  ``PCZT v2: deferred anchors and the Ironwood bundle''; \emph{Ironwood Guide},
+  ``The balancing value''; ``Anchors''; ``Nullifier uniqueness and
+  unlinkability''; ZIP-318, ``Amount selection, canonical quantization'';
+  ``Anchor-height bucketing and cohorts''}
 \end{board}
 
 %% ---- 10-consensus.tex
@@ -7811,8 +7756,7 @@ check; here the set records serial numbers that name no output.
 Calling $\rho$ a tree position: it is a per-note uniqueness seed, set at
 creation as $\rho_{\mathrm{new}} := \nfsym_{\mathrm{old}}$.
 \src{protocol specification, ``Nullifier Sets''; \emph{Ironwood Guide},
-  ``What a node verifies, without ever observing the note''; ``The
-  nullifier, and the loop back to minting''}
+  ``Verification of a transaction''; ``Nullifier sets''}
 \end{board}
 
 \begin{board}{Anchors, balances, and no mempool chains}{exists,
@@ -7857,12 +7801,10 @@ crossing writes a public row.
 balance and the crossings, and a block that would drive a balance
 negative is invalid; nothing inside the pool is audited. Deferred
 anchors as deployed: ZIP-374 is the specified route.
-\src{protocol specification, ``Transactions and Treestates'';
-  ``Action Transfers and their Descriptions''; \emph{Ironwood Guide},
-  ``Anchor choice, reorgs, and the anonymity set''; ``Pool balances:
-  ZIP-209 and its Ironwood analogue'';
-  \emph{Wallet Guide}, ``PCZT v2: deferred anchors and the Ironwood
-  bundle''}
+\src{protocol specification, ``Transactions and Treestates''; ``Action Transfers
+  and their Descriptions''; \emph{Ironwood Guide}, ``Anchors''; ``Chain state
+  and pool rules''; \emph{Wallet Guide}, ``PCZT v2: deferred anchors and the
+  Ironwood bundle''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7912,11 +7854,10 @@ reaches zero, and it stops working at $q = 1/2$.
 ``The attempts are linked'' as a volume fact; and same-txid
 re-anchoring as deployed --- it is specified (ZIP-374 v2), wallet
 support pending.
-\src{\emph{Ironwood Guide}, ``Anchor choice, reorgs, and the anonymity
-  set''; \emph{Wallet Guide}, ``Reorganisations: truncate and rescan'';
-  protocol specification, ``Transactions and Treestates''; ``Nullifier
-  Sets''; \emph{Consensus Guide}, ``Playing catch-up''; ``What the
-  numbers say''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisations:
+  truncate and rescan''; protocol specification, ``Transactions and
+  Treestates''; ``Nullifier Sets''; \emph{Consensus Guide}, ``Playing
+  catch-up''; ``What the numbers say''}
 \end{board}
 
 %% ---- 11-close.tex
@@ -7969,9 +7910,8 @@ the graph is gone and the envelope stays: counts, fee, anchor, timing.
 beyond the statement; the hiding comes from commitment hiding, the keyed
 nullifier PRF and key re-randomisation. ``The anonymity set is the tree'':
 the tree is only the candidate set.
-\src{\emph{Ironwood Guide}, ``Composition: the end-to-end theorem'';
-``Resting: the note in the commitment tree''; ``Anchor choice, reorgs,
-and the anonymity set''}
+\src{\emph{Ironwood Guide}, ``The end-to-end theorem''; ``Privacy'';
+``Anchors''}
 \end{board}
 
 \begin{board}{Limits: the light client's server}{none --- privacy of the
@@ -8054,9 +7994,9 @@ condition is fixed by the circuit and discharged by one signature.
 ``No script means no multisig and no hardware wallets'': FROST and PCZT
 answer both, in the wallet layer. The re-randomisation behind \rksym{}
 is additive, never $[\alpha]\cdot\aksym$.
-\src{\emph{Ironwood Guide}, ``The note and its commitment''; ``The
-capability ladder''; \emph{Wallet Guide}, ``Wallet seeds''; ``Partially
-created transactions (PCZT)''; \emph{FROST Guide}, ``Scope''}
+\src{\emph{Ironwood Guide}, ``Notes''; ``Key capabilities and scope'';
+\emph{Wallet Guide}, ``Wallet seeds''; ``Partially created transactions
+(PCZT)''; \emph{FROST Guide}, ``Scope''}
 \end{board}
 
 \begin{board}{Quantum: two kinds of break}{privacy, then all four}
@@ -8125,9 +8065,10 @@ public key is the prospective case.
 \Avoid
 Any date for the CRQC or for switch-off: the axis is an ordering, not a
 calendar.
-\src{\emph{Ironwood Guide}, ``The reversibility taxonomy and the
-epistemic bins''; \emph{Crypto Guide}, ``The quantum caveat: Shor's
-algorithm''}
+\src{\emph{Crypto Guide}, ``The quantum caveat: Shor's algorithm''; ZIP-2005,
+``Effects of discrete-logarithm-breaking attacks before the switch to the
+Recovery Protocol''; ``Effects of discrete-logarithm-breaking attacks after the
+switch to the Recovery Protocol''}
 \end{board}
 
 \begin{board}{Retroactive: harvest now, decrypt later}{none --- privacy
@@ -8170,8 +8111,9 @@ memo. Storage today, the logarithm later: harvest now, decrypt later.
 ``The solved \ivk{} yields \dk{} and \ovk'': those are derived from
 \fvk, not from \ivk. Any claim that the KDF or the AEAD is the weak
 layer.
-\src{\emph{Ironwood Guide}, ``The retroactive break: harvest now, decrypt
-later''}
+\src{\emph{Ironwood Guide}, ``Encryption to the recipient''; ``Trial decryption
+and note acceptance''; ZIP-2005, ``Effects of discrete-logarithm-breaking
+attacks after the switch to the Recovery Protocol''}
 \end{board}
 
 \begin{board}{Retroactive: two limits, and the bin}{none --- privacy of
@@ -8208,8 +8150,8 @@ memo, because Bitcoin never hid them.
 \Avoid
 ``ZIP-2005 fixes this'': it repairs binding, not privacy. Deriving
 $(\dk, \ovk)$ from \ivk.
-\src{\emph{Ironwood Guide}, ``The retroactive break: harvest now, decrypt
-later''; ZIP-2005, ``Non-requirements''}
+\src{\emph{Ironwood Guide}, ``Key capabilities and scope''; ZIP-2005,
+``Motivation''; ``Non-requirements''}
 \end{board}
 
 \begin{board}{Prospective: the discrete-log integrity stack}{all four}
@@ -8260,8 +8202,9 @@ pulls these secrets from the recorded fields.
 ``Turnstile-bounded means detected'': a counterfeit inside a pool is
 undetectable; the turnstile caps what can leave. ``The pool is
 auditable.''
-\src{\emph{Ironwood Guide}, ``Prospective breaks: the discrete-log
-integrity stack''}
+\src{\emph{Ironwood Guide}, ``The end-to-end theorem''; ZIP-2005, ``Effects of
+discrete-logarithm-breaking attacks before the switch to the Recovery
+Protocol''}
 \end{board}
 
 \begin{board}{Why the integrity breaks are prospective}{all four}
@@ -8295,9 +8238,9 @@ fall to one logarithm of an exposed public key, and the forged spend
 must still be mined.
 \Avoid
 A schedule for the switch-off: none is specified.
-\src{\emph{Ironwood Guide}, ``Prospective breaks: the discrete-log
-integrity stack''; \emph{Crypto Guide}, ``The quantum caveat: Shor's
-algorithm''}
+\src{\emph{Crypto Guide}, ``The quantum caveat: Shor's algorithm''; ZIP-2005,
+``Abstract''; ``Effects of discrete-logarithm-breaking attacks before the switch
+to the Recovery Protocol''}
 \end{board}
 
 % compute/i_limits.py:
@@ -8343,8 +8286,9 @@ enforceable has fallen. That is the fact ZIP-2005 builds on.
 
 \textbf{The contrast.} SHA-256 and hardened BIP-32 derivation stand on
 the same ground.
-\src{\emph{Ironwood Guide}, ``Primitives facing only generic speedups'';
-\emph{Crypto Guide}, ``The quantum caveat: Shor's algorithm''}
+\src{\emph{Crypto Guide}, ``The quantum caveat: Shor's algorithm''; ZIP-2005,
+``Adaptation to the quantum setting''; ``Attacks addressed by the Recovery
+Protocol''}
 \end{board}
 
 % compute/b_quantum.py:
@@ -8399,9 +8343,10 @@ reads it; the exposed key alone decides a spend.
 \Avoid
 Treating $\rho$ in the preimage as a tree position: it is the per-note
 uniqueness seed. ``ZIP-2005 makes Orchard quantum-secure.''
-\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead
-byte $\mathtt{0x03}$)''; ``ZIP-2005: quantum recoverability''; ``The
-seal: three rules''}
+\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead byte
+$\mathtt{0x03}$)'', Remark ``Purpose of the hashed trapdoor''; ``The Action
+statement'', Remark ``What the statement does not check''; ``Chain state and
+pool rules''; ZIP-2005, ``QROM lift of the security arguments''}
 \end{board}
 
 % compute/b_quantum.py:
@@ -8441,8 +8386,9 @@ untouched by it.
 \Avoid
 ``Quantum resistance'': the strategy is recoverability. The statement
 does not exist as a deployed proof; it is what would be proved.
-\src{\emph{Ironwood Guide}, ``ZIP-2005: quantum recoverability'';
-``Strategy: recoverability, not resistance''}
+\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead byte
+$\mathtt{0x03}$)'', Remark ``Purpose of the hashed trapdoor''; ZIP-2005,
+``Abstract''; ``Proposed Recovery Statement''; ``Cost''}
 \end{board}
 
 \begin{board}{ZIP-2005: deployed, specified, designed, open}
@@ -8483,9 +8429,11 @@ accrues now.
 \Avoid
 A horizon for the switch-off: the schedule is an open problem.
 ``Fully post-quantum'': binding is repaired, privacy is not.
-\src{\emph{Ironwood Guide}, ``ZIP-2005: quantum recoverability'';
-``Strategy: recoverability, not resistance''; ``Change and wallet
-posture''}
+\src{\emph{Ironwood Guide}, ``The note seed: Ironwood derivations (lead byte
+$\mathtt{0x03}$)'', Remark ``Purpose of the hashed trapdoor''; ``The spending
+key and the spend-side secrets''; ``Chain state and pool rules''; ZIP-2005,
+``Proactive movement of funds to recoverable notes''; ``Proposed Recovery
+Protocol''}
 \end{board}
 
 \begin{board}{Beyond the core: what each one adds}{all four unchanged}
@@ -8688,9 +8636,8 @@ A multiplicative form, $\rsk = \alpha \cdot \asksym$ or
 $\rksym = [\alpha]\,\aksym$: the re-randomisation is additive.
 Describing $\rho$ as the leaf position: the position is a private
 witness of A3 and never enters the nullifier.
-\src{\emph{Ironwood Guide}, ``The four requirements on a shielded
-payment''; ``What a node verifies, without ever observing the note'';
-``The Action statement, formally''}
+\src{\emph{Ironwood Guide}, ``Requirements on a shielded payment'';
+``Verification of a transaction''; ``The Action statement''}
 \end{board}
 
 \begin{board}{Where to read more: the Zcash Arboretum}{all four}
@@ -8766,8 +8713,8 @@ a document, and a node implements it.
 \Ask
 What is normative here? The specification and the ZIPs; the volumes are
 not.
-\src{\emph{Ironwood Guide}, ``Two pools, one protocol: doors and the v6
-transaction''; \emph{Consensus Guide}, ``Sources and their standing''}
+\src{\emph{Ironwood Guide}, ``Scope and status''; \emph{Consensus Guide},
+``Sources and their standing''}
 \end{board}
 
 \begin{board}{Implementation snapshots, as the volumes cite
@@ -8806,12 +8753,10 @@ Guide's \textsf{zebra} pin and its own zips recheck.
 \textbf{A Bitcoin Core release number does the same job.} A claim about
 a default is a claim about one version, and this table is where that
 version lives.
-\src{\emph{Ironwood Guide}, ``Two pools, one protocol: doors and the v6
-transaction''; \emph{Halo 2 Guide}, ``From statement to circuit:
-arithmetisation in practice''; \emph{Wallet Guide}, ``Diversified and
-unified addresses (ZIP-316)''; ``Normative status and
-wire-format history''; \emph{Consensus Guide}, ``Sources and their
-standing''}
+\src{\emph{Halo 2 Guide}, ``From statement to circuit: arithmetisation in
+practice''; \emph{Wallet Guide}, ``Diversified and unified addresses
+(ZIP-316)''; ``Normative status and wire-format history'';
+\emph{Consensus Guide}, ``Sources and their standing''}
 \end{board}
 
 \begin{board}{Implementation snapshots, continued}{optional}
@@ -8886,8 +8831,8 @@ the deployment are tracked separately.
 \Ask
 Which toy had no discrete-log hardness? The additive $\mathbb{Z}_{97}$
 stand-in for the IPA fold.
-\src{\emph{Ironwood Guide}, ``Two pools, one protocol: doors and the v6
-transaction''; \emph{Consensus Guide}, ``Sources and their standing''}
+\src{\emph{Ironwood Guide}, ``Scope and status''; \emph{Consensus Guide},
+``Sources and their standing''}
 \end{board}
 
 \begin{board}{The Pasta field discipline --- where each object
@@ -8941,11 +8886,10 @@ $p_{\Pallas} < p_{\Vesta}$: every base-field element is a valid scalar.
 Do not gloss $\rho$, in the base-field row, as the note's position in
 the tree: on this board it is the input to the nullifier's
 $F_{\nksym}(\rho) + \psi$, a per-note field element.
-\src{\emph{Ironwood Guide}, ``From $\mathsf{sk}$ to the spend-side
-secrets''; ``Viewing keys''; ``The note and its commitment''; ``The
-nullifier, and the loop back to minting''; ``Spend authorisation:
-RedPallas re-randomisation''; \emph{Crypto Guide}, ``The transparent
-layer's schemes: ECDSA and BIP-340 over secp256k1''}
+\src{\emph{Ironwood Guide}, ``The spending key and the spend-side secrets'';
+``Viewing keys''; ``Notes''; ``The nullifier''; ``Randomised validating keys'';
+\emph{Crypto Guide}, ``The transparent layer's schemes: ECDSA and BIP-340 over
+secp256k1''}
 \end{board}
 
 \begin{board}{The Pasta field discipline --- the two primes}{optional}
@@ -8992,11 +8936,10 @@ our own computation, not a volume figure.
 Why not build the circuit over secp256k1? Its two-adicity is $1$ (scalar
 field $6$): the largest power-of-two domain has $2$ (or $64$) points,
 far short of $2^{11}$ rows.
-\src{\emph{Math Guide}, ``Pallas and Vesta assembled''; ``Base fields,
-scalar fields, and the Pasta cycle''; \emph{Halo 2 Guide}, ``A cycle of
-curves for efficient native recursion''; \emph{Ironwood Guide}, ``Flags,
-public inputs, and circuit parameters''; protocol specification, ``Pallas
-and Vesta''}
+\src{\emph{Math Guide}, ``Pallas and Vesta assembled''; ``Base fields, scalar
+fields, and the Pasta cycle''; \emph{Halo 2 Guide}, ``A cycle of curves for
+efficient native recursion''; \emph{Ironwood Guide}, ``The Action circuit and
+the Halo 2 proof''; protocol specification, ``Pallas and Vesta''}
 \end{board}
 
 \begin{board}{Sinsemilla --- the hash}{optional --- exists}
@@ -9043,9 +8986,9 @@ constraint. Sinsemilla is tuned for the circuit that must recompute it
 \Ask
 How many rounds does a $510$-bit message cost? Fifty-one: one lookup and
 two incomplete additions per $10$-bit chunk.
-\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short
-forms''; ``Why Sinsemilla: in-circuit cost''; protocol specification,
-``Sinsemilla Hash Function''}
+\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'',
+Remark ``Cost inside a proof''; protocol specification, ``Sinsemilla Hash
+Function''}
 \end{board}
 
 \begin{board}{Sinsemilla --- the commitment and its short
@@ -9095,9 +9038,9 @@ $[v]V + [r]R$ is the one-slot Pedersen ancestor of this shape.
 Which side of the commitment needs an assumption, hiding or binding?
 Binding: hiding is unconditional for uniform $r$; binding needs $H_D$
 unrelated to $Q$ and the table.
-\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short
-forms''; ``The note and its commitment''; ``The tree, its hash, and its
-anchors''; protocol specification, ``Sinsemilla commitments''}
+\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'';
+``Note commitments''; ``The Merkle hash and the tree''; protocol specification,
+``Sinsemilla commitments''}
 \end{board}
 
 \begin{board}{Sinsemilla beside Confidential Transactions}{optional ---
@@ -9137,9 +9080,10 @@ what the lookup table is tuned for.
 \Ask
 What is a one-chunk Sinsemilla? The point $[2]\,Q(D) + P[m_1]$ --- the
 chunk indexes the table instead of scaling a generator.
-\src{\emph{Crypto Guide}, ``Sinsemilla: an algebraic hash-based
-commitment''; \emph{Ironwood Guide}, ``Sinsemilla collision
-resistance''; ``Why Sinsemilla: in-circuit cost''}
+\src{\emph{Crypto Guide}, ``Sinsemilla: an algebraic hash-based commitment'';
+\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'',
+Proposition ``Collision resistance of the Sinsemilla instances''; Remark ``Cost
+inside a proof''}
 \end{board}
 
 \begin{board}{Sinsemilla --- why a collision is a discrete
@@ -9186,7 +9130,8 @@ that guards every Bitcoin key, on a different curve.
 Why does $\ell \le 253$ matter to the proof? It keeps $2^{253} <
 p_{\Vesta}$, so the weight vector $\chi(m)$ never wraps and stays
 injective.
-\src{\emph{Ironwood Guide}, ``Sinsemilla collision resistance'';
+\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'',
+Proposition ``Collision resistance of the Sinsemilla instances'';
 \emph{Crypto Guide}, ``Sinsemilla: an algebraic hash-based commitment''}
 \end{board}
 
@@ -9233,7 +9178,9 @@ the theorem is stated for exactly that.
 What breaks if the input length is not fixed? Zero-padding lets two
 messages of different bit-lengths collide with no relation among the
 generators at all.
-\src{\emph{Ironwood Guide}, ``Sinsemilla collision resistance''}
+\src{\emph{Ironwood Guide}, ``Sinsemilla: hash, commitment, and short forms'',
+  Proposition ``Collision resistance of the Sinsemilla instances''; Remark
+  ``Fixed length''}
 \end{board}
 
 \begin{board}{The seal --- three rules, in full}{optional --- conserved}
@@ -9277,7 +9224,7 @@ verifying key, selected by branch, enforces $\mathsf{enableCrossAddress}
 \Avoid
 Do not say the seal applies only to v6 transactions: all three rules
 bind every transaction regardless of its version.
-\src{\emph{Ironwood Guide}, ``The seal: three rules''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules''}
 \end{board}
 
 \begin{board}{The cross-address restriction, A10, in full}{optional ---
@@ -9335,8 +9282,8 @@ equal as full points.
 Do not read $\delta$ as the wire flag: the wire carries
 $\mathsf{enableCrossAddress}$, the instance carries its negation
 $\mathsf{disableCrossAddress}$.
-\src{\emph{Ironwood Guide}, ``The cross-address restriction (A10)'';
-``Flags, public inputs, and circuit parameters''}
+\src{\emph{Ironwood Guide}, ``The Action statement'', Remark ``Meaning of A10'';
+``Bundle flags''}
 \end{board}
 
 \begin{board}{Spending under the restriction}{optional --- conserved}
@@ -9379,7 +9326,8 @@ output is a zero-valued note to the spent note's own receiver.
 Do not attribute the fabricated zero-valued output to the two-Action
 minimum: it is there because every Action creates one note and the
 restriction fixes that note's receiver.
-\src{\emph{Ironwood Guide}, ``Spending under the restriction''}
+\src{\emph{Ironwood Guide}, ``The Action statement'', Remark ``Effect on the
+  Orchard pool''; ``Actions, bundles, and dummy notes''}
 \end{board}
 
 \begin{board}{The fabricated output, and the restriction's
@@ -9423,7 +9371,8 @@ Why is the fabricated $C_{\mathrm{enc}}$ random rather than a real
 encryption of the zero note? A real encryption would let an $\ivk$
 holder --- a future one included --- link the Action's nullifier to the
 address.
-\src{\emph{Ironwood Guide}, ``Spending under the restriction''}
+\src{\emph{Ironwood Guide}, ``Actions, bundles, and dummy notes''; ``The Action
+  statement'', Remark ``Status''}
 \end{board}
 
 \begin{board}{The turnstile and migration}{optional --- conserved}
@@ -9477,8 +9426,9 @@ entry.
 Do not say the pool is auditable: the balance row is the one public
 number per pool, and what it does is meter the exit. Do not present
 $10\,000$ ZEC as a consensus cap: it is a ZIP-318 recommendation.
-\src{\emph{Ironwood Guide}, ``The turnstile and migration''; ``Pool
-balances: ZIP-209 and its Ironwood analogue''}
+\src{\emph{Ironwood Guide}, ``Chain state and pool rules''; ZIP-258, ``Changes
+to ZIP 209''; ``Changes to ZIP 221''; ZIP-318, ``Amount selection, canonical
+quantization''}
 \end{board}
 
 \begin{board}{The quantum footnote --- what Part I left out}{optional}
@@ -9532,9 +9482,11 @@ Do not say change is found through $\ovk$: on this board the change is
 reached only through the internal-scope $\ivk$, which the external
 $\ivk$ does not open. Do not turn the $2^{-74}$ into a timing claim: it
 is a bound at one query budget, not a clock.
-\src{\emph{Ironwood Guide}, ``The retroactive break: harvest now, decrypt
-later''; ``ZIP-2005: quantum recoverability''; ``Prospective breaks: the
-discrete-log integrity stack''}
+\src{\emph{Ironwood Guide}, ``Encryption to the recipient''; ZIP-2005, ``Effects
+of discrete-logarithm-breaking attacks after the switch to the Recovery
+Protocol''; ``QROM lift of the security arguments''; ``Proposed Recovery
+Statement''; ``Effects of discrete-logarithm-breaking attacks before the switch
+to the Recovery Protocol''}
 \end{board}
 
 \end{document}

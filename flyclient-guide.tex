@@ -232,8 +232,8 @@ current-branch greps, 2026-09-05 & negative results (\S\ref{sec:fc-gap}) \\
 
 This volume assumes the \emph{Ironwood Guide} for everything inside a block
 --- notes, commitments, anchors, the NU5 transaction format --- and cites its
-treatment of the note-commitment tree (\S``Resting: the note in the commitment
-tree'') rather than re-deriving Merkle mechanics;
+treatment of the note-commitment tree (\S``The note commitment tree'') rather
+than re-deriving Merkle mechanics;
 the general theory of commitments and collision resistance is the
 \emph{Crypto Guide}'s (\S``Commitment schemes''). The \emph{Wallet Guide} owns
 the deployed light-client layer whose central trust assumption --- the
@@ -1450,9 +1450,8 @@ for NU6.3: an Ironwood trio (fields 15--17, aggregated identically to
 the Orchard trio, node size 277--317 bytes --- the arithmetic checks
 against the field widths), with \texttt{hashChainHistoryRoot} changing
 ``only through the added node fields'' and
-\texttt{hashBlockCommitments} otherwise unaffected. That trio is the
-one this series' Ironwood volume already cites at its turnstile
-(\emph{Ironwood Guide}, \S``The turnstile and migration''). ZIP-258 remains
+\texttt{hashBlockCommitments} otherwise unaffected (ZIP-258, \S``Changes to
+ZIP 221''). ZIP-258 remains
 Draft as a document, but these rules and fields are active consensus and are
 implemented by Zebra; the ZIP proposes that \textsf{zcashd} will not
 implement NU6.3.

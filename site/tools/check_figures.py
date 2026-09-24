@@ -41,7 +41,7 @@ async def main(base, candidate=False):
             await page.route(f"{base}/**", local_asset)
 
         for volume in ("ironwood-guide", "complete"):
-            for section, number in ((3, 2), (7, 4), (8, 5)):
+            for section, number in ((3, 1), (9, 3), (11, 5)):
                 prefix = "V5." if volume == "complete" else ""
                 path = f"{volume}/{prefix}S{section}.html"
                 await ready(page, f"{base}/{path}")
@@ -79,7 +79,7 @@ async def main(base, candidate=False):
           return unchanged;
         }""")
         await browser.close()
-    print("All three transformed diagrams passed at five widths in both editions.")
+    print("All three diagrams passed at five widths in both editions.")
 
 
 if __name__ == "__main__":
