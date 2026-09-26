@@ -379,10 +379,124 @@ def heading_search_titles(text):
         r'(<h[1-6]\b[^>]*?)>(.*?)(</h[1-6]>)', heading, text, flags=re.S)
 
 
-def reference_key(text):
+def reference_key(text, exact=False):
     """Ignore typography, but not words, when matching authored titles."""
-    return ''.join(c for c in unicodedata.normalize('NFKC', text).casefold()
-                   if c.isalnum())
+    text = unicodedata.normalize('NFKC', text).casefold()
+    # ZIP 244 distinguishes "TxId Digest" from "txid_digest".
+    return ' '.join(text.split()) if exact else ''.join(c for c in text if c.isalnum())
+
+
+SPEC_URL = 'https://zips.z.cash/protocol/protocol.pdf'
+# Cited titles and their verified named destinations. Repeated specification
+# titles require explicit source links; do not guess between abstract/concrete.
+SPEC_SECTIONS = {
+    'Shielded Pools and Notes': 'notes',
+    'Mainnet and Testnet': 'networks',
+    'The Block Chain': 'blockchain',
+    'Transactions and Treestates': 'transactions',
+    'Action Transfers and their Descriptions': 'actions',
+    'Action Descriptions': 'actiondesc',
+    'Action Statement (Orchard)': 'actionstatement',
+    'Action Description Encoding and Consensus': 'actionencodingandconsensus',
+    'Constants': 'constants',
+    'Integers, Bit Sequences, and Endianness': 'endian',
+    'Pallas and Vesta': 'pallasandvesta',
+    'Coordinate Extractor for Pallas': 'concreteextractorpallas',
+    'Group Hash into Pallas and Vesta': 'concretegrouphashpallasandvesta',
+    'Orchard Key Components': 'orchardkeycomponents',
+    'Sending Notes (Orchard)': 'orchardsend',
+    'Dummy Notes (Orchard)': 'orcharddummynotes',
+    'Note Plaintexts and Memo Fields': 'noteptconcept',
+    'Encodings of Note Plaintexts and Memo Fields': 'noteptencoding',
+    'Note Commitments': 'notecommitmentconcept',
+    'Note Commitment Trees': 'notecommitmenttrees',
+    'Merkle Path Validity': 'merklepath',
+    'Nullifiers': 'nullifierconcept',
+    'Nullifier Sets': 'nullifierset',
+    'Commitment': 'abstractcommit',
+    'Sinsemilla Hash Function': 'concretesinsemillahash',
+    'Sinsemilla commitments': 'concretesinsemillacommit',
+    'Homomorphic Pedersen commitments (Sapling and Orchard)': 'concretehomomorphiccommit',
+    'Balance and Binding Signature (Orchard)': 'orchardbalance',
+    'Chain Value Pool Balances': 'chainvaluepoolbalances',
+    'BLAKE2 Hash Functions': 'concreteblake2',
+    'RedDSA, RedJubjub, and RedPallas': 'concretereddsa',
+    'Binding Signature (Sapling and Orchard)': 'concretebindingsig',
+    'Signature with Re-Randomizable Keys': 'abstractsigrerand',
+    'Zero-Knowledge Proving System': 'abstractzk',
+    'Key Derivation': 'abstractkdf',
+    'Orchard Key Agreement': 'concreteorchardkeyagreement',
+    'Orchard Key Derivation': 'concreteorchardkdf',
+    'Encryption (Sapling and Orchard)': 'saplingandorchardencrypt',
+    'In-band secret distribution (Sapling and Orchard)': 'saplingandorchardinband',
+    'Decryption using an Incoming Viewing Key (Sapling and Orchard)': 'decryptivk',
+    'Decryption using an Outgoing Viewing Key (Sapling and Orchard)': 'decryptovk',
+    'Transaction Encoding and Consensus': 'txnencoding',
+    'Transaction Consensus Rules': 'txnconsensus',
+    'Coinbase Transactions': 'coinbasetransactions',
+    'Faerie Gold attack and fix': 'faeriegold',
+    'Computing ρ values and Nullifiers': 'rhoandnullifiers',
+    'DiversifyHashSapling and DiversifyHashOrchard Hash Functions': 'concretediversifyhash',
+    'MerkleCRHOrchard Hash Function': 'orchardmerklecrh',
+    'PoseidonHash Function': 'poseidonhash',
+}
+ZIP_SECTIONS = {
+    0: {'Abstract': 'abstract', 'ZIP Status Field': 'zip-status-field'},
+    32: {'Orchard internal key derivation': 'orchard-internal-key-derivation'},
+    200: {'Activation mechanism': 'activation-mechanism',
+          'Consensus rule set': 'terminology', 'Terminology': 'terminology',
+          'Specification': 'specification'},
+    203: {'Specification': 'specification'},
+    209: {'Specification': 'specification', 'Terminology': 'terminology'},
+    212: {'Motivation': 'motivation'},
+    213: {'Specification': 'specification'},
+    218: {'Anchor selection depth': 'anchorselectiondepth',
+          'Block target spacing': 'blocktargetspacing',
+          'Default expiry delta': 'defaultexpirydelta',
+          'Shielded pool action limits': 'shieldedpoolactionlimits'},
+    229: {'Transaction Format': 'transactionformat',
+          'Consensus Rules': 'consensusrules',
+          'Transaction Identifiers, Auth Digests, and Signature Digests':
+              'transactionidentifiersauthdigestsandsignaturedigests',
+          'Ironwood Component Digest': 'ironwoodcomponentdigest',
+          'Anchor Commitment (Version 6)': 'anchorcommitmentversion6',
+          'Summary of the resulting digest structure': 'summaryoftheresultingdigeststructure',
+          'Reuse of the Orchard protocol with minimal changes':
+              'reuseoftheorchardprotocolwithminimalchanges',
+          'Separate state': 'separatestate',
+          'enableCrossAddress polarity': 'enablecrossaddresspolarity',
+          'Non-requirements': 'non-requirements',
+          'Abstract': 'abstract', 'Terminology': 'terminology', 'Rationale': 'rationale',
+          'Motivation': 'motivation'},
+    244: {'TxId Digest': 'txid-digest', 'txid_digest': 'txid-digest-1',
+          'Digests': 'digests', 'Authorizing Data Commitment': 'authorizing-data-commitment',
+          'Signature Digest': 'signature-digest', 'T.1: header_digest': 't-1-header-digest',
+          'T.2: transparent_digest': 't-2-transparent-digest',
+          'T.3: sapling_digest': 't-3-sapling-digest',
+          'T.4: orchard_digest': 't-4-orchard-digest',
+          'S.2: transparent_sig_digest': 's-2-transparent-sig-digest',
+          'A.3: orchard_auth_digest': 'a-3-orchard-auth-digest'},
+    258: {'Consensus rules from NU6.3 activation': 'consensusrulesfromnu6.3activation',
+          'Changes to the Protocol Specification': 'changestotheprotocolspecification',
+          'ZIP 2005 activation': 'zip2005activation', 'Abstract': 'abstract'},
+    259: {'Backward Compatibility': 'backwardcompatibility',
+          'Rationale for no new transaction format': 'rationalefornonewtransactionformat',
+          'Abstract': 'abstract', 'Rationale': 'rationale'},
+    315: {'Anchor selection': 'anchor-selection',
+          'Rationale for anchor selection': 'rationale-for-anchor-selection'},
+    317: {'Fee calculation': 'fee-calculation'},
+    326: {'Rationale for key-generation restrictions': 'rationaleforkey-generationrestrictions',
+          'Fabricated same-address outputs and randomized note ciphertexts':
+              'fabricatedsame-addressoutputsandrandomizednoteciphertexts'},
+    2003: {'Specification': 'specification', 'Abstract': 'abstract',
+           'Interaction with the proposed Network Sustainability Mechanism':
+               'interaction-with-the-proposed-network-sustainability-mechanism'},
+    2005: {'Abstract': 'abstract', 'Rationale': 'rationale',
+           'Changes to the Protocol Specification': 'changestotheprotocolspecification',
+           'Proposed Recovery Protocol': 'proposedrecoveryprotocol',
+           'Repairing note commitments': 'repairingnotecommitments',
+           'Attacks against binding of note commitments': 'attacksagainstbindingofnotecommitments'},
+}
 
 
 class ReferenceText(HTMLParser):
@@ -474,19 +588,29 @@ def reference_index(out):
             # still refer to the section, not the definition inside it.
             for key, href in objects.items():
                 targets.setdefault(key, href)
+    for edition in ('standalone', 'complete'):
+        sources = [('specification', SPEC_URL, SPEC_SECTIONS)]
+        sources += [(f'zip:{number}', f'https://zips.z.cash/zip-{number:04}', titles)
+                    for number, titles in ZIP_SECTIONS.items()]
+        for context, url, titles in sources:
+            guides[edition, context] = url
+            sections[edition, context] = {
+                reference_key(title, exact=context.startswith('zip:')): url + '#' + anchor
+                for title, anchor in titles.items()}
     return guides, sections
 
 
 REFERENCE_RE = re.compile(
     r'(?P<guide>\b(?:[A-Z][A-Za-z]*|Halo\s+2)\s+Guide\b)'
-    r'|(?P<external>\bZIP[\s-]*\d+\s*,?\s*(?=§|[“"])|\bprotocol specification\b)'
+    r'|(?P<external>\bZIP[\s-]*\d+\b|\b(?i:protocol\s+specification)\b)'
     r'|(?P<local>\b(?:this|next|previous) section\b)'
     r'|(?P<title>(?:§\s*)?[“"](?P<name>[^”"]+)[”"])'
-    r'|(?P<unquoted>§(?=\s*[A-Za-z]))')
+    r'|(?P<unquoted>§(?=\s*[A-Za-z]))'
+    r'|(?P<zipsection>\b(?:Abstract|Terminology|Motivation|Rationale|Specification)\b)')
 
 
 def link_references(text, volume, index, current=None):
-    """Link explicit guide citations, without guessing across paragraph bounds."""
+    """Link explicit citations, without guessing across paragraph bounds."""
     guides, sections = index
     edition = 'complete' if volume == 'complete' else 'standalone'
     current = (reference_key(vol_title(current or volume)[0])
@@ -496,9 +620,12 @@ def link_references(text, volume, index, current=None):
         source = match.group(0)
         parsed = ReferenceText(source)
         guide, paragraph, links = None, None, []
+        consumed = 0
         for citation in REFERENCE_RE.finditer(parsed.text):
             href = None
             start, end = citation.span()
+            if start < consumed:
+                continue
             parent = next((parent for parent in reversed(parsed.positions[start][2])
                            if parent[0] == 'p'), None)
             if parent != paragraph:
@@ -510,14 +637,18 @@ def link_references(text, volume, index, current=None):
                 guide = reference_key(citation.group())
                 href = guides.get((edition, guide))
             elif citation.lastgroup == 'external':
-                guide = ''  # An external section must not fall back to this guide.
+                number = re.search(r'\d+', citation.group())
+                guide = f'zip:{int(number.group())}' if number else 'specification'
+                href = (f'https://zips.z.cash/zip-{int(number.group()):04}'
+                        if number else SPEC_URL)
             elif citation.lastgroup == 'local':
                 guide = current
             elif citation.lastgroup == 'unquoted':
                 context = guide if guide is not None else current
                 targets = sections.get((edition, context), {})
                 for stop in range(end + 1, len(parsed.text) + 1):
-                    key = reference_key(parsed.text[end:stop])
+                    key = reference_key(parsed.text[end:stop],
+                                        exact=bool(context and context.startswith('zip:')))
                     if key and not any(title.startswith(key) for title in targets):
                         break
                     if (key in targets and parsed.text[stop - 1].isalnum()
@@ -525,14 +656,22 @@ def link_references(text, volume, index, current=None):
                         href, span_end = targets[key], stop
                 if href:
                     end = span_end
+            elif citation.lastgroup == 'zipsection':
+                if guide and guide.startswith('zip:'):
+                    href = sections.get((edition, guide), {}).get(
+                        reference_key(citation.group(), exact=True))
             else:
                 context = guide if guide is not None else (
                     current if citation.group().startswith('§') else None)
                 href = sections.get((edition, context), {}).get(
-                    reference_key(citation.group('name')))
-            if href and (span := parsed.link_range(start, end)):
-                start, end = span
-                links.append((start, end, '../' + href))
+                    reference_key(citation.group('name'),
+                                  exact=bool(context and context.startswith('zip:'))))
+            if href:
+                # An unquoted title can contain another citation token.
+                consumed = end
+                if span := parsed.link_range(start, end):
+                    start, end = span
+                    links.append((start, end, href if href.startswith('https://') else '../' + href))
         for start, end, href in reversed(links):
             source = (source[:start] + f'<a class="arb-crossref" href="{escape(href)}">'
                       + source[start:end] + '</a>' + source[end:])

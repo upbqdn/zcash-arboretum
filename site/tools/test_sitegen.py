@@ -247,13 +247,14 @@ with tempfile.TemporaryDirectory() as tmp:
     assert '../crypto-guide/S3.html#Thmtheorem1' in linked
     assert '../crypto-guide/S3.html#SS6-heading' in linked
     assert '>§Privacy-preserving membership via zero-knowledge paths</a>.' in linked
-    assert '../math-guide/S10.html">§“Elliptic curves”</a>' in linked
+    assert '../math-guide/S10.html">§“Elliptic curves”</a>' not in linked
+    assert 'href="https://zips.z.cash/zip-0032">ZIP-32</a> (§“Elliptic curves”)' in linked
     assert linked.count('href="../crypto-guide/S3.html#SS4-heading"') == 3
     for untouched in (
             '<a href="kept-section.html">§“The random oracle model”</a>',
             '<code>Crypto Guide, §“The random oracle model”</code>',
             'Crosslink Guide, §“The discrete logarithm problem”',
-            '(ZIP 307, §“The random oracle model”)',
+            '>ZIP 307</a>, §“The random oracle model”)',
             '§“A title that does not exist”'):
         assert untouched in linked, untouched
     assert re.sub(r'<a class="arb-crossref" href="[^"]+">(.*?)</a>',
@@ -274,6 +275,55 @@ with tempfile.TemporaryDirectory() as tmp:
     assert '../complete/V2.S3.html#SS4-heading' in complete
     assert '../complete/V1.S10.html#SS12-heading' in complete
     assert '../crypto-guide/' not in complete
+
+    external = (
+        '<p>protocol\nspecification, §“Shielded Pools and Notes” and '
+        '§“Mainnet and Testnet”.</p>'
+        '<p>Protocol specification, §“Computing '
+        '<math alttext="\\rho"><mi>ρ</mi></math> values and Nullifiers”.</p>'
+        '<p>protocol specification, §“Pseudo Random Functions” and '
+        '§“Unknown section”.</p>'
+        '<p>ZIP 229, Abstract and “Transaction Format”; '
+        'protocol specification, §“Action Descriptions”.</p>'
+        '<p>ZIP 244, “TxId Digest” and “txid_digest”.</p>'
+        '<p>ZIP 229, §“Shielded Pools and Notes”.</p>'
+        '<p>“Mainnet and Testnet” is just a title here.</p>'
+        '<p><a href="kept">protocol specification</a>, '
+        '<a href="kept-title">§“Mainnet and Testnet”</a>.</p>'
+        '<p><code>protocol specification, §“Mainnet and Testnet”</code>.</p>')
+    for edition, current in (('crypto-guide', None), ('complete', 'crypto-guide')):
+        result = sitegen.link_references(external, edition, index, current)
+        for destination in ('protocol/protocol.pdf#notes', 'protocol/protocol.pdf#networks',
+                            'protocol/protocol.pdf#rhoandnullifiers',
+                            'protocol/protocol.pdf#actiondesc', 'zip-0229#abstract',
+                            'zip-0229#transactionformat', 'zip-0244#txid-digest',
+                            'zip-0244#txid-digest-1'):
+            assert f'href="https://zips.z.cash/{destination}"' in result, destination
+        assert result.count('href="https://zips.z.cash/protocol/protocol.pdf#notes"') == 1
+        assert result.count('href="https://zips.z.cash/protocol/protocol.pdf#networks"') == 1
+        assert '>§“Pseudo Random Functions”</a>' not in result
+        assert '>§“Unknown section”</a>' not in result
+        assert '<a href="kept-title">§“Mainnet and Testnet”</a>' in result
+        assert re.sub(r'<a class="arb-crossref" href="[^"]+">(.*?)</a>',
+                      r'\1', result, flags=re.S) == external
+        assert sitegen.link_references(result, edition, index, current) == result
+
+        # Tokens inside an unquoted title must not become overlapping links
+        # or change the context, including when that title is already linked.
+        for number, title, anchor in (
+                (229, 'Abstract', 'abstract'),
+                (2005, 'Changes to the Protocol Specification',
+                 'changestotheprotocolspecification'),
+                (258, 'ZIP 2005 activation', 'zip2005activation')):
+            unquoted = f'<p>ZIP {number}, §{title}; Abstract.</p>'
+            url = f'https://zips.z.cash/zip-{number:04}'
+            expected = (f'<p><a class="arb-crossref" href="{url}">ZIP {number}</a>, '
+                        f'<a class="arb-crossref" href="{url}#{anchor}">§{title}</a>; '
+                        f'<a class="arb-crossref" href="{url}#abstract">Abstract</a>.</p>')
+            result = sitegen.link_references(unquoted, edition, index, current)
+            assert result == expected, result
+            assert sitegen.link_references(result, edition, index, current) == result
+
     assert sitegen.reference_key('Fiat–Shamir: \u00a0𝑗') == sitegen.reference_key('Fiat--Shamir: j')
     for name in ('S4.html', 'S5.html'):
         (out / 'crypto-guide' / name).write_text(

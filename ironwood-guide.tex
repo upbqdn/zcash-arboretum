@@ -741,7 +741,8 @@ protocol, with the object it defines and the section that uses it. The
 messages $\texttt{G}$, $\texttt{K}$, $\texttt{v}$ and $\texttt{r}$ are
 one-byte ASCII strings, and the Sinsemilla messages are the ASCII strings
 shown. The rows are those of the protocol specification,
-\S``Spend Authorization Signature (Sapling and Orchard)'',
+\href{https://zips.z.cash/protocol/protocol.pdf#concretespendauthsig}%
+{\S``Spend Authorization Signature (Sapling and Orchard)''},
 \S``Computing $\rho$ values and Nullifiers'',
 \S``$\mathsf{DiversifyHash}^{\mathsf{Sapling}}$ and
 $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions'',
@@ -825,21 +826,25 @@ a $64$-byte string, identified with $\{0,1\}^{512}$; here
 $\mathrm{BLAKE2b\text{-}512}(P, x)$ is unkeyed BLAKE2b with a $64$-byte
 output, the $16$-byte personalisation $P$ and the input $x$. A key given as
 a $32$-byte string enters as is. The key is thus carried in the message, not
-in BLAKE2b's native keyed mode (protocol specification, \S``Pseudo Random
-Functions''), so the \emph{Crypto Guide}'s PRF argument for native keying
+in BLAKE2b's native keyed mode (protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprfs}%
+{\S``Pseudo Random Functions''}), so the \emph{Crypto Guide}'s PRF argument
+for native keying
 (\S``PRFs from hash functions: length extension and keyed BLAKE2'') does not
 cover this construction; Assumption~\ref{ass:prf-expand} states the
 property directly. The key is written as a subscript; the
 leading byte of $t$ names the derived quantity (protocol specification,
-\S``Pseudo Random Functions'').
+\href{https://zips.z.cash/protocol/protocol.pdf#abstractprfs}%
+{\S``Pseudo Random Functions''}).
 \end{construction}
 
 \begin{assumption}[Pseudorandomness of PRF expansion]\label{ass:prf-expand}
 For $k$ uniform on $\{0,1\}^{256}$, the function
 $t \mapsto \mathsf{PRFexpand}_k(t)$ from byte strings to $\{0,1\}^{512}$ is
 a PRF in the sense of the preceding definition. This is the security
-requirement that the protocol specification, \S``Pseudo Random
-Functions'', places on $\mathsf{PRFexpand}$.
+requirement that the protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprfs}%
+{\S``Pseudo Random Functions''}, places on $\mathsf{PRFexpand}$.
 \end{assumption}
 
 \begin{definition}[Field reductions]
@@ -1348,7 +1353,8 @@ Every derivation of this section is that of a key generated with
 $\mathsf{use\_qsk} = \mathsf{false}$, where $\mathsf{use\_qsk}$ is the Boolean
 key-generation flag of ZIP 2005. ZIP 2005, \S``Changes to the Protocol
 Specification'', item \S 4.2.3, specifies, as a change to the specification's
-\S``Orchard Key Components'' and not in that section itself, an alternative
+\href{https://zips.z.cash/protocol/protocol.pdf#orchardkeycomponents}%
+{\S``Orchard Key Components''} and not in that section itself, an alternative
 source of $\aksym^{\PP}$ and $\rivk$, with $\nksym$ derived as here; it
 yields components $(\aksym, \nksym, \rivk)$ of the same types, and
 $\aksym^{\PP}$ again of even $y$-coordinate. The volume does not construct
@@ -1417,8 +1423,10 @@ reduction distances, each below $2^{-257}$ (\S\ref{sec:prim-prf}).
 \begin{construction}[Spend validating key and sign normalisation]
 Let $G^{\mathsf{SpendAuth}} := \GroupHash(\texttt{z.cash:Orchard},
 \texttt{G})$ (Table~\ref{tab:prim-grouphash}), the generator of the
-spend-authorisation signature scheme (protocol specification, \S``Spend
-Authorization Signature (Sapling and Orchard)''). For $\ask \neq 0$:
+spend-authorisation signature scheme (protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concretespendauthsig}%
+{\S``Spend Authorization Signature (Sapling and Orchard)''}).
+For $\ask \neq 0$:
 \begin{enumerate}
 \item compute the point $P := [\ask]\,G^{\mathsf{SpendAuth}}$;
 \item if its $y$-coordinate is odd, that is, if bit $255$ of the star
@@ -1676,8 +1684,9 @@ For an index $j \in \{0, \dots, 2^{88} - 1\}$ chosen by the key holder:
   \{0,1\}^{88}$, the FF1 mode of NIST SP~800-38G over AES-256 with key
   $\dk$, radix $2$, length $88$ and the empty tweak (\emph{Crypto Guide},
   \S``Format-preserving encryption and FF1'', Construction ``The FF1 mode
-  of NIST SP~800-38G''; protocol specification, \S``Pseudo Random
-  Permutations'');
+  of NIST SP~800-38G''; protocol specification,
+  \href{https://zips.z.cash/protocol/protocol.pdf#concreteprps}%
+  {\S``Pseudo Random Permutations''});
 \item the \emph{diversified base} is $\gd := \mathsf{DiversifyHash}(d)$,
   where
   \[
@@ -1729,7 +1738,9 @@ permutation of $\{0,1\}^{88}$ (\emph{Crypto Guide}, \S``Pseudorandom
 functions and permutations'', Definition ``Pseudorandom permutation'', and
 \S``Format-preserving encryption and FF1'', Definition ``Format-preserving
 encryption''). It is the security requirement of the protocol
-specification, \S``Pseudo Random Permutations'', whose note records that
+specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprps}%
+{\S``Pseudo Random Permutations''}, whose note records that
 the distinguishing attack of Dunkelman, Kumar, Lambooij and Sanadhya at
 this domain size and round count is no better than exhaustive search for
 the $256$-bit key. It is used so that a
@@ -2094,8 +2105,11 @@ transaction.
 \begin{definition}[Unit of value]
 The \emph{zatoshi} is the smallest unit of value; one ZEC, the unit of the
 native currency of Zcash, is $10^8$ zatoshi (protocol specification,
-\S``Shielded Pools and Notes'' and \S``Mainnet and Testnet''). Every value in
-this volume, note values included, is an integer number of zatoshi.
+\href{https://zips.z.cash/protocol/protocol.pdf#notes}%
+{\S``Shielded Pools and Notes''} and
+\href{https://zips.z.cash/protocol/protocol.pdf#networks}%
+{\S``Mainnet and Testnet''}). Every value in this volume, note values
+included, is an integer number of zatoshi.
 \end{definition}
 
 \begin{definition}[Note]
@@ -2469,9 +2483,12 @@ Specification'', \S 3.2.1; ZIP 258, ``ZIP 2005 activation''). The lead byte
 travels encrypted, and each decrypting party enforces the rule: decryption
 with an incoming viewing key, by the recipient, and decryption with an
 outgoing viewing key, by its holder, both return $\bot$ when the lead byte is
-not allowed (\S``Decryption using an Incoming Viewing Key (Sapling and
-Orchard)'' and \S``Decryption using an Outgoing Viewing Key (Sapling and
-Orchard)''). For an Ironwood-pool output this is check~(i) of the acceptance
+not allowed
+(\href{https://zips.z.cash/protocol/protocol.pdf#decryptivk}%
+{\S``Decryption using an Incoming Viewing Key (Sapling and Orchard)''} and
+\href{https://zips.z.cash/protocol/protocol.pdf#decryptovk}%
+{\S``Decryption using an Outgoing Viewing Key (Sapling and Orchard)''}).
+For an Ironwood-pool output this is check~(i) of the acceptance
 procedure of ``Trial decryption and note acceptance''
 (\S\ref{sec:enc-trial}). The one consensus check of the lead byte is stated
 in ``Chain state and pool rules'' (\S\ref{sec:tx-pools}).
@@ -3202,7 +3219,9 @@ citations). The \emph{nullifier PRF} is
 \]
 keyed by the nullifier deriving key $\nksym \in \F_{p_{\Pallas}}$ of ``The
 spending key and the spend-side secrets'' (\S\ref{sec:keys-sk}; protocol
-specification, \S``Pseudo Random Functions'').
+specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprfs}%
+{\S``Pseudo Random Functions''}).
 \end{construction}
 
 \begin{assumption}[Poseidon is a PRF]\label{ass:poseidon-prf}
@@ -3213,8 +3232,10 @@ function $\F_{p_{\Pallas}} \to \F_{p_{\Pallas}}$, except with negligible
 advantage: this is the game of Definition ``Pseudorandom function''
 (\S\ref{sec:prim-prf}; \emph{Crypto Guide}, \S``Pseudorandom functions and
 permutations'') with key, input and output sets $\F_{p_{\Pallas}}$. It is the
-security requirement that the protocol specification, \S``Pseudo Random
-Functions'', places on $\mathsf{PoseidonHash}$ keyed by its first argument.
+security requirement that the protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprfs}%
+{\S``Pseudo Random Functions''}, places on $\mathsf{PoseidonHash}$ keyed by
+its first argument.
 Its status is cryptanalytic: it is supported by the analysis of the Poseidon
 round function (protocol specification, \S``$\mathsf{PoseidonHash}$
 Function'', notes) and has no reduction to a standard problem
@@ -3469,8 +3490,10 @@ commitments are the case above.
 The proposition uses no pseudorandomness of $\mathsf{PoseidonHash}$, and
 none could be used: the adversary holds the PRF keys, and the reduction
 knows every coefficient. It does not require distinct elements $\rho$, which
-the specification's security requirement assumes (\S``Computing $\rho$
-values and Nullifiers''). Two notes with equal commitments are equal except
+the specification's security requirement assumes
+(\href{https://zips.z.cash/protocol/protocol.pdf#rhoandnullifiers}%
+{\S``Computing $\rho$ values and Nullifiers''}). Two notes with equal
+commitments are equal except
 with negligible probability (Proposition~\ref{prop:cm}(b)) and so have equal
 nullifiers under one $\nksym$. Excluding equal commitments among the notes of
 a pool is the role of the chaining rule of \S\ref{sec:nf-chaining}, as
@@ -3813,9 +3836,10 @@ argument before that subsection depends on its value.
 \begin{definition}[Spend-authorisation and binding-signature instances]
 The volume uses two instances of RedPallas, which share the signing and
 validation algorithms and differ in the base $B$ and in the use of key
-re-randomisation (protocol specification, \S``Spend Authorization
-Signature (Sapling and Orchard)'' and \S``Binding Signature (Sapling and
-Orchard)''):
+re-randomisation (protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#concretespendauthsig}%
+{\S``Spend Authorization Signature (Sapling and Orchard)''} and
+\S``Binding Signature (Sapling and Orchard)''):
 \begin{enumerate}
 \item the \emph{spend-authorisation instance}, with key re-randomisation
   (\S\ref{sec:spendauth-rk}) and base
@@ -3895,8 +3919,9 @@ validating key} $\rk$ and its \emph{spend-authorisation signature}, the
 RedPallas signature under $\rsk$ on the signature digest constructed in
 ``Transaction digests and signatures'' (\S\ref{sec:tx-sighash}); it
 publishes none of $\ask$, $\alpha$, $\rsk$, $\aksym^{\PP}$ and $\aksym$
-(protocol specification, \S``Spend Authorization Signature (Sapling and
-Orchard)'').
+(protocol specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#spendauthsig}%
+{\S``Spend Authorization Signature (Sapling and Orchard)''}).
 \end{construction}
 
 % compute/fields.py:
@@ -4319,7 +4344,9 @@ bundle; together they determine the binding signing key
 \end{construction}
 
 The specification types the trapdoor as an integer in
-$\{0, \dots, 2^{255} - 1\}$ (\S``Commitment''). As for $\rcm$
+$\{0, \dots, 2^{255} - 1\}$
+(\href{https://zips.z.cash/protocol/protocol.pdf#abstractcommit}%
+{\S``Commitment''}). As for $\rcm$
 (\S\ref{sec:notes-note}), this volume types it in $\F_{p_{\Vesta}}$, the
 set that $\mathsf{GenTrapdoor}$ samples, since $\rcv$ acts only as the scalar
 of $[\rcv]$.
@@ -5049,11 +5076,15 @@ $\mathsf{enableCrossAddress}$ that A10 formalises, and the eight-input primary
 input with $\mathsf{disableCrossAddress} = 1 - \mathsf{enableCrossAddress}$
 are specified in the protocol specification, \S``Action Descriptions''; the
 flag encoding in ZIP 229; the Orchard-pool rule and the selection of the
-verifying key by upgrade in ZIP 258. The specification's \S``Action
-Statement (Orchard)'' and the proof-validity rule of \S``Action
-Descriptions'' list the first seven primary inputs and conditions A1 to A9
-only; Definition~\ref{def:action} follows \S``Action Descriptions'' for the
-rest. The specification names the conditions; the numbering A1 to A10 is this
+verifying key by upgrade in ZIP 258. The specification's
+\href{https://zips.z.cash/protocol/protocol.pdf#actionstatement}%
+{\S``Action Statement (Orchard)''} and the proof-validity rule of
+\href{https://zips.z.cash/protocol/protocol.pdf#actiondesc}%
+{\S``Action Descriptions''} list the first seven primary inputs and
+conditions A1 to A9 only; Definition~\ref{def:action} follows
+\href{https://zips.z.cash/protocol/protocol.pdf#actiondesc}%
+{\S``Action Descriptions''} for the rest. The specification names the
+conditions; the numbering A1 to A10 is this
 volume's. ZIP 2006, to which the specification refers for the restriction, is
 a reserved number without content and is not cited for content.
 \end{remark}
@@ -5133,7 +5164,8 @@ the $\bot$ case, except with negligible probability.
 \item[(iii)] The statement reads none of the Action's note-encryption fields,
   which ``Note encryption'' (\S\ref{sec:enc}) constructs; the specification
   records that the absence of a check on the ephemeral key is intentional
-  (\S``Action Statement (Orchard)'', note).
+  (\href{https://zips.z.cash/protocol/protocol.pdf#actionstatement}%
+  {\S``Action Statement (Orchard)''}, note).
 \end{enumerate}
 \end{remark}
 
@@ -5142,7 +5174,8 @@ The statement takes the key components $(\aksym^{\PP}, \nksym, \rivk)$ as
 witnesses and checks them only through A5, A6 and A7. It therefore applies
 equally to key components whose $\aksym^{\PP}$ and $\rivk$ come from the
 alternative source of ZIP 2005 (``Changes to the Protocol Specification'',
-\S 4.2.3 ``Orchard Key Components'') cited in ``The spending key and the
+\href{https://zips.z.cash/zip-2005#\%C2\%A74.2.3\%E2\%80\%98orchardkeycomponents\%E2\%80\%99}%
+{\S 4.2.3 ``Orchard Key Components''}) cited in ``The spending key and the
 spend-side secrets'' (\S\ref{sec:keys-sk}). The key-derived results of the
 volume, namely Proposition~\ref{prop:capabilities},
 Assumption~\ref{ass:vk-hiding}, Propositions~\ref{prop:addr-unlinkable},
@@ -5600,7 +5633,9 @@ verify (\emph{Crypto Guide}, \S``The ChaCha20-Poly1305 AEAD'', Construction
 $\mathsf{epk}^{\star}$ and $C_{\mathsf{enc}}$, of $564 + 16 = 580$ bytes,
 the plaintext and the $16$-byte tag (protocol specification,
 \S``Encryption (Sapling and Orchard)'', \S``Orchard Key Agreement'',
-\S``Orchard Key Derivation'' and \S``Symmetric Encryption'').
+\S``Orchard Key Derivation'' and
+\href{https://zips.z.cash/protocol/protocol.pdf#concretesym}%
+{\S``Symmetric Encryption''}).
 \end{construction}
 
 The key agreement is Diffie--Hellman on Pallas: public keys are non-identity
@@ -5688,7 +5723,9 @@ one-time INT-CTXT and IND-CPA security of the scheme, properties~(b)
 and~(a) above (\emph{Crypto Guide}, Definitions ``Ciphertext integrity,
 INT-CTXT'' and ``CPA security'', \S``Authenticated encryption with
 associated data'' and \S``Chosen-plaintext security''; protocol
-specification, \S``Symmetric Encryption''). The scheme is not
+specification,
+\href{https://zips.z.cash/protocol/protocol.pdf#abstractsym}%
+{\S``Symmetric Encryption''}). The scheme is not
 key-committing: a party that chooses two keys can construct one ciphertext
 that decrypts validly under both (\emph{Crypto Guide}, \S``The
 ChaCha20-Poly1305 AEAD'', Remark ``Wrong-key rejection and key
@@ -5885,8 +5922,9 @@ $256$-bit strings and $\mathsf{op}$ uniformly from the $64$-byte strings. In
 both cases $C_{\mathsf{out}} := \mathsf{Enc}_{\mathsf{ock}}(\mathsf{op})$, of
 $64 + 16 = 80$ bytes, and the Action publishes it; with $\ovk = \bot$ no
 outgoing viewing key recovers it (protocol specification, \S``Encryption
-(Sapling and Orchard)'', \S``Sending Notes (Orchard)'' and \S``Pseudo Random
-Functions'').
+(Sapling and Orchard)'', \S``Sending Notes (Orchard)'' and
+\href{https://zips.z.cash/protocol/protocol.pdf#concreteprfs}%
+{\S``Pseudo Random Functions''}).
 \end{construction}
 
 \begin{construction}[Recovery with $\ovk$]
@@ -7242,7 +7280,9 @@ The sender performs the following steps.
   signature'', \S\ref{sec:value-bsig}).
 \end{enumerate}
 (Protocol specification, \S``Sending Notes (Orchard)'', \S``Dummy Notes
-(Orchard)'', \S``Spend Authorization Signature (Sapling and Orchard)'' and
+(Orchard)'',
+\href{https://zips.z.cash/protocol/protocol.pdf#spendauthsig}%
+{\S``Spend Authorization Signature (Sapling and Orchard)''} and
 \S``Balance and Binding Signature (Orchard)''.)
 \end{construction}
 
@@ -7517,7 +7557,9 @@ Descriptions'', \S``Nullifier Sets'', \S``Note Commitment Trees'',
 \S``Balance and Binding Signature (Orchard)'' and \S``Transactions and
 Treestates''; ZIP 229, ``Consensus Rules''; ZIP 2003, ``Specification'';
 ZIP 259, Abstract.) These are the consensus checks on the Orchard-protocol
-components of $T$; the remaining rules of \S``Transaction Consensus Rules''
+components of $T$; the remaining rules of
+\href{https://zips.z.cash/protocol/protocol.pdf#txnconsensus}%
+{\S``Transaction Consensus Rules''}
 concern its other components.
 \end{construction}
 
