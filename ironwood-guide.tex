@@ -544,7 +544,12 @@ bit sequence $b_0 b_1 \cdots b_{k-1}$ with $m = \sum_{i=0}^{k-1} b_i 2^i$.
 The map $\mathrm{LE}_k \colon \{0, \dots, 2^k - 1\} \to \{0,1\}^k$ is a
 bijection with inverse $\mathrm{LE}_k^{-1}$. A field element is encoded
 through its integer representative in $\{0, \dots, p - 1\}$, for $p$ the
-modulus. Three maps relate integers, bit strings and byte strings:
+modulus. In the conversion names below, $\mathsf{I}$ stands for integer,
+$\mathsf{LE}$ for little-endian, $\mathsf{BS}$ for bit string, and
+$\mathsf{OS}$ for octet string (a sequence of eight-bit bytes). The digit
+$2$ is read ``to'', and $\mathsf{P}$ stands for primitive, a basic conversion
+operation. The subscript $k$ counts bits, not bytes. Three maps relate
+integers, bit strings and byte strings:
 \begin{itemize}
 \item the map $\mathsf{I2LEOSP}_k$ sends $m \in \{0, \dots, 2^k - 1\}$ to its
   $\lceil k/8 \rceil$-byte little-endian encoding;
