@@ -438,7 +438,9 @@ ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
 /* Book typography: match the PDF's justified, hyphenated, indented
    paragraph blocks instead of ragged blog paragraphs. Indent marks every
    paragraph that continues another (LaTeXML wraps each in .ltx_para), and
-   the inter-paragraph gap shrinks to a book-like sliver. */
+   the inter-paragraph gap shrinks to a book-like sliver. The wrapper also
+   needs alignment because LaTeXML makes run-in and list paragraphs inline. */
+.ltx_page_main .ltx_para,
 .ltx_page_main .ltx_para > .ltx_p,
 .ltx_page_main .ltx_abstract > .ltx_p {
   text-align: justify;
@@ -666,6 +668,7 @@ a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
 /* mobile: stack the prev/next crumbs so long section titles never collide */
 @media (max-width: 640px) {
   /* Narrow lines need natural word spacing, especially around inline math. */
+  .ltx_page_main .ltx_para,
   .ltx_page_main .ltx_para > .ltx_p,
   .ltx_page_main .ltx_abstract > .ltx_p { text-align: left; }
   .arb-bar { gap: .75rem; }

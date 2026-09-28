@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """TOC navigation and current-subsection regression.
 
-Run: uv run --with playwright python site/tools/check_navigation.py BASE_URL
+Run: uv run --with playwright python site/tools/check_navigation.py BASE_URL [STYLESHEET]
+STYLESHEET optionally replaces arboretum.css for a local style preview.
 """
 
 import asyncio
@@ -76,6 +77,18 @@ async def check_titles(page, base, path):
     for width in (390, 768, 1440):
         await page.set_viewport_size({"width": width, "height": 1024})
         await ready(page, f"{base}/{path}")
+        # LaTeXML makes run-in and list paragraphs inline; text-align on
+        # those paragraphs is ignored, so check their block container too.
+        assert await page.locator(
+            '.ltx_page_main .ltx_para > .ltx_p, '
+            '.ltx_page_main .ltx_abstract > .ltx_p').evaluate_all("""paragraphs =>
+            paragraphs.length > 0 && paragraphs.every(p => {
+                const block = getComputedStyle(p).display === 'inline'
+                    ? p.parentElement : p;
+                return getComputedStyle(block).textAlign ===
+                    (innerWidth <= 640 ? 'left' : 'justify');
+            })
+        """), (path, width, 'paragraph alignment')
         assert not await page.locator('a a').count(), path
         assert await page.locator('.arb-heading-link').evaluate_all("""links =>
             links.length > 5 && links.every(link => {
@@ -109,10 +122,13 @@ async def check_titles(page, base, path):
         print(f"Title links passed: {path}, {width}px", flush=True)
 
 
-async def main(base):
+async def main(base, stylesheet=None):
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(executable_path="/usr/bin/chromium")
         page = await browser.new_page(has_touch=True)
+        if stylesheet:
+            await page.route('**/arboretum.css*', lambda route: route.fulfill(
+                path=stylesheet, content_type='text/css'))
         for path in ("crypto-guide/S5.html", "complete/V2.S5.html"):
             await check(page, base.rstrip("/"), path)
         for path in ("crypto-guide/S6.html", "complete/V2.S6.html"):
@@ -129,4 +145,4 @@ async def main(base):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(sys.argv[1]))
+    asyncio.run(main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None))
