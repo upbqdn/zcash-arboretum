@@ -102,6 +102,10 @@
 \newcommand{\sksym}{\mathsf{sk}}
 \newcommand{\Hs}{\mathsf{H}^{\circledast}}
 \newcommand{\PRFx}[1]{\mathsf{PRFexpand}_{#1}}
+\newcommand{\PRF}[1]{\mathsf{PRF}_{#1}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
 \newcommand{\LE}[1]{\mathrm{LE}_{#1}}
 \newcommand{\Ilep}[1]{\mathsf{I2LEOSP}_{#1}}
 \newcommand{\SinHash}{\mathsf{SinsemillaHash}}
@@ -408,6 +412,161 @@ payment through it.
 \end{frame}
 
 % ====================================================================
+\divider{Primitives}
+
+\begin{frame}{Groups and generators}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+curve & equation & group order \\
+\midrule
+Pallas $\EP$ & $y^2 = x^3 + 5$ over $\FP$ & $\pV$ \\
+Vesta & $y^2 = x^3 + 5$ over $\FV$ & $\pP$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Two primes $\pP, \pV \approx 2^{254}$: each curve's scalar field is the
+other's base field. Discrete logarithms cost about $2^{126}$ group
+operations.
+\vfill
+\[
+[a]\,P = P + \dots + P, \qquad
+\Ext\bigl((x, y)\bigr) := x, \qquad
+\GroupHash(D, M) \in \EP
+\]
+\vfill
+Every generator is $\GroupHash$ of its own label: $\GS$ (spend
+authorisation), $\KO$ (nullifiers), $\VO, \RO$ (values), $\gd$ (addresses),
+$Q, S(j)$ (Sinsemilla). No relation among them is known, and nothing is set
+up in trust.
+\end{frame}
+
+\begin{frame}{Pseudorandom functions}
+For a secret uniform key, outputs look uniform and independent: one secret
+expands into many keys.
+\vfill
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+function & built from & used for \\
+\midrule
+$\PRF{k}(t, \dots)$ & BLAKE2b, into $\FP$ or $\FV$ if needed & every derived
+  key \\
+$\PRF{\nksym}^{\mathsf{nf}}(\rho)$ & Poseidon, over $\FP$ & nullifiers \\
+$\KDF(s, \epk)$ & BLAKE2b & encryption keys \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vfill
+The tag $t$ names the output: $\PRF{\sksym}(\mathtt{ask})$ says nothing about
+$\PRF{\sksym}(\mathtt{nk})$. The nullifier PRF is
+$\PRF{\nksym}^{\mathsf{nf}}(\rho) := \mathsf{PoseidonHash}(\nksym, \rho)$, an
+algebraic hash the proof can evaluate cheaply.
+\end{frame}
+
+\begin{frame}{The Sinsemilla hash}
+Generators $S(0), \dots, S(1023)$ and a base $Q(D)$ for each domain $D$.
+Split $M$ into $10$-bit chunks $m_1, \dots, m_n$:
+\[
+\mathsf{Acc}_0 := Q(D), \qquad
+\mathsf{Acc}_i := \bigl(\mathsf{Acc}_{i-1} + S(m_i)\bigr) + \mathsf{Acc}_{i-1}
+\]
+\begin{gather*}
+\SinPt(D, M) := \mathsf{Acc}_n = [2^n]\,Q(D)
+  + \sum_{i=1}^{n} [2^{\,n-i}]\,S(m_i) \\
+\SinHash(D, M) := \Ext(\mathsf{Acc}_n)
+\end{gather*}
+\vfill
+\begin{itemize}\itemsep5pt
+\item A Pedersen-style hash: two messages of one length with one output give
+  a discrete-log relation among $Q(D), S(0), \dots, S(1023)$.
+\item Each $10$-bit step is one table lookup and two additions: cheap to
+  prove.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Sinsemilla commitments}
+\begin{gather*}
+\SinCom_r(D, M) := \SinPt(D, M) + [r]\,H_D \\
+\ShortCom_r(D, M) := \Ext\bigl(\SinCom_r(D, M)\bigr)
+\end{gather*}
+\types{$r \in \FV$ uniform; $H_D$ another hashed generator.}
+\vfill
+\begin{itemize}\itemsep5pt
+\item \textbf{Hiding}: for uniform $r$ the commitment is a uniform point,
+  whatever $M$.
+\item \textbf{Binding}: two openings of one commitment give a discrete-log
+  relation.
+\end{itemize}
+\vfill
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+instance & form & input \\
+\midrule
+$\NoteCommit_{\rcm}$ & commitment & a note \\
+$\CommitIvk_{\rivk}$ & short commitment & $(\aksym, \nksym)$ \\
+$\MCRH$ & hash & two tree nodes \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}{Value commitments}
+\[
+\cvsym(v, \rcv) := [v]\,\VO + [\rcv]\,\RO
+\]
+\types{$v$ a signed amount; $\rcv \in \FV$ uniform.}
+\vfill
+\begin{itemize}\itemsep6pt
+\item \textbf{Hiding}: uniform $\rcv$ gives a uniform point.
+\item \textbf{Binding}: one point opened to two amounts gives
+  $\log_{\RO} \VO$.
+\item \textbf{Homomorphic}:
+\[
+\cvsym(v_1, r_1) + \cvsym(v_2, r_2) = \cvsym(v_1 + v_2,\ r_1 + r_2)
+\]
+\end{itemize}
+\vfill
+The commitments of a bundle add up to a commitment to its net value.
+\end{frame}
+
+\begin{frame}{Key agreement and encryption}
+The recipient publishes $(\gd, \pkd)$ with $\pkd = [\ivk]\,\gd$. The sender
+picks a fresh $\esk$:
+\[
+\epk := [\esk]\,\gd, \qquad
+s := [\esk]\,\pkd = [\esk \cdot \ivk]\,\gd = [\ivk]\,\epk
+\]
+\[
+K := \KDF(s, \epk), \qquad C := \Enc_K(\text{plaintext})
+\]
+\types{$\Enc$ is authenticated encryption (ChaCha20-Poly1305): decryption
+under a wrong key fails.}
+\vfill
+Diffie--Hellman on a base chosen by the recipient: $s$ needs $\ivk$ or
+$\esk$. The pair $(\epk, C)$ names no one.
+\end{frame}
+
+\begin{frame}{Schnorr signatures}
+Key $x \in \FV$, public $X := [x]\,B$; to sign $M$, pick a fresh $r$:
+\[
+R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
+\]
+\[
+\text{verify } (R, S) \colon \quad [S]\,B = R + [c]\,X
+\]
+\vfill
+\begin{itemize}\itemsep6pt
+\item Re-randomisable: $(x + \alpha,\ X + [\alpha]\,B)$ is a fresh-looking
+  key pair, and signing under it still needs $x$.
+\item RedPallas: spend authorisation on $B = \GS$ with re-randomised keys;
+  the binding signature on $B = \RO$.
+\end{itemize}
+\types{Unforgeable under discrete logarithms, with $\Hs$ a random oracle.}
+\end{frame}
+
+% ====================================================================
 \divider{Keys}
 
 \begin{frame}{The key structure}
@@ -420,17 +579,17 @@ payment through it.
 \node[keykn=tierspend] (p1) at (6.4,0) {$(\sksym, \mathsf{c})$\\at $32'$};
 \node[keykn=tierspend] (p2) at (9.8,0) {$(\sksym, \mathsf{c})$\\at $133'$};
 \node[keykn=tierspend] (acct) at (13.2,0) {$\sksym_{\mathsf{acct}}$};
-\draw[keyed] (S) -- node[keylb, above] {$\mathsf{MKG}$} (m);
-\draw[keyed] (m) -- node[keylb, above] {$\mathtt{0x81}$, $32'$} (p1);
-\draw[keyed] (p1) -- node[keylb, above] {$\mathtt{0x81}$, $133'$} (p2);
-\draw[keyed] (p2) -- node[keylb, above] {$\mathtt{0x81}$, $a'$} (acct);
+\draw[keyed] (S) -- node[keylb, above] {$H$} (m);
+\draw[keyed] (m) -- node[keylb, above] {$\mathsf{PRF}$, $32'$} (p1);
+\draw[keyed] (p1) -- node[keylb, above] {$\mathsf{PRF}$, $133'$} (p2);
+\draw[keyed] (p2) -- node[keylb, above] {$\mathsf{PRF}$, $a'$} (acct);
 % spend-side secrets
 \node[keykn=tierspend] (ask) at (1.0,-2.4) {$\asksym$};
 \node[keykn=tierfull] (nk) at (5.0,-2.4) {$\nksym$};
 \node[keykn=tierfull] (rivk) at (9.0,-2.4) {$\rivk$};
-\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.75] {$\mathtt{0x06}$} (ask);
-\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.7] {$\mathtt{0x07}$} (nk);
-\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.55] {$\mathtt{0x08}$} (rivk);
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.75] {$\mathsf{PRF}$} (ask);
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.7] {$\mathsf{PRF}$} (nk);
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.55] {$\mathsf{PRF}$} (rivk);
 % spend validating key
 \node[keykn=tierfull] (akP) at (1.0,-4.4) {$\akP$};
 \node[keykn=tierfull] (ak) at (1.0,-6.3) {$\aksym$};
@@ -443,7 +602,7 @@ payment through it.
 \draw[keyed] (ak) -- (fvk);
 \draw[keyed] (nk) -- (fvk);
 \draw[keyed] (rivk) -- (fvk);
-\draw[keyed] (fvk) -- node[keylb, above] {$\mathtt{0x83}$} (fvki);
+\draw[keyed] (fvk) -- node[keylb, above] {$\mathsf{PRF}$} (fvki);
 % per-scope viewing keys
 \node[keykn=tierin] (ivk) at (0.6,-8.4) {$\ivk$};
 \node[keykn=tierin] (dk) at (3.0,-8.4) {$\dk$};
@@ -452,11 +611,11 @@ payment through it.
 \node[keykn=tierin] (dki) at (11.6,-8.4) {$\dk_{\mathsf{int}}$};
 \node[keykn=tierin] (ovki) at (14.0,-8.4) {$\ovk_{\mathsf{int}}$};
 \draw[keyed] (fvk) -- node[keylb, above left, pos=0.5] {$\CommitIvk$} (ivk);
-\draw[keyed] (fvk) -- node[keylb, fill=white, pos=0.55] {$\mathtt{0x82}$} (dk);
-\draw[keyed] (fvk) -- node[keylb, above right, pos=0.5] {$\mathtt{0x82}$} (ovk);
+\draw[keyed] (fvk) -- node[keylb, fill=white, pos=0.55] {$\mathsf{PRF}$} (dk);
+\draw[keyed] (fvk) -- node[keylb, above right, pos=0.5] {$\mathsf{PRF}$} (ovk);
 \draw[keyed] (fvki) -- node[keylb, above left, pos=0.62] {$\CommitIvk$} (ivki);
-\draw[keyed] (fvki) -- node[keylb, fill=white, pos=0.55] {$\mathtt{0x82}$} (dki);
-\draw[keyed] (fvki) -- node[keylb, above right, pos=0.5] {$\mathtt{0x82}$} (ovki);
+\draw[keyed] (fvki) -- node[keylb, fill=white, pos=0.55] {$\mathsf{PRF}$} (dki);
+\draw[keyed] (fvki) -- node[keylb, above right, pos=0.5] {$\mathsf{PRF}$} (ovki);
 % addresses
 \node[keykn=tierrecv] (addr) at (1.8,-10.6) {external address $(d_j, \pkd)$};
 \node[keykn=tierrecv] (addri) at (10.4,-10.6) {internal address $(d_j, \pkd)$};
@@ -479,56 +638,40 @@ payment through it.
 
 \begin{frame}{From the seed to an account key}
 \[
-I := \mathrm{BLAKE2b\text{-}512}(\texttt{ZcashIP32Orchard},\, S),\qquad
-(\sksym_m, c_m) := (I[0..32),\ I[32..64))
+(\sksym_m, c_m) := H(S), \qquad
+(\sksym_i, c_i) := \PRF{c_{\mathrm{par}}}(\sksym_{\mathrm{par}}, i)
 \]
-\[
-(\sksym_i, c_i) := \PRFx{c_{\mathrm{par}}}\bigl([\mathtt{0x81}] \,\|\,
-  \sksym_{\mathrm{par}} \,\|\, \Ilep{32}(i)\bigr) \quad\text{split in halves},
-  \quad i \ge 2^{31}
-\]
+\types{$S$ the wallet seed; $H$ a hash with two halves; each chain code $c$
+keys the next step.}
 \vfill
-Path $m / 32' / 133' / a'$ (purpose, coin type, account):
-\begin{center}\small
-\begin{tabular}{@{}ll@{}}
-\toprule
-node & spending key $\sksym$ \\
-\midrule
-$m$ & \texttt{7eee3c10\dots8e8b2cd4b8} \\
-$m/32'$ & \texttt{93af0a87\dots2dc9eb0f87} \\
-$m/32'/133'$ & \texttt{149fcee5\dots1a0bcb0e8c4c} \\
-$m/32'/133'/0'$ & \texttt{b67d8d87\dots8313cb223b4} \\
-\bottomrule
-\end{tabular}
-\end{center}
-\types{$S$ the seed bytes $\mathtt{00}, \dots, \mathtt{1f}$; every step is
-one-way and hardened.}
+Path $m/32'/133'/a'$: purpose, coin type, account.
+\vfill
+\begin{itemize}\itemsep6pt
+\item Hardened only: a child reveals nothing about its parent or its
+  siblings.
+\item Account $a$ keeps $\sksym := \sksym_{m/32'/133'/a'}$ and drops the
+  chain code.
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Spending secrets}
 \begin{align*}
-\asksym &:= \mathrm{ToScalar}\bigl(\PRFx{\sksym}([\mathtt{06}])\bigr) \in \FV \\
-\nksym &:= \mathrm{ToBase}\bigl(\PRFx{\sksym}([\mathtt{07}])\bigr) \in \FP \\
-\rivk &:= \mathrm{ToScalar}\bigl(\PRFx{\sksym}([\mathtt{08}])\bigr) \in \FV
+\asksym &:= \PRF{\sksym}(\mathtt{ask}) \in \FV \\
+\nksym &:= \PRF{\sksym}(\mathtt{nk}) \in \FP \\
+\rivk &:= \PRF{\sksym}(\mathtt{rivk}) \in \FV
 \end{align*}
 \[
-\akP := [\asksym]\,\GS \in \EP \quad\text{(even } y\text{)},\qquad
-\aksym := \Ext(\akP)
+\akP := [\asksym]\,\GS, \qquad \aksym := \Ext(\akP)
 \]
 \vfill
-$\asksym$ signs spends; $\nksym$ keys nullifiers; $\rivk$ blinds the
+The key $\asksym$ signs spends; $\nksym$ keys nullifiers; $\rivk$ blinds the
 viewing key.
-\types{$\PRFx{k}$ is BLAKE2b-512 personalised \texttt{Zcash\_ExpandSeed}; the
-lead byte names the output.}
 \end{frame}
 
 \begin{frame}{Viewing keys}
 \[
-\ivk := \CommitIvk_{\rivk}(\aksym, \nksym)
-  = \Ext\bigl(\SinPt(\aksym \,\|\, \nksym) + [\rivk]\,H\bigr)
-\]
-\[
-\dk \,\|\, \ovk := \PRFx{\rivk}\bigl([\mathtt{82}] \,\|\, \aksym \,\|\, \nksym\bigr)
+\ivk := \CommitIvk_{\rivk}(\aksym, \nksym), \qquad
+(\dk, \ovk) := \PRF{\rivk}(\aksym, \nksym)
 \]
 \vfill
 \begin{center}
@@ -548,13 +691,13 @@ $\ovk$ & recover what it sent \\
 \begin{frame}{The address}
 For an index $j$:
 \[
-d := \mathsf{FF1}_{\dk}\bigl(\LE{88}(j)\bigr),\qquad
-\gd := \GroupHash(\texttt{z.cash:Orchard-gd},\, d),
-\]
-\[
+d := \mathsf{FF1}_{\dk}(j), \qquad
+\gd := \GroupHash(d), \qquad
 \pkd := [\ivk]\,\gd
 \]
 The address is $(d, \pkd)$.
+\types{$\mathsf{FF1}$ is a keyed pseudorandom permutation of $88$-bit
+strings.}
 \vfill
 \begin{itemize}\itemsep5pt
 \item $2^{88}$ addresses per key, all with $\pkd = [\ivk]\,\gd$.
@@ -567,102 +710,78 @@ The address is $(d, \pkd)$.
 % ====================================================================
 \divider{Someone pays you}
 
-\begin{frame}{The note}
-The sender creates
-\[
-n = \bigl((d, \pkd),\ v,\ \rho,\ \psi,\ \rcm\bigr)
-\]
-with $v$ the amount in zatoshi and $\rho := \nfsym^{\mathrm{old}}$, the
-nullifier
-the same Action spends. From one fresh seed $\rseed$:
-\begin{align*}
-\esk &:= \mathrm{ToScalar}\bigl(\PRFx{\rseed}([\mathtt{04}] \,\|\, \rho)\bigr) \\
-\psi &:= \mathrm{ToBase}\bigl(\PRFx{\rseed}([\mathtt{09}] \,\|\, \rho)\bigr) \\
-\rcm &:= \mathrm{ToScalar}\bigl(\PRFx{\rseed}([\mathtt{0B}] \,\|\, \gd \,\|\, \pkd \,\|\, v \,\|\, \rho \,\|\, \psi)\bigr)
-\end{align*}
-\types{One seed fixes the note's randomness and the encryption key; the
-recipient can re-derive all three.}
-\end{frame}
-
-\begin{frame}{The note commitment}
-\begin{align*}
-\cmsym &:= \NoteCommit_{\rcm}(\gd, \pkd, v, \rho, \psi) \\
-  &\phantom{:}= \SinPt(\gd \,\|\, \pkd \,\|\, v \,\|\, \rho \,\|\, \psi) + [\rcm]\,H_{\mathrm{cm}} \\
-\cmx &:= \Ext(\cmsym)
-\end{align*}
-\vfill
-\begin{itemize}\itemsep6pt
-\item \textbf{Hiding}: for uniform $\rcm$, $\cmsym$ is a uniform point, whatever
-  the note.
-\item \textbf{Binding}: two notes with one $\cmx$ give a discrete-log relation
-  among the generators.
-\item $\cmx$ is appended to the note commitment tree; the note itself never
-  appears.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Encryption to the address}
-\[
-\epk := [\esk]\,\gd, \qquad s := [\esk]\,\pkd,
-\]
-\[
-K := \mathrm{BLAKE2b\text{-}256}(\texttt{Zcash\_OrchardKDF},\, s \,\|\, \epk)
-\]
-\[
-C_{\mathrm{enc}} := \mathrm{ChaCha20\text{-}Poly1305}_K\bigl(
-  \mathtt{0x03} \,\|\, d \,\|\, v \,\|\, \rseed \,\|\, \mathsf{memo}\bigr)
-  \quad \text{\grey{($580$ bytes)}}
-\]
-\vfill
-The recipient holds $\ivk$ with $\pkd = [\ivk]\,\gd$, so
-\[
-[\ivk]\,\epk = [\ivk \cdot \esk]\,\gd = [\esk]\,\pkd = s .
-\]
-Diffie--Hellman on a per-address base: without $\esk$, only $\ivk$ recovers
-$K$.
-\end{frame}
-
-\begin{frame}{What reaches the chain}
+\begin{frame}{The bundle}
 \begin{center}
-\scalebox{1.1}{\ActionBox[cmx]}
+\scalebox{1.3}{\ActionBox}
 \end{center}
 \small
-Per Action: $\cvnet$, $\nfsym$, $\rk$, $\cmx$, $\epk$, $C_{\mathrm{enc}}$,
-$C_{\mathrm{out}}$ ($820$ bytes). Nothing names the recipient.
+A transaction carries a bundle of $n$ Actions, with one anchor, one set of
+flags, one value balance $\vbal$, one proof and one binding signature.
 \end{frame}
 
-% ====================================================================
-\divider{Scanning}
-
-\begin{frame}{Compact blocks}
-A light wallet does not download full transactions. Per Action it receives
-\[
-\bigl(\nfsym,\ \cmx,\ \epk,\ C_{\mathrm{enc}}[0{:}52]\bigr)
-  \quad \text{\grey{$32 + 32 + 32 + 52 = 148$ bytes}}
-\]
+\begin{frame}{The Action}
+Each Action spends one note and creates one:
 \vfill
-The first $52$ bytes of the plaintext are
-$\mathtt{leadByte} \,\|\, d \,\|\, v \,\|\, \rseed$: everything but the memo.
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+side & published & what it is \\
+\midrule
+spend & $\nfsym$ & the spent note's nullifier \\
+ & $\rk$ & the key its signature is checked against \\
+ & $\cvnet$ & a commitment to old minus new value \\
+\midrule
+output & $\cmx$ & the new note's commitment \\
+ & $\epk$, $C_{\mathrm{enc}}$ & the new note, encrypted to its recipient \\
+ & $C_{\mathrm{out}}$ & $(\pkd, \esk)$ under the sender's $\ovk$: reopens
+   $C_{\mathrm{enc}}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
 \vfill
-The memo, the tag and $C_{\mathrm{out}}$ are fetched only for the wallet's
-own transactions.
+An unused side is a dummy note of value $0$. No field names a sender, a
+recipient or an amount.
 \end{frame}
 
 \begin{frame}{Trial decryption}
-For every Action, with the wallet's $\ivk$:
+For every Action on the chain, the wallet tries its $\ivk$:
 \begin{enumerate}\itemsep5pt
-\item $s := [\ivk]\,\epk$, \quad $K := \mathrm{KDF}(s, \epk)$, \quad decrypt
-  $52$ bytes;
-\item $\gd := \GroupHash(d)$, \quad $\pkd := [\ivk]\,\gd$;
-\item re-derive $\esk$, $\psi$, $\rcm$ from $\rseed$ and $\rho = \nfsym$ of the
-  same Action;
-\item accept only if $[\esk]\,\gd = \epk$ \ and \
-  $\Ext(\NoteCommit_{\rcm}(\dots)) = \cmx$.
+\item $s := [\ivk]\,\epk$, \quad $K := \KDF(s, \epk)$, \quad
+  $(d, v, \rseed, \mathsf{memo}) := \Dec_K(C_{\mathrm{enc}})$;
+\item $\rho := \nfsym$ of the same Action; $\esk$, $\psi$ from $\rseed$ and
+  $\rho$;
+\item $\gd := \GroupHash(d)$, \quad $\pkd := [\ivk]\,\gd$, \quad $\rcm$ from
+  $\rseed$ and $(\gd, \pkd, v, \rho, \psi)$;
+\item accept only if $[\esk]\,\gd = \epk$ and
+  $\Ext\bigl(\NoteCommit_{\rcm}(\gd, \pkd, v, \rho, \psi)\bigr) = \cmx$.
 \end{enumerate}
 \vfill
-An Action for someone else decrypts to garbage and fails step 4. An
-accepted note is the unique opening of $\cmx$: the sender cannot make the
-wallet accept a note it cannot later spend.
+An Action meant for someone else fails the decryption or step 4. An
+accepted note is the unique opening of $\cmx$: the sender cannot hand over
+a note the wallet could not later spend.
+\types{Light wallets run this on a compact form of each Action: $\nfsym$,
+$\cmx$, $\epk$ and the start of $C_{\mathrm{enc}}$, without the memo.}
+\end{frame}
+
+\begin{frame}{The note}
+Decryption yields
+\[
+n = \bigl((d, \pkd),\ v,\ \rho,\ \psi,\ \rcm\bigr)
+\]
+with $v$ the amount and $\rho$ the nullifier of the note spent in the same
+Action. One seed fixes the rest:
+\begin{gather*}
+\esk := \PRF{\rseed}(\mathtt{esk}, \rho), \qquad
+\psi := \PRF{\rseed}(\mathtt{psi}, \rho), \\
+\rcm := \PRF{\rseed}(\mathtt{rcm}, \gd, \pkd, v, \rho, \psi)
+\end{gather*}
+\[
+\cmsym := \NoteCommit_{\rcm}(\gd, \pkd, v, \rho, \psi), \qquad
+\cmx := \Ext(\cmsym)
+\]
+\vfill
+The chain holds $\cmx$ in the note commitment tree; the note itself never
+appears.
 \end{frame}
 
 \begin{frame}{Keeping a witness}
@@ -690,7 +809,8 @@ $\mathsf{pos}$.
 \begin{frame}{Watching for spends}
 The wallet computes its note's nullifier once:
 \[
-\nfsym := \Ext\bigl([(\mathsf{PoseidonHash}(\nksym, \rho) + \psi) \bmod \pP]\,\KO + \cmsym\bigr)
+\nfsym := \Ext\bigl([(\PRF{\nksym}^{\mathsf{nf}}(\rho) + \psi) \bmod \pP]\,\KO
+  + \cmsym\bigr)
 \]
 and marks the note spent when $\nfsym$ appears in a scanned block.
 \vfill
@@ -709,7 +829,7 @@ and marks the note spent when $\nfsym$ appears in a scanned block.
 \begin{align*}
 \nfsym^{\mathrm{old}} &:= \DNf_{\nksym}(\rho, \psi, \cmsym) && \text{published} \\
 \rsk := \asksym + \alpha, \quad \rk &:= \akP + [\alpha]\,\GS && \text{fresh } \alpha \text{ per Action} \\
-\cvnet &:= [v^{\mathrm{old}} - v^{\mathrm{new}}]\,\VO + [\rcv]\,\RO && \text{fresh } \rcv
+\cvnet &:= \cvsym(v^{\mathrm{old}} - v^{\mathrm{new}}, \rcv) && \text{fresh } \rcv
 \end{align*}
 \vfill
 \begin{itemize}\itemsep5pt
@@ -719,16 +839,28 @@ and marks the note spent when $\nfsym$ appears in a scanned block.
 \end{frame}
 
 \begin{frame}{The output side}
-The new note goes to the payee, change to an internal address of the payer;
-each
-with
+Each output is a new note, made as the received one was, with a fresh
+$\rseed$ and
 \[
-\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}}
+\rho^{\mathrm{new}} := \nfsym^{\mathrm{old}} .
 \]
-so every created note carries a unique $\rho$. Unused sides are dummy notes
-of value $0$: every Action has exactly one spend and one output.
+It is encrypted to the payee's address $(d, \pkd)$:
+\begin{gather*}
+\epk := [\esk]\,\gd, \qquad K := \KDF([\esk]\,\pkd, \epk), \qquad
+C_{\mathrm{enc}} := \Enc_K(d, v, \rseed, \mathsf{memo}) \\
+\mathsf{ock} := \PRF{\ovk}(\cvnet, \cmx, \epk), \qquad
+C_{\mathrm{out}} := \Enc_{\mathsf{ock}}(\pkd, \esk)
+\end{gather*}
 \vfill
-\begin{center}\small
+The payee opens $C_{\mathrm{enc}}$ with $\ivk$; the payer opens
+$C_{\mathrm{out}}$ with $\ovk$. Change is an output to an internal address
+of the payer.
+\end{frame}
+
+\begin{frame}{A payment of 5 ZEC}
+A note of $7$ ZEC pays $5$ ZEC; every Action has one spend and one output:
+\vfill
+\begin{center}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
 Action & $v^{\mathrm{old}}$ & $v^{\mathrm{new}}$ & $v^{\mathrm{old}} - v^{\mathrm{new}}$ \\
@@ -740,6 +872,8 @@ $\vbal$ (the fee) & & & $0.0001$ ZEC \\
 \bottomrule
 \end{tabular}
 \end{center}
+\vfill
+The value balance $\vbal$ leaves the shielded pool: here, as the fee.
 \end{frame}
 
 \begin{frame}{What the proof asserts}
@@ -753,7 +887,7 @@ the prover knows a witness such that:
   \cmsym^{\mathrm{old}})$;
 \item $\rk = \akP + [\alpha]\,\GS$, and $\pkd^{\mathrm{old}} =
   [\CommitIvk_{\rivk}(\aksym, \nksym)]\,\gd^{\mathrm{old}}$;
-\item $\cvnet = [v^{\mathrm{old}} - v^{\mathrm{new}}]\,\VO + [\rcv]\,\RO$;
+\item $\cvnet = \cvsym(v^{\mathrm{old}} - v^{\mathrm{new}}, \rcv)$;
 \item the new note opens $\cmx$, with $\rho^{\mathrm{new}} =
   \nfsym^{\mathrm{old}}$;
 \item the flags hold (spends, outputs, cross-address).
@@ -763,18 +897,18 @@ One Halo~2 proof for all Actions of the bundle.
 \end{frame}
 
 \begin{frame}{Signatures}
-Every signature signs $\mathsf{SigHash}$, a BLAKE2b digest of the transaction
-without its proofs and signatures.
+Every signature signs $\mathsf{SigHash}$, a digest of the transaction
+without its proofs, signatures and anchor.
 \vfill
 \begin{itemize}\itemsep8pt
-\item \textbf{Spend authorisation}, per Action: RedPallas under $\rsk$, checked
+\item \textbf{Spend authorisation}, per Action: under $\rsk$, checked
   against $\rk$. Only a holder of $\asksym$ can produce it.
 \item \textbf{Binding}, per bundle:
 \[
 \mathsf{bsk} := \sum_i \rcv_i, \qquad
 \mathsf{bvk} := \sum_i \cvsym_i - [\vbal]\,\VO
 \]
-  RedPallas under $\mathsf{bsk}$, checked against $\mathsf{bvk}$.
+  under $\mathsf{bsk}$, checked against $\mathsf{bvk}$.
 \end{itemize}
 \end{frame}
 
@@ -816,8 +950,9 @@ A valid signature proves knowledge of $b$ with $\mathsf{bvk} = [b]\,\RO$.
 If the values did not balance, $b$ would yield $\log_{\RO} \VO$, a relation
 between two hashed generators: infeasible.
 \vfill
-\types{The sum is below $2^{80} \ll \pV$, so balance modulo $\pV$ is balance
-over the integers.}
+\types{With $64$-bit values and fewer than $2^{16}$ Actions, the sum lies in
+$(-2^{80}, 2^{80})$ and $2^{80} \ll \pV$: balance modulo $\pV$ is balance over
+the integers.}
 \end{frame}
 
 % ====================================================================
@@ -1045,13 +1180,13 @@ P + [v]\,U + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
 
 \begin{frame}{The Orchard circuit}
 \begin{itemize}\itemsep6pt
-  \item Size: $2^{11}$ rows, $10$ advice columns; arithmetic over $\Fpp$ so
-    Pallas points $\cmsym, \rksym, \cvsym$ are native; commitments on Vesta.
+  \item Arithmetic over $\Fpp$, so Pallas points $\cmsym, \rksym, \cvsym$ are
+    native; the polynomial commitments live on Vesta.
   \item Gadgets: Sinsemilla (commitments, tree), Poseidon (nullifier),
     elliptic-curve arithmetic, lookups for range checks.
   \item The instance: anchor, $\cvsym$, $\nfsym$, $\rksym$, $\cmx$, flags.
   \item Generators from a hash: no trusted setup, no ceremony.
-  \item Proof size $2720 + 2272\,a$ bytes for $a$ Actions: $4992$ for one.
+  \item Proof size grows linearly in the number of Actions.
 \end{itemize}
 \vfill
 Every clause of the statement is a set of rows; one proof, one random
