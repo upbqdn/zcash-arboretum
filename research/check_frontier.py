@@ -56,8 +56,8 @@ class FrontierChecks(unittest.TestCase):
                 self.assertEqual(sum(weights[i] * converted[i] for i in ids) % q,
                                  sum(ids) % q)
 
-    def test_zsa_proof_sizes_and_x_extraction(self):
-        self.assertEqual([2848 + 2272 * n for n in (1, 2)], [5120, 7392])
+    def test_orchard_proof_length_and_x_extraction(self):
+        # The ZSA Guide cites the Orchard proof length 2720 + 2272n; no ZSA length is fixed.
         self.assertEqual([2720 + 2272 * n for n in (1, 2)], [4992, 7264])
         # On y^2 = x^3 + 2 over F_17, distinct opposite points share x.
         self.assertEqual(6**2 % 17, (0**3 + 2) % 17)
