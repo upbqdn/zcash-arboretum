@@ -572,8 +572,8 @@ every interface. Anchor semantics and reorg behaviour of the commitment
 tree are those of the \emph{Ironwood Guide} (\S``The note commitment
 tree'', in particular ``Anchors''); what a wallet counts as confirmed is the
 \emph{Wallet Guide}'s ZIP-315 \texttt{ConfirmationsPolicy} and expiry
-treatment (\S``Transaction construction'' and \S``Broadcast, expiry, and
-the transaction lifecycle''), whose trusted/untrusted depths are exactly
+treatment (\S``Anchors, confirmations, and
+expiry''), whose trusted/untrusted depths are exactly
 the policy layer a finality layer would let wallets strengthen. The
 header-chain commitment a finality certificate would sit beside, and its
 unbuilt light-client bridge, are the \emph{FlyClient Guide}'s
@@ -697,7 +697,7 @@ clients'' ([NTT2020] \S\,I-B). Zcash wallets already practice a
 client-side version of this choice at the confirmation-depth layer: the
 ZIP-315 \texttt{ConfirmationsPolicy} parameterizes, per wallet, how deep
 an output must be before it is treated as spendable (\emph{Wallet Guide},
-\S``Confirmations, trust, and spendability''). The ebb-and-flow model
+\S``The confirmation policy''). The ebb-and-flow model
 lifts the same freedom to the level of which ledger a client reads.
 
 \subsection{Execution model and environments}\label{sec:xl-execution}
@@ -1510,9 +1510,9 @@ Crosslink~2 nodes (\texttt{construction.md}:103--111).
 
 The stakes for the rest of the Zcash stack are concrete. Today
 confirmation depth is policy, not property: wallets gate spendability on
-heuristic depths (\emph{Wallet Guide}, \S``Confirmations, trust, and
-spendability'') and recover from rollbacks by truncate-and-rescan
-(\emph{Wallet Guide}, \S``Reorganisations: truncate and rescan''); an
+heuristic depths (\emph{Wallet Guide}, \S``The confirmation policy'') and
+recover from rollbacks by truncate-and-rescan
+(\emph{Wallet Guide}, \S``Reorganisation detection and recovery''); an
 Orchard anchor is only as settled as the chain suffix beneath it
 (\emph{Ironwood Guide}, \S``Anchors''); and
 Zally's coin-weighted vote pins its electorate to off-chain roots for a
@@ -2055,8 +2055,8 @@ Agreement holds, the new snapshot is an ancestor of the old and will roll
 forward along the same path, but applications must not see the temporary
 rollback (\texttt{construction.md}:497--499). This is precisely the
 service today's applications lack: wallets repair rollbacks after the
-fact by truncate-and-rescan (\emph{Wallet Guide}, \S``Reorganisations:
-truncate and rescan''), and anchor validity tracks the unfinalized chain
+fact by truncate-and-rescan (\emph{Wallet Guide}, \S``Reorganisation
+detection and recovery''), and anchor validity tracks the unfinalized chain
 (\emph{Ironwood Guide}, \S``Anchors'').
 
 \begin{lemma}[Local fin-depth]\label{lem:xl-fin-depth}
@@ -2203,8 +2203,8 @@ crosslink\_monolith @ \texttt{807b995},
 \texttt{librustzcash/zcash\_primitives/src/bft.rs}:388--404).
 For calibration: today's wallet policy defaults are $3$ confirmations for
 trusted and $10$ for untrusted outputs under the ZIP-315
-\texttt{ConfirmationsPolicy} (\emph{Wallet Guide}, \S``Confirmations,
-trust, and spendability'') --- a per-wallet risk heuristic, where
+\texttt{ConfirmationsPolicy} (\emph{Wallet Guide}, \S``The
+confirmation policy'') --- a per-wallet risk heuristic, where
 $\sigma$ is a consensus-visible input to finalization. On the node side,
 the $k$-deep interface constant of the deployed best-chain protocol is
 \texttt{MAX\_BLOCK\_REORG\_HEIGHT} $= 1000$ in mainline Zebra, documented
@@ -3180,7 +3180,8 @@ above.
 Crosslink changes what a Zcash node presents to everything above it. Today a
 wallet, an exchange, or the voting stack consumes one object --- the node's
 best chain --- and layers its own confirmation policy on top (\emph{Wallet
-Guide}, \S``The proposal''). Under Crosslink~2 the node maintains two chains
+Guide}, \S``The confirmation policy''). Under Crosslink~2 the node maintains two
+chains
 and a per-block finality status, and every consumer must decide which chain
 it reads and what it does when the two stop tracking each other. This
 section fixes that contract as the sources state it: the two ledger views
@@ -3581,9 +3582,9 @@ branch costs are concrete:
   finalized history. This safety property alone does not guarantee its
   presence in every transient best-chain view, timely inclusion, or
   transaction validity under other rules. The wallet must still check
-  the candidate ancestry; the \emph{Wallet Guide}'s retry caveat remains
-  relevant whenever an anchor is absent from that ancestry
-  (\S``The proposal'').
+  the candidate ancestry; as the \emph{Wallet Guide} notes, a rollback
+  past the anchor block invalidates the transaction
+  (\S``Target and anchor heights'').
 \item \emph{Keep the tip-relative anchor.} ZIP 315's rule --- ``if the
   current block is at height H, the anchor SHOULD reflect the final
   treestate of the block at height H-3'' (\texttt{zips/zip-0315.rst}:586--587)
@@ -3632,7 +3633,8 @@ above as its own synthesis.
 \label{sec:xl-confpolicy}
 
 The deployed baseline is ZIP 315 (Status: Draft), which the \emph{Wallet
-Guide} develops in \S``The proposal'': a \textsf{ConfirmationsPolicy} with
+Guide} develops in \S``Anchors, confirmations, and expiry'': a
+\textsf{ConfirmationsPolicy} with
 trusted depth 3, untrusted depth 10, zero-conf shielding allowed by
 default, an advisory floor of 1, and the $H-3$ anchor rule quoted above.
 ZIP 315 predates Crosslink and never mentions it.
@@ -3721,7 +3723,8 @@ transactions with no expiry, and new transactions created during the
 stall need separate treatment. Wallet note locks release only after
 observing the applicable expiry and applying the wallet's policy
 (\emph{Wallet Guide},
-\S``Expiry (ZIP-203)'' and \S``Expiry and fund availability''). Under the
+\S``Expiry (ZIP 203)'' and \S``The transaction record and locked notes''). Under
+the
 SL branch finite-expiry pending spends still expire, but new spends can
 keep confirming into an unbounded finalization gap --- the condition the
 ECC arguments
@@ -4491,7 +4494,7 @@ activation date exists.
 expresses transaction confirmation entirely as depth policy on the
 black-box PoW chain: the \emph{Wallet Guide} documents the ZIP-315
 \texttt{ConfirmationsPolicy} with trusted depth $3$ and untrusted depth
-$10$ (\S``Transaction construction'', Definition ``Confirmations
+$10$ (\S``The confirmation policy'', Definition ``Confirmation
 policy''), and the protocol specification's 100-block validator rollback
 expectation
 (\href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S3.3}) differs

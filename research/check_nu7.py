@@ -81,14 +81,9 @@ assert r"O+I+S\leq330" in compact
 blocks_per_day = 86400 // 25
 actions_per_day = 330 * blocks_per_day
 field_bytes = 3 * 32 + 52
-# Four length-delimited fields, then a repeated-message tag and length.
-message_bytes = field_bytes + 4 * 2
-wire_bytes = message_bytes + 1 + 2
-assert (blocks_per_day, actions_per_day, field_bytes, wire_bytes) == (
-    3456, 1140480, 148, 159)
+assert (blocks_per_day, actions_per_day, field_bytes) == (3456, 1140480, 148)
 assert actions_per_day * field_bytes == 168791040
-assert actions_per_day * wire_bytes == 181336320
-for value in (3456, actions_per_day, 168791040, 181336320):
+for value in (3456, actions_per_day, field_bytes, 168791040):
     assert str(value) in wallet, value
 print("NU7 shared Action budget and compact scanning payloads: checks pass")
 

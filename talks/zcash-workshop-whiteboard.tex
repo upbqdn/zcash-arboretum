@@ -2077,8 +2077,8 @@ whatever the tip.
 \Avoid
 Attributing the anonymity-set argument to ZIP-315 --- it is the Guide's;
 ZIP-315 states input availability and hiding the input's trusted status.
-\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Confirmations,
-  trust, and spendability''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``The confirmation
+policy''}
 \end{board}
 
 \begin{board}{When the anchor vanishes: reorganisations}{exists}
@@ -2112,8 +2112,8 @@ deferrable, and the proof rather than the signature pins them.
 
 \textbf{Bitcoin contrast:} a reorged transaction stays valid wherever its
 inputs survive; here the tree it named may no longer exist.
-\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisations:
-  truncate and rescan''; ``PCZT v2: deferred anchors and the Ironwood bundle''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisation
+detection and recovery''; ``PCZT v2: deferred anchors and the Ironwood bundle''}
 \end{board}
 
 \begin{board}{Not a mixer}{exists}
@@ -2586,7 +2586,7 @@ public.
     \fvk.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``Key capabilities and scope''; \emph{Wallet Guide},
-``Diversified addresses''; protocol specification, ``Orchard Key Components''}
+``Diversifier indices''; protocol specification, ``Orchard Key Components''}
 \end{board}
 
 \begin{board}{Graded capabilities: spend, full view, spent status}
@@ -2622,7 +2622,7 @@ spent status are what its public ledger shows to everyone.
 \textbf{Emphasise the middle row.} A full viewing key sees everything and
 moves nothing.
 \src{\emph{Ironwood Guide}, ``Key capabilities and scope''; \emph{Wallet Guide},
-``From the account key to addresses: the layer already built''}
+``Orchard key components of an account''}
 \end{board}
 
 % d_keys.py: diversifier 88 bits; addresses per account per scope 2^88
@@ -2742,7 +2742,7 @@ sees $j$.
 \textbf{The Bitcoin contrast.} An xpub also enumerates addresses; the
 difference is what an address reveals, which is the next board.
 \src{\emph{Ironwood Guide}, ``Diversified addresses''; \emph{Wallet Guide},
-``Diversified addresses''; ``Raw encodings''; \emph{Crypto Guide},
+``Diversifier indices''; ``Raw encodings''; \emph{Crypto Guide},
 ``Format-preserving encryption and FF1''; ZIP-32, ``Orchard key path''}
 \end{board}
 
@@ -2774,7 +2774,7 @@ unlinkability for every address of that \ivk.
 xpub, addresses link on the public graph once spent together (Part~A),
 and a leaked xpub links all beneath it, spent or not. Here an address
 reveals only itself.
-\src{\emph{Wallet Guide}, ``Diversified addresses''; \emph{Ironwood Guide},
+\src{\emph{Wallet Guide}, ``Diversifier indices''; \emph{Ironwood Guide},
 ``Diversified addresses''; protocol specification,
 ``$\mathsf{DiversifyHash}^{\mathsf{Sapling}}$ and
 $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions''}
@@ -2890,8 +2890,8 @@ it?
 \src{\emph{Ironwood Guide}, ``Encryption to the recipient''; ``Notes and note
 commitments''; ``Key capabilities and scope''; ``The outgoing ciphertext'';
 \emph{Wallet Guide}, ``Unified addresses''; ``Internal keys: change and
-auto-shielding''; ``From the account key to addresses: the layer already
-built''; ``Unified viewing keys''}
+auto-shielding''; ``Orchard key components of an account''; ``Unified viewing
+keys''}
 \end{board}
 
 %% ---- 05-statement.tex
@@ -3329,7 +3329,7 @@ $\ivk^{\mathsf{int}}$; the change's $\wbEcout$ is written without an
 $\ovk$ and is unrecoverable.
 \src{\emph{Ironwood Guide}, ``The outgoing ciphertext''; \emph{Wallet
 Guide}, ``Padding, dummies, and shuffling''; ``Internal keys: change and
-auto-shielding''; ``Executing the proposal''}
+auto-shielding''; ``The transaction plan''}
 \end{board}
 
 \begin{board}{Coin exists --- A3, the path to the anchor}{exists}
@@ -3978,7 +3978,7 @@ it.
 ``The signature pins the anchor'' --- from v6 the digest does not cover
 the anchor; the proof pins it as a public input.
 \src{\emph{Ironwood Guide}, ``Transaction digests and signatures'';
-\emph{Wallet Guide}, ``Build order and signatures''}
+\emph{Wallet Guide}, ``Authorisation of a transaction''}
 \end{board}
 
 \begin{board}{Alice's two Actions}{conserved, authorised}
@@ -4084,8 +4084,9 @@ or whether either is.
   does not learn, as listed; the hiding is the commitments', the keyed
   nullifier's and the re-randomised key's, not the proof's.
 \end{itemize}
-\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; ``Build order and
-signatures''; \emph{Ironwood Guide}, ``The binding signature''. Checkpoint:
+\src{\emph{Wallet Guide}, ``Padding, dummies, and shuffling''; ``Authorisation
+of a transaction''; \emph{Ironwood Guide}, ``The binding signature''.
+Checkpoint:
 \emph{Ironwood Guide}, ``Verification of a transaction''; ``Construction of a
 transaction''; ``The transaction format''}
 \end{board}
@@ -5410,8 +5411,9 @@ asks for no particular output.
   \item ``A few hundred bytes'' for the Action. The Action is 820 bytes;
     its compact form is 148.
 \end{itemize}
-\src{\emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; ``The deployed
-  messages''; ``Omissions and fetch-on-detect''; \emph{Ironwood Guide}, ``Action
+\src{\emph{Wallet Guide}, ``Compact blocks (ZIP-307)''; ``The compact block and
+the compact transaction''; ``Compact outputs, spends, and Actions'';
+\emph{Ironwood Guide}, ``Action
   descriptions and bundles''; ``Transaction digests and signatures''}
 \end{board}
 
@@ -5477,8 +5479,8 @@ deployed client and server libraries ship no decoy policy.
 \textbf{Structural, not accidental.} A client that asks for ranges
 reveals where it stopped; one that fetches what it detected reveals what
 it detected.
-\src{\emph{Wallet Guide}, ``Omissions and fetch-on-detect''; ``Leaks in the
-  deployed pattern''}
+\src{\emph{Wallet Guide}, ``Leakage of range queries''; ``Leakage of transaction
+queries''}
 \end{board}
 
 \begin{board}{Placing the note: a position from public data}{exists,
@@ -5519,7 +5521,7 @@ own arithmetic.
     on public sizes; $\rho$ never enters it, and the leaf index never
     enters the nullifier.
 \end{itemize}
-\src{\emph{Wallet Guide}, ``Scanning: spends, positions, and tree sizes'';
+\src{\emph{Wallet Guide}, ``Note positions and tree sizes'';
   \emph{Ironwood Guide}, ``Authentication paths''}
 \end{board}
 
@@ -5594,7 +5596,7 @@ peer. Bob folds his own from public roots and asks for nothing ---
 asking for one note's path would say which note is his. Only the anchor
 is ever public.
 \src{\emph{Ironwood Guide}, ``Authentication paths''; \emph{Wallet Guide},
-  ``Client state: shards, cap, and retention''}
+  ``The information a wallet retains''}
 \end{board}
 
 \begin{board}{Checkpoints: the tree as of a block}{exists}
@@ -5627,8 +5629,8 @@ one.
 \textbf{Bitcoin contrast.} Bitcoin Core's checkpoints are hard-coded
 block hashes inside the node; these are wallet-local tree snapshots that
 consensus never sees.
-\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Client state:
-  shards, cap, and retention''; ``Reorganisation detection and recovery''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``The information
+a wallet retains''; ``Reorganisation detection and recovery''}
 \end{board}
 
 \begin{board}{The frontier as the scan seed}{exists}
@@ -5665,7 +5667,7 @@ its own shard's block extent and the tip range are scanned, it is ready.
 its birthday, but needs no tree state: the UTXO set is public, and a
 peer answers a filter, or an Electrum server answers by address.
 \src{\emph{Wallet Guide}, ``Frontiers as scan seeds''; ``The account
-  birthday''; ``Shard completion and spendability''}
+  birthday''; ``Witness readiness''}
 \end{board}
 
 \begin{board}{What the server learns: the schedule}{none --- privacy of
@@ -5701,9 +5703,8 @@ there is nothing.
 of schedule --- which filter ranges it pulls, and when --- and then
 every block it fetches on top. Here the content holds and the schedule
 leaks.
-\src{\emph{Wallet Guide}, ``The stated security model''; ``What never leaves
-  the device''; ``Leaks in the deployed pattern''; ``Deployed
-  mitigations''}
+\src{\emph{Wallet Guide}, ``Payment-detection privacy''; ``Key independence of
+queries''; ``Leakage of range queries''; ``Summary of server observables''}
 \end{board}
 
 \begin{board}{What the server learns: the content channels}{none ---
@@ -5737,9 +5738,9 @@ give addresses outright; jitter covers one-use addresses only.
 \textbf{Bitcoin contrast.} A BIP-37 client leaks its addresses up to the
 false-positive rate, a BIP-157 client its matched blocks; here content
 leaks only through what the wallet sends after detecting.
-\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Leaks in the
-  deployed pattern''; ``The submission channel''; ``Deployed
-  mitigations''}
+\src{\emph{Wallet Guide}, ``Key independence of queries''; ``Leakage of
+transaction queries''; ``The submission channel''; ``Summary of server
+observables''}
 \end{board}
 
 \begin{board}{Mitigations that ship, and the structural reading}{none ---
@@ -5777,8 +5778,8 @@ shielded fetch-on-detect.
 \textbf{The reading.} None of this is a property of compact-block
 contents, and none of it is inevitable; Tor, bucketing, jitter, and
 cover traffic can each change it.
-\src{\emph{Wallet Guide}, ``What never leaves the device''; ``Deployed
-  mitigations''; ``Summary, and the structural reading''}
+\src{\emph{Wallet Guide}, ``Key independence of queries''; ``Leakage of range
+queries''; ``Summary of server observables''}
 \end{board}
 
 \begin{board}{Spending from a light client: the witness and the
@@ -5844,8 +5845,8 @@ because the input is named either way.
   \item The anonymity-set argument as ZIP-315's. It is the Guide's;
     ZIP-315 states its own reasons (Part C).
 \end{itemize}
-\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Confirmations,
-  trust, and spendability''; ``Executing the proposal''}
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``The confirmation
+policy''; ``The transaction plan''}
 \end{board}
 
 \begin{board}{Expiry and broadcast}{not twice}
@@ -5870,8 +5871,8 @@ spendable again.
 \textbf{Bitcoin contrast.} A stuck transaction has no consensus expiry
 --- mempools drop it by policy after a timeout, or RBF or CPFP bumps it.
 Here it expires by rule, and its inputs come free.
-\src{\emph{Wallet Guide}, ``Expiry (ZIP-203)''; ``Store, then
-  broadcast''; ``Expiry and fund availability''}
+\src{\emph{Wallet Guide}, ``Expiry (ZIP-203)''; ``Submission and the transaction
+identifier''; ``The transaction record and locked notes''}
 \end{board}
 
 \begin{board}{The reorganisation case}{exists, not twice}
@@ -5898,7 +5899,7 @@ v2 with anchors in authorizing data; wallet support is pending.
 \textbf{Bitcoin contrast.} A reorganised Bitcoin transaction is simply
 mined again, since it names its inputs and no anchor. Here a struck
 anchor means a rebuild.
-\src{\emph{Wallet Guide}, ``Reorganisations: truncate and rescan'';
+\src{\emph{Wallet Guide}, ``Reorganisation detection and recovery'';
   ``PCZT v2: deferred anchors and the Ironwood bundle''}
 \end{board}
 
@@ -5970,9 +5971,10 @@ have given away instead?
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``Trial decryption and note acceptance''; ``The
   outgoing ciphertext''; \emph{Wallet Guide}, ``Internal keys: change and
-  auto-shielding''; ``Executing the proposal''; ``Confirmations, trust, and
-  spendability''. Checkpoint: \emph{Wallet Guide}, ``What never leaves the
-  device''; ``Leaks in the deployed pattern''; ``The submission channel''}
+  auto-shielding''; ``The transaction plan''; ``The confirmation policy''.
+  Checkpoint: \emph{Wallet Guide}, ``Key independence of queries''; ``Leakage of
+  range queries''; ``Leakage of transaction queries''; ``The submission
+  channel''}
 \end{board}
 
 %% ---- 09-chain.tex
@@ -6187,7 +6189,7 @@ its txid.
 anchors --- authorizing data, committed through
 $\mathsf{hashAuthDataRoot}$ instead.
 \src{\emph{Ironwood Guide}, ``Transaction digests and signatures'';
-  \emph{Wallet Guide}, ``Serialisation and the transaction identifier''}
+  \emph{Wallet Guide}, ``Submission and the transaction identifier''}
 \end{board}
 
 % compute/h_sighash.py:
@@ -6459,8 +6461,8 @@ Do not give the fee's floor of two as the reason for Alice's dummy: she
 has two Actions because she has two outputs (Bob and her change); the
 dummy pads her single spend to match. The floor is the fee's grace
 window, not the padding rule.
-\src{\emph{Wallet Guide}, ``The conventional fee''; ``The fee is computed
-  on padded counts''}
+\src{\emph{Wallet Guide}, ``The conventional fee''; ``The fee on padded
+counts''}
 \end{board}
 
 % compute/h_fee.py:
@@ -6635,7 +6637,7 @@ the format carries everything they need.
 No timing claims: say that a hardware signer cannot compute a Halo 2
 proof, not how long a proof takes anywhere.
 \src{\emph{Wallet Guide}, ``Partially created transactions (PCZT)'';
-  ``Roles and lifecycle''}
+  ``Roles and the modification state''}
 \end{board}
 
 % compute/h_pczt.py:
@@ -6762,7 +6764,7 @@ correlation is evidence.
 Never ``the pool is auditable'': the analyst reads two door amounts and a
 correlation, nothing inside the pool.
 \src{\emph{Wallet Guide}, ``Partially created transactions (PCZT)'';
-  ``Combining, redaction, and privacy''; ``The deployed wallet pipeline'';
+  ``Combining, redaction, and privacy''; 
   ``PCZT v2: deferred anchors and the Ironwood bundle''; \emph{Ironwood Guide},
   ``The balancing value''; ``Anchors''; ``Nullifier uniqueness and
   unlinkability''; ZIP-318, ``Amount selection, canonical quantization'';
@@ -7854,8 +7856,8 @@ reaches zero, and it stops working at $q = 1/2$.
 ``The attempts are linked'' as a volume fact; and same-txid
 re-anchoring as deployed --- it is specified (ZIP-374 v2), wallet
 support pending.
-\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisations:
-  truncate and rescan''; protocol specification, ``Transactions and
+\src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisation
+detection and recovery''; protocol specification, ``Transactions and
   Treestates''; ``Nullifier Sets''; \emph{Consensus Guide}, ``Playing
   catch-up''; ``What the numbers say''}
 \end{board}
@@ -7949,8 +7951,9 @@ exists in the client library; whether any deployment uses it is unknown.
 \textbf{The contrast runs both ways.} The scan leaks less than a BIP-157
 client, which names each block it fetches after a filter hit. The fetch
 after a hit leaks more: one txid, not a block.
-\src{\emph{Wallet Guide}, ``The stated security model''; ``Leaks in the
-deployed pattern''; ``The submission channel''; ``Deployed mitigations''}
+\src{\emph{Wallet Guide}, ``Payment-detection privacy''; ``Leakage of range
+queries''; ``Leakage of transaction queries''; ``The submission channel'';
+``Summary of server observables''}
 \end{board}
 
 % compute/d_keys.py:
@@ -8754,8 +8757,8 @@ Guide's \textsf{zebra} pin and its own zips recheck.
 a default is a claim about one version, and this table is where that
 version lives.
 \src{\emph{Halo 2 Guide}, ``From statement to circuit: arithmetisation in
-practice''; \emph{Wallet Guide}, ``Diversified and unified addresses
-(ZIP-316)''; ``Normative status and wire-format history'';
+practice''; \emph{Wallet Guide}, ``Addresses and viewing keys (ZIP 316)''; ``The
+compact block and the compact transaction'';
 \emph{Consensus Guide}, ``Sources and their standing''}
 \end{board}
 

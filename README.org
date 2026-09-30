@@ -53,11 +53,10 @@ Layered; read each atop the ones it names.
    commitments and the binding signature, the Action statement and its proof,
    note encryption, and the transaction rules, closing with theorems of value
    conservation, double-spend resistance, spend authority, and privacy.
-6. *Wallet Guide* (=wallet-guide.tex=) — the wallet layer: ZIP-32 hierarchical
-   key derivation, unified addresses (ZIP-316), fees (ZIP-317), transaction
-   construction, and light-client synchronisation: ZIP-307 compact blocks,
-   the lightwalletd, Zaino, and Zebra service surfaces, the scanning pipeline,
-   and — stated plainly — what the server learns.
+6. *Wallet Guide* (=wallet-guide.tex=) — the protocols a wallet runs: key and
+   address derivation from one seed, note discovery through an untrusted
+   light-client server and what that server learns, and the construction,
+   authorisation, and submission of payments.
 
 ** Frontier
 7. *FlyClient Guide* (=flyclient-guide.tex=) — succinct chain verification:

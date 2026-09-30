@@ -99,11 +99,12 @@ assert [name for lower, capital, name in greek_rows[::2] + greek_rows[1::2]] == 
     "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu "
     "nu xi omicron pi rho sigma tau upsilon phi chi psi omega").split()
 
-# Both guides' chapters survive in their original order under one Wallet TOC.
+# The Wallet Guide's chapters, synchronisation merged in, in order under one TOC.
 WALLET_CHAPTERS = (
-    "sec:keys-zip32", "sec:addresses", "sec:fees", "sec:pipeline",
-    "sec:pczt", "sec:lifecycle", "sec:zip321", "sec:sync-compact",
+    "sec:intro", "sec:keys-zip32", "sec:addresses", "sec:sync-compact",
     "sec:sync-service", "sec:sync-scanning", "sec:sync-tree", "sec:sync-privacy",
+    "sec:spendability", "sec:fees", "sec:pipeline", "sec:pczt", "sec:lifecycle",
+    "sec:zip321",
 )
 wallet = (sitegen.ROOT / "wallet-guide.tex").read_text()
 positions = [wallet.index(r"\label{" + label + "}") for label in WALLET_CHAPTERS]

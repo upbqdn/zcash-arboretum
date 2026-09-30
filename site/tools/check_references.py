@@ -26,7 +26,7 @@ CASES = (
     ("ironwood-guide", "S2.html", "The lookup argument", "halo2-guide", 1440, "click"),
     ("ironwood-guide", "S9.html", "The algebraic group model", "halo2-guide", 768, "tap"),
     ("ironwood-guide", "S8.html", "The Pedersen commitment", "crypto-guide", 1440, "click"),
-    ("zsa-guide", "S2.html", "The general form: triples", "wallet-guide", 390, "tap"),
+    ("zsa-guide", "S2.html", "Hardened-only derivation", "wallet-guide", 390, "tap"),
     ("zsa-guide", "S4.html", "Orchard Action", "ironwood-guide", 768, "keyboard"),
     ("zsa-guide", "S2.html", "Net value commitment", "ironwood-guide", 1440, "click"),
     ("ironwood-guide", "S1.html", "Math Guide", "math-guide", 390, "tap"),
