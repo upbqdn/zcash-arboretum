@@ -73,6 +73,16 @@
 
 \definecolor{tierfull}{RGB}{210,140,40}
 \definecolor{tierin}{RGB}{60,130,180}
+\definecolor{tierspend}{RGB}{200,60,60}
+\definecolor{tierrecv}{RGB}{70,150,90}
+\tikzset{
+  keykn/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, minimum width=9mm, align=center},
+  keyix/.style={draw=gray, line width=0.7pt, rounded corners=2pt,
+    inner sep=3pt, minimum height=6mm, align=center},
+  keyed/.style={->, line width=0.6pt},
+  keylb/.style={font=\scriptsize, inner sep=1.5pt, align=center}}
 \tikzset{box/.style={draw=arb,rounded corners,inner sep=4pt,align=center,font=\small},
   flow/.style={-{Stealth[length=2mm]},thick,arb},
   labeltext/.style={font=\small,text=arbdim,align=center}}
@@ -479,19 +489,79 @@ d := \mathsf{FF1}_{\dk}\bigl(\LE{88}(j)\bigr),\qquad
 \]
 The address is $(d, \pkd)$.
 \vfill
-\begin{columns}[c]
-\begin{column}{0.44\textwidth}
-\centering
-\scalebox{0.8}{\LadderFig}
-\end{column}
-\begin{column}{0.54\textwidth}
 \begin{itemize}\itemsep5pt
 \item $2^{88}$ addresses per key, all with $\pkd = [\ivk]\,\gd$.
 \item Two addresses of one key are unlinkable without $\dk$ or $\ivk$.
 \item The address is all a sender needs.
 \end{itemize}
-\end{column}
-\end{columns}
+\vfill
+\end{frame}
+
+\begin{frame}{The key structure}
+\centering
+\resizebox{!}{0.84\textheight}{%
+\begin{tikzpicture}[y=0.7cm, font=\footnotesize, >={Stealth[length=1.8mm]}]
+% the account path
+\node[keyix] (S) at (0,0) {seed $S$};
+\node[keykn=tierspend] (m) at (3.0,0) {$(\sksym_m, \mathsf{c}_m)$};
+\node[keykn=tierspend] (p1) at (6.4,0) {$(\sksym, \mathsf{c})$\\at $32'$};
+\node[keykn=tierspend] (p2) at (9.8,0) {$(\sksym, \mathsf{c})$\\at $133'$};
+\node[keykn=tierspend] (acct) at (13.2,0) {$\sksym_{\mathsf{acct}}$};
+\draw[keyed] (S) -- node[keylb, above] {$\mathsf{MKG}$} (m);
+\draw[keyed] (m) -- node[keylb, above] {$\mathtt{0x81}$, $32'$} (p1);
+\draw[keyed] (p1) -- node[keylb, above] {$\mathtt{0x81}$, $133'$} (p2);
+\draw[keyed] (p2) -- node[keylb, above] {$\mathtt{0x81}$, $a'$} (acct);
+% spend-side secrets
+\node[keykn=tierspend] (ask) at (1.0,-2.4) {$\asksym$};
+\node[keykn=tierfull] (nk) at (5.0,-2.4) {$\nksym$};
+\node[keykn=tierfull] (rivk) at (9.0,-2.4) {$\rivk$};
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.75] {$\mathtt{0x06}$} (ask);
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.7] {$\mathtt{0x07}$} (nk);
+\draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.55] {$\mathtt{0x08}$} (rivk);
+% spend validating key
+\node[keykn=tierfull] (akP) at (1.0,-4.4) {$\akP$};
+\node[keykn=tierfull] (ak) at (1.0,-6.3) {$\aksym$};
+\draw[keyed] (ask) -- node[keylb, right] {$[\asksym]\,\GS$} (akP);
+\draw[keyed] (akP) -- node[keylb, right] {$\Ext$} (ak);
+% full viewing keys
+\node[keykn=tierfull] (fvk) at (5.0,-6.3) {$\fvk = (\aksym, \nksym, \rivk)$};
+\node[keykn=tierfull] (fvki) at (11.6,-6.3)
+  {$\fvk_{\mathsf{int}} = (\aksym, \nksym, \rivk_{\mathsf{int}})$};
+\draw[keyed] (ak) -- (fvk);
+\draw[keyed] (nk) -- (fvk);
+\draw[keyed] (rivk) -- (fvk);
+\draw[keyed] (fvk) -- node[keylb, above] {$\mathtt{0x83}$} (fvki);
+% per-scope viewing keys
+\node[keykn=tierin] (ivk) at (0.6,-8.4) {$\ivk$};
+\node[keykn=tierin] (dk) at (3.0,-8.4) {$\dk$};
+\node[keykn=tierin] (ovk) at (5.4,-8.4) {$\ovk$};
+\node[keykn=tierin] (ivki) at (9.2,-8.4) {$\ivk_{\mathsf{int}}$};
+\node[keykn=tierin] (dki) at (11.6,-8.4) {$\dk_{\mathsf{int}}$};
+\node[keykn=tierin] (ovki) at (14.0,-8.4) {$\ovk_{\mathsf{int}}$};
+\draw[keyed] (fvk) -- node[keylb, above left, pos=0.5] {$\CommitIvk$} (ivk);
+\draw[keyed] (fvk) -- node[keylb, fill=white, pos=0.55] {$\mathtt{0x82}$} (dk);
+\draw[keyed] (fvk) -- node[keylb, above right, pos=0.5] {$\mathtt{0x82}$} (ovk);
+\draw[keyed] (fvki) -- node[keylb, above left, pos=0.62] {$\CommitIvk$} (ivki);
+\draw[keyed] (fvki) -- node[keylb, fill=white, pos=0.55] {$\mathtt{0x82}$} (dki);
+\draw[keyed] (fvki) -- node[keylb, above right, pos=0.5] {$\mathtt{0x82}$} (ovki);
+% addresses
+\node[keykn=tierrecv] (addr) at (1.8,-10.6) {external address $(d_j, \pkd)$};
+\node[keykn=tierrecv] (addri) at (10.4,-10.6) {internal address $(d_j, \pkd)$};
+\node[keyix] (j) at (6.1,-10.6) {index $j < 2^{88}$};
+\draw[keyed] (dk) -- node[keylb, below right] {FF1} (addr);
+\draw[keyed] (ivk) -- node[keylb, below left] {$[\ivk]\,\gd$} (addr);
+\draw[keyed] (j) -- (addr);
+\draw[keyed] (dki) -- node[keylb, below right] {FF1} (addri);
+\draw[keyed] (ivki) -- node[keylb, below left] {$[\ivk_{\mathsf{int}}]\,\gd$} (addri);
+\draw[keyed] (j) -- (addri);
+% legend
+\foreach \c/\t/\x in {tierspend/spend/0.0, tierfull/full viewing/3.0,
+    tierin/incoming and outgoing viewing/6.4, tierrecv/address/11.6} {
+  \node[keykn=\c, minimum width=4mm, minimum height=3mm, inner sep=0pt]
+    (lg) at (\x,-11.9) {};
+  \node[keylb, anchor=west] at (lg.east) {\t};
+}
+\end{tikzpicture}}
 \end{frame}
 
 % ====================================================================
