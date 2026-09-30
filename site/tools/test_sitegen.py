@@ -379,7 +379,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
-    assert "\\section{Worked example: one computation," in complete_tex
+    assert "\\section{The verifier's decision and its implication chain}" in complete_tex
     for title in ("PQ Guide", "Tachyon Guide", "Voting Guide", "Crosslink Guide",
                   "Sync Guide"):
         assert f"\\part{{{title}:" not in complete_tex

@@ -5498,13 +5498,13 @@ $\G_{\Vesta}$, has an interactive opening protocol that is knowledge-sound
 under the discrete-logarithm assumption in that group,
 Assumption~\ref{ass:dl-vesta}, with an expected-polynomial-time tree
 extractor (\emph{Halo 2 Guide}, \S``The inner-product polynomial
-commitment'', Theorem ``Knowledge soundness of IPA''). The
-Fiat--Shamir-compiled argument inherits the interactive extraction bound only
-up to a loss in the adversary's random-oracle query count (same theorem;
-\S``Removing the verifier: the Fiat--Shamir transform''), and the tighter
-analyses in the algebraic group model are proved for the analysed protocol,
-not for the deployed transcript (\S``The algebraic group model''). No loss
-factor is asserted.
+commitment'', Theorem ``Knowledge soundness of the opening protocol'').
+The Fiat--Shamir-compiled argument inherits the interactive extraction bound
+only up to a loss in the adversary's random-oracle query count
+(\S``From the interactive extractor to the non-interactive argument''), and
+the tighter analyses in the algebraic group model are proved for the analysed
+protocol, not for the deployed transcript (\S``The algebraic group model'').
+No loss factor is asserted.
 \end{remark}
 
 \begin{assumption}[Zero knowledge of the Action proof]\label{ass:zk}
@@ -6622,10 +6622,11 @@ Encoding and Consensus''). The flags byte differs from $\mathsf{flagsOrchard}$
 only in bit~$2$, which is $\mathsf{enableCrossAddress}$ in
 $\mathsf{flagsIronwood}$ and reserved and $0$ in $\mathsf{flagsOrchard}$
 (``Bundle flags'', \S\ref{sec:action-flags}). The proof length is the one
-that ZIP 229 fixes; the \emph{Halo 2 Guide}, \S``The complete Halo 2
-protocol'', paragraph ``Proof size'', describes what its constant and its
-per-Action term cover. For one Action the proof has
-$2720 + 2272 = 4992$ bytes.
+that ZIP 229 fixes; the \emph{Halo 2 Guide}, \S``Halo 2's specifics:
+parameters, generators from a hash, the deferred multi-scalar
+multiplication, and the proof bytes'', paragraph ``The bytes'', describes
+what its constant and its per-Action term cover. For one Action the proof
+has $2720 + 2272 = 4992$ bytes.
 
 \FloatBarrier
 \subsection{Transaction digests and signatures}\label{sec:tx-sighash}

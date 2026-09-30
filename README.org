@@ -36,10 +36,10 @@ Layered; read each atop the ones it names.
    DLP/CDH/DDH hierarchy, hashes, commitments, PRFs and ciphers, key agreement,
    signatures, zero-knowledge and SNARKs, and Merkle trees, developed only as
    far as the upper volumes require.
-3. *Halo 2 Guide* (=halo2-guide.tex=) — PLONKish arithmetisation, the
-   permutation, lookup, and vanishing arguments, the inner-product polynomial
-   commitment, the Halo accumulation trick, and recursive proof composition,
-   closing with one worked statement carried end to end, every number real.
+3. *Halo 2 Guide* (=halo2-guide.tex=) — the Orchard proof system: PLONKish
+   arithmetisation and the inner-product commitment on a worked example over
+   a 97-element field, the deployed protocol and its knowledge soundness, and
+   recursion and accumulation, which Orchard does not deploy.
 
 ** Deployed protocol
 4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
