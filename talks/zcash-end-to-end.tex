@@ -75,6 +75,19 @@
 \definecolor{tierin}{RGB}{60,130,180}
 \definecolor{tierspend}{RGB}{200,60,60}
 \definecolor{tierrecv}{RGB}{70,150,90}
+% ---- A sigma protocol, three moves.
+\newcommand{\SigmaFig}[3]{%
+\begin{tikzpicture}[x=1cm,y=1cm,font=\small,
+  who/.style={font=\small\bfseries,text=arb},
+  msg/.style={-{Stealth[length=2mm]},thick}]
+\node[who] (P) at (0,0) {Prover};
+\node[who] (V) at (7,0) {Verifier};
+\draw[black!30] (0,-0.35) -- (0,-3.6);
+\draw[black!30] (7,-0.35) -- (7,-3.6);
+\draw[msg] (0.2,-1.0) -- (6.8,-1.0) node[midway,above] {#1};
+\draw[msg] (6.8,-2.0) -- (0.2,-2.0) node[midway,above] {#2};
+\draw[msg] (0.2,-3.0) -- (6.8,-3.0) node[midway,above] {#3};
+\end{tikzpicture}}
 \tikzset{
   keykn/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
     line width=0.7pt, rounded corners=2pt, inner sep=3pt,
@@ -548,13 +561,54 @@ Diffie--Hellman on a base chosen by the recipient: $s$ needs $\ivk$ or
 $\esk$. The pair $(\epk, C)$ names no one.
 \end{frame}
 
-\begin{frame}{Schnorr signatures}
-Key $x \in \FV$, public $X := [x]\,B$; to sign $M$, pick a fresh $r$:
+\begin{frame}{A sigma protocol}
+The prover knows $x$ with $X = [x]\,G$.
+\begin{center}
+\SigmaFig{$R = [k]\,G$, \ $k$ random}{$c$ random}{$s = k + c\,x$}
+\end{center}
 \[
-R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
+\text{Verifier checks}\qquad [s]\,G \overset{?}{=} R + [c]\,X
+\]
+\types{$x, k, c, s \in \FV$; $G, X, R \in \EP$.}
+\end{frame}
+
+\begin{frame}{Why it proves, and why it hides}
+\textbf{Special soundness.} Two accepting transcripts with the same $R$:
+\[
+(R, c, s),\ (R, c', s')\ \Longrightarrow\ x = \frac{s - s'}{c - c'}
+\]
+whoever answers two challenges knows $x$.
+\vfill
+\textbf{Zero knowledge.} A simulator with no $x$ picks $c$ and $s$ first:
+\[
+R := [s]\,G - [c]\,X
+\]
+the transcript has exactly the real distribution. The verifier learns
+nothing it could not have made itself.
+\end{frame}
+
+\begin{frame}{Fiat--Shamir: the verifier becomes a hash}
+\[
+c := \Hs(R,\ X,\ M)
+\]
+\vfill
+\begin{itemize}\itemsep6pt
+  \item The prover cannot pick $R$ after $c$: $c$ depends on $R$.
+  \item No interaction: anyone can check $(R, s)$ later.
+  \item Binding a message $M$ into $c$ makes $(R, s)$ a signature on $M$.
+  \item \textbf{sigma protocol $+$ Fiat--Shamir $=$ Schnorr signature.}
+\end{itemize}
+\types{$\Hs$ is modelled as a random oracle; Halo~2 draws its challenges the
+same way.}
+\end{frame}
+
+\begin{frame}{Schnorr signatures}
+Key $x \in \FV$, public $X := [x]\,B$; to sign $M$, pick a fresh $k$:
+\[
+R := [k]\,B, \qquad c := \Hs(R, X, M), \qquad s := k + c\,x
 \]
 \[
-\text{verify } (R, S) \colon \quad [S]\,B = R + [c]\,X
+\text{verify } (R, s) \colon \quad [s]\,B = R + [c]\,X
 \]
 \vfill
 \begin{itemize}\itemsep6pt
@@ -576,6 +630,7 @@ R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
 % the account path
 \node[keyix] (S) at (0,0) {seed $S$};
 \node[keykn=tierspend] (m) at (3.0,0) {$(\sksym_m, \mathsf{c}_m)$};
+\node[keylb, text=black!60, anchor=north] at (m.south) {$\sksym, \mathsf{c} \in \{0,1\}^{256}$};
 \node[keykn=tierspend] (p1) at (6.4,0) {$(\sksym, \mathsf{c})$\\at $32'$};
 \node[keykn=tierspend] (p2) at (9.8,0) {$(\sksym, \mathsf{c})$\\at $133'$};
 \node[keykn=tierspend] (acct) at (13.2,0) {$\sksym_{\mathsf{acct}}$};
@@ -584,15 +639,15 @@ R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
 \draw[keyed] (p1) -- node[keylb, above] {$\mathsf{PRF}$, $133'$} (p2);
 \draw[keyed] (p2) -- node[keylb, above] {$\mathsf{PRF}$, $a'$} (acct);
 % spend-side secrets
-\node[keykn=tierspend] (ask) at (1.0,-2.4) {$\asksym$};
-\node[keykn=tierfull] (nk) at (5.0,-2.4) {$\nksym$};
-\node[keykn=tierfull] (rivk) at (9.0,-2.4) {$\rivk$};
+\node[keykn=tierspend] (ask) at (1.0,-2.4) {$\asksym \in \FV$};
+\node[keykn=tierfull] (nk) at (5.0,-2.4) {$\nksym \in \FP$};
+\node[keykn=tierfull] (rivk) at (9.0,-2.4) {$\rivk \in \FV$};
 \draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.75] {$\mathsf{PRF}$} (ask);
 \draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.7] {$\mathsf{PRF}$} (nk);
 \draw[keyed] (acct) -- node[keylb, sloped, above, pos=0.55] {$\mathsf{PRF}$} (rivk);
 % spend validating key
-\node[keykn=tierfull] (akP) at (1.0,-4.4) {$\akP$};
-\node[keykn=tierfull] (ak) at (1.0,-6.3) {$\aksym$};
+\node[keykn=tierfull] (akP) at (1.0,-4.4) {$\akP \in \EP$};
+\node[keykn=tierfull] (ak) at (1.0,-6.3) {$\aksym \in \FP$};
 \draw[keyed] (ask) -- node[keylb, right] {$[\asksym]\,\GS$} (akP);
 \draw[keyed] (akP) -- node[keylb, right] {$\Ext$} (ak);
 % full viewing keys
@@ -604,9 +659,9 @@ R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
 \draw[keyed] (rivk) -- (fvk);
 \draw[keyed] (fvk) -- node[keylb, above] {$\mathsf{PRF}$} (fvki);
 % per-scope viewing keys
-\node[keykn=tierin] (ivk) at (0.6,-8.4) {$\ivk$};
-\node[keykn=tierin] (dk) at (3.0,-8.4) {$\dk$};
-\node[keykn=tierin] (ovk) at (5.4,-8.4) {$\ovk$};
+\node[keykn=tierin] (ivk) at (0.6,-8.4) {$\ivk \in \FP$};
+\node[keykn=tierin] (dk) at (3.0,-8.4) {$\dk \in \{0,1\}^{256}$};
+\node[keykn=tierin] (ovk) at (5.4,-8.4) {$\ovk \in \{0,1\}^{256}$};
 \node[keykn=tierin] (ivki) at (9.2,-8.4) {$\ivk_{\mathsf{int}}$};
 \node[keykn=tierin] (dki) at (11.6,-8.4) {$\dk_{\mathsf{int}}$};
 \node[keykn=tierin] (ovki) at (14.0,-8.4) {$\ovk_{\mathsf{int}}$};
@@ -617,8 +672,8 @@ R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
 \draw[keyed] (fvki) -- node[keylb, fill=white, pos=0.55] {$\mathsf{PRF}$} (dki);
 \draw[keyed] (fvki) -- node[keylb, above right, pos=0.5] {$\mathsf{PRF}$} (ovki);
 % addresses
-\node[keykn=tierrecv] (addr) at (1.8,-10.6) {external address $(d_j, \pkd)$};
-\node[keykn=tierrecv] (addri) at (10.4,-10.6) {internal address $(d_j, \pkd)$};
+\node[keykn=tierrecv] (addr) at (1.8,-10.6) {external address $(d_j, \pkd)$\\$\{0,1\}^{88} \times \EP$};
+\node[keykn=tierrecv] (addri) at (10.4,-10.6) {internal address $(d_j, \pkd)$\\$\{0,1\}^{88} \times \EP$};
 \node[keyix] (j) at (6.1,-10.6) {index $j < 2^{88}$};
 \draw[keyed] (dk) -- node[keylb, below right] {FF1} (addr);
 \draw[keyed] (ivk) -- node[keylb, below left] {$[\ivk]\,\gd$} (addr);
@@ -630,7 +685,7 @@ R := [r]\,B, \qquad c := \Hs(R, X, M), \qquad S := r + c\,x
 \foreach \c/\t/\x in {tierspend/spend/0.0, tierfull/full viewing/3.0,
     tierin/incoming and outgoing viewing/6.4, tierrecv/address/11.6} {
   \node[keykn=\c, minimum width=4mm, minimum height=3mm, inner sep=0pt]
-    (lg) at (\x,-11.9) {};
+    (lg) at (\x,-12.5) {};
   \node[keylb, anchor=west] at (lg.east) {\t};
 }
 \end{tikzpicture}}
