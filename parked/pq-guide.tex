@@ -606,9 +606,9 @@ signatures. Under a CRQC that inverts: the finalizer keys are long-lived
 roster identities that must stay secret indefinitely, and Shor forges
 their signatures, so an adversary manufactures the two-thirds agreement
 the BFT layer contributes. The prototype sources no threshold or
-post-quantum design for these keys anywhere; the \emph{FROST Guide}'s
-own inference (\S``Crosslink finalizer keys'') is that the natural
-fit would be \textsf{FROST}(Ed25519, SHA-512) --- itself classical.
+post-quantum design for these keys anywhere, and a threshold scheme
+over their group, RFC~9591's \textsf{FROST}(Ed25519, SHA-512), would
+itself be classical.
 Crosslink's safety is a disjunction --- assured finality from the
 proof-of-work prefix \emph{or} the BFT agreement (\emph{Crosslink
 Guide}, \S``The safety theorems and their assumptions''). In that
@@ -625,8 +625,8 @@ signs for (\textsf{reddsa}, \texttt{src/frost/redpallas.rs}: group
 Pallas, an aggregated signature verifying as an ordinary RedPallas
 spend-auth). ZIP-2005 extends its quantum-recovery mechanism to FROST
 through a shared quantum spending key $\mathsf{qsk}$ that every
-participant holds (\emph{FROST Guide}, \S``Custody of the ZIP-2005
-quantum spending key'') --- which defeats the $t$-of-$n$ threshold
+participant holds (\emph{FROST Guide}, \S``The key tree of an
+Orchard-protocol FROST key'') --- which defeats the $t$-of-$n$ threshold
 against a quantum adversary, since one compromised participant's
 $\mathsf{qsk}$ suffices. The ZIP accordingly recommends migrating
 FROST-held funds to a genuinely post-quantum threshold protocol ``as
