@@ -313,6 +313,25 @@ The attack succeeds when $z$ reaches $-1$.
 \end{center}
 \end{frame}
 
+\begin{frame}{Deriving the catch-up probability}
+Let $h_N(z)$ be the probability that the walk from $z$ reaches $-1$ before
+a ceiling $N$. Condition on the next block:
+\[
+h_N(z) = p\,h_N(z+1) + q\,h_N(z-1), \qquad h_N(-1) = 1, \quad h_N(N) = 0 .
+\]
+The trial solution $h_N(z) = t^z$ works exactly at the roots of
+\[
+p\,t^2 - t + q = p\,(t - 1)\,(t - q/p) ,
+\]
+so for $q \ne p$, $h_N(z) = A + B\,(q/p)^z$, and the two boundaries give
+\[
+h_N(z) = \frac{(q/p)^z - (q/p)^N}{(q/p)^{-1} - (q/p)^N}
+\;\xrightarrow{\;N \to \infty\;}\; a_z = (q/p)^{z+1} \qquad (q < p).
+\]
+For $q \ge p$ the limit is $1$: an attacker with half the hashrate or more
+always catches up.
+\end{frame}
+
 \begin{frame}{The catch-up probability}
 \[
 a_z = \Pr[\text{the walk ever reaches } {-1} \text{ from } z]
