@@ -1018,6 +1018,45 @@ the integers.}
 
 % ====================================================================
 \divider{How Halo 2 proves}
+
+\begin{frame}{The proving mechanism}
+\begin{center}
+\begin{tikzpicture}[x=1cm, y=1cm,
+  st/.style={draw=arb, fill=arb!6, rounded corners=2pt, inner sep=4pt,
+    font=\small, minimum width=9.4cm, align=center},
+  how/.style={font=\scriptsize\bfseries, text=arb, anchor=east},
+  why/.style={font=\scriptsize, text=black!60, anchor=west}]
+\node[st] (s0) at (0,0) {the prover knows a witness for the public statement};
+\node[st] (s1) at (0,-1.25)
+  {every row of a table satisfies the gate; wired cells agree};
+\node[st] (s2) at (0,-2.5)
+  {one polynomial identity: \ $G(X) = t(X)\,\GZH(X)$};
+\node[st] (s3) at (0,-3.75)
+  {one equation in the field: \ $G(z) = t(z)\,\GZH(z)$};
+\node[st] (s4) at (0,-5.0)
+  {one inner product: \ $\ip{\vec a}{\vec b} = v$ for a committed $\vec a$,
+   \ $\vec b = (1, z, \dots, z^{d-1})$};
+\draw[flow] (s0) -- (s1);
+\draw[flow] (s1) -- (s2);
+\draw[flow] (s2) -- (s3);
+\draw[flow] (s3) -- (s4);
+\node[how] at (-0.2,-0.625) {arithmetise};
+\node[why] at (0.2,-0.625) {exact: the circuit encodes the relation};
+\node[how] at (-0.2,-1.875) {interpolate the columns};
+\node[why] at (0.2,-1.875) {gates: exact; wiring: a permutation argument};
+\node[how] at (-0.2,-3.125) {commit, then $z := \mathsf{H}(\text{transcript})$};
+\node[why] at (0.2,-3.125) {error $\le \deg(G - t\,\GZH) / |\F|$};
+\node[how] at (-0.2,-4.375) {open the commitments at $z$};
+\node[why] at (0.2,-4.375) {binding: discrete logarithms};
+\end{tikzpicture}
+\end{center}
+\vfill
+Each step shrinks the claim. The inner-product argument folds the last line
+$\log_2 d$ times; the verifier recomputes the challenges and checks only the
+last two lines.
+\types{Zero knowledge: random blinding rows in the table and a blinder in
+every commitment.}
+\end{frame}
 \begin{frame}{The claim becomes a table}
 ``I know $x$ with $x^3 + x + 5 = 35$'' over $\F_{97}$; the witness $x = 3$:
 \[
@@ -1197,45 +1236,70 @@ scalar field is $\Fpp$.}
 \end{frame}
 
 \begin{frame}{The inner-product argument: one fold}
-Split every vector in half and publish two cross terms:
-\begin{align*}
-L &:= \ip{\Glo{\vec a}}{\Ghi{\vec G}} + [\ell]\,H + [\ip{\Glo{\vec a}}{\Ghi{\vec b}}]\,U, \\
-R &:= \ip{\Ghi{\vec a}}{\Glo{\vec G}} + [r_R]\,H + [\ip{\Ghi{\vec a}}{\Glo{\vec b}}]\,U .
-\end{align*}
-Challenge $u$; both sides fold:
+Put the commitment and the claimed value into one point:
+\[
+C := P + [v]\,U = \ip{\vec a}{\vec G} + [\ip{\vec a}{\vec b}]\,U
+\]
+Split every vector in half. The prover sends two cross terms:
+\[
+L := \ip{\Glo{\vec a}}{\Ghi{\vec G}} + [\ip{\Glo{\vec a}}{\Ghi{\vec b}}]\,U,
+\qquad
+R := \ip{\Ghi{\vec a}}{\Glo{\vec G}} + [\ip{\Ghi{\vec a}}{\Glo{\vec b}}]\,U
+\]
+The verifier sends a challenge $u$, and both sides fold:
 \[
 \vec a' := u\,\Glo{\vec a} + u^{-1}\Ghi{\vec a}, \qquad
 \vec G' := u^{-1}\Glo{\vec G} + u\,\Ghi{\vec G}, \qquad
 \vec b' := u^{-1}\Glo{\vec b} + u\,\Ghi{\vec b}
 \]
 \[
-P + [v]\,U + [u^2]\,L + [u^{-2}]\,R
-= \ip{\vec a'}{\vec G'} + [r + u^2 \ell + u^{-2} r_R]\,H + [\ip{\vec a'}{\vec b'}]\,U
+C' := C + [u^2]\,L + [u^{-2}]\,R
+  = \ip{\vec a'}{\vec G'} + [\ip{\vec a'}{\vec b'}]\,U
 \]
-\types{$u \in \Fpp^{\times}$; $L, R, U, H \in \Vs$; $\ell, r_R \in \Fpp$.}
 \vfill
-The same claim at half the length. The verifier folds $\vec G$ and $\vec b$
-itself and never sees $\vec a$.
+The same claim at half the length; the verifier never sees $\vec a$.
+\types{The blinding terms $[\,\cdot\,]\,H$ fold along in the same way and are
+omitted.}
 \end{frame}
 
-\begin{frame}{The recursion}
-After $k = \log_2 d$ rounds every vector has length $1$. The proof: $2k$
-points $(L_j, R_j)$, one scalar $a$, one blinder $r^{*}$.
-\[
-P + [v]\,U + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
-\overset{?}{=} [a]\,G^{(0)} + [r^{*}]\,H + [a\cdot b^{(0)}]\,U
-\]
-\types{$a, b^{(0)}, r^{*}, u_j \in \Fpp$; $G^{(0)}, L_j, R_j \in \Vs$.}
+\begin{frame}{Folding down to one}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\small]
+\foreach \w/\y/\t in {4.0/0/{$d$}, 2.0/-0.75/{$d/2$}, 1.0/-1.5/{$d/4$}} {
+  \draw[draw=arb, fill=arb!10, rounded corners=1pt] (0,\y) rectangle (\w,\y-0.3);
+  \node[anchor=west] at (\w+0.1,\y-0.15) {\t};
+}
+\node at (0.3,-2.1) {$\vdots$};
+\draw[draw=arb, fill=arb!10, rounded corners=1pt] (0,-2.55) rectangle (0.2,-2.85);
+\node[anchor=west] at (0.3,-2.7) {$1$};
+\node[anchor=east, font=\scriptsize, text=black!60] at (-0.15,-0.52)
+  {$L_1, R_1, u_1$};
+\node[anchor=east, font=\scriptsize, text=black!60] at (-0.15,-1.27)
+  {$L_2, R_2, u_2$};
+\node[anchor=east, font=\scriptsize, text=black!60] at (-0.15,-2.35)
+  {$L_k, R_k, u_k$};
+\end{tikzpicture}
+\end{column}
+\begin{column}{0.48\textwidth}
+After $k = \log_2 d$ folds every vector has length $1$, and the prover
+reveals the last scalar $a$.
+\end{column}
+\end{columns}
 \vfill
-\begin{itemize}\itemsep6pt
-  \item The scalar $b^{(0)} = \prod_j (u_j^{-1} + u_j\, z^{2^{j-1}})$, with
-    $u_1$
-    the last challenge: logarithmic work.
-  \item The point $G^{(0)} = \ip{\vec s}{\vec G}$: one multi-scalar
-    multiplication,
-    shared across a batch of proofs.
-  \item Binding: two openings would give a discrete-log relation among
-    $\vec G, H$; an extractor rewinds three challenges per round.
+The verifier checks, with $G^{*}$ and $b^{*}$ its own folded $\vec G$ and
+$\vec b$:
+\[
+C + \sum_{j=1}^{k}\bigl([u_j^2]\,L_j + [u_j^{-2}]\,R_j\bigr)
+\overset{?}{=} [a]\,G^{*} + [a\,b^{*}]\,U
+\]
+\vfill
+\begin{itemize}\itemsep4pt
+  \item The proof: $2 \log_2 d$ points and one scalar, in place of $d$
+    scalars.
+  \item A prover who passes with a wrong $v$ yields a discrete-log relation
+    among $\vec G$ and $U$.
 \end{itemize}
 \end{frame}
 
