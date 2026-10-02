@@ -210,8 +210,8 @@
 \node[rowlab] at (0.2,-0.9) {Action $1$};
 \draw[half=tierspend] (2.1,-0.25) rectangle (6.9,-1.55);
 \draw[half=tierrecv] (7.1,-0.25) rectangle (12.4,-1.55);
-\node[hint, anchor=north west] at (2.15,-0.28) {spend};
-\node[hint, anchor=north west] at (7.15,-0.28) {output};
+\node[hint, anchor=north west] at (2.15,-0.28) {spends the old note};
+\node[hint, anchor=north west] at (7.15,-0.28) {creates the new note};
 \node[chip] at (2.8,-1.07) {$\nfsym$};
 \node[chip] at (3.7,-1.07) {$\rk$};
 \node[chip] at (4.75,-1.07) {$\cvnet$};
@@ -225,8 +225,8 @@
   \node[rowlab] at (0.2,\y) {Action $\i$};
   \draw[half=tierspend] (2.1,\y+0.3) rectangle (6.9,\y-0.3);
   \draw[half=tierrecv] (7.1,\y+0.3) rectangle (12.4,\y-0.3);
-  \node[hint] at (4.5,\y) {spend};
-  \node[hint] at (9.75,\y) {output};
+  \node[hint] at (4.5,\y) {spends the old note};
+  \node[hint] at (9.75,\y) {creates the new note};
 }
 \node[text=arb] at (0.9,-2.9) {$\vdots$};
 % once per bundle
@@ -568,6 +568,29 @@ Diffie--Hellman on a base chosen by the recipient: $s$ needs $\ivk$ or
 $\esk$. The pair $(\epk, C)$ names no one.
 \end{frame}
 
+\begin{frame}{Key derivation}
+A derived key is a hash of a secret and a context, under a label that names
+its purpose:
+\begin{gather*}
+K := \KDF(s, \epk) = H_{\mathsf{KDF}}(s \,\|\, \epk) \\
+\mathsf{ock} := \KDF_{\ovk}(\cvnet, \cmx, \epk)
+  = H_{\mathsf{ock}}(\ovk \,\|\, \cvnet \,\|\, \cmx \,\|\, \epk)
+\end{gather*}
+\vfill
+\begin{itemize}\itemsep5pt
+\item \textbf{Extraction}: the secret $s$ is a uniform point, not uniform
+  bits; the hash turns it into a uniform cipher key.
+\item \textbf{Context}: the public transcript enters the hash, $\epk$ for
+  $K$ and $\cvnet, \cmx, \epk$ for $\mathsf{ock}$, so a key belongs to one
+  key agreement or one Action.
+\item \textbf{Separation}: distinct labels make $K$, $\mathsf{ock}$ and the
+  key-tree outputs $\PRF{k}(t)$ independent, even from equal inputs.
+\end{itemize}
+\vfill
+\types{Modelled as random oracles: without the secret input, a derived key
+is uniform and independent of every other.}
+\end{frame}
+
 \begin{frame}{A sigma protocol}
 The prover knows $x$ with $X = [x]\,G$.
 \begin{center}
@@ -778,28 +801,40 @@ strings.}
 \end{frame}
 
 \begin{frame}{The Action}
-Each Action spends one note and creates one:
-\vfill
 \begin{center}
+\begin{tikzpicture}[x=1cm, y=1cm]
+\node[box, draw=tierspend] (o) at (0,0) {old note $n^{\mathrm{old}}$\\
+  \scriptsize owned by the spender};
+\node[box, draw=arb, thick] (a) at (5.4,0) {Action};
+\node[box, draw=tierrecv] (n) at (10.8,0) {new note $n^{\mathrm{new}}$\\
+  \scriptsize for the recipient};
+\draw[flow] (o) -- node[above, font=\scriptsize, align=center]
+  {spent\\$\nfsym$ published} (a);
+\draw[flow] (a) -- node[above, font=\scriptsize, align=center]
+  {created\\$\cmx$ published} (n);
+\end{tikzpicture}
+\end{center}
+\vfill
+\begin{center}\small
 \begin{tabular}{@{}lll@{}}
 \toprule
-side & published & what it is \\
+ & published & what it is \\
 \midrule
-spend & $\nfsym$ & the spent note's nullifier \\
+old note & $\nfsym$ & its nullifier \\
  & $\rk$ & a re-randomised spend authorisation key \\
  & $\cvnet$ & a commitment to old minus new value \\
  & $\sigma_{\mathrm{auth}}$ & the spend authorisation signature, checked
    against $\rk$ \\
 \midrule
-output & $\cmx$ & the new note's commitment \\
- & $\epk$, $C_{\mathrm{enc}}$ & the new note, encrypted to its recipient \\
+new note & $\cmx$ & its commitment \\
+ & $\epk$, $C_{\mathrm{enc}}$ & the note, encrypted to its recipient \\
  & $C_{\mathrm{out}}$ & $(\pkd, \esk)$ under the sender's $\ovk$: reopens
    $C_{\mathrm{enc}}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 \vfill
-An unused side is a dummy note of value $0$. No field names a sender, a
+Either note may be a dummy of value $0$. No field names a sender, a
 recipient or an amount.
 \end{frame}
 
@@ -885,7 +920,7 @@ and marks the note spent when $\nfsym$ appears in a scanned block.
 % ====================================================================
 \divider{Spending}
 
-\begin{frame}{The spend side of an Action}
+\begin{frame}{Spending the old note}
 \begin{align*}
 \nfsym^{\mathrm{old}} &:= \DNf_{\nksym}(\rho, \psi, \cmsym) && \text{published} \\
 \rsk := \asksym + \alpha, \quad \rk &:= \akP + [\alpha]\,\GS && \text{fresh } \alpha \text{ per Action} \\
@@ -898,7 +933,7 @@ and marks the note spent when $\nfsym$ appears in a scanned block.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{The output side}
+\begin{frame}{Creating the new note}
 Each output is a new note, made as the received one was, with a fresh
 $\rseed$ and
 \[
@@ -908,7 +943,7 @@ It is encrypted to the payee's address $(d, \pkd)$:
 \begin{gather*}
 \epk := [\esk]\,\gd, \qquad K := \KDF([\esk]\,\pkd, \epk), \qquad
 C_{\mathrm{enc}} := \Enc_K(d, v, \rseed, \mathsf{memo}) \\
-\mathsf{ock} := \PRF{\ovk}(\cvnet, \cmx, \epk), \qquad
+\mathsf{ock} := \KDF_{\ovk}(\cvnet, \cmx, \epk), \qquad
 C_{\mathrm{out}} := \Enc_{\mathsf{ock}}(\pkd, \esk)
 \end{gather*}
 \vfill
