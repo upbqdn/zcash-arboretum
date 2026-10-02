@@ -1135,32 +1135,81 @@ Row $i$ gets the label $\omega^i$: a cycle of field values.
 \end{columns}
 \end{frame}
 
-\begin{frame}{Rows become polynomials}
-Row $i$ lives at $\omega^i \in H$. Interpolate each column:
+\begin{frame}{Columns become polynomials}
+Row $i$ lives at $\omega^i \in H$. A column with entries $v_0, \dots,
+v_{n-1}$ becomes the one polynomial of degree $< n$ through them:
 \[
-a(1) = 3,\ a(22) = 9,\ a(96) = 27,\ a(75) = 30
-\ \Longrightarrow\
-a(X) = 90 + 61X + 22X^2 + 24X^3
+v(\omega^i) = v_i \quad (0 \le i < n), \qquad
+v(X) = \sum_{i=0}^{n-1} v_i\, L_i(X), \quad
+L_i(\omega^j) = \begin{cases} 1 & j = i \\ 0 & j \ne i \end{cases}
 \]
-\[
-G(X) := q_M a b + q_L a + q_R b + q_O c + q_C + \mathrm{PI}
-\]
-\types{$a, b, c, q_\bullet, \mathrm{PI} \in \F_{97}[X]$ of degree $< 4$; $G \in
-\F_{97}[X]$ of degree $\le 9$.}
+\types{Lagrange interpolation; the basis $L_i$ depends only on $H$.}
 \vfill
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+column & entries at $1, 22, 96, 75$ & polynomial in $\F_{97}[X]$ \\
+\midrule
+$a$ & $3, 9, 27, 30$ & $90 + 61X + 22X^2 + 24X^3$ \\
+$b$ & $3, 3, 3, 0$ & $75 + 32X + 25X^2 + 65X^3$ \\
+$c$ & $9, 27, 30, 0$ & $65 + 16X + 3X^2 + 22X^3$ \\
+$q_M$ & $1, 1, 0, 0$ & $49 + 19X + 30X^3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The fixed columns $q_L, q_R, q_O, q_C$ and $\mathrm{PI}$ likewise. The table
+is now nine polynomials of degree $< 4$.
+\end{frame}
+
+\begin{frame}{The gate becomes one polynomial}
+Combine the column polynomials as the gate combines the columns:
+\[
+G(X) := q_M\, a\, b + q_L\, a + q_R\, b + q_O\, c + q_C + \mathrm{PI}
+\]
+At the point of row $i$ it evaluates to the gate equation of row $i$:
+\[
+G(\omega^i) = q_{M,i}\, a_i b_i + q_{L,i}\, a_i + q_{R,i}\, b_i
+  + q_{O,i}\, c_i + q_{C,i} + \mathrm{PI}_i
+\]
+\[
+\text{every row satisfies the gate}
+\iff G(\omega^i) = 0 \text{ for all } i
+\iff G \text{ vanishes on } H
+\]
+\types{$\deg G \le 3(n - 1) = 9$: the product $q_M a b$ has three factors
+of degree $< n$.}
+\vfill
+Toy:
+\[
+G(X) = 36 + 27X + 54X^2 + 50X^3 + 77X^4 + 24X^5 + 43X^6 + 47X^7 + 81X^8
+  + 46X^9
+\]
+with $G(1) = G(22) = G(96) = G(75) = 0$.
+\end{frame}
+
+\begin{frame}{Vanishing is divisibility}
+The vanishing polynomial of $H$:
 \[
 \GZH(X) := \prod_{h \in H}(X - h) = X^4 - 1
 \]
+\types{$H$ is the set of fourth roots of unity, so $\GZH = X^n - 1$.}
+\vfill
+A polynomial has a root at $h$ exactly when $X - h$ divides it. Over the
+four distinct points of $H$,
 \[
-\text{every gate holds}
-\iff G \text{ vanishes on } H
+G \text{ vanishes on } H
 \iff \GZH \mid G
-\iff G = t \cdot \GZH
+\iff G = t \cdot \GZH \text{ for some } t,\ \deg t \le 5 .
 \]
 \vfill
-A correct computation \emph{is} a polynomial identity. A wrong one cannot be:
-the lie $x^2 = 10$ in row $0$ leaves a remainder $24\,(1 + X + X^2 + X^3) \ne
-0$.
+Toy, honest: $t(X) = 61 + 70X + 43X^2 + 47X^3 + 81X^4 + 46X^5$, and
+$G = t \cdot \GZH$ exactly.
+\medskip
+
+Toy, the lie $x^2 = 10$ in row $0$: division by $\GZH$ leaves the remainder
+$24\,(1 + X + X^2 + X^3) \ne 0$, so no quotient $t$ exists.
+\vfill
+Every gate holding \emph{is} a polynomial identity. A failed gate cannot be.
 \end{frame}
 
 \begin{frame}{One random point}
