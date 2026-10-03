@@ -1406,6 +1406,28 @@ Every clause of the statement is a set of rows; one proof, one random
 point, one inner-product argument.
 \end{frame}
 
+\begin{frame}{A circuit checks; it does not compute}
+\[
+\Rel = \bigl\{(x, w) : \text{the table filled from } (x, w)
+  \text{ satisfies every gate, wire and lookup}\bigr\}
+\]
+\vfill
+\begin{itemize}\itemsep6pt
+  \item A circuit is a fixed relation: the rows, the columns, the gates and
+    the wiring are chosen once. The prover computes $w$ outside it, by any
+    means; the circuit only checks the trace.
+  \item Expressive within its size: any function of fixed-size inputs
+    computable in a bounded number of steps has a circuit. Every branch is
+    laid out and every loop unrolled, so the size is independent of the data.
+  \item Not Turing complete: no unbounded loop, no halting question; one
+    relation of bounded size. A different statement is a different circuit,
+    and a new circuit is a network upgrade.
+  \item Unbounded computation comes from chaining: a circuit that verifies
+    the previous proof. Halo's accumulation makes that verifier cheap;
+    Orchard does not deploy it.
+\end{itemize}
+\end{frame}
+
 % ====================================================================
 \begin{frame}{The whole path}
 \begin{center}
