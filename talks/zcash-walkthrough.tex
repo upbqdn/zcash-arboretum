@@ -462,54 +462,35 @@ up in trust.
 \end{frame}
 
 \begin{frame}{Pseudorandom functions}
-A keyed family $F = \{F_k\}$ is \emph{pseudorandom} if, for a uniform secret
-$k$, no efficient distinguisher with oracle access tells $F_k$ from a
-uniformly random function $R$:
+For a secret key $k$, outputs look uniform and independent. A wide output
+is reduced into the field that uses it:
 \[
-\bigl|\Pr[D^{F_k} = 1] - \Pr[D^{R} = 1]\bigr| \le \mathrm{negl} .
+\PRF{k}(t) := \mathrm{BLAKE2b}(k \,\|\, t) \in \{0,1\}^{512}
+\]
+\[
+\mathrm{ToBase}(x) := x \bmod \pP \in \FP, \qquad
+\mathrm{ToScalar}(x) := x \bmod \pV \in \FV
 \]
 \vfill
-\begin{itemize}\itemsep5pt
-\item \textbf{Expansion}: one secret $k$ yields the keys $F_k(t_1), F_k(t_2),
-  \dots$, each named by its tag; learning some reveals nothing of the others.
-\item \textbf{Unlinkability}: without $k$, the outputs on two inputs are
-  independent uniform values.
-\item \textbf{Determinism}: one input, one output: one note, one nullifier.
-\end{itemize}
-\vfill
-\types{Instantiated by BLAKE2b with the key as part of its input; Poseidon
-over $\FP$ where the proof must evaluate it; FF1 over AES as a keyed
-permutation.}
-\end{frame}
-
-\begin{frame}{The PRFs of the protocol}
-\begin{center}\small
-\begin{tabular}{@{}lllll@{}}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
 \toprule
-PRF & key & input & output & role \\
+reduction & values & why that field \\
 \midrule
-$\PRF{\sksym}(t)$ & $\sksym$ & a tag & $\asksym$, $\nksym$, $\rivk$ &
-  spending secrets \\
-$\PRF{c}(\sksym, i)$ & chain code $c$ & $\sksym_{\mathrm{par}}$, $i$ &
-  $(\sksym_i, c_i)$ & the key tree \\
-$\PRF{\rivk}(\aksym, \nksym)$ & $\rivk$ & $\aksym$, $\nksym$ & $\dk$, $\ovk$
-  & viewing keys \\
-$\PRF{\rseed}(t, \rho, \dots)$ & $\rseed$ & a tag, $\rho$ & $\esk$, $\psi$,
-  $\rcm$ & note randomness \\
-$\PRF{\nksym}^{\mathsf{nf}}(\rho)$ & $\nksym$ & $\rho$ & $\FP$ &
-  nullifiers \\
-$\PRF{\ovk}(\cvnet, \cmx, \epk)$ & $\ovk$ & Action fields & $\mathsf{ock}$ &
-  outgoing key \\
-$\mathsf{FF1}_{\dk}(j)$ & $\dk$ & index $j$ & diversifier $d$ & addresses \\
+$\mathrm{ToScalar}$, into $\FV$ & $\asksym$, $\rivk$, $\esk$, $\rcm$ &
+  scalars: they multiply Pallas points \\
+$\mathrm{ToBase}$, into $\FP$ & $\nksym$, $\psi$ & nullifier arithmetic, in
+  the circuit's field \\
+none & $\dk$, $\ovk$ & used as bit strings \\
 \bottomrule
 \end{tabular}
 \end{center}
 \vfill
-Two families: BLAKE2b, evaluated by wallets only, and Poseidon for the
-nullifier, which the proof must compute. Where a field element is needed
-the output is reduced into $\FP$ or $\FV$, with negligible bias.
-\types{$\mathsf{FF1}$ is a permutation of the index space: distinct
-indices give distinct diversifiers.}
+\[
+\PRF{\nksym}^{\mathsf{nf}}(\rho) := \mathsf{PoseidonHash}(\nksym, \rho) \in \FP
+\quad \text{\grey{the nullifier PRF: no reduction}}
+\]
+\types{$512$ bits modulo a $255$-bit prime: within $2^{-257}$ of uniform.}
 \end{frame}
 
 \begin{frame}{The Sinsemilla hash}
@@ -746,9 +727,9 @@ Path $m/32'/133'/a'$: purpose, coin type, account.
 
 \begin{frame}{Spending secrets}
 \begin{align*}
-\asksym &:= \PRF{\sksym}(\mathtt{ask}) \in \FV \\
-\nksym &:= \PRF{\sksym}(\mathtt{nk}) \in \FP \\
-\rivk &:= \PRF{\sksym}(\mathtt{rivk}) \in \FV
+\asksym &:= \mathrm{ToScalar}\bigl(\PRF{\sksym}(\mathtt{ask})\bigr) \in \FV \\
+\nksym &:= \mathrm{ToBase}\bigl(\PRF{\sksym}(\mathtt{nk})\bigr) \in \FP \\
+\rivk &:= \mathrm{ToScalar}\bigl(\PRF{\sksym}(\mathtt{rivk})\bigr) \in \FV
 \end{align*}
 \[
 \akP := [\asksym]\,\GS, \qquad \aksym := \Ext(\akP)
@@ -871,9 +852,10 @@ n = \bigl((d, \pkd),\ v,\ \rho,\ \psi,\ \rcm\bigr)
 with $v$ the amount and $\rho$ the nullifier of the note spent in the same
 Action. One seed fixes the rest:
 \begin{gather*}
-\esk := \PRF{\rseed}(\mathtt{esk}, \rho), \qquad
-\psi := \PRF{\rseed}(\mathtt{psi}, \rho), \\
-\rcm := \PRF{\rseed}(\mathtt{rcm}, \gd, \pkd, v, \rho, \psi)
+\esk := \mathrm{ToScalar}\bigl(\PRF{\rseed}(\mathtt{esk}, \rho)\bigr), \qquad
+\psi := \mathrm{ToBase}\bigl(\PRF{\rseed}(\mathtt{psi}, \rho)\bigr), \\
+\rcm := \mathrm{ToScalar}\bigl(\PRF{\rseed}(\mathtt{rcm}, \gd, \pkd, v, \rho,
+  \psi)\bigr)
 \end{gather*}
 \[
 \cmsym := \NoteCommit_{\rcm}(\gd, \pkd, v, \rho, \psi), \qquad
@@ -1412,20 +1394,13 @@ point, one inner-product argument.
   \text{ satisfies every gate, wire and lookup}\bigr\}
 \]
 \vfill
-\begin{itemize}\itemsep6pt
-  \item A circuit is a fixed relation: the rows, the columns, the gates and
-    the wiring are chosen once. The prover computes $w$ outside it, by any
-    means; the circuit only checks the trace.
-  \item Expressive within its size: any function of fixed-size inputs
-    computable in a bounded number of steps has a circuit. Every branch is
-    laid out and every loop unrolled, so the size is independent of the data.
-  \item Not Turing complete: no unbounded loop, no halting question; one
-    relation of bounded size. A different statement is a different circuit,
-    and a new circuit is a network upgrade.
-  \item Unbounded computation comes from chaining: a circuit that verifies
-    the previous proof. Halo's accumulation makes that verifier cheap;
-    Orchard does not deploy it.
+\begin{itemize}\itemsep10pt
+  \item Fixed size: every branch laid out, every loop unrolled.
+  \item Bounded computation only: not Turing complete.
+  \item Unbounded computation: proofs that verify proofs; not deployed by
+    Orchard.
 \end{itemize}
+\vfill
 \end{frame}
 
 % ====================================================================
