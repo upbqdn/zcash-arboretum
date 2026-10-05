@@ -12,6 +12,14 @@
   src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
   font-weight: 400 800; font-style: italic; font-display: swap;
 }
+/* IPA symbols, which the EB Garamond subset lacks; scaled to its x-height. */
+@font-face {
+  font-family: "Arboretum IPA";
+  src: url("fonts/stix2-ipa.woff2") format("woff2");
+  unicode-range: U+0250-02FF, U+014B, U+03B8;
+  size-adjust: 84.6%;
+  font-weight: 400; font-style: normal; font-display: swap;
+}
 @font-face {
   font-family: "TeX Gyre Pagella Math";
   src: url("fonts/texgyrepagella-math.woff2") format("woff2");
@@ -32,7 +40,8 @@
   --plaque-ink: #59636e;
   --tierin-mix: 6%;
   --tierfull-mix: 7%;
-  --serif: "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
+  --serif: "EB Garamond", "Arboretum IPA", Garamond, Georgia, "Times New Roman",
+    serif;
   --display: var(--serif);
   --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
 }
