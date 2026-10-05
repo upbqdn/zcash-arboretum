@@ -12,11 +12,12 @@
   src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
   font-weight: 400 800; font-style: italic; font-display: swap;
 }
-/* IPA symbols, which the EB Garamond subset lacks; scaled to its x-height. */
+/* IPA symbols and Greek letters, which the EB Garamond subset lacks; scaled to its
+   x-height. */
 @font-face {
   font-family: "Arboretum IPA";
   src: url("fonts/stix2-ipa.woff2") format("woff2");
-  unicode-range: U+0250-02FF, U+014B, U+03B8;
+  unicode-range: U+0250-02FF, U+014B, U+0370-03FF;
   size-adjust: 84.6%;
   font-weight: 400; font-style: normal; font-display: swap;
 }
