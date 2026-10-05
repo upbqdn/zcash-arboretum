@@ -31,6 +31,9 @@
 % definitions/constructions blue (tierin), assumptions amber (tierfull),
 % proved statements a neutral bar; remarks and examples run unframed
 \usepackage{mdframed}
+\newfontfamily\ipafont{STIX2Text-Regular}[Path=fonts/, Extension=.otf,
+  Scale=MatchLowercase]
+\newcommand{\ipa}[1]{{\ipafont #1}}
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
 \providecolor{tierspend}{RGB}{200,60,60}
@@ -56,6 +59,7 @@
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
+\providecommand{\ipa}[1]{#1}
 \newcommand{\N}{\ensuremath{\mathbb{N}}}
 \newcommand{\Z}{\ensuremath{\mathbb{Z}}}
 \newcommand{\Q}{\ensuremath{\mathbb{Q}}}
@@ -313,11 +317,10 @@ We prove statements about all natural numbers by induction.
 Tables~\ref{tab:notation-bb}--\ref{tab:notation-ops} list the three
 alphabets of the series---blackboard-bold letters for the standard number
 systems and structures, Greek letters such as \(\lambda\) and \(\rho\) for
-parameters and challenges, and relational and operator symbols---with common
-English pronunciations spelled approximately for reading mathematics aloud.
-These vary between speakers and regions; the alternatives shown are not
-exhaustive. A
-capitalised syllable carries the stress, and a slash separates alternatives.
+parameters and challenges, and relational and operator symbols---with their
+English readings: the Greek letters in the International Phonetic Alphabet,
+the other symbols as the words read aloud. Readings vary between speakers and
+regions; the alternatives shown are not exhaustive.
 Each symbol is defined where it is first used; the notes here are
 reminders, not definitions.
 
@@ -353,48 +356,46 @@ denotes. Elliptic curves are written italic \(E\) or calligraphic
 \begin{table}[ht]
 \centering
 \small
-\setlength{\tabcolsep}{2pt}
-\begin{tabular}{@{}ccll@{}c@{\qquad}ccll@{}}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}cclll@{}}
 \toprule
-Lower & Capital & Name & Said && Lower & Capital & Name & Said \\
+Lower & Capital & Name & British & American \\
 \midrule
-\(\alpha\) & \(\mathrm{A}\) & alpha & AL-fa
-  && \(\nu\) & \(\mathrm{N}\) & nu & nyoo / noo \\
-\(\beta\) & \(\mathrm{B}\) & beta & BEE-ta / BAY-ta
-  && \(\xi\) & \(\Xi\) & xi & ksigh / zigh \\
-\(\gamma\) & \(\Gamma\) & gamma & GAM-a
-  && \(o\) & \(\mathrm{O}\) & omicron & OM-i-kron / oh-MY-kron \\
-\(\delta\) & \(\Delta\) & delta & DEL-ta
-  && \(\pi\) & \(\Pi\) & pi & pie \\
-\(\epsilon,\varepsilon\) & \(\mathrm{E}\) & epsilon & EP-si-lon / ep-SIGH-lun
-  && \(\rho\) & \(\mathrm{P}\) & rho & roe \\
-\(\zeta\) & \(\mathrm{Z}\) & zeta & ZEE-ta / ZAY-ta
-  && \(\sigma\) & \(\Sigma\) & sigma & SIG-ma \\
-\(\eta\) & \(\mathrm{H}\) & eta & EE-ta / AY-ta
-  && \(\tau\) & \(\mathrm{T}\) & tau & tow / taw \\
-\(\theta\) & \(\Theta\) & theta & THEE-ta / THAY-ta
-  && \(\upsilon\) & \(\Upsilon\) & upsilon & UP-si-lon / yoop-SIGH-lun \\
-\(\iota\) & \(\mathrm{I}\) & iota & eye-OH-ta
-  && \(\phi,\varphi\) & \(\Phi\) & phi & fie / fee \\
-\(\kappa\) & \(\mathrm{K}\) & kappa & KAP-a
-  && \(\chi\) & \(\mathrm{X}\) & chi & kigh \\
-\(\lambda\) & \(\Lambda\) & lambda & LAM-da
-  && \(\psi\) & \(\Psi\) & psi & sigh / psigh / see / psee \\
-\(\mu\) & \(\mathrm{M}\) & mu & mew / moo
-  && \(\omega\) & \(\Omega\) & omega & OH-mig-a / oh-MAY-ga \\
+\(\alpha\) & \(\mathrm{A}\) & alpha & \ipa{/ˈælfə/} & \ipa{/ˈælfə/} \\
+\(\beta\) & \(\mathrm{B}\) & beta & \ipa{/ˈbiːtə/} & \ipa{/ˈbeɪtə/} \\
+\(\gamma\) & \(\Gamma\) & gamma & \ipa{/ˈɡæmə/} & \ipa{/ˈɡæmə/} \\
+\(\delta\) & \(\Delta\) & delta & \ipa{/ˈdɛltə/} & \ipa{/ˈdɛltə/} \\
+\(\epsilon,\varepsilon\) & \(\mathrm{E}\) & epsilon & \ipa{/ˈɛpsɪlɒn, ɛpˈsaɪlən, ɛpˈsaɪlɒn/} & \ipa{/ˈɛpsəlɑːn, ˈɛpsɪlɑːn, ˈɛpsələn/} \\
+\(\zeta\) & \(\mathrm{Z}\) & zeta & \ipa{/ˈziːtə/} & \ipa{/ˈzeɪtə, ˈziːtə/} \\
+\(\eta\) & \(\mathrm{H}\) & eta & \ipa{/ˈiːtə/} & \ipa{/ˈeɪtə, ˈiːtə/} \\
+\(\theta\) & \(\Theta\) & theta & \ipa{/ˈθiːtə/} & \ipa{/ˈθeɪtə, ˈθiːtə/} \\
+\(\iota\) & \(\mathrm{I}\) & iota & \ipa{/aɪˈəʊtə/} & \ipa{/aɪˈoʊtə/} \\
+\(\kappa\) & \(\mathrm{K}\) & kappa & \ipa{/ˈkæpə/} & \ipa{/ˈkæpə/} \\
+\(\lambda\) & \(\Lambda\) & lambda & \ipa{/ˈlæmdə/} & \ipa{/ˈlæmdə/} \\
+\(\mu\) & \(\mathrm{M}\) & mu & \ipa{/mjuː/} & \ipa{/muː, mjuː/} \\
+\(\nu\) & \(\mathrm{N}\) & nu & \ipa{/njuː/} & \ipa{/nuː, njuː/} \\
+\(\xi\) & \(\Xi\) & xi & \ipa{/saɪ, zaɪ, ksaɪ/} & \ipa{/saɪ, zaɪ, ksaɪ/} \\
+\(o\) & \(\mathrm{O}\) & omicron & \ipa{/əʊˈmaɪkrɒn, ˈɒmɪkrɒn, ˈəʊmɪkrɒn/} & \ipa{/ˈoʊmɪkrɑːn, ˈɑːmɪkrɑːn, ˈɑːməkrɑːn/} \\
+\(\pi\) & \(\Pi\) & pi & \ipa{/paɪ/} & \ipa{/paɪ/} \\
+\(\rho\) & \(\mathrm{P}\) & rho & \ipa{/rəʊ/} & \ipa{/roʊ/} \\
+\(\sigma\) & \(\Sigma\) & sigma & \ipa{/ˈsɪɡmə/} & \ipa{/ˈsɪɡmə/} \\
+\(\tau\) & \(\mathrm{T}\) & tau & \ipa{/taʊ, tɔː/} & \ipa{/taʊ, tɔː/} \\
+\(\upsilon\) & \(\Upsilon\) & upsilon & \ipa{/juːpˈsaɪlən, ˈʌpsɪlɒn, ˈʊpsɪlɒn/} & \ipa{/ˈʌpsəlɑːn, ˈʊpsɪlɑːn, ˈuːpsəlɑːn/} \\
+\(\phi,\varphi\) & \(\Phi\) & phi & \ipa{/faɪ/} & \ipa{/faɪ, fiː/} \\
+\(\chi\) & \(\mathrm{X}\) & chi & \ipa{/kaɪ/} & \ipa{/kaɪ, kiː/} \\
+\(\psi\) & \(\Psi\) & psi & \ipa{/psaɪ, saɪ/} & \ipa{/saɪ, psaɪ, psiː/} \\
+\(\omega\) & \(\Omega\) & omega & \ipa{/ˈəʊmɪɡə, əʊˈmiːɡə/} & \ipa{/oʊˈmeɪɡə, oʊˈmɛɡə, oʊˈmiːɡə/} \\
 \bottomrule
 \end{tabular}
 \caption{The 24 letters of the Greek alphabet in lower and upper case, with
-common English readings. For \(\beta\), \(\zeta\), \(\eta\), and \(\theta\),
-the EE forms are usual in British English; the AY forms are common in
-American English. The spellings ``ksigh'', ``zigh'', ``kigh'', and ``psigh''
-rhyme with ``eye''; the \emph{k} in ``kigh'' is hard, and the \emph{th} in
-theta is as in ``thin''. For \(\tau\), ``tow'' rhymes with ``cow'' and
-``taw'' with ``paw''. Greek-language readings differ: the Greek name for
-\(\xi\), for example, is approximately ``ksee''. The capital \(\Sigma\) is
-also the summation sign and names the \(\Sigma\)-protocol family of later
-volumes; the capital \(\Pi\) is also the product sign and, in those volumes,
-a conventional name for a protocol or problem.}
+their English names in the International Phonetic Alphabet: British (Received
+Pronunciation) and American (General American) as given by the Cambridge,
+Collins and Oxford dictionaries and Wiktionary, the most widely attested form
+first. Greek-language readings differ: the Greek name for \(\xi\), for
+example, is \ipa{[ksi]}. The capital \(\Sigma\) is also the summation sign
+and names the \(\Sigma\)-protocol family of later volumes; the capital
+\(\Pi\) is also the product sign and, in those volumes, a conventional name
+for a protocol or problem.}
 \label{tab:notation-greek}
 \end{table}
 

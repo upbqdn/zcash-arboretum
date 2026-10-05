@@ -95,7 +95,7 @@ greek_table = (sitegen.ROOT / "math-guide.tex").read_text().split(
     r"\label{tab:notation-greek}")[0].rsplit(r"\begin{tabular}", 1)[1]
 greek_rows = re.findall(r"\\\((.+?)\\\) & \\\((.+?)\\\) & ([a-z]+) &", greek_table)
 assert len(greek_rows) == 24
-assert [name for lower, capital, name in greek_rows[::2] + greek_rows[1::2]] == (
+assert [name for lower, capital, name in greek_rows] == (
     "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu "
     "nu xi omicron pi rho sigma tau upsilon phi chi psi omega").split()
 
