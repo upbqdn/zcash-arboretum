@@ -351,14 +351,14 @@ defined.
 \midrule
 Logarithms &
 The logarithm $\log x$ is natural and $\log_2 x$ is to base $2$
-(\emph{Math Guide}, \S``Symbols and how to say them''). For real $b > 0$,
+(\emph{Math Guide}, \S``Symbols and their pronunciation''). For real $b > 0$,
 $b \neq 1$, $\log_b x := \log x / \log b$, as in $\log_{1/c}$: a real-base
 logarithm, distinct from the discrete logarithm $\log_g h$, whose base is a
 group element. \\
 Floor, ceiling &
 The floor $\lfloor x \rfloor$ and ceiling $\lceil x \rceil$ of a real $x$
 (\emph{Math Guide},
-\S``Symbols and how to say them''; \S``The division algorithm''). \\
+\S``Symbols and their pronunciation''; \S``The division algorithm''). \\
 Asymptotics &
 The symbols $O$ and $\Theta$ and negligible functions are as in the
 \emph{Math Guide}, \S``Asymptotic notation'' and \S``Polynomial,
@@ -1739,8 +1739,7 @@ rate $\Lambda' / D$. Fix a time $t_0 > 0$ and let $W = \Lambda t_0$.
 probability $T / 2^\kappa = 1 / D(T)$, hence has expected work $1$ whatever
 the target. By linearity of expectation the expected work found in
 $[0, t_0]$ equals the expected number of honest queries in $[0, t_0]$, which
-is $\Lambda t_0 = W$ (\emph{Math Guide}, \S``The clock toolkit: exponential
-clocks, Poisson counts, and the Chernoff method'', Theorem ``Poisson arrival
+is $\Lambda t_0 = W$ (\emph{Math Guide}, \S``Exponential clocks, Poisson counts, and the Chernoff method'', Theorem ``Poisson arrival
 counts''). The honest chain carries at most the work found.
 
 (ii) At level $D = W$ the adversary's successes form an exponential clock of
@@ -1866,8 +1865,7 @@ Corollary~1: for $L = \Theta(\lambda)$ and every $\mu$ there is $c < 1$ for
 which the assumption holds at constant difficulty.
 
 The printed bound is the Chernoff bound of a Poisson variable of mean
-$\mu L$ (\emph{Math Guide}, \S``The clock toolkit: exponential clocks,
-Poisson counts, and the Chernoff method'', Corollary ``Chernoff bound for a
+$\mu L$ (\emph{Math Guide}, \S``Exponential clocks, Poisson counts, and the Chernoff method'', Corollary ``Chernoff bound for a
 Poisson variable''). The proof asserts without proof that such a variable
 models $X$, and it switches to the undefined symbols $1 - \delta$ and $n$, a
 footnote setting $\mu = 1 - \delta$. Under independent exponential block
@@ -1919,8 +1917,7 @@ the variable-difficulty backbone.
 \begin{proof}
 (i) By memorylessness the clocks restart at $a$, and the bound is the
 \emph{Math Guide}'s Theorem ``Chernoff bound for the arrival count'', with
-the law of Theorem ``Negative-binomial arrival count'' (\S``The clock
-toolkit: exponential clocks, Poisson counts, and the Chernoff method''),
+the law of Theorem ``Negative-binomial arrival count'' (\S``Exponential clocks, Poisson counts, and the Chernoff method''),
 which also shows $\beta < 1$. That proof attains $\beta$ at
 $e^{t^*} = c (1 + \mu) / (\mu (1 + c)) > 1$ as
 $e^{-t^* c} \Phi_1(t^*) = \beta$, where

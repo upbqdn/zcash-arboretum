@@ -351,8 +351,7 @@ the same notation.
 A signing set is written \(I\) and its Lagrange coefficients
 \(\lambda_{I,i}\) (Definition~\ref{def:lagrange}), the symbols of the
 \emph{Crypto Guide}, \S``Secret sharing'', in Construction ``Shamir
-\(t\)-of-\(n\) secret sharing'' and in Remark ``The leak, and where it is
-harmless'', which names this volume as the consumer of
+\(t\)-of-\(n\) secret sharing'' and in Remark ``Leakage of Feldman sharing'', which names this volume as the consumer of
 \(\lambda_{I,i}\)-weighted recombination. The generator \(G\) of that
 Guide's Construction ``Feldman verifiable secret sharing'' is \(B\) here. The
 group key and verification shares are \(\mathit{PK}\) and \(\mathit{PK}_i\),
@@ -483,7 +482,7 @@ commitments of \S\ref{sec:ts-keys} are published, the point \([s]B\) is public
 and secrecy below the threshold is computational: the view of \(t - 1\)
 participants is computable from \([s]B\) and \(t - 1\) uniform scalars. Since
 \([s]B\) is the group key, which is published in any case, nothing further
-escapes (\emph{Crypto Guide}, Remark ``The leak, and where it is harmless'').
+escapes (\emph{Crypto Guide}, Remark ``Leakage of Feldman sharing'').
 Distributed key generation is treated in \S\ref{sec:sec-keygen}.
 \end{remark}
 
@@ -958,7 +957,7 @@ each \(A_k\) is a fixed \(\Fq\)-linear combination of these values
 (interpolation in the exponent), the commitments are a function of
 \(\mathit{PK}\) and the shares. The algorithm samples \(t - 1\) uniform
 scalars as the shares and computes the commitments so; this is the argument
-of \emph{Crypto Guide}, Remark ``The leak, and where it is harmless''. If
+of \emph{Crypto Guide}, Remark ``Leakage of Feldman sharing''. If
 \(\lvert C \rvert < t - 1\), then, since \(t \le n\), some set
 \(C' \supseteq C\) of \(t - 1\) participants exists; the view of \(C\) is a
 projection of that of \(C'\), and the algorithm for \(C'\) followed by the
@@ -1929,8 +1928,7 @@ and with \(\rho_1 = \rho_2\), \(z_1 - z_2 = (\mu_1 - \mu_2)\,
 \mathit{sk}_i\).
 \end{proof}
 
-The last case is the \emph{Crypto Guide}'s Proposition ``Nonce reuse is
-fatal'' (\S``Security in the random oracle model and the forking lemma'')
+The last case is the \emph{Crypto Guide}'s Proposition ``Nonce reuse reveals the secret key'' (\S``Security in the random oracle model and the forking lemma'')
 applied to the effective nonce \(d + e \rho\). Whoever sees the shares and
 the public data can compute \(\mathit{sk}_i\) in the determined cases,
 since the shares travel without confidentiality

@@ -708,8 +708,7 @@ Vesta'', and are not reproduced. The map is deterministic, public and
 efficiently computable (\emph{Crypto Guide}, \S``Hashing to a field
 element'', Construction ``Expand-then-reduce''; \S``Hashing to a curve
 point'', Constructions ``Simplified Shallue--van de Woestijne--Ulas map''
-and ``The hash-to-curve pipeline'', Remark ``The isogeny detour forced by
-$j$-invariant~$0$'').
+and ``The hash-to-curve pipeline'', Remark ``The isogeny required by $j$-invariant $0$'').
 \end{construction}
 
 \begin{definition}[Domain separator and fixed generator]
@@ -1147,7 +1146,7 @@ and $\bot$ by key generation is stated there.
 Sinsemilla is used for its cost inside an arithmetic circuit with lookups,
 one table lookup and two incomplete additions over $\F_{p_{\Pallas}}$ per
 $k$-bit chunk (\emph{Crypto Guide}, \S``Sinsemilla: an algebraic hash-based
-commitment'', Remark ``Why Sinsemilla exists: cost inside a proof'';
+commitment'', Remark ``In-circuit cost of Sinsemilla'';
 \emph{Halo 2 Guide}, \S``The lookup argument'' and
 \S``From statement to circuit: arithmetisation in practice''), and its
 collision resistance reduces to discrete logarithms on Pallas together with
@@ -1846,8 +1845,7 @@ with the other key's private key drawn uniformly from $X_{\Pallas}$ (the
 $x$-coordinate of a uniform non-identity point), reduces to
 Assumption~\ref{ass:ddh-pallas}. Its reduction samples $(d_0, d_1, d')$
 itself and programs $\GroupHash$ at their three inputs with the planted
-bases before running the adversary. The \emph{Crypto Guide}'s Remark ``What
-key privacy buys upstairs'' records this correspondence for diversified
+bases before running the adversary. The \emph{Crypto Guide}'s Remark ``Key privacy of note encryption and diversified addresses'' records this correspondence for diversified
 addresses. Summing the costs of the hops, the advantage is negligible.
 \end{proof}
 
@@ -5853,8 +5851,7 @@ Proposition~\ref{prop:capabilities}, part~(d)).
 (3)~Now $\mathsf{epk} = [\mathsf{esk}]\,\gd$ with $\mathsf{esk}$ uniform on
 $\F_{p_{\Vesta}}^{*}$ is a uniform non-identity point for every generator
 $\gd$, and the $\mathsf{KDF}$ context contains no key of the recipient
-(\emph{Crypto Guide}, \S``Key privacy'', Remark ``What key privacy buys
-upstairs''). The ciphertext $C_{\mathsf{enc}}$ is an encryption under a
+(\emph{Crypto Guide}, \S``Key privacy'', Remark ``Key privacy of note encryption and diversified addresses''). The ciphertext $C_{\mathsf{enc}}$ is an encryption under a
 uniform key used once, and Assumption~\ref{ass:aead}(a) replaces
 $\mathsf{np}$ by the fixed string; the reduction obtains $C_{\mathsf{enc}}$
 from its challenger and computes the rest. The last game outputs

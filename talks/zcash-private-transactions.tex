@@ -260,7 +260,7 @@ add up amounts it cannot read & a homomorphic commitment: sealed
 \medskip
 The proof checks the claim; the other three tools make the claim about
 something fixed, unrepeatable, summable.
-\src{\emph{Crypto Guide}, ``Three questions''; ``The sealed envelope'';
+\src{\emph{Crypto Guide}, ``Soundness, zero knowledge, and succinctness''; ``Commit and reveal'';
   \emph{Ironwood Guide}, ``Nullifiers''}
 \end{frame}
 
@@ -5861,8 +5861,7 @@ first removes acceptance. Orchard, both pools: one retroactive break.
 \alert{Bitcoin:} no ciphertext to open, but a silent-payment scan key has
 the same retroactive shape (next frame); an exposed public key is the
 prospective case.
-\src{ZIP-2005, ``Motivation''; \emph{Crypto Guide}, ``The quantum caveat:
-Shor's algorithm''}
+\src{ZIP-2005, ``Motivation''; \emph{Crypto Guide}, ``Quantum adversaries: Shor's algorithm''}
 \end{frame}
 
 \begin{frame}{Retroactive: harvest now, decrypt later}
@@ -5953,7 +5952,7 @@ at current height under current rules.
 \alert{Bitcoin:} the same shape. ECDSA and Schnorr fall to one logarithm
 of an exposed public key, and the forged spend must still be mined.
 \src{ZIP-2005, ``Attacks addressed by the Recovery Protocol''; \emph{Crypto
-Guide}, ``The quantum caveat: Shor's algorithm''}
+Guide}, ``Quantum adversaries: Shor's algorithm''}
 \end{frame}
 
 % compute/i_limits.py:
@@ -5984,7 +5983,7 @@ assumption that made it \emph{enforceable} has fallen.
 \alert{Bitcoin:} SHA-256 and hardened BIP-32 derivation stand on the same
 ground.
 \src{\emph{Wallet Guide}, ``Key recoverability'';
-\emph{Crypto Guide}, ``The quantum caveat: Shor's algorithm''}
+\emph{Crypto Guide}, ``Quantum adversaries: Shor's algorithm''}
 \end{frame}
 
 % compute/b_quantum.py:
