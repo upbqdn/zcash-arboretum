@@ -115,15 +115,31 @@ PAGE_SCRIPT = """<script>
     });
   });
   show();
-  // Displays and tables that overflow the measure take the .arb-wide allowance (CSS cannot see
-  // overflow).
+  // Displays and tables that overflow the measure take the .arb-wide allowance, by --over (CSS
+  // cannot see overflow).
   function widen() {
     const wide = '.ltx_eqn_table, .ltx_page_main table.ltx_tabular';
     document.querySelectorAll(wide).forEach(function (t) {
       t.classList.remove('arb-wide');
-      if (t.scrollWidth > t.clientWidth + 1) t.classList.add('arb-wide');
+      const over = t.scrollWidth - t.clientWidth;
+      if (over > 1) {
+        t.style.setProperty('--over', over + 'px');
+        t.classList.add('arb-wide');
+      }
     });
+    requestAnimationFrame(edges);  // after the formula script's boxes too
   }
+  // A box that still scrolls fades the edge where content is hidden.
+  const boxes = '.ltx_eqn_table, .ltx_page_main :is(table.ltx_tabular, pre), .arb-math-scroll';
+  function edge(b) {
+    const more = b.scrollWidth - b.clientWidth;
+    b.classList.toggle('arb-more-l', more > 1 && b.scrollLeft > 1);
+    b.classList.toggle('arb-more-r', more > 1 && b.scrollLeft < more - 1);
+  }
+  function edges() { document.querySelectorAll(boxes).forEach(edge); }
+  document.addEventListener('scroll', function (e) {
+    if (e.target.matches && e.target.matches(boxes)) edge(e.target);
+  }, true);
   document.fonts.ready.then(widen);
   let timer;
   addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(widen, 400); });
@@ -307,6 +323,11 @@ def mono(s):
     return all(0x1D670 <= ord(c) <= 0x1D6A3 or 0x1D7F6 <= ord(c) <= 0x1D7FF for c in s)
 
 
+# ASCII letters and digits to Mathematical Monospace, as LaTeXML writes most of a \mathtt constant
+MONO = str.maketrans("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+                     "".join(map(chr, [*range(0x1D7F6, 0x1D800), *range(0x1D670, 0x1D6A4)])))
+
+
 def ascii_copy(m):
     """Pagefind ignores the MathML and indexes a hidden NFKC copy, so a search for ivk or
     GroupHash finds 𝗂𝗏𝗄 and 𝖦𝗋𝗈𝗎𝗉𝖧𝖺𝗌𝗁."""
@@ -442,18 +463,39 @@ def mathml_fix(source, split=True):
                 mo.attrib.setdefault("lspace", "0em")
                 mo.attrib.setdefault("rspace", "0em")
                 in_script.add(mo)
+    parent = {k: e for e in root.iter() for k in e}
     for tok in [e for e in root.iter() if "monospace" in e.get("class", "")
                 and e.text and "\u2009" in e.text and not len(e)]:
         # \, in a \mathtt constant: LaTeXML writes U+2009 into the token, which the mono sets
-        # 0.39 em wide; TeX's \, is 0.167 em
+        # 0.39 em wide; TeX's \, is 0.167 em. A piece of letters and digits takes the Unicode
+        # monospace its neighbours have: Firefox maps mathvariant to it in the text mono, which
+        # lacks it, so the piece fell back to another face and size.
+        # In a row the pieces replace the token: Firefox spaces an invisible times beside an mrow.
         tag, attrs, parts = tok.tag, dict(tok.attrib), tok.text.split("\u2009")
-        tok.tag, tok.text = "mrow", None
-        tok.attrib.clear()
+        plain = {k: v for k, v in attrs.items() if k not in ("class", "mathvariant")}
+        bits = []
         for i, part in enumerate(parts):
             if i:
-                ET.SubElement(tok, "mspace", {"width": "0.167em"})
-            if part:
-                ET.SubElement(tok, tag, attrs).text = part
+                bits.append(ET.Element("mspace", {"width": "0.167em"}))
+            if part and part.isascii() and part.isalnum():
+                bits.append(ET.Element(tag, plain))
+                bits[-1].text = part.translate(MONO)
+            elif part:
+                bits.append(ET.Element(tag, attrs))
+                bits[-1].text = part
+        row = parent.get(tok)
+        if row is not None and row.tag in ("mrow", "math"):
+            i = list(row).index(tok)
+            row[i:i + 1] = bits
+        else:
+            tok.tag, tok.text = "mrow", None
+            tok.attrib.clear()
+            tok[:] = bits
+    for tok in root.iter("mi"):
+        # Firefox spaces a multi-letter identifier like an operator name beside an invisible
+        # times; a run of a \mathtt constant is text
+        if tok.text and len(tok.text) > 1 and mono(tok.text):
+            tok.tag = "mtext"
     for over in root.iter("mover"):
         # \vec: LaTeXML's accent is a full-size → (wider than its base); TeX's is U+20D7
         if over.get("accent") == "true" and over[-1].tag == "mo" and over[-1].text == "→":

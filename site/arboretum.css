@@ -60,6 +60,8 @@ math { font-family: var(--math); font-feature-settings: "ss03"; }
    Text in a formula neither wraps nor hyphenates: a formula breaks only between its pieces, and a
    wrappable \texttt let Chromium size the formula narrower than its content. */
 math { text-align: start; white-space: nowrap; hyphens: manual; }
+/* Firefox centres a display by text-align (Chromium whatever it is) */
+math[display="block"] { text-align: center; }
 .ltx_mathvariant_monospace { font-family: var(--mono); font-size-adjust: ex-height var(--xh); }
 /* LaTeXML.css sets \mathcal in Lucida Calligraphy / Zapf Chancery; the math font draws it */
 math .ltx_font_mathcaligraphic { font-family: inherit; }
@@ -616,15 +618,31 @@ em.ltx_emph { font-style: italic; }
   vertical-align: middle;
   text-indent: 0;  /* not the paragraph's */
 }
-/* wide displays, tables and verbatim scroll in their own box */
+/* Wide displays, tables and verbatim scroll in their own box; the page script marks the edge
+   where content is hidden, and the mask fades it (short of a sticky equation number). */
+.arb-more-r {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2em - var(--eqw, 0px)),
+    transparent calc(100% - var(--eqw, 0px)), #000 0);
+}
+.arb-more-l { mask-image: linear-gradient(to right, transparent, #000 2em); }
+.arb-more-l.arb-more-r {
+  mask-image: linear-gradient(to right, transparent, #000 2em,
+    #000 calc(100% - 2em - var(--eqw, 0px)), transparent calc(100% - var(--eqw, 0px)), #000 0);
+}
 
 @media (min-width: 1100px) {
-  /* A display or table wider than the measure extends into the right margin, up to 1.2
-     measures (as the PDFs' 150 mm against the 125 mm block) and no further than the margin;
-     beyond that it scrolls. */
-  :root { --wide: min(.2 * var(--measure), (100vw - var(--nav-w) - var(--measure)) / 2 - 1.5rem); }
-  .ltx_eqn_table.arb-wide { width: auto; max-width: none; margin-right: calc(-1 * var(--wide)); }
-  .ltx_page_main table.ltx_tabular.arb-wide { max-width: calc(100% + var(--wide)); }
+  /* A display or table wider than the measure (by --over) stays centred and extends into both
+     margins, up to 1.5 measures in all and no further than the margins; beyond that it
+     scrolls. */
+  :root { --wide: min(.25 * var(--measure), (100vw - var(--nav-w) - var(--measure)) / 2 - 1.5rem); }
+  .ltx_eqn_table.arb-wide {
+    width: auto; max-width: none;
+    margin-inline: calc(-1 * min(var(--over) / 2, var(--wide)));
+  }
+  .ltx_page_main table.ltx_tabular.arb-wide {
+    max-width: calc(100% + 2 * var(--wide));
+    margin-left: calc(-1 * min(var(--over) / 2, var(--wide)));
+  }
 }
 
 /* ---------- lists ---------- */

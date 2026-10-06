@@ -103,13 +103,19 @@ comma = sitegen.mathml_fix(
     '<mo>}</mo><msub><mi>E</mi><mrow><mi>P</mi><mo rspace="0em">,</mo><mo>⋅</mo></mrow></msub>'
     '</mrow></math>', split=False)
 assert comma.count('<mo>,</mo>') == 1 and '<mo rspace="0em" lspace="0em">,' in comma, comma
-# \, in a \mathtt constant is TeX's 0.167 em, not the mono's U+2009.
-hexed = sitegen.mathml_fix('<math display="inline"><mn class="ltx_mathvariant_monospace">'
-                           ' 0db5 7d4a</mn></math>', split=False)
+# \, in a \mathtt constant is TeX's 0.167 em, not the mono's U+2009; its pieces take the
+# Unicode monospace of the rest of the constant, and keep their size.
+hexed = sitegen.mathml_fix('<math display="inline"><mn class="ltx_mathvariant_monospace" '
+                           'mathvariant="monospace" mathsize="80%"> 0db5 7d4a</mn>'
+                           '</math>', split=False)
 assert hexed == (
-    '<math display="inline"><mrow><mspace width="0.167em"></mspace>'
-    '<mn class="ltx_mathvariant_monospace">0db5</mn><mspace width="0.167em"></mspace>'
-    '<mn class="ltx_mathvariant_monospace">7d4a</mn></mrow></math>'), hexed
+    '<math display="inline"><mspace width="0.167em"></mspace>'
+    '<mn mathsize="80%">𝟶𝚍𝚋𝟻</mn><mspace width="0.167em"></mspace>'
+    '<mn mathsize="80%">𝟽𝚍𝟺𝚊</mn></math>'), hexed
+# A multi-letter run of a \mathtt constant is text, a letter an identifier.
+runs = sitegen.mathml_fix('<math display="inline"><mrow><mi>𝚋</mi><mo>⁢</mo><mi>𝚎𝟼</mi>'
+                          '</mrow></math>', split=False)
+assert '<mi>𝚋</mi>' in runs and '<mtext>𝚎𝟼</mtext>' in runs, runs
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
 MERGED = ("halo2-intuition-guide", "sync-guide")
