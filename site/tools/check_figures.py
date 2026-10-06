@@ -45,7 +45,7 @@ async def main(base, candidate=False):
                 prefix = "V5." if volume == "complete" else ""
                 path = f"{volume}/{prefix}S{section}.html"
                 await ready(page, f"{base}/{path}")
-                img = page.locator(f'img[src*="ironwood-guide-fig{number}.png"]')
+                img = page.locator(f'img[src*="ironwood-guide-fig{number}.svg"]')
                 await img.evaluate("image => image.decode()")
                 for width in (320, 390, 768, 1024, 1440):
                     await page.set_viewport_size({"width": width, "height": 1000})

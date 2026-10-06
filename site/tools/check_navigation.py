@@ -13,7 +13,6 @@ from playwright.async_api import async_playwright
 
 async def ready(page, url):
     await page.goto(url)
-    await page.evaluate("window.MathJax?.startup?.promise")
     await page.evaluate("document.fonts.ready")
 
 
@@ -61,7 +60,6 @@ async def check(page, base, path):
     target = await guide.evaluate("link => link.href")
     await guide.tap()
     await page.wait_for_url(target)
-    await page.evaluate("window.MathJax?.startup?.promise")
     await page.evaluate("document.fonts.ready")
     contents = page.locator(".ltx_page_main #arb-contents")
     assert await contents.is_visible()
@@ -85,8 +83,7 @@ async def check_titles(page, base, path):
             paragraphs.length > 0 && paragraphs.every(p => {
                 const block = getComputedStyle(p).display === 'inline'
                     ? p.parentElement : p;
-                return getComputedStyle(block).textAlign ===
-                    (innerWidth <= 640 ? 'left' : 'justify');
+                return getComputedStyle(block).textAlign === 'justify';
             })
         """), (path, width, 'paragraph alignment')
         assert not await page.locator('a a').count(), path
@@ -136,9 +133,9 @@ async def main(base, stylesheet=None):
         for path in ("math-guide/S10.html", "complete/V1.S10.html"):
             await page.set_viewport_size({"width": 768, "height": 1024})
             await ready(page, f'{base.rstrip("/")}/{path}')
-            link = page.locator('.ltx_title_subsection > .arb-heading-link:has(mjx-container)').first
+            link = page.locator('.ltx_title_subsection > .arb-heading-link:has(math)').first
             target = await link.evaluate('link => link.href')
-            await link.locator('mjx-container').first.tap()
+            await link.locator('math').first.tap()
             await page.wait_for_url(target)
             print(f"Mathematical title link passed: {path}", flush=True)
         await browser.close()

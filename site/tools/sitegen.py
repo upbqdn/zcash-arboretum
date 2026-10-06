@@ -15,6 +15,7 @@ Modes:
   postprocess  Finish the generated HTML pages in --out.
 """
 
+import datetime
 import re
 import shutil
 import subprocess
@@ -24,7 +25,10 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from html import escape, unescape
 from html.parser import HTMLParser
+from itertools import takewhile
 from pathlib import Path
+
+from mathbreak import SCRIPTED, pieces
 
 ROOT = Path(__file__).resolve().parents[2]
 FIGDIR = ROOT / "site" / "figures"
@@ -69,36 +73,67 @@ dependencies.  Each part restarts its own section numbering so that citations
 agree with the separately published volume.
 """
 
+# Two themes; the retired warm and midnight keys map to them.
 THEME_INIT = """<script>
 try {
-  const theme = localStorage.getItem('arb-theme');
-  if (['light', 'warm', 'dark', 'midnight'].includes(theme))
-    document.documentElement.dataset.theme = theme;
+  const theme = {light: 'light', warm: 'light', dark: 'dark', midnight: 'dark'}[
+    localStorage.getItem('arb-theme')];
+  if (theme) document.documentElement.dataset.theme = theme;
 } catch (_) {}
 </script>"""
-THEME_PICKER = """<select class="arb-theme" aria-label="Theme">
-<option value="system">System</option>
-<option value="light">Light</option>
-<option value="warm">Warm light</option>
-<option value="dark">Dark</option>
-<option value="midnight">Warm dark</option>
-</select>
-<script>
+THEME_BUTTON = '<button class="arb-theme" type="button">Dark</button>'
+# The theme buttons, the wide-display allowance and the Contents disclosure.
+PAGE_SCRIPT = """<script>
 (function () {
-  const select = document.currentScript.previousElementSibling;
-  let theme = 'system';
-  try { theme = localStorage.getItem('arb-theme') || theme; } catch (_) {}
-  if (!['system', 'light', 'warm', 'dark', 'midnight'].includes(theme)) theme = 'system';
-  select.value = theme;
-  select.addEventListener('change', function () {
-    theme = select.value;
-    if (theme === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem('arb-theme', theme); } catch (_) {}
+  const root = document.documentElement;
+  const dark = matchMedia('(prefers-color-scheme: dark)');
+  const buttons = document.querySelectorAll('.arb-theme');
+  const current = () => root.dataset.theme || (dark.matches ? 'dark' : 'light');
+  function label() {
+    const other = current() === 'dark' ? 'light' : 'dark';
+    buttons.forEach(function (b) {
+      b.textContent = other === 'dark' ? 'Dark' : 'Light';
+      b.setAttribute('aria-label', 'Use the ' + other + ' theme');
+    });
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      const next = current() === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try { localStorage.setItem('arb-theme', next); } catch (_) {}
+      label();
+    });
+  });
+  dark.addEventListener('change', label);
+  label();
+  // Displays and tables that overflow the measure take the .arb-wide allowance (CSS cannot see
+  // overflow).
+  function widen() {
+    const wide = '.ltx_eqn_table, .ltx_page_main table.ltx_tabular';
+    document.querySelectorAll(wide).forEach(function (t) {
+      t.classList.remove('arb-wide');
+      if (t.scrollWidth > t.clientWidth + 1) t.classList.add('arb-wide');
+    });
+  }
+  document.fonts.ready.then(widen);
+  let timer;
+  addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(widen, 400); });
+  const toc = document.querySelector('details.arb-toc');
+  const nav = document.querySelector('.ltx_page_navbar');
+  if (!toc || !nav) return;
+  document.addEventListener('click', function (e) {
+    if (!toc.open) return;
+    if (e.target.closest('.ltx_page_navbar a')) toc.open = false;
+    else if (!toc.contains(e.target) && !nav.contains(e.target)) toc.open = false;
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && toc.open) { toc.open = false; toc.querySelector('summary').focus(); }
   });
 })();
 </script>"""
 
+# Pagefind prints tags as bare "Key: value" text; the volume's key becomes the tag's
+# data-pagefind-ui-meta attribute, which the stylesheet prints alone ("V Ironwood Guide").
 SEARCH_OPTIONS = """showSubResults: true, showImages: false, excerptLength: 20,
     sort: { 'reading-order': 'asc' },
     processResult: function (result) {
@@ -107,6 +142,7 @@ SEARCH_OPTIONS = """showSubResults: true, showImages: false, excerptLength: 20,
         ...match,
         title: meta[`heading-${match.anchor?.id}`] || match.title
       })).sort((a, b) => a.locations[0] - b.locations[0]);
+      if (meta.volume) { meta[meta.volume] = ''; delete meta.volume; }
       for (const key of Object.keys(meta))
         if (key.startsWith('heading-')) delete meta[key];
       result = { ...result, meta, sub_results: matches };
@@ -153,68 +189,349 @@ TOC_SCRIPT = """<script>
 })();
 </script>"""
 
-MATHJAX = r"""<script>
-window.MathJax = {
-  loader: { paths: { fonts: '[mathjax]/../@mathjax' } },
-  options: { enableMenu: false },
-  tex: { macros: { qed: '\\tag*{□}' } },
-  output: {
-    font: 'mathjax-pagella',
-    matchFontHeight: false,
-    displayOverflow: 'linebreak',
-    linebreaks: { inline: true, width: '100%', lineleading: .2 }
-  },
-  startup: {
-    pageReady() {
-      return document.fonts.ready.then(() => MathJax.startup.defaultPageReady());
-    },
-    ready() {
-      document.querySelectorAll('math[alttext]').forEach(function (math) {
-        const tex = math.getAttribute('alttext').replace(/%\s+/g, '');
-        math.replaceWith(document.createTextNode(
-          math.getAttribute('display') === 'block'
-            ? `\\[${tex}\\]` : `\\(${tex}\\)`));
-      });
-      MathJax.startup.defaultReady();
+# TeX drops the space after an operator where it breaks the line. A formula piece (see
+# native_math) that ends its line hands that space back as a negative margin, so the operator
+# meets the margin when the line is justified; CSS cannot see a line end. Where the shorter line
+# would change a break, the line's word spaces take the operator's space instead: the line keeps
+# its width and its breaks. Breaks never move, so pieces are taken in order. A piece wider than
+# its column, with the text glued to it (unglue), is first boxed to scroll on its own.
+TRIM_SCRIPT = """<script>
+(function () {
+  const piece = w => {  // the piece before a break, alone or in a span with its glued text
+    const e = w.previousElementSibling;
+    return e?.localName === 'math' ? e : e?.querySelector('math');
+  };
+  const wbrs = [...document.querySelectorAll('wbr')].filter(piece);
+  const below = w => w.nextElementSibling.getBoundingClientRect().top
+    >= w.previousElementSibling.getBoundingClientRect().bottom - .5;
+  function blockOf(e) {
+    while (/^(inline|contents)/.test(getComputedStyle(e).display)) e = e.parentElement;
+    return e;
+  }
+  function widen(m, b, d) {  // the word spaces before m on its line, d px wider in all
+    const M = m.getBoundingClientRect(), found = [];
+    const walk = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
+    for (let n; (n = walk.nextNode()) && !(n.compareDocumentPosition(m) & 2);) {
+      if (n.parentElement.closest('math, [hidden]') || blockOf(n.parentElement) !== b) continue;
+      for (let i = n.data.length - 1; i >= 0; i--) {
+        if (!/[ \\n\\t\\u00a0]/.test(n.data[i])) continue;
+        const r = document.createRange();
+        r.setStart(n, i);
+        r.setEnd(n, i + 1);
+        const x = r.getBoundingClientRect();
+        if (x.width > .01 && x.top < M.bottom && x.bottom > M.top) found.push([n, i]);
+      }
+    }
+    return found.map(([n, i]) => {
+      n.splitText(i + 1);
+      const sp = n.splitText(i), s = document.createElement('span');
+      s.className = 'arb-ws';
+      s.style.wordSpacing = d / found.length + 'px';
+      sp.replaceWith(s);
+      s.append(sp);
+      return s;
+    });
+  }
+  function fit() {  // a piece wider than its column scrolls in its own box
+    document.querySelectorAll('.arb-math-scroll').forEach(s => s.replaceWith(...s.childNodes));
+    document.querySelectorAll('.ltx_page_main math').forEach(m => {
+      if (m.closest('table')) return;  // displays and tables scroll whole
+      let u = m;
+      while (u.parentElement.matches('.arb-nobr, .arb-proof-end')) u = u.parentElement;
+      const b = blockOf(u.parentElement), cs = getComputedStyle(b);
+      if (u.getBoundingClientRect().width
+          <= b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + 1) return;
+      const s = document.createElement('span');
+      s.className = 'arb-math-scroll';
+      u.replaceWith(s);
+      s.append(u);
+    });
+  }
+  function trim() {
+    document.querySelectorAll('.arb-ws').forEach(s => s.replaceWith(...s.childNodes));
+    document.body.normalize();
+    wbrs.forEach(w => { w.previousElementSibling.style.marginInlineEnd = ''; });
+    fit();
+    const cut = [];
+    for (let i = 0; i < wbrs.length; i++) {
+      const w = wbrs[i], m = piece(w);
+      if (!below(w)) continue;
+      const b = blockOf(m.parentElement), top = m.getBoundingClientRect().top;
+      const op = [...m.children].filter(k => k.localName !== 'mspace').pop();
+      const d = m.getBoundingClientRect().right - op.getBoundingClientRect().right;
+      if (d < .5) continue;
+      const ok = () => below(w) && m.getBoundingClientRect().top === top
+        && cut.every(k => !b.contains(wbrs[k]) || below(wbrs[k]));
+      m.style.marginInlineEnd = -d + 'px';
+      if (ok()) { cut.push(i); continue; }
+      m.style.marginInlineEnd = '';
+      const ws = widen(m, b, d);
+      m.style.marginInlineEnd = -d + 'px';
+      if (ws.length && ok()) { cut.push(i); continue; }
+      m.style.marginInlineEnd = '';  // no word space on the line: left as it was
+      ws.forEach(s => s.replaceWith(...s.childNodes));
     }
   }
-};
-</script>
-<script src="../mathjax-4.1.3/tex-chtml-nofont.js"></script>
-<script>
-MathJax.startup.promise = MathJax.startup.promise.then(async function () {
-  await document.fonts.ready;
-  function constrainMath() {
-    document.querySelectorAll('.arb-math-scroll').forEach(function (math) {
-      math.classList.remove('arb-math-scroll');
-    });
-    document.querySelectorAll('mjx-container:not([display="true"])').forEach(function (math) {
-      let parent = math.parentElement;
-      while (parent && ['inline', 'contents'].includes(getComputedStyle(parent).display))
-        parent = parent.parentElement;
-      if (!parent) return;
-      const box = math.getBoundingClientRect();
-      const outer = parent.getBoundingClientRect();
-      if (box.left < outer.left - 1 || box.right > outer.right + 1)
-        math.classList.add('arb-math-scroll');
-    });
-  }
-  constrainMath();
-  // Inline overflow boxes can change line heights after MathJax's hash jump.
-  document.querySelector(':target')?.scrollIntoView();
-  let width = innerWidth;
+  document.fonts.ready.then(trim);
   let timer;
-  addEventListener('resize', function () {
-    if (innerWidth === width) return;
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      width = innerWidth;
-      MathJax.startup.document.rerender();
-      requestAnimationFrame(constrainMath);
-    }, 150);
-  });
-});
+  addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(trim, 200); });
+})();
 </script>"""
+
+# The browser sets LaTeXML's MathML in Garamond-Math. The functions below bring that MathML to
+# what TeX sets: LaTeXML spaces operators for its own dictionary, Chromium for MathML Core's.
+OPEN, CLOSE = set("([{⟨⌊⌈|‖"), set(")]}⟩⌋⌉|‖")
+# Operators MathML Core's dictionary has a prefix (postfix) entry for: an explicit form only
+# repeats what Chromium infers for them, and Chromium drops its form fallback when the form is
+# explicit, so nothing else is given one.
+PREFIX, POSTFIX = OPEN | set("−+±∓¬∀∃∂∑∏∫⋃⋂"), CLOSE | set("!′″")
+ORD = set("./⊥⊤∥")  # ordinary symbols in TeX that LaTeXML sets as operators
+OP_ONLY = {"lspace", "rspace", "form", "fence", "separator", "accent", "largeop", "movablelimits"}
+INVISIBLE_OPS = "⁡⁢⁣⁤"
+MATH_RE = re.compile(r"<math\b([^>]*)>(.*?)</math>", re.S)
+LEAF_RE = re.compile(r"<(mi|mn|mo|mtext|ms)\b[^>]*>([^<]*)</\1>")
+INVISIBLE = dict.fromkeys(map(ord, "​" + INVISIBLE_OPS))
+
+
+def mono(s):
+    """Mathematical Monospace letters and digits (\\mathtt)."""
+    return all(0x1D670 <= ord(c) <= 0x1D6A3 or 0x1D7F6 <= ord(c) <= 0x1D7FF for c in s)
+
+
+def ascii_copy(m):
+    """Pagefind ignores the MathML and indexes a hidden NFKC copy, so a search for ivk or
+    GroupHash finds 𝗂𝗏𝗄 and 𝖦𝗋𝗈𝗎𝗉𝖧𝖺𝗌𝗁."""
+    toks = [t for t in (unescape(x).translate(INVISIBLE).strip()
+                        for _, x in LEAF_RE.findall(m.group(2))) if t]
+    # a \mathtt literal ("z.cash:Orchard") stays one word: its letters are monospace tokens,
+    # its punctuation plain tokens between them
+    tt = [mono(t) or (t in ".:-_/" and 0 < i < len(toks) - 1 and mono(toks[i - 1])
+                      and mono(toks[i + 1])) for i, t in enumerate(toks)]
+    words = "".join(("" if i == 0 or tt[i] and tt[i - 1] else " ")
+                    + unicodedata.normalize("NFKC", t) for i, t in enumerate(toks))
+    words = re.sub(r"([(\[]) ", r"\1", re.sub(r" ([)\],])", r"\1", words))
+    return (f'<math data-pagefind-ignore="all"{m.group(1)}>{m.group(2)}</math>'
+            f'<span class="arb-idx" hidden> {escape(words, quote=False)} </span>')
+
+
+def text_fixes(t):
+    """Typography LaTeXML leaves to TeX's line breaker."""
+    # LaTeXML keeps TeX's `` and '' as doubled single quotes inside a typewriter span.
+    t = re.sub(r"(<span [^>]*ltx_font_typewriter[^>]*>)‘‘([^<]*)’’</span>", r"“\1\2</span>”", t)
+    t = re.sub(r'<mtext class="ltx_mathvariant_monospace">‘‘([^<]*)’’</mtext>',
+               r'<mtext>“</mtext><mtext class="ltx_mathvariant_monospace">\1</mtext>'
+               r'<mtext>”</mtext>', t)
+    # \, ("§\,5.4.1.6", "5\,kB") is a kern in TeX, never a break; LaTeXML writes U+2009, which
+    # browsers break after, and EB Garamond has no U+202F, so the pair is kept whole. Tags,
+    # titles, scripts and formulas are skipped whole.
+    t = re.sub(r"(<math\b.*?</math>|<(title|script|style)\b.*?</\2>|<[^>]*>)"
+               r"|([^\s<>;] [^\s<>&])",
+               lambda m: m.group(1) or f'<span class="arb-nobr">{m.group(3)}</span>', t,
+               flags=re.S)
+    # No break between inline math and a hyphenated suffix ("64-byte"), closing punctuation (a
+    # <math> is an atomic inline, which may break before a comma) or an opening bracket before
+    # it; the formula's own break points stay (see unglue).
+    return re.sub(r"([(\[]?)(<math\b[^>]*>(?:(?!</math>).)*</math>)(-[^\s<]+|[,.;:)\]]+)?",
+                  lambda m: f'<span class="arb-nobr">{m.group(0)}</span>'
+                  if m.group(1) or m.group(3) else m.group(0), t, flags=re.S)
+
+
+def em(e, side):
+    return float(e.get(side, "0em").removesuffix("em"))
+
+
+def glue(width, op):
+    """An operator's space, at its size."""
+    size = {"mathsize": op.get("mathsize")} if op.get("mathsize") else {}
+    return [ET.Element("mspace", {"width": f"{width:.3f}em"} | size)] if width else []
+
+
+def tex_list(row):
+    """LaTeXML's row as TeX's math list, in the encoding mathbreak reads (Temml's). LaTeXML nests a
+    row per parsed subterm; TeX's list is flat, so nested rows open, an operator that led (ended)
+    one first given the form it had there (a leading sign stays unary, a big operator is not a
+    break). A word (lim, dim, the d of dx) is in no dictionary, so it takes the prefix form
+    freely: TeX's Op or Ord, not a break; but \\bmod is a binary operator. A delimiter is a fence,
+    never a break. A plain pair stays a row for pieces() to open; \\bigl( … \\bigr) opens (TeX's
+    Open and Close atoms, flat in Temml); \\left … \\right stays shut. Invisible operators
+    become their glue, ordinary symbols mi."""
+    kids, out = list(row), []
+    for i, k in enumerate(kids):
+        c = k
+        while c.tag in SCRIPTED and len(c):  # an embellished operator's form is its core's
+            c = c[0]
+        if c.tag == "mo" and "form" not in c.attrib and len(kids) > 1:
+            word = c.text and c.text.isalpha() and not (
+                c.text == "mod" and i > 0 and kids[i - 1].tag != "mo")
+            if c.text in PREFIX and (i == 0 or c is not k) or word:  # a core leads its script
+                c.set("form", "prefix")
+            elif c.text in POSTFIX and i == len(kids) - 1 and c is k:
+                c.set("form", "postfix")
+        if k.tag == "mo" and k.text and k.text in INVISIBLE_OPS:
+            out += glue(em(k, "lspace") + em(k, "rspace"), k)
+        elif (k.tag == "mo" and (k.text in ORD or "monospace" in k.get("class", ""))
+              and not {"stretchy", "minsize", "maxsize"} & k.attrib.keys()):  # unless sized
+            mi = ET.Element("mi", {a: v for a, v in k.attrib.items() if a not in OP_ONLY})
+            mi.text = k.text
+            out += glue(em(k, "lspace"), k) + [mi] + glue(em(k, "rspace"), k)
+        elif k.tag == "mrow" and len(k):
+            ends = (k[0], k[-1])
+            fenced = (all(e.tag == "mo" for e in ends) and k[0].text in OPEN
+                      and k[-1].text in CLOSE)
+            plain = fenced and all(e.get("stretchy") == "false" for e in ends)
+            big = fenced and all(e.get("minsize") and e.get("minsize") == e.get("maxsize")
+                                 for e in ends)
+            if fenced and not (plain or big):
+                out.append(k)
+                continue
+            inner = tex_list(k)
+            if plain:
+                k[:] = inner
+                out.append(k)
+            else:
+                out += inner
+        else:
+            if k.tag == "mo" and k.text in (",", ";"):
+                k.set("separator", "true")
+            elif k.tag == "mo" and k.text in OPEN | CLOSE:
+                k.set("fence", "true")
+            out.append(k)
+    return out
+
+
+def mathml_fix(source, split=True):
+    """One formula's MathML spaced as TeX spaces it; an inline formula outside a table is cut at
+    TeX's break points into one <math> per piece, joined by <wbr>: Chromium breaks no formula
+    itself, and justification stretches no space inside a piece."""
+    root = ET.fromstring(source)
+    for e in [e for e in root.iter() if e.tag in ("msup", "msubsup")]:
+        # Garamond-Math's prime is drawn raised, as TeX's \prime is not: in a superscript it sat
+        # small and high. Leading primes follow the base at its size (a′, a′ᵢ, y′²).
+        sup = e[-1]
+        lead = [sup] if sup.tag == "mo" else list(sup) if sup.tag == "mrow" else []
+        primes = list(takewhile(lambda k: k.tag == "mo" and k.text and set(k.text) <= set("′″‴"),
+                                lead))
+        if not primes:
+            continue
+        for p in primes:
+            p.attrib |= {"form": "postfix", "lspace": "0em", "rspace": "0em"}
+        based = ET.Element("mrow")
+        based.extend([e[0], *primes])
+        rest = lead[len(primes):]
+        if rest:
+            sup[:] = rest
+            e[0] = based
+        elif e.tag == "msup":
+            e.tag, e[:] = "mrow", list(based)
+        else:
+            e.tag, e[:] = "msub", [based, e[1]]
+    in_script = set()
+    for script in [e for e in root.iter() if e.tag in SCRIPTED]:
+        # TeX sets no relation, binary or punctuation space in scripts ("i=0" under a sum)
+        for child in list(script)[1:]:
+            for mo in child.iter("mo"):
+                mo.attrib.setdefault("lspace", "0em")
+                mo.attrib.setdefault("rspace", "0em")
+                in_script.add(mo)
+    for tok in [e for e in root.iter() if "monospace" in e.get("class", "")
+                and e.text and "\u2009" in e.text and not len(e)]:
+        # \, in a \mathtt constant: LaTeXML writes U+2009 into the token, which the mono sets
+        # 0.39 em wide; TeX's \, is 0.167 em
+        tag, attrs, parts = tok.tag, dict(tok.attrib), tok.text.split("\u2009")
+        tok.tag, tok.text = "mrow", None
+        tok.attrib.clear()
+        for i, part in enumerate(parts):
+            if i:
+                ET.SubElement(tok, "mspace", {"width": "0.167em"})
+            if part:
+                ET.SubElement(tok, tag, attrs).text = part
+    for over in root.iter("mover"):
+        # \vec: LaTeXML's accent is a full-size → (wider than its base); TeX's is U+20D7
+        if over.get("accent") == "true" and over[-1].tag == "mo" and over[-1].text == "→":
+            over[-1].text = "⃗"
+    for row in root.iter():
+        kids = list(row)
+        for prev, k, nxt in zip(kids, kids[1:], kids[2:]):
+            # a \mathtt literal ("z.cash:Orchard-gd") is one mono word, as \texttt: the
+            # punctuation between its letters is set tight and in the mono
+            if (k.tag in ("mo", "mtext") and k.text in tuple(".:-_/") and prev.text and nxt.text
+                    and mono(prev.text) and mono(nxt.text)):
+                k.set("class", "ltx_mathvariant_monospace")
+                if k.tag == "mo":
+                    k.attrib |= {"lspace": "0em", "rspace": "0em"}
+    for mo in root.iter("mo"):
+        if mo.text in (",", ";") and mo not in in_script and mo.get("rspace") == "0em":
+            # LaTeXML drops a comma's space before an operator ({0,⊥}, (⋅,⋅)); TeX sets a thin
+            # space after punctuation in text style whatever follows
+            del mo.attrib["rspace"]
+        elif mo.text == ".":  # ordinary in TeX ("Sig.Sign"); LaTeXML spaces it as punctuation
+            mo.attrib |= {"lspace": "0em", "rspace": "0em"}
+        elif mo.text in ("/", "⊥", "⊤"):  # ordinary symbols in TeX; Core spaces them as operators
+            mo.attrib.setdefault("lspace", "0em")
+            mo.attrib.setdefault("rspace", "0em")
+        elif mo.text == ":=":  # LaTeXML put the space before it on the left atom
+            mo.attrib.setdefault("lspace", "0em")
+        elif mo.text == "∥":  # \| is ordinary in TeX; LaTeXML adds a relation's space to \,
+            for side in ("lspace", "rspace"):
+                space = float(mo.get(side, "0.278em").removesuffix("em")) - 0.278
+                mo.set(side, f"{max(space, 0):.3f}em")
+    if root.get("display") != "inline" or not split:
+        return ET.tostring(root, encoding="unicode", short_empty_elements=False)
+    out = []
+    for i, piece in enumerate(pieces(tex_list(root)) or [[]]):
+        math = ET.Element("math", root.attrib if i == 0 else
+                          {k: v for k, v in root.attrib.items() if k not in ("id", "alttext")})
+        math.extend(piece)
+        out.append(math)
+
+    def text(es):
+        return "".join("".join(e.itertext()) for e in es).translate(
+            dict.fromkeys(map(ord, INVISIBLE_OPS)))
+    if text(out) != text([root]):
+        raise ValueError(f"formula split lost text: {source[:200]}")
+    return "<wbr>".join(ET.tostring(p, encoding="unicode", short_empty_elements=False)
+                        for p in out)
+
+
+def native_math(t):
+    """Every formula on a page through mathml_fix. One in a table or display row stays one
+    <math>: Chromium breaks at <wbr> whatever the white-space, and there a formula keeps to one
+    line."""
+    tables, depth, start = [], 0, 0
+    for tag in re.finditer(r"<(/?)table\b", t):
+        depth += -1 if tag.group(1) else 1
+        if depth == 1 and not tag.group(1):
+            start = tag.start()
+        elif depth == 0:
+            tables.append((start, tag.end()))
+    return re.sub(r"<math\b.*?</math>",
+                  lambda m: mathml_fix(m.group(0),
+                                       not any(a < m.start() < b for a, b in tables)),
+                  t, flags=re.S)
+
+
+NOWRAP = ('<span class="arb-nobr">', '<span class="arb-proof-end">')
+
+
+def unglue(t):
+    """Only Chromium breaks at a <wbr> inside a nowrap span. A span gluing text to a split formula
+    (text_fixes, the proof's last formula) is cut at the formula's break points, so it glues the
+    text to the adjacent piece alone."""
+    out, spans = [], []
+    for tok in re.split(r"(<span\b[^>]*>|</span>|<wbr>)", t):
+        if tok.startswith("<span"):
+            spans.append(tok)
+        elif tok == "</span>":
+            spans.pop()
+        elif tok == "<wbr>":
+            glued = list(takewhile(NOWRAP.__contains__, reversed(spans)))[::-1]
+            tok = "</span>" * len(glued) + tok + "".join(glued)
+        out.append(tok)
+    t = "".join(out)
+    for _ in NOWRAP:  # a piece cut from its glued text needs no span (twice: the spans nest)
+        t = re.sub(r'<span class="arb-(?:nobr|proof-end)">(<math\b(?:(?!</math>).)*</math>)</span>',
+                   r"\1", t, flags=re.S)
+    return t
 
 TIKZ_RE = re.compile(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", re.S)
 PROOF_MATH_END_RE = re.compile(
@@ -232,21 +549,42 @@ DROP_IN_STANDALONE = ("\\documentclass", "\\usepackage[margin",
                       "\\author{", "\\date{",
                       "\\small\\begin{center}", "}{\\par\\medskip}")
 
-# The PDF design preamble (fontspec + unicode-math + mdframed + fancyhdr)
-# shares the following font block across volumes. LaTeXML uses classic TeX;
-# the web build styles theorems and fonts in CSS. webprep swaps back to
-# the classic package line. Keep these constants in sync with the volumes.
+# The PDF design preamble (fontspec + unicode-math + polyglossia, framed
+# rules + fancyhdr) shares the following font block across volumes. LaTeXML
+# uses classic TeX; the web build styles theorems and fonts in CSS. webprep
+# swaps back to the classic package line, plus the identity macros the
+# stripped design block provides. Keep these constants in sync with the
+# volumes.
 FONT_BLOCK = """\\usepackage{amsmath,amsthm,mathtools}
 \\usepackage{fontspec}
-\\usepackage{unicode-math}
-\\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
-  UprightFont=*-regular, ItalicFont=*-italic,
-  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
-\\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
-% Pagella uses U+2216 for set difference.
-\\AtBeginDocument{\\let\\setminus\\smallsetminus}
+\\usepackage[mathsf=sym]{unicode-math}
+\\setmainfont{EBGaramond}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \\textsf (crate names) is code, in the mono
+\\defaultfontfeatures[Iosevka]{Path=fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\\setsansfont{Iosevka}
+\\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \\mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/,
+  range=\\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \\mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \\rivk takes a further subscript
+\\AtBeginDocument{\\let\\arbsymsf\\mathsf\\protected\\def\\mathsf#1{{\\arbsymsf{#1}}}}
+\\usepackage{polyglossia}
+\\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\\PolyglossiaSetup{english}{frenchspacing=true}
 """
-FONT_CLASSIC = "\\usepackage{amsmath,amssymb,amsthm,mathtools}\n"
+FONT_CLASSIC = ("\\usepackage{amsmath,amssymb,amsthm,mathtools}\n"
+                "\\providecommand{\\accession}{}\\providecommand{\\volstatus}{}\n")
 DESIGN_BLOCK_RE = re.compile(
     r"% kind-coded theorem blocks.*?"
     r"\\renewcommand\{\\sectionmark\}\[1\]\{[^\n]*\}\n",
@@ -368,10 +706,14 @@ def heading_search_titles(text):
         if (not heading_id or "<math" not in body
                 or 'data-pagefind-meta="heading-' in attrs):
             return match.group(0)
-        plain = re.sub(r'<math\b.*?</math>',
-                       lambda m: escape(math_search_text(m.group(0))),
+        # a finished page's formulas carry a hidden search copy (ascii_copy)
+        plain = re.sub(r'<math\b.*?</math>|<span class="arb-idx" hidden>[^<]*</span>',
+                       lambda m: escape(math_search_text(m.group(0)))
+                       if m.group(0).startswith('<math') else '',
                        body, flags=re.S)
-        title = " ".join(unescape(re.sub(r'<[^>]+>', '', plain)).split())
+        # NFKC: a search for ivk finds the heading's 𝗂𝗏𝗄
+        title = unicodedata.normalize(
+            "NFKC", " ".join(unescape(re.sub(r'<[^>]+>', '', plain)).split()))
         metadata = f"heading-{unescape(heading_id.group(2))}:{title}"
         return attrs + f' data-pagefind-meta="{escape(metadata)}">' + body + end
 
@@ -618,7 +960,9 @@ def link_references(text, volume, index, current=None):
 
     def block(match):
         source = match.group(0)
-        parsed = ReferenceText(source)
+        # A formula's hidden search copy (ascii_copy) cites nothing; blanking keeps the offsets.
+        parsed = ReferenceText(re.sub(r'(<span class="arb-idx" hidden>)([^<]*)',
+                                      lambda m: m.group(1) + ' ' * len(m.group(2)), source))
         guide, paragraph, links = None, None, []
         consumed = 0
         for citation in REFERENCE_RE.finditer(parsed.text):
@@ -679,41 +1023,6 @@ def link_references(text, volume, index, current=None):
 
     return re.sub(r'<(?P<block>p|figcaption|td)\b[^>]*>.*?</(?P=block)>',
                   block, text, flags=re.S)
-
-
-def math_reference_links(text):
-    """Carry LaTeXML's resolved references into the TeX sent to MathJax."""
-    reference = re.compile(r'\\ref\s*\{[^}]+\}')
-
-    def math(match):
-        source = match.group(0)
-        alt = re.search(r'''\balttext=(["'])(.*?)\1''', source, re.S)
-        if not alt:
-            return source
-        tex = re.sub(r'%\s+', '', unescape(alt.group(2)))
-        count = len(reference.findall(tex))
-        if not count:
-            return source
-        node = ET.fromstring(source)
-        links = [(a.get('href'), ''.join(a.itertext()).strip())
-                 for a in node.iter()
-                 if a.tag.rsplit('}', 1)[-1] == 'a'
-                 and 'ltx_ref' in a.get('class', '').split()]
-        # ponytail: pair references in LaTeXML order; reject mismatches rather
-        # than inventing a separate cross-document TeX label resolver.
-        if len(links) != count or any(not href or not label or '?' in label
-                                      for href, label in links):
-            raise ValueError(f"unresolved math references in {node.get('id', 'math')}")
-        links = iter(links)
-
-        def resolved(_):
-            href, label = next(links)
-            return r'\href{' + href + '}{' + label + '}'
-
-        tex = reference.sub(resolved, tex)
-        return source[:alt.start(2)] + escape(tex, quote=True) + source[alt.end(2):]
-
-    return re.sub(r'<math\b[^>]*>.*?</math>', math, text, flags=re.S)
 
 
 def render():
@@ -831,7 +1140,35 @@ def ver():
                           cwd=ROOT).stdout.strip() or "0"
 
 
+def colophon():
+    """The site's colophon; the edition is the commit's date and hash."""
+    date = subprocess.run(["git", "log", "-1", "--format=%cs"], capture_output=True,
+                          text=True, cwd=ROOT).stdout.strip()
+    day = datetime.date.fromisoformat(date) if date else datetime.date.today()
+    return ('<p class="arb-colophon"><span class="arb-series">The Zcash Arboretum</span> · Marek '
+            '(<a href="https://marek.onl/">marek.onl</a>) · '
+            f'edition of {day.day} {day:%B %Y} ({ver()}) · licence to be announced</p>')
+
+
+def page_head(title):
+    """The head of a page at the site root."""
+    return f"""<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+{THEME_INIT}
+<link rel="stylesheet" href="arboretum.css?v={ver()}">"""
+
+
 MACRO_RE = re.compile(r"\\(?:re)?newcommand\{(\\[A-Za-z]+)\}(\[\d\])?\{(.*)\}\s*$")
+
+
+def design_lines(pre):
+    """Lines of the PDF design block, shared by every part of the complete
+    edition, its \\renewcommand lines included."""
+    m = DESIGN_BLOCK_RE.search(pre)
+    return set(m.group(0).splitlines()) if m else set()
 
 
 def omnibus(srcdir=ROOT, out=None):
@@ -850,16 +1187,17 @@ def omnibus(srcdir=ROOT, out=None):
     seen, macro_free = set(), []
     for vol in vols:
         pre = preamble_of((srcdir / f"{vol}.tex").read_text())
+        shared = design_lines(pre)
         for ln in pre.splitlines():
             s = ln.strip()
-            if (not s or s.startswith(("\\title", "\\author", "\\date"))
-                    or MACRO_RE.match(s)):
+            if (not s or s.startswith(("\\title{", "\\author{", "\\date{"))
+                    or MACRO_RE.match(s) and ln not in shared):
                 continue
-            if ln not in seen:
+            # a later volume's \makeatletter region must keep its own pair
+            if ln not in seen or s in ("\\makeatletter", "\\makeatother"):
                 seen.add(ln)
                 macro_free.append(ln)
     parts = ["\n".join(macro_free),
-             "\\setlength{\\headheight}{21pt}",
              "\\setcounter{tocdepth}{1}",
              "\\title{\\textbf{\\Huge The Zcash Arboretum}\\\\[6pt]"
              "\\large Foundations, deployed protocol, and frontier designs}",
@@ -875,24 +1213,25 @@ def omnibus(srcdir=ROOT, out=None):
              "\\renewcommand*{\\theHfigure}{\\arabic{arbvolume}.\\arabic{figure}}\n"
              "\\renewcommand*{\\theHtable}{\\arabic{arbvolume}.\\arabic{table}}"
              + web_ids,
-             "\\begin{document}\n\\maketitle\n\\thispagestyle{empty}",
+             "\\begin{document}\n\\maketitle",
              "\\clearpage\n\\tableofcontents\n\\clearpage",
              OMNIBUS_INTRO]
     for vol in vols:
         text = (srcdir / f"{vol}.tex").read_text()
         title, sub = vol_title(vol)
         short = vol.replace("-guide", "")
-        macros = []
+        # the running head names the part; \accession comes with the macros
+        macros = [f"\\def\\arbvolname{{{title}}}"]
+        shared = design_lines(preamble_of(text))
         for ln in preamble_of(text).splitlines():
             m = MACRO_RE.match(ln.strip())
-            if m:
+            if m and ln not in shared:
                 name, nargs, body = m.group(1), m.group(2), m.group(3)
                 args = "".join(f"#{i+1}" for i in range(int(nargs[1:-1]))) \
                     if nargs else ""
                 macros.append(f"\\def{name}{args}{{{body}}}")
         body = text.split("\\begin{document}", 1)[1].rsplit("\\end{document}", 1)[0]
-        for drop in ("\\maketitle", "\\thispagestyle{empty}",
-                     "\\tableofcontents"):
+        for drop in ("\\maketitle", "\\tableofcontents"):
             body = body.replace(drop + "\n", "").replace(drop, "")
         body = re.sub(r"(\\clearpage\s*)+", "\n", body, count=2)
         if srcdir == WEBDIR:
@@ -923,11 +1262,9 @@ def landing(outdir):
             continue
         title, sub = vol_title(vol)
         n += 1
-        acc = f"vol. {ROMANS[n - 1]}"
-        plaque = f'<span class="plaque">{chip}</span>'
         groups.setdefault(group, []).append(f"""<li class="plate">
-<div class="label"><span class="acc">{acc}</span>
-{plaque}</div>
+<div class="label"><span class="acc">{ROMANS[n - 1]}</span>
+<span class="plaque">{chip}</span></div>
 <a class="title" href="{vol}/">{title}</a>
 <p class="sub">{sub}</p>
 <div class="links"><a href="{vol}/">Web</a>
@@ -936,28 +1273,22 @@ def landing(outdir):
     for group, items in groups.items():
         cards.append(f'<h3 class="grp">{group}</h3><ol class="plates">'
                      + "\n".join(items) + "</ol>")
-    complete = """<h3 class="grp">Complete edition</h3><ol class="plates">
+    complete = f"""<h3 class="grp">Complete edition</h3><ol class="plates">
 <li class="plate">
-<div class="label"><span class="acc">all volumes</span>
+<div class="label"><span class="acc">I–{ROMANS[n - 1]}</span>
 <span class="plaque">complete</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
 <p class="sub">Foundations, deployed protocol, and frontier designs</p>
 <div class="links"><a href="complete/">Web</a>
 <a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
-    html = f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Zcash Arboretum</title>
-{THEME_INIT}
-<link rel="stylesheet" href="arboretum.css?v={ver()}">
+    html = f"""{page_head("The Zcash Arboretum")}
 <link href="pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="pagefind/pagefind-ui.js"></script>
 </head><body>
 <main class="arb-landing">
 <div class="arb-heading"><h1>The Zcash Arboretum</h1>
-{THEME_PICKER}</div>
-<hr class="stem">
+{THEME_BUTTON}</div>
 <p class="tag">Non-normative documentation of the deployed Zcash protocol
 and designs being built on top of it. The
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
@@ -973,14 +1304,16 @@ window.addEventListener('DOMContentLoaded', () => {{
 <footer class="foot">
 <p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
+{colophon()}
 </footer>
-</main></body></html>
+</main>
+{PAGE_SCRIPT}
+</body></html>
 """
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
     comp = ROOT / "arboretum-complete.pdf"
     if comp.exists():
-        import shutil
         (out / "pdf").mkdir(parents=True, exist_ok=True)
         shutil.copy(comp, out / "pdf" / comp.name)
     (out / "index.html").write_text(html)
@@ -1028,30 +1361,20 @@ def concordance(outdir):
             for v, t, s in sorted(specs[sp], key=lambda x: (x[1], x[2])))
         srows.append(f'<tr><td class="zk">&sect; {dotted}</td>'
                      f'<td>{refs}</td></tr>')
-    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Concordance &mdash; The Zcash Arboretum</title>
-{THEME_INIT}
-<link rel="stylesheet" href="arboretum.css?v={ver()}">
-<style>
-.zc table {{ border-collapse: collapse; width: 100%; font-size: .93rem; }}
-.zc td {{ border-top: 1px solid var(--edge); padding: .45rem .6rem;
-          vertical-align: top; }}
-.zc td.zk {{ font-family: var(--mono); font-size: .74rem;
-             letter-spacing: .08em; white-space: nowrap; width: 6rem;
-             color: var(--plaque-ink); }}
-</style></head><body>
+    html = f"""{page_head("Concordance &mdash; The Zcash Arboretum")}
+</head><body>
 <main class="arb-landing zc">
 <div class="arb-heading"><h1>Concordance</h1>
-{THEME_PICKER}</div>
-<hr class="stem">
+{THEME_BUTTON}</div>
 <p class="tag">Every ZIP and protocol-specification section cited across
 the volumes, and where each is treated. Generated from the sources.</p>
 <table>{"".join(rows)}</table>
 <h2>Protocol specification</h2>
 <table>{"".join(srows)}</table>
 <p class="foot"><a href="./">The Zcash Arboretum</a></p>
-</main></body></html>"""
+</main>
+{PAGE_SCRIPT}
+</body></html>"""
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     (out / "concordance.html").write_text(html)
     print(f"concordance: {len(zips)} ZIPs, {len(specs)} spec sections")
@@ -1068,25 +1391,29 @@ def postprocess(outdir):
             "--navigationtoc=context", "--css=../arboretum.css",
             "--timeout=1800", "build/web/arboretum-complete.tex",
         ], cwd=ROOT, check=True)
-    for asset in ("mathjax-4.1.3", "@mathjax"):
-        shutil.copytree(ROOT / "site" / asset, out / asset, dirs_exist_ok=True)
-    documents = [(vol, vol_title(vol)[0], vol)
-                 for vol, _group, _chip in VOLUME_META]
+    # The accession numeral: a volume's place in the reading order; the edition takes the range.
+    documents = [(vol, vol_title(vol)[0], vol, ROMANS[i])
+                 for i, (vol, _group, _chip) in enumerate(VOLUME_META)]
     documents.append(("complete", "The Complete Arboretum",
-                      "arboretum-complete"))
+                      "arboretum-complete", f"I–{ROMANS[len(VOLUME_META) - 1]}"))
     references = reference_index(out)
+    foot = colophon()
     reading_order = 0
-    for vol, title, pdf in documents:
+    for vol, title, pdf, acc in documents:
         vdir = out / vol
         if not vdir.is_dir():
             continue
+        # The numeral has its own span so phones keep it; a Contents disclosure stands in for
+        # the sidebar where there is no room for it.
         bar = f"""<header class="arb-bar"><a class="wordmark" href="../"><span
 class="wordmark-prefix">The Zcash </span>Arboretum</a><a class="volname" href="./#arb-contents"
-title="Table of contents">{title}</a>
-<a class="arb-pdf" href="../pdf/{pdf}.pdf">PDF</a>
-{THEME_PICKER}
-<details class="arb-search"><summary>search</summary>
+title="{acc} {title}: contents"><span class="arb-acc">{acc}</span><span
+class="arb-volname"> {title}</span></a>
+<details class="arb-toc"><summary>Contents</summary></details>
+<details class="arb-search"><summary>Search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
+<a class="arb-pdf" href="../pdf/{pdf}.pdf">PDF</a>
+{THEME_BUTTON}
 </header>
 <link href="../pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="../pagefind/pagefind-ui.js"></script>
@@ -1133,7 +1460,7 @@ title="Table of contents">{title}</a>
                     f"{page}: unexpanded cross-reference macro {match.group()}")
             part = re.match(r'(?:V|Pt)(\d+)', page.stem) if vol == 'complete' else None
             current = VOLUMES[int(part.group(1)) - 1] if part else None
-            t2 = heading_self_links(heading_anchors(math_reference_links(t)))
+            t2 = heading_self_links(heading_anchors(t))
             t2 = link_references(heading_search_titles(t2), vol, references, current)
             if page.name == "index.html":
                 t2 = t2.replace('<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">',
@@ -1145,7 +1472,7 @@ title="Table of contents">{title}</a>
                 t2 = re.sub(
                     r'(<[^>]+class="ltx_page_content"[^>]*)(>)',
                     lambda m: m.group(1) + ' data-pagefind-meta="volume:'
-                    + escape(title, quote=True) + '">', t2, count=1)
+                    + escape(f"{acc} {title}", quote=True) + '">', t2, count=1)
             if vol != "complete":
                 t2 = re.sub(r' data-pagefind-sort="reading-order:\d+"', '', t2)
                 t2 = re.sub(
@@ -1158,11 +1485,20 @@ title="Table of contents">{title}</a>
                     page.write_text(t2)
                     n += 1
                 continue
+            # British hyphenation
+            t2 = t2.replace('<html lang="en">', '<html lang="en-GB">', 1)
             t2 = re.sub(r'(<head[^>]*>)',
                         lambda m: m.group(1) + THEME_INIT, t2, count=1)
             # LaTeXML may copy CSS and emit a build-directory-relative URL.
             t2 = re.sub(r'href="(?:[^"]*/)?arboretum\.css(?:\?[^"]*)?"',
                         f'href="../arboretum.css?v={ver()}"', t2, count=1)
+            # "3 Keys and addresses — V Ironwood Guide"
+            t2 = re.sub(r"<title>(.*?)</title>",
+                        lambda m: "<title>" + (m.group(1).split(" ‣ ")[0] + " — "
+                                               if " ‣ " in m.group(1) else "")
+                        + f"{acc} {title}</title>\n"
+                        '<link rel="icon" href="../favicon.svg" type="image/svg+xml">',
+                        t2, count=1, flags=re.S)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)
             if vol == "complete":
                 t2 = re.sub(r"<body", '<body data-pagefind-ignore', t2,
@@ -1173,20 +1509,38 @@ title="Table of contents">{title}</a>
                 t2 = t2.replace('class="ltx_page_content"',
                                 'class="ltx_page_content" data-pagefind-body',
                                 1)
-            t2 = re.sub(
-                r'Generated\s+on [^<]+ by '
-                r'(<a [^>]*class="ltx_LaTeXML_logo"[\s\S]*?</a>)',
-                r'Generated with \1.', t2, count=1)
+            # PDF and theme inside the navigation, shown where the bar has no room for them
+            t2 = t2.replace('<nav class="ltx_page_navbar">',
+                            '<nav class="ltx_page_navbar"><p class="arb-nav-tools">'
+                            f'<a href="../pdf/{pdf}.pdf">PDF</a> {THEME_BUTTON}</p>', 1)
+            # the Contents panel opens with "V Ironwood Guide", the subtitle on its own line
+            t2 = re.sub(r'<a href="\./" title="" class="ltx_ref" rel="start">.*?</a>',
+                        lambda m: '<a href="./" class="ltx_ref arb-start" rel="start">'
+                        f'<span class="arb-acc">{acc}</span> {title}'
+                        + "".join(f'<span class="arb-start-sub">{s}</span>' for s in
+                                  re.findall(r"</span></span>(.*?)</span></a>", m.group(0),
+                                             re.S)) + '</a>', t2, count=1, flags=re.S)
+            t2 = re.sub(r'<div class="ltx_page_logo">.*?</div>\n?', '', t2, count=1,
+                        flags=re.S)
             t2 = t2.replace(
-                '</div></footer>',
-                '</div>\n<div class="arb-feedback">Spotted an error? '
+                '</footer>',
+                '<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
-                'Open an issue</a>.</div>\n</footer>', 1)
+                f'Open an issue</a>.</div>\n{foot}\n</footer>', 1)
             t2 = PROOF_MATH_END_RE.sub(
                 r'<span class="arb-proof-end">\1\2</span>', t2)
             t2 = re.sub(r'\s*∎(?=</p>)',
                         ' <span class="arb-qed">□</span>', t2)
-            t2 = t2.replace('</body>', MATHJAX + '\n' + TOC_SCRIPT + '\n</body>', 1)
+            t2 = text_fixes(t2)
+            if vol != "complete":
+                t2 = MATH_RE.sub(ascii_copy, t2)
+            t2 = unglue(native_math(t2))
+            # Figures load the committed SVG beside LaTeXML's PNG copy.
+            for name in set(re.findall(r'<img src="build/web/figures/([^"/]+)\.png"', t2)):
+                shutil.copy(FIGDIR / f"{name}.svg", vdir / "build/web/figures" / f"{name}.svg")
+            t2 = re.sub(r'(<img src="build/web/figures/[^"/]+)\.png"', r'\1.svg"', t2)
+            t2 = t2.replace('</body>', TRIM_SCRIPT + '\n' + PAGE_SCRIPT + '\n' + TOC_SCRIPT
+                            + '\n</body>', 1)
             if t2 != t:
                 page.write_text(t2)
                 n += 1

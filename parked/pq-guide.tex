@@ -1,14 +1,33 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2.4cm]{geometry}
+% head height 14pt: the italic Th ligature of a running head stands 13.01pt
+\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
-\usepackage{unicode-math}
-\setmainfont{texgyrepagella}[Path=../fonts/, Extension=.otf,
-  UprightFont=*-regular, ItalicFont=*-italic,
-  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
-\setmathfont{texgyrepagella-math}[Path=../fonts/, Extension=.otf]
-% Pagella uses U+2216 for set difference.
-\AtBeginDocument{\let\setminus\smallsetminus}
+\usepackage[mathsf=sym]{unicode-math}
+\setmainfont{EBGaramond}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \textsf (crate names) is code, in the mono
+\defaultfontfeatures[Iosevka]{Path=../fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\setsansfont{Iosevka}
+\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\setmathfont{Garamond-Math-Latin.otf}[Path=../fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\setmathfont{Garamond-Math-Latin.otf}[Path=../fonts/,
+  range=\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \rivk takes a further subscript
+\AtBeginDocument{\let\arbsymsf\mathsf\protected\def\mathsf#1{{\arbsymsf{#1}}}}
+\usepackage{polyglossia}
+\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\PolyglossiaSetup{english}{frenchspacing=true}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -35,31 +54,143 @@
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
 
-% kind-coded theorem blocks, palette shared with the figures and the website:
-% definitions/constructions blue (tierin), assumptions amber (tierfull),
-% proved statements a neutral bar; remarks and examples run unframed
-\usepackage{mdframed}
+% kind-coded theorem blocks: the rule weight codes the kind, in ink, no fill:
+% proved statements 1.6pt, definitions and constructions 0.4pt, assumptions
+% dashed 0.8pt; remarks and examples run unframed with an italic head
+\usepackage{etoolbox,framed}
+\makeatletter
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
-\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
-  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
-  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
-  skipabove=10pt,skipbelow=10pt}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
-\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
-
+\providecolor{tierspend}{RGB}{200,60,60}
+\providecolor{muted}{HTML}{5E5E5E}
+% a left rule 0.9em from the text; framed spaces it like a list. Inside,
+% \topsep is cleared so the statement's own list adds nothing, and
+% FrameRestore's \sloppy is dropped so statements break like prose. A frame
+% split across pages counts the last line's depth, which framed's
+% \boxmaxdepth=0 turns into height
+\setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
+\patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
+% the frame sits flush left, as framed would centre it: a display wider than
+% the text then runs into the outer margin, up to 150 mm, and the rule stays
+\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \hbox to\hsize{#1\hfil}}}
+\patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\newcommand\arb@kind[2]{%
+  \BeforeBeginEnvironment{#2}{\def\FrameCommand{#1}%
+    \MakeFramed{\advance\hsize-\width\let\sloppy\relax\FrameRestore\topsep\z@}}%
+  \AfterEndEnvironment{#2}{\endMakeFramed}}
+\newcommand\arb@dashed[1]{\setbox\z@\hbox{#1}\hbox{\vbox to\ht\z@{\cleaders
+  \vbox{\hrule\@width.8pt\@height3pt\vskip2pt}\vfill}\hspace{.9em}\box\z@}}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{definition}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{construction}
+\arb@kind{\arb@dashed}{assumption}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{theorem}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{lemma}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{proposition}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{corollary}
+\AtBeginEnvironment{remark}{\thm@headfont{\itshape}}
+\AtBeginEnvironment{example}{\thm@headfont{\itshape}}
+% a proof head breaks and hyphenates as the text it opens: amsthm sets it as a
+% list label, one unbreakable box
+\renewenvironment{proof}[1][\proofname]{\par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax\trivlist\item\relax{\itshape#1\@addpunct{.}}%
+  \hskip\labelsep\ignorespaces}{\popQED\endtrivlist\@endpefalse}
+% 11/14.5 pt; small (captions, tables, footnotes) 0.875; both size commands
+% are robust, so the patches go to their inner macros. A 10pt class (the
+% figure render's standalone) keeps its sizes
+\ifnum\@ptsize=1
+\expandafter\patchcmd\csname normalsize \endcsname{{13.6}}{{14.5}}{}{\PatchFailed}
+\expandafter\patchcmd\csname small \endcsname{\@xpt\@xiipt}{{9.625}{12.7}}{}{\PatchFailed}
+\fi
+% the hyperref package wraps \@footnotetext; the size is set in the wrapped
+% original
+\patchcmd{\H@@footnotetext}{\footnotesize}{\small}{}{\PatchFailed}
+\normalsize
+\setlength{\parindent}{1.2em}
+% operator spacing shrinks by 1mu at most, so tight lines keep their operators
+\medmuskip=4mu plus 2mu minus 1mu
+\thickmuskip=5mu plus 3mu minus 1mu
+% headings on the 1.2 scale, semibold
+\usepackage{titlesec}
+\titleformat*{\section}{\fontsize{15.84}{19}\fontseries{sb}\selectfont}
+\titleformat*{\subsection}{\fontsize{13.2}{16}\fontseries{sb}\selectfont}
+% no heading below subsection: \subsubsection runs in, like \paragraph
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection}{0.5em}{}[.]
+% a part (the complete edition) opens as a title page does: numeral, name,
+% subtitle; its title reads "Name: subtitle"
+\titleformat{\part}[display]{\raggedright}%
+  {\fontsize{47.3}{50}\selectfont\thepart}{6mm}{\arb@parttitle}
+\titlespacing*{\part}{0pt}{0pt}{12mm}
+\def\arb@parttitle#1{\arb@partsplit#1\@nil}
+\def\arb@partsplit#1: #2\@nil{{\fontsize{22.8}{27}\selectfont#1\par}%
+  \vspace{3mm}{\fontsize{13.2}{17}\selectfont#2\par}}
+% captions small, flush left, bold label; table captions above, wherever the
+% source puts them
+\usepackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
+\usepackage[font=small,labelfont=bf,labelsep=period,
+  justification=raggedright,singlelinecheck=false]{caption}
+\captionsetup[table]{position=top}
+% floats and displays wider than the text run flush left into the outer
+% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
+% both in \@floatboxreset, after the float's \sloppy and \normalsize would
+% undo them
+\def\arb@table{table}
+\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \ifx\@captype\arb@table\small\fi}
+\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+% links: a conifer underline on screen, nothing in print
+\hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
+  allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
+% contents: no link underlines; part and section entries in the heading
+% weight, ragged right
+\patchcmd{\l@part}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@section}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@part}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@section}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@part}{\hfil}{\hfill}{}{\PatchFailed}
+\patchcmd{\l@section}{\hfil}{\hfill}{}{\PatchFailed}
+\let\arb@tableofcontents\tableofcontents
+\renewcommand{\tableofcontents}{{\hypersetup{pdfborderstyle={/S/U/W 0}}%
+  \arb@tableofcontents}}
+% abstract: a flush-left head like the contents', body-size text
+\AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
+% identity from the title line: name, subtitle, accession numeral
+\providecommand{\accession}{}
+\providecommand{\volstatus}{}
+\providecommand{\arbedition}{}
+\InputIfFileExists{edition.tex}{}{}
+\def\arb@name#1#2\@nil{\def\arbvolname{#2}}
+\def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
+\providecommand{\arbvolname}{}
+\renewcommand{\maketitle}{\expandafter\arb@parsetitle\@title\@nil
+  \hypersetup{pdftitle={\arbvolname: \arb@sub},pdfauthor={Marek}}%
+  \thispagestyle{empty}\begingroup\raggedright
+  {\fontsize{13.2}{16}\selectfont\scshape The Zcash Arboretum\par}
+  \vspace*{50mm}
+  {\fontsize{47.3}{50}\selectfont\accession\par}
+  \vspace{6mm}
+  {\fontsize{22.8}{27}\selectfont\arbvolname\par}
+  \vspace{3mm}
+  {\fontsize{13.2}{17}\selectfont\arb@sub\par}
+  \vspace{18mm}
+  {\fontsize{13.2}{17}\selectfont Marek\par}
+  {\small\@author\par}
+  \vfill
+  % the colophon may run to the 150 mm wide measure
+  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
+    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
+  \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
-\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
-\fancyfoot[C]{\footnotesize\thepage}
-\renewcommand{\headrulewidth}{0.3pt}
+\fancyhead[L]{\small\scshape\ifdefempty{\accession}{}{\accession\quad}\arbvolname}
+\fancyhead[R]{\small\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\makeatother
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
@@ -119,12 +250,12 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
+\renewcommand{\volstatus}{parked}
 \title{\textbf{\Huge PQ Guide}\\[6pt]\large Post-quantum Zcash: the cross-layer assumption inventory, the reversibility divide, and the migration surface}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
-\thispagestyle{empty}
 \begin{abstract}
 This research snapshot of \emph{The Zcash Arboretum} assembles the post-quantum
 picture that no single layer can see. It inventories

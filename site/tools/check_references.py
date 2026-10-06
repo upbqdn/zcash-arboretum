@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise native cross-guide links, including typeset math and named results.
+"""Exercise native cross-guide links, including links in MathML and named results.
 
 Run: uv run --with playwright python site/tools/check_references.py BASE_URL
 """
@@ -64,7 +64,7 @@ async def main(base):
                 assert suffix in destination.path, (path, phrase, target)
                 assert not guide_only or not destination.fragment, target
                 if action == "math":
-                    math = link.locator("mjx-container").first
+                    math = link.locator("math").first
                     assert await math.count(), await link.inner_html()
                     await link.scroll_into_view_if_needed()
                     await page.screenshot(path=str(output / f"{edition}-math-citation-768.png"))
@@ -89,8 +89,8 @@ async def main(base):
                 if action == "math":
                     await page.screenshot(path=str(output / f"{edition}-math-target-768.png"))
                 print(f"{edition} {width}px {action}: {phrase} → {target}", flush=True)
-            # LaTeXML has already resolved these references; MathJax must
-            # retain their numbers and links, not replace them with ???.
+            # LaTeXML has already resolved these references; the MathML keeps their numbers and
+            # links, not ???.
             path = 'complete/V5.S11.html' if complete else 'ironwood-guide/S11.html'
             prefix = 'V5.' if complete else ''
             # Definition 6.3 and subsection 6.3, cited from one align* display.
@@ -99,24 +99,19 @@ async def main(base):
                 await page.set_viewport_size({'width': width, 'height': 1000})
                 for index in (0, 1):
                     await ready(page, f'{base}/{path}')
-                    table = page.locator('.ltx_equationgroup:has(mjx-container a[data-mjx-href])')
-                    # MathJax's accessible explorer owns links inside math.
-                    links = table.locator('mjx-container a[data-mjx-href]')
+                    table = page.locator('.ltx_equationgroup:has(math a[href])')
+                    links = table.locator('math a[href]')
                     actual = await links.evaluate_all(
-                        'links => links.map(a => [a.dataset.mjxHref, a.textContent])')
+                        'links => links.map(a => [a.getAttribute("href"), a.textContent])')
                     assert actual == [list(item) for item in expected], (path, actual)
                     assert '???' not in await table.inner_text(), path
                     assert not await page.locator('mjx-merror, merror').count(), path
                     if width == 768 and index == 0:
                         await table.scroll_into_view_if_needed()
                         await page.screenshot(path=str(output / f'{edition}-math-references-768.png'))
-                    target = await links.nth(index).evaluate(
-                        'a => new URL(a.dataset.mjxHref, location.href).href')
+                    target = await links.nth(index).evaluate('a => a.href')
                     if width == 1440:
-                        # Each reference sits in its own cell, so its math holds one link.
-                        await links.nth(index).locator('xpath=ancestor::mjx-container[1]').focus()
-                        await page.keyboard.press('Enter')
-                        await page.keyboard.press('Tab')
+                        await links.nth(index).focus()
                         await page.keyboard.press('Enter')
                     else:
                         await links.nth(index).tap()

@@ -37,8 +37,10 @@ async def check_promoted_results(page, base):
             return {href: link.href, expected: new URL(first.anchor ? first.url : data.url, url).href,
                 title: link.textContent, expectedTitle: first.anchor ? title(first) : data.meta.title,
                 excerpt: plain(excerpt.innerHTML), expectedExcerpt: plain(first.excerpt),
-                badge: card.querySelector('[data-pagefind-ui-meta="volume"]')?.textContent.trim(),
-                expectedBadge: 'Volume: ' + data.meta.volume, anchored: !!first.anchor,
+                // the volume is the tag's key, which the stylesheet prints ("I Math Guide")
+                badge: [...card.querySelectorAll('[data-pagefind-ui-meta]')].find(el =>
+                    el.dataset.pagefindUiMeta === data.meta.volume)?.dataset.pagefindUiMeta,
+                expectedBadge: data.meta.volume, anchored: !!first.anchor,
                 internalBadges: [...card.querySelectorAll('[data-pagefind-ui-meta]')]
                     .filter(el => el.dataset.pagefindUiMeta.startsWith('heading-')).length,
                 nested: [...card.querySelectorAll('.pagefind-ui__result-nested a')].map(link => {
@@ -135,7 +137,6 @@ async def check_reading_order(page, base):
 
 async def check_destination(page, target):
     await page.wait_for_url(target, wait_until="domcontentloaded")
-    await page.evaluate("window.MathJax?.startup?.promise")
     await page.evaluate("document.fonts.ready")
     if "#" in target:
         bounds = await page.evaluate("""() => {
@@ -155,7 +156,7 @@ async def check_destination(page, target):
 async def check_appearance(page, scope):
     await page.evaluate("document.fonts.ready")
     assert await page.evaluate("""document.fonts.check('16px "EB Garamond"')""")
-    for theme in ("light", "warm", "dark", "midnight"):
+    for theme in ("light", "dark"):
         await page.evaluate("theme => document.documentElement.dataset.theme = theme",
                             theme)
         appearance = await page.locator(scope).evaluate("""root => {
@@ -279,7 +280,7 @@ async def check_result_links(page, scope, touch=False):
 async def check_search_focus(page, base):
     for activation in ("click", "tap", "Enter", "Space"):
         await page.goto(f"{base}/wallet-guide/S1.html")
-        await page.evaluate("MathJax.startup.promise")
+        await page.evaluate("document.fonts.ready")
         search = page.locator("details.arb-search")
         summary = search.locator("summary")
         field = search.locator(".pagefind-ui__search-input")
@@ -307,7 +308,7 @@ async def check_search_focus(page, base):
 
 async def check_same_document(page, base):
     await page.goto(f"{base}/zsa-guide/S5.html")
-    await page.evaluate("MathJax.startup.promise")
+    await page.evaluate("document.fonts.ready")
     search = page.locator("details.arb-search")
     await search.locator("summary").click()
     await page.locator("#arb-search-ui input").fill("note")
@@ -387,7 +388,7 @@ async def main():
             page = await context.new_page()
             await page.set_viewport_size({"width": width, "height": height})
             await page.goto(f"{base}/wallet-guide/S1.html")
-            await page.evaluate("MathJax.startup.promise")
+            await page.evaluate("document.fonts.ready")
             search = page.locator("details.arb-search")
             summary = search.locator("summary")
             await summary.click()
@@ -479,7 +480,7 @@ async def main():
             await check_result_links(page, "#arb-search-ui")
             if (width, height) == (768, 1024):
                 guide = page.locator(".arb-bar a.volname")
-                assert await guide.get_attribute("title") == "Table of contents"
+                assert (await guide.get_attribute("title")).endswith(" Guide: contents")
                 target = await guide.evaluate("el => el.href")
                 await guide.tap()
                 await page.wait_for_url(target)

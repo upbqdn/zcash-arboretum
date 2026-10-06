@@ -1,14 +1,33 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2.4cm]{geometry}
+% head height 14pt: the italic Th ligature of a running head stands 13.01pt
+\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
-\usepackage{unicode-math}
-\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
-  UprightFont=*-regular, ItalicFont=*-italic,
-  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
-\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
-% Pagella uses U+2216 for set difference.
-\AtBeginDocument{\let\setminus\smallsetminus}
+\usepackage[mathsf=sym]{unicode-math}
+\setmainfont{EBGaramond}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \textsf (crate names) is code, in the mono
+\defaultfontfeatures[Iosevka]{Path=fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\setsansfont{Iosevka}
+\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/,
+  range=\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \rivk takes a further subscript
+\AtBeginDocument{\let\arbsymsf\mathsf\protected\def\mathsf#1{{\arbsymsf{#1}}}}
+\usepackage{polyglossia}
+\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\PolyglossiaSetup{english}{frenchspacing=true}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -35,31 +54,143 @@
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
 
-% kind-coded theorem blocks, palette shared with the figures and the website:
-% definitions/constructions blue (tierin), assumptions amber (tierfull),
-% proved statements a neutral bar; remarks and examples run unframed
-\usepackage{mdframed}
+% kind-coded theorem blocks: the rule weight codes the kind, in ink, no fill:
+% proved statements 1.6pt, definitions and constructions 0.4pt, assumptions
+% dashed 0.8pt; remarks and examples run unframed with an italic head
+\usepackage{etoolbox,framed}
+\makeatletter
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
-\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
-  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
-  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
-  skipabove=10pt,skipbelow=10pt}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
-\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
-
+\providecolor{tierspend}{RGB}{200,60,60}
+\providecolor{muted}{HTML}{5E5E5E}
+% a left rule 0.9em from the text; framed spaces it like a list. Inside,
+% \topsep is cleared so the statement's own list adds nothing, and
+% FrameRestore's \sloppy is dropped so statements break like prose. A frame
+% split across pages counts the last line's depth, which framed's
+% \boxmaxdepth=0 turns into height
+\setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
+\patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
+% the frame sits flush left, as framed would centre it: a display wider than
+% the text then runs into the outer margin, up to 150 mm, and the rule stays
+\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \hbox to\hsize{#1\hfil}}}
+\patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\newcommand\arb@kind[2]{%
+  \BeforeBeginEnvironment{#2}{\def\FrameCommand{#1}%
+    \MakeFramed{\advance\hsize-\width\let\sloppy\relax\FrameRestore\topsep\z@}}%
+  \AfterEndEnvironment{#2}{\endMakeFramed}}
+\newcommand\arb@dashed[1]{\setbox\z@\hbox{#1}\hbox{\vbox to\ht\z@{\cleaders
+  \vbox{\hrule\@width.8pt\@height3pt\vskip2pt}\vfill}\hspace{.9em}\box\z@}}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{definition}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{construction}
+\arb@kind{\arb@dashed}{assumption}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{theorem}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{lemma}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{proposition}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{corollary}
+\AtBeginEnvironment{remark}{\thm@headfont{\itshape}}
+\AtBeginEnvironment{example}{\thm@headfont{\itshape}}
+% a proof head breaks and hyphenates as the text it opens: amsthm sets it as a
+% list label, one unbreakable box
+\renewenvironment{proof}[1][\proofname]{\par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax\trivlist\item\relax{\itshape#1\@addpunct{.}}%
+  \hskip\labelsep\ignorespaces}{\popQED\endtrivlist\@endpefalse}
+% 11/14.5 pt; small (captions, tables, footnotes) 0.875; both size commands
+% are robust, so the patches go to their inner macros. A 10pt class (the
+% figure render's standalone) keeps its sizes
+\ifnum\@ptsize=1
+\expandafter\patchcmd\csname normalsize \endcsname{{13.6}}{{14.5}}{}{\PatchFailed}
+\expandafter\patchcmd\csname small \endcsname{\@xpt\@xiipt}{{9.625}{12.7}}{}{\PatchFailed}
+\fi
+% the hyperref package wraps \@footnotetext; the size is set in the wrapped
+% original
+\patchcmd{\H@@footnotetext}{\footnotesize}{\small}{}{\PatchFailed}
+\normalsize
+\setlength{\parindent}{1.2em}
+% operator spacing shrinks by 1mu at most, so tight lines keep their operators
+\medmuskip=4mu plus 2mu minus 1mu
+\thickmuskip=5mu plus 3mu minus 1mu
+% headings on the 1.2 scale, semibold
+\usepackage{titlesec}
+\titleformat*{\section}{\fontsize{15.84}{19}\fontseries{sb}\selectfont}
+\titleformat*{\subsection}{\fontsize{13.2}{16}\fontseries{sb}\selectfont}
+% no heading below subsection: \subsubsection runs in, like \paragraph
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection}{0.5em}{}[.]
+% a part (the complete edition) opens as a title page does: numeral, name,
+% subtitle; its title reads "Name: subtitle"
+\titleformat{\part}[display]{\raggedright}%
+  {\fontsize{47.3}{50}\selectfont\thepart}{6mm}{\arb@parttitle}
+\titlespacing*{\part}{0pt}{0pt}{12mm}
+\def\arb@parttitle#1{\arb@partsplit#1\@nil}
+\def\arb@partsplit#1: #2\@nil{{\fontsize{22.8}{27}\selectfont#1\par}%
+  \vspace{3mm}{\fontsize{13.2}{17}\selectfont#2\par}}
+% captions small, flush left, bold label; table captions above, wherever the
+% source puts them
+\usepackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
+\usepackage[font=small,labelfont=bf,labelsep=period,
+  justification=raggedright,singlelinecheck=false]{caption}
+\captionsetup[table]{position=top}
+% floats and displays wider than the text run flush left into the outer
+% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
+% both in \@floatboxreset, after the float's \sloppy and \normalsize would
+% undo them
+\def\arb@table{table}
+\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \ifx\@captype\arb@table\small\fi}
+\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+% links: a conifer underline on screen, nothing in print
+\hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
+  allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
+% contents: no link underlines; part and section entries in the heading
+% weight, ragged right
+\patchcmd{\l@part}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@section}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@part}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@section}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@part}{\hfil}{\hfill}{}{\PatchFailed}
+\patchcmd{\l@section}{\hfil}{\hfill}{}{\PatchFailed}
+\let\arb@tableofcontents\tableofcontents
+\renewcommand{\tableofcontents}{{\hypersetup{pdfborderstyle={/S/U/W 0}}%
+  \arb@tableofcontents}}
+% abstract: a flush-left head like the contents', body-size text
+\AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
+% identity from the title line: name, subtitle, accession numeral
+\providecommand{\accession}{}
+\providecommand{\volstatus}{}
+\providecommand{\arbedition}{}
+\InputIfFileExists{edition.tex}{}{}
+\def\arb@name#1#2\@nil{\def\arbvolname{#2}}
+\def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
+\providecommand{\arbvolname}{}
+\renewcommand{\maketitle}{\expandafter\arb@parsetitle\@title\@nil
+  \hypersetup{pdftitle={\arbvolname: \arb@sub},pdfauthor={Marek}}%
+  \thispagestyle{empty}\begingroup\raggedright
+  {\fontsize{13.2}{16}\selectfont\scshape The Zcash Arboretum\par}
+  \vspace*{50mm}
+  {\fontsize{47.3}{50}\selectfont\accession\par}
+  \vspace{6mm}
+  {\fontsize{22.8}{27}\selectfont\arbvolname\par}
+  \vspace{3mm}
+  {\fontsize{13.2}{17}\selectfont\arb@sub\par}
+  \vspace{18mm}
+  {\fontsize{13.2}{17}\selectfont Marek\par}
+  {\small\@author\par}
+  \vfill
+  % the colophon may run to the 150 mm wide measure
+  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
+    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
+  \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
-\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
-\fancyfoot[C]{\footnotesize\thepage}
-\renewcommand{\headrulewidth}{0.3pt}
+\fancyhead[L]{\small\scshape\ifdefempty{\accession}{}{\accession\quad}\arbvolname}
+\fancyhead[R]{\small\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\makeatother
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
@@ -119,12 +250,13 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
+\renewcommand{\accession}{VIII}
+\renewcommand{\volstatus}{frontier}
 \title{\textbf{\Huge ZSA Guide}\\[6pt]\large Zcash Shielded Assets: asset identity, issuance, transfer, and burn}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
-\thispagestyle{empty}
 
 \begin{abstract}
 This volume of \emph{The Zcash Arboretum} describes the OrchardZSA protocol
@@ -934,8 +1066,10 @@ inputs of its output being counted among the queries.
   Commitment'', means only that it is deterministic.
 \item If the algorithm outputs $\mathsf{AssetId} \neq \mathsf{AssetId}'$
   with equal Asset Bases, then either it has found a collision of
-  $\mathsf{BLAKE2b\text{-}512}(\texttt{ZSA-Asset-Digest}, \cdot)$ on
-  distinct encodings, or it is in an event of probability at most
+  \[
+    \mathsf{BLAKE2b\text{-}512}(\texttt{ZSA-Asset-Digest}, \cdot)
+  \]
+  on distinct encodings, or it is in an event of probability at most
   $q^2/(2p_{\Vesta})$.
 \item It outputs an Asset Identifier whose Asset Base equals one of $t$
   fixed generators, among them $V^{\mathsf{Orchard}}$,
@@ -1789,8 +1923,11 @@ identification of notes'' (``Circuit Statement'').
 %   modular reduction'; PRF^expand = BLAKE2b-512 under Zcash_ExpandSeed:
 %   spec 'Pseudo Random Functions'
 \begin{construction}[Split nullifier]\label{def:split-nf}
-Let $L^{\mathsf{Orchard}} := \GroupHash(\texttt{z.cash:Orchard},
-\texttt{L})$, the input of the second row of Table~\ref{tab:grouphash-zsa}.
+Let
+\[
+  L^{\mathsf{Orchard}} := \GroupHash(\texttt{z.cash:Orchard}, \texttt{L}),
+\]
+the input of the second row of Table~\ref{tab:grouphash-zsa}.
 For a Split Input with nullifier deriving key $\nksym$, element
 $\rho^{\mathsf{old}}$ and commitment $\cmsym^{\mathsf{old}}$, the sender
 draws $\mathsf{rseed\_nf}$ uniformly from $\mathbb{B}^{\mathbb{Y}[32]}$ and
@@ -2398,15 +2535,19 @@ primary inputs
     \mathsf{enableZSA}\bigr)
 \]
 of its Actions $i$. Each Action carries the public fields
-$(\cvsym^{\mathsf{net}}, \nfsym, \rk, \cmx, \mathsf{epk}, C_{\mathsf{enc}},
+$(\cvsym^{\mathsf{net}},\allowbreak \nfsym,\allowbreak \rk,\allowbreak
+\cmx,\allowbreak \mathsf{epk},\allowbreak C_{\mathsf{enc}},\allowbreak
 C_{\mathsf{out}})$ of an Orchard Action description (\emph{Ironwood Guide},
 Definition ``Action description'') and its own spend-authorisation
 signature under $\rk$. The term is that of ZIP 228, ``Terminology'':
-Actions that share the tuple $(\mathit{rt}, \mathsf{enableSpends},
-\mathsf{enableOutputs}, \mathsf{enableZSA}, \mathsf{nAGExpiryHeight})$.
-ZIP 227, ``Specification: Consensus Rule Changes'', requires
-$\mathsf{nAGExpiryHeight} = 0$ and at most one Action Group per
-transaction, so the fifth component is constant and is omitted. The
+Actions that share the tuple
+\[
+  (\mathit{rt}, \mathsf{enableSpends}, \mathsf{enableOutputs},
+  \mathsf{enableZSA}, \mathsf{nAGExpiryHeight}).
+\]
+ZIP 227 requires $\mathsf{nAGExpiryHeight} = 0$ and at most one Action
+Group per transaction (``Specification: Consensus Rule Changes''), so the
+fifth component is constant and is omitted. The
 nullifier $\nfsym_{0,0}$ of the first Action of the Action Group is the
 value that issuance uses (ZIP 227, ``Computation of $\rho$''). The Action
 Group has no burn set; the remaining components of a transaction's bundle
@@ -2576,11 +2717,13 @@ specified; the signed message is not.
 \end{definition}
 
 For an honestly constructed bundle each $\cvsym^{\mathsf{net}}_i$ equals
-$[v'_i - v^{\mathsf{new}}_i]\,\mathsf{AssetBase}_i +
-[\rcv_i]\,R^{\mathsf{Orchard}}$, by condition A4$'$ of
-Definition~\ref{def:zsa-action}. By the additive homomorphism
-(\emph{Crypto Guide}, \S``The Pedersen commitment'', Theorem ``Additive
-homomorphism''), the trapdoor terms sum to $[\mathsf{bsk}]\,
+\[
+  [v'_i - v^{\mathsf{new}}_i]\,\mathsf{AssetBase}_i +
+  [\rcv_i]\,R^{\mathsf{Orchard}},
+\]
+by condition A4$'$ of Definition~\ref{def:zsa-action}. By the additive
+homomorphism (\emph{Crypto Guide}, \S``The Pedersen commitment'', Theorem
+``Additive homomorphism''), the trapdoor terms sum to $[\mathsf{bsk}]\,
 R^{\mathsf{Orchard}}$, and the value terms group by Asset Base. When the
 net values of each Custom Asset sum to its burnt amount and those of ZEC to
 $v^{\mathsf{balance}}$, every value term cancels, so
@@ -3109,8 +3252,10 @@ the fields $(d, \pkd, v, \rho, \mathsf{rseed})$ of an Issue Note without
 its Asset Base.
 \begin{enumerate}
 \item An \emph{Issuance Action} is a triple
-  $(\mathsf{assetDescHash}, \mathsf{vNotes},
-  \mathsf{flagsIssuance})$, where the hash
+  \[
+    (\mathsf{assetDescHash}, \mathsf{vNotes}, \mathsf{flagsIssuance}),
+  \]
+  where the hash
   $\mathsf{assetDescHash} \in \mathbb{B}^{\mathbb{Y}[32]}$ is the
   description hash of Definition~\ref{def:assetid}; $\mathsf{vNotes}$ is a
   finite sequence of elements of $\mathsf{IssueNoteFields}$, the unencrypted
@@ -3118,7 +3263,10 @@ its Asset Base.
   carries the Boolean $\mathsf{finalize}$, which the issuer sets to signal
   that no further issuance of the Asset will occur.
 \item An \emph{Issuance Bundle} is a triple
-  $(\mathsf{issuer}, \mathsf{vIssueActions}, \mathsf{issueAuthSig})$, where
+  \[
+    (\mathsf{issuer}, \mathsf{vIssueActions}, \mathsf{issueAuthSig}),
+  \]
+  where
   $\mathsf{issuer} = \mathsf{ik\_encoding} \in \mathbb{B}^{\mathbb{Y}[33]}$
   is the issuer identifier of Definition~\ref{def:issuer};
   $\mathsf{vIssueActions}$ is a finite sequence of Issuance Actions; and
@@ -3213,7 +3361,8 @@ the kind of its consumed note. The definition presupposes an Action Group,
 which rule (I1) of Definition~\ref{def:issue-auth} enforces. The derivation
 adds one row to the \emph{Ironwood Guide}'s Construction ``Domain bytes of
 PRF expansion'':
-\begin{center}\small
+% wider than the text: runs into the outer margin, as a float would
+\begin{center}\small\hfuzz=\dimexpr150mm-\textwidth\relax
 \begin{tabular}{@{}llllll@{}}
 \toprule
 $b$ & Key $\kappa$ & Remainder $t'$ & $f$ & Output & Section \\
@@ -3631,9 +3780,11 @@ The components are written
   \mathsf{issued\_assets}(\mathsf{AssetBase}).\mathsf{note}_{\mathsf{ref}}.
 \end{gather*}
 An Asset Base outside the domain of the map, written
-$\mathsf{issued\_assets}(\mathsf{AssetBase}) = \bot$, reads as
-$(0, 0, \bot)$, and a write to a component of such an Asset Base creates its
-entry from that default. The components mean the following.
+\[
+  \mathsf{issued\_assets}(\mathsf{AssetBase}) = \bot,
+\]
+reads as $(0, 0, \bot)$, and a write to a component of such an Asset Base
+creates its entry from that default. The components mean the following.
 \begin{enumerate}
 \item The \emph{balance} is the amount of the Asset in circulation: the
   amount issued less the amount burnt.
@@ -3741,11 +3892,12 @@ value. The labels follow the order of ZIP 227, which numbers none.
 
 \emph{If $T$ contains an Issuance Bundle:} rules (I1) to (I3) of
 Definition~\ref{def:issue-auth} hold, and for each Issuance Action
-$(\mathsf{assetDescHash}, \mathsf{vNotes}, \mathsf{flagsIssuance})$ of
-$\mathsf{vIssueActions}$, in order, with zero-based position $i_A$ in the
-bundle, let $\mathsf{AssetBase}$ be derived from $\mathsf{issuer}$ and
-$\mathsf{assetDescHash}$ by Construction~\ref{def:assetbase}
-(Remark~\ref{rem:assetbase-recompute}). Then:
+$(\mathsf{assetDescHash},\allowbreak \mathsf{vNotes},\allowbreak
+\mathsf{flagsIssuance})$ of $\mathsf{vIssueActions}$, in order, with
+zero-based position $i_A$ in the bundle, let $\mathsf{AssetBase}$ be
+derived from $\mathsf{issuer}$ and $\mathsf{assetDescHash}$ by
+Construction~\ref{def:assetbase} (Remark~\ref{rem:assetbase-recompute}).
+Then:
 \begin{enumerate}[leftmargin=3.2em]
 \item[(I4)] Every Issue Note description of the action MUST be a valid
   encoding, and each yields the Issue Note of
@@ -3775,8 +3927,10 @@ $\mathsf{assetDescHash}$ by Construction~\ref{def:assetbase}
   whose inputs are qualified in Remark~\ref{rem:issue-cm-open}.
 \item[(I7)] If $\mathsf{finalize} = 1$ in $\mathsf{flagsIssuance}$, the
   node sets
-  $\mathsf{issued\_assets}_{\mathsf{OUT}}(\mathsf{AssetBase}).\mathsf{final}
-  := 1$.
+  \[
+    \mathsf{issued\_assets}_{\mathsf{OUT}}(\mathsf{AssetBase}).\mathsf{final}
+    := 1.
+  \]
 \end{enumerate}
 (ZIP 227, ``Specification: Consensus Rule Changes''; ZIP 226, ``Additional
 Consensus Rules for the assetBurn set''.) Class: specified. The encodings
@@ -3926,9 +4080,9 @@ the only mechanism of the issuance life cycle that ZIP 227 specifies (ZIP 227,
 Changes''). Class: specified.
 
 \begin{proposition}[Finalised supply never grows]\label{prop:final-supply}
-If $S(\mathsf{AssetBase}).\mathsf{final} = 1$ in a reachable issuance state
-$S$ of a valid chain, then in every later reachable state $S'$ of the same
-chain $S'(\mathsf{AssetBase}).\mathsf{final} = 1$ and
+In a reachable issuance state $S$ of a valid chain, if
+$S(\mathsf{AssetBase}).\mathsf{final} = 1$, then in every later reachable
+state $S'$ of the same chain $S'(\mathsf{AssetBase}).\mathsf{final} = 1$ and
 $S'(\mathsf{AssetBase}).\mathsf{balance} \le
 S(\mathsf{AssetBase}).\mathsf{balance}$, and the balance is non-increasing
 from $S$ on. The Asset can still be burnt. This is a property of the map; its
@@ -4026,9 +4180,9 @@ map.
   {(I4): any\\ Issuance Action} (R);
 \draw[rj=tierspend] (A.north) to[out=90, in=180] node[lb, pos=0.35]
   {(T4): any burn} (R.west);
-\draw[rj=tierfull] (A) -- node[lb, left=2pt, align=right]
+\draw[rj=tierfull] ([xshift=7mm]A.south) -- node[lb, left=2pt, align=right]
   {(I7) without notes:\\ validity open\\
-   (Remark~\ref{rem:empty-action})} (O);
+   (Remark~\ref{rem:empty-action})} ([xshift=7mm]O.north);
 \end{tikzpicture}
 \caption{Transitions of one entry of the global issuance state of
 Definition~\ref{def:issued-assets}. Solid edges are accepted transitions,
@@ -4164,7 +4318,7 @@ last as in Table~\ref{tab:req-results}.
 
 \begin{table}[ht]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{2.1cm}p{2.5cm}p{3.6cm}p{1.9cm}p{4.9cm}@{}}
+\begin{tabular}{@{}p{1.9cm}p{2.3cm}p{3.3cm}p{1.8cm}p{4.4cm}@{}}
 \toprule
 Requirement & Conditions & Issuance and state rules & Checks
   & Result \tabularnewline
@@ -4826,7 +4980,7 @@ Tree''). Figure~\ref{fig:provenance} draws the induction.
 \node[lf=tierfull] (a2) at (6.6,0) {$V^{\mathsf{Orchard}}$};
 \node[lf=tierrecv] (i1) at (8.9,0) {$B'$\\[-1pt] {\tiny reference}};
 \node[lf=tierrecv] (i2) at (10.7,0) {$B'$};
-\node[emp] (z) at (13.0,0) {$2$};
+\node[emp] (z) at (12.8,0) {$2$};
 \draw[ed=tierin] (a1.north) to[out=115, in=65]
   node[nt, above, pos=0.5] {A1$'$, A2$'$: one witnessed base;\\
   A3$'$: the consumed note opens this leaf} (e2.north);

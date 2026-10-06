@@ -1,14 +1,33 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2.4cm]{geometry}
+% head height 14pt: the italic Th ligature of a running head stands 13.01pt
+\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
-\usepackage{unicode-math}
-\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
-  UprightFont=*-regular, ItalicFont=*-italic,
-  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
-\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
-% Pagella uses U+2216 for set difference.
-\AtBeginDocument{\let\setminus\smallsetminus}
+\usepackage[mathsf=sym]{unicode-math}
+\setmainfont{EBGaramond}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \textsf (crate names) is code, in the mono
+\defaultfontfeatures[Iosevka]{Path=fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\setsansfont{Iosevka}
+\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/,
+  range=\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \rivk takes a further subscript
+\AtBeginDocument{\let\arbsymsf\mathsf\protected\def\mathsf#1{{\arbsymsf{#1}}}}
+\usepackage{polyglossia}
+\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\PolyglossiaSetup{english}{frenchspacing=true}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -35,31 +54,143 @@
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
 
-% kind-coded theorem blocks, palette shared with the figures and the website:
-% definitions/constructions blue (tierin), assumptions amber (tierfull),
-% proved statements a neutral bar; remarks and examples run unframed
-\usepackage{mdframed}
+% kind-coded theorem blocks: the rule weight codes the kind, in ink, no fill:
+% proved statements 1.6pt, definitions and constructions 0.4pt, assumptions
+% dashed 0.8pt; remarks and examples run unframed with an italic head
+\usepackage{etoolbox,framed}
+\makeatletter
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
-\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
-  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
-  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
-  skipabove=10pt,skipbelow=10pt}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
-\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
-
+\providecolor{tierspend}{RGB}{200,60,60}
+\providecolor{muted}{HTML}{5E5E5E}
+% a left rule 0.9em from the text; framed spaces it like a list. Inside,
+% \topsep is cleared so the statement's own list adds nothing, and
+% FrameRestore's \sloppy is dropped so statements break like prose. A frame
+% split across pages counts the last line's depth, which framed's
+% \boxmaxdepth=0 turns into height
+\setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
+\patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
+% the frame sits flush left, as framed would centre it: a display wider than
+% the text then runs into the outer margin, up to 150 mm, and the rule stays
+\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \hbox to\hsize{#1\hfil}}}
+\patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\newcommand\arb@kind[2]{%
+  \BeforeBeginEnvironment{#2}{\def\FrameCommand{#1}%
+    \MakeFramed{\advance\hsize-\width\let\sloppy\relax\FrameRestore\topsep\z@}}%
+  \AfterEndEnvironment{#2}{\endMakeFramed}}
+\newcommand\arb@dashed[1]{\setbox\z@\hbox{#1}\hbox{\vbox to\ht\z@{\cleaders
+  \vbox{\hrule\@width.8pt\@height3pt\vskip2pt}\vfill}\hspace{.9em}\box\z@}}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{definition}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{construction}
+\arb@kind{\arb@dashed}{assumption}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{theorem}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{lemma}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{proposition}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{corollary}
+\AtBeginEnvironment{remark}{\thm@headfont{\itshape}}
+\AtBeginEnvironment{example}{\thm@headfont{\itshape}}
+% a proof head breaks and hyphenates as the text it opens: amsthm sets it as a
+% list label, one unbreakable box
+\renewenvironment{proof}[1][\proofname]{\par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax\trivlist\item\relax{\itshape#1\@addpunct{.}}%
+  \hskip\labelsep\ignorespaces}{\popQED\endtrivlist\@endpefalse}
+% 11/14.5 pt; small (captions, tables, footnotes) 0.875; both size commands
+% are robust, so the patches go to their inner macros. A 10pt class (the
+% figure render's standalone) keeps its sizes
+\ifnum\@ptsize=1
+\expandafter\patchcmd\csname normalsize \endcsname{{13.6}}{{14.5}}{}{\PatchFailed}
+\expandafter\patchcmd\csname small \endcsname{\@xpt\@xiipt}{{9.625}{12.7}}{}{\PatchFailed}
+\fi
+% the hyperref package wraps \@footnotetext; the size is set in the wrapped
+% original
+\patchcmd{\H@@footnotetext}{\footnotesize}{\small}{}{\PatchFailed}
+\normalsize
+\setlength{\parindent}{1.2em}
+% operator spacing shrinks by 1mu at most, so tight lines keep their operators
+\medmuskip=4mu plus 2mu minus 1mu
+\thickmuskip=5mu plus 3mu minus 1mu
+% headings on the 1.2 scale, semibold
+\usepackage{titlesec}
+\titleformat*{\section}{\fontsize{15.84}{19}\fontseries{sb}\selectfont}
+\titleformat*{\subsection}{\fontsize{13.2}{16}\fontseries{sb}\selectfont}
+% no heading below subsection: \subsubsection runs in, like \paragraph
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection}{0.5em}{}[.]
+% a part (the complete edition) opens as a title page does: numeral, name,
+% subtitle; its title reads "Name: subtitle"
+\titleformat{\part}[display]{\raggedright}%
+  {\fontsize{47.3}{50}\selectfont\thepart}{6mm}{\arb@parttitle}
+\titlespacing*{\part}{0pt}{0pt}{12mm}
+\def\arb@parttitle#1{\arb@partsplit#1\@nil}
+\def\arb@partsplit#1: #2\@nil{{\fontsize{22.8}{27}\selectfont#1\par}%
+  \vspace{3mm}{\fontsize{13.2}{17}\selectfont#2\par}}
+% captions small, flush left, bold label; table captions above, wherever the
+% source puts them
+\usepackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
+\usepackage[font=small,labelfont=bf,labelsep=period,
+  justification=raggedright,singlelinecheck=false]{caption}
+\captionsetup[table]{position=top}
+% floats and displays wider than the text run flush left into the outer
+% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
+% both in \@floatboxreset, after the float's \sloppy and \normalsize would
+% undo them
+\def\arb@table{table}
+\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \ifx\@captype\arb@table\small\fi}
+\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+% links: a conifer underline on screen, nothing in print
+\hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
+  allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
+% contents: no link underlines; part and section entries in the heading
+% weight, ragged right
+\patchcmd{\l@part}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@section}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@part}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@section}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@part}{\hfil}{\hfill}{}{\PatchFailed}
+\patchcmd{\l@section}{\hfil}{\hfill}{}{\PatchFailed}
+\let\arb@tableofcontents\tableofcontents
+\renewcommand{\tableofcontents}{{\hypersetup{pdfborderstyle={/S/U/W 0}}%
+  \arb@tableofcontents}}
+% abstract: a flush-left head like the contents', body-size text
+\AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
+% identity from the title line: name, subtitle, accession numeral
+\providecommand{\accession}{}
+\providecommand{\volstatus}{}
+\providecommand{\arbedition}{}
+\InputIfFileExists{edition.tex}{}{}
+\def\arb@name#1#2\@nil{\def\arbvolname{#2}}
+\def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
+\providecommand{\arbvolname}{}
+\renewcommand{\maketitle}{\expandafter\arb@parsetitle\@title\@nil
+  \hypersetup{pdftitle={\arbvolname: \arb@sub},pdfauthor={Marek}}%
+  \thispagestyle{empty}\begingroup\raggedright
+  {\fontsize{13.2}{16}\selectfont\scshape The Zcash Arboretum\par}
+  \vspace*{50mm}
+  {\fontsize{47.3}{50}\selectfont\accession\par}
+  \vspace{6mm}
+  {\fontsize{22.8}{27}\selectfont\arbvolname\par}
+  \vspace{3mm}
+  {\fontsize{13.2}{17}\selectfont\arb@sub\par}
+  \vspace{18mm}
+  {\fontsize{13.2}{17}\selectfont Marek\par}
+  {\small\@author\par}
+  \vfill
+  % the colophon may run to the 150 mm wide measure
+  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
+    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
+  \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
-\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
-\fancyfoot[C]{\footnotesize\thepage}
-\renewcommand{\headrulewidth}{0.3pt}
+\fancyhead[L]{\small\scshape\ifdefempty{\accession}{}{\accession\quad}\arbvolname}
+\fancyhead[R]{\small\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\makeatother
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
@@ -119,12 +250,13 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
+\renewcommand{\accession}{VI}
+\renewcommand{\volstatus}{deployed}
 \title{\textbf{\Huge Wallet Guide}\\[6pt]\large The Zcash wallet layer: keys, transactions, and light-client synchronisation}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
-\thispagestyle{empty}
 
 \begin{abstract}
 This volume of \emph{The Zcash Arboretum} states the protocols that a Zcash
@@ -523,7 +655,7 @@ addresses of both scopes.
 
 \begin{figure}[tp]
 \centering
-\begin{tikzpicture}[
+\begin{tikzpicture}[x=0.96cm,
   font=\footnotesize, >={Stealth[length=1.8mm]},
   kn/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
     line width=0.7pt, rounded corners=2pt, inner sep=3pt,
@@ -541,7 +673,7 @@ addresses of both scopes.
 \node[kn=tierspend] (p2) at (9.8,0) {$(\mathsf{sk}, \mathsf{c})$\\at
   $\mathit{coin\_type}'$};
 \node[kn=tierspend] (acct) at (13.6,0) {$\mathsf{sk}_{\mathsf{acct}}$};
-\node[lb, text=gray, anchor=south] at (acct.north)
+\node[lb, text=muted, anchor=south] at (acct.north)
   {$\mathsf{c}_{\mathsf{acct}}$ dropped};
 \draw[ed] (S) -- node[lb, above] {$\mathsf{MKG}$\\{}[RO]} (m);
 \draw[ed] (m) -- node[lb, above] {$\mathtt{0x81}$, $32'$\\{}[PRF]} (p1);
@@ -663,6 +795,7 @@ Let $S$ be the $32$ bytes $\mathtt{0x00}, \mathtt{0x01}, \dots,
 \mathtt{0x1f}$, on Mainnet (coin type $133$), account $0$. The pairs
 $(\mathsf{sk}, \mathsf{c})$ along the path, in hexadecimal, are:
 \begin{center}\footnotesize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lll@{}}
 \toprule
 Node & & Value \\
@@ -806,8 +939,11 @@ at key generation. For a spending key $\mathsf{sk}$, in both branches
       \mathsf{I2LEOSP}_{256}(\nksym)\bigr)\bigr),
   \end{align*}
   where $\mathsf{truncate}_{32}$ keeps the first $32$ bytes and
-  $\mathsf{BLAKE3.derive\_key}(\mathit{context}, \mathit{material},
-  \mathit{length})$ is the function that ZIP 2005 specifies, cited to it and
+  \[
+    \mathsf{BLAKE3.derive\_key}(\mathit{context}, \mathit{material},
+    \mathit{length})
+  \]
+  is the function that ZIP 2005 specifies, cited to it and
   not constructed; no property of it is assumed.
 \end{enumerate}
 The components $\ivk$, $\dk$, $\ovk$ and every address are computed from
@@ -1178,9 +1314,9 @@ probability.
 % (r_P, the order of the Pallas group, is p_Vesta in this volume's notation.)
 \begin{proposition}[Probability of an invalid account key]%
 \label{prop:zip32-invalid}
-Model the Sinsemilla generators, the initial point
-$Q := Q(\texttt{z.cash:Orchard-CommitIvk-M})$ and the points $S(j)$ for
-$0 \le j < 2^{10}$, as independent uniform points of the Pallas group,
+Model the Sinsemilla generators, the points $S(j)$ for $0 \le j < 2^{10}$
+and the initial point $Q := Q(\texttt{z.cash:Orchard-CommitIvk-M})$, as
+independent uniform points of the Pallas group,
 independent of every other quantity (\emph{Ironwood Guide}, \S``GroupHash,
 domain separation, and nothing-up-my-sleeve generators'', Assumption ``GroupHash
 as a random oracle''). Let
@@ -1225,7 +1361,8 @@ is invalid only on one of the following events.
   with probability $\lceil 2^{512}/p_{\Vesta} \rceil / 2^{512}$ (\emph{Math
   Guide}, \S``Uniform sampling and the bias of modular reduction'').
 \item The Sinsemilla hash point $\hat{M}$ of the message
-  $\mathrm{LE}_{255}(\aksym) \,\|\, \mathrm{LE}_{255}(\nksym)$ is $\bot$.
+  $\mathrm{LE}_{255}(\aksym) \,\|\allowbreak\, \mathrm{LE}_{255}(\nksym)$ is
+  $\bot$.
   The message has $510$ bits, $51$ chunks of $10$ bits, so the hash
   performs $102$ incomplete additions, two per round,
   $\Acc_i := (\Acc_{i-1} \dotplus S(m_i)) \dotplus \Acc_{i-1}$ (protocol
@@ -1426,8 +1563,10 @@ $\pkd := [\ivk]\,\gd$; the address is $(d, \pkd)$. For each scope
 $s \in \{\mathsf{ext}, \mathsf{int}\}$ of an account
 (Construction~\ref{def:zip32-internal}) the pair $(\dk_s, \ovk_s)$ is the
 first and the second $32$ bytes of
-$\mathsf{PRFexpand}_{\mathrm{LE}_{256}(\rivk_s)}([\mathtt{0x82}] \,\|\,
-\mathsf{I2LEOSP}_{256}(\aksym) \,\|\, \mathsf{I2LEOSP}_{256}(\nksym))$
+\[
+  \mathsf{PRFexpand}_{\mathrm{LE}_{256}(\rivk_s)}([\mathtt{0x82}] \,\|\,
+  \mathsf{I2LEOSP}_{256}(\aksym) \,\|\, \mathsf{I2LEOSP}_{256}(\nksym))
+\]
 (\emph{Ironwood Guide}, \S``Viewing keys''), and $\ivk_s$ is the incoming
 viewing key of the scope. The address at index $0$ is the \emph{default
 address} of the scope (protocol specification, \S``Orchard Key
@@ -1466,9 +1605,13 @@ at $d_j$.
   index is valid, a scope has exactly $2^{88}$ addresses, and the default
   diversifier is $d_0$ (ZIP 32, ``Orchard diversifier and OVK
   derivation'').
-\item Sapling: $\mathsf{DiversifyHash}^{\mathsf{Sapling}}(d) :=
-  \mathsf{GroupHash}^{\mathbb{J}(r)*}_{\mathsf{URS}}(\texttt{Zcash\_gd},
-  \mathsf{LEBS2OSP}_{88}(d))$, a hash into the points of order $r_{\mathbb{J}}$
+\item Sapling:
+  \[
+    \mathsf{DiversifyHash}^{\mathsf{Sapling}}(d) :=
+    \mathsf{GroupHash}^{\mathbb{J}(r)*}_{\mathsf{URS}}(\texttt{Zcash\_gd},
+    \mathsf{LEBS2OSP}_{88}(d)),
+  \]
+  a hash into the points of order $r_{\mathbb{J}}$
   of the Jubjub curve that returns $\bot$ on some inputs (protocol
   specification, \S``$\mathsf{DiversifyHash}^{\mathsf{Sapling}}$ and
   $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions'',
@@ -1688,9 +1831,11 @@ stated with the validity condition that a decoder applies.
   address as invalid if $\mathsf{abst}_{\PP}$ returns $\bot$ or the
   identity (protocol specification, \S``Orchard Raw Payment Addresses'').
 \item A \emph{Sapling raw payment address} has $43$ bytes,
-  $\mathsf{LEBS2OSP}_{88}(d) \,\|\,
-  \mathsf{LEBS2OSP}_{256}(\mathsf{repr}_{\mathbb{J}}(\pkd))$, with the
-  compressed Jubjub encoding. It MUST be considered invalid if
+  \[
+    \mathsf{LEBS2OSP}_{88}(d) \,\|\,
+    \mathsf{LEBS2OSP}_{256}(\mathsf{repr}_{\mathbb{J}}(\pkd)),
+  \]
+  with the compressed Jubjub encoding. It MUST be considered invalid if
   $\mathsf{abst}_{\mathbb{J}}$ returns $\bot$, if the encoding of $\pkd$ is
   non-canonical, or if $\pkd$ is not a point of order $r_{\mathbb{J}}$, the
   identity included (protocol specification, \S``Sapling Payment
@@ -2065,9 +2210,11 @@ with zero bytes to $16$ bytes.
 \begin{enumerate}
 \item Producer. It MUST ensure $\mathrm{length}(\mathsf{raw}) \le
   \ell_{\mathsf{MAX}} - 16 = 4194352$, and outputs
-  $\mathrm{Bech32m}(\mathit{hrp}, \mathsf{F4Jumble}(\mathsf{raw} \,\|\,
-  \mathsf{padding}))$, the Bech32m encoding of BIP 350 with its length
-  restriction ignored.
+  \[
+    \mathrm{Bech32m}(\mathit{hrp}, \mathsf{F4Jumble}(\mathsf{raw} \,\|\,
+    \mathsf{padding})),
+  \]
+  the Bech32m encoding of BIP 350 with its length restriction ignored.
 \item Consumer. It MUST decode as follows, rejecting the string at the
   first failure:
   \begin{enumerate}[label=(\arabic*)]
@@ -2162,6 +2309,8 @@ $\mathtt{0x82}$ expansion of the account's full viewing key, and FF1
 encryption of $\mathrm{LE}_{88}(1)$ gives $d_1$
 (Definition~\ref{def:addr-index}):
 \begin{center}\footnotesize\ttfamily
+% runs into the outer margin, up to 150 mm, like a wide float
+\hfuzz=\dimexpr150mm-\textwidth\relax
 \begin{tabular}{@{}l@{\quad}l@{}}
 $\dk$ & 82cc9d79742fe5ae9a142b9336a98677b154fe20401eb18998dbed915b0453ce \\
 $\mathsf{LEBS2OSP}_{88}(\mathrm{LE}_{88}(1))$ & 0100000000000000000000 \\
@@ -2214,10 +2363,10 @@ symbols, the last padded with two zero bits. With the human-readable part
 \texttt{u}, the separator \texttt{1} and the $6$-symbol checksum, the
 string has $1 + 1 + 98 + 6 = 106$ characters:
 \begin{center}\scriptsize\ttfamily
-u1nztelxna9h7w0vtpd2xjhxt4lpu8s9cmdl8n8vcr7actf2ny45nd%
+u1nztelxna9h7w0vtpd2xjhxt4lpu8s9cmdl8n8vcr7actf2ny45nd\allowbreak
 07cy8cyuhuvw3axcp545y0ktq9cezuzx84jyhex8dk4tdvwhu4dl
 \end{center}
-Decoding reverses each stage of Construction~\ref{def:addr-string}, and
+Decoding reverses each stage of Construction~\ref{def:addr-string};
 $\mathsf{F4Jumble}^{-1}(c \,\|\, d) = M$. The string equals the unified-address
 test vector for account~$9$ and index~$1$ of the zcash-test-vectors suite,
 which ZIP 32, ``Test Vectors'', names.
@@ -2730,8 +2879,9 @@ part of the abstract format.
 \end{definition}
 
 \begin{definition}[Pool selection]
-Let $\mathcal{P} \subseteq \{\mathsf{transparent}, \mathsf{Sapling},
-\mathsf{Orchard}, \mathsf{Ironwood}\}$. The compact block
+Let $\mathcal{P} \subseteq \{\mathsf{transparent},\allowbreak
+\mathsf{Sapling},\allowbreak \mathsf{Orchard},\allowbreak
+\mathsf{Ironwood}\}$. The compact block
 \emph{restricted to} $\mathcal{P}$ is obtained from a compact block by
 keeping, in each compact transaction, only the components of the pools in
 $\mathcal{P}$ ($\mathit{SSp}$ and $\mathit{SOut}$ for Sapling, the sequence
@@ -2774,8 +2924,8 @@ Definition ``Transaction identifier''.
 \item A \emph{compact Sapling spend} is the $32$-byte nullifier
   $\nfsym$ of a Spend description.
 \item A \emph{compact Sapling output} is the triple
-  $(\mathsf{cmu}, \mathsf{ephemeralKey}, C_{\mathsf{enc}}[0{:}52])$, a
-  payload of $32 + 32 + 52 = 116$ bytes.
+  $(\mathsf{cmu},\allowbreak \mathsf{ephemeralKey},\allowbreak
+  C_{\mathsf{enc}}[0{:}52])$, a payload of $32 + 32 + 52 = 116$ bytes.
 \item A \emph{compact Action}, of the Orchard pool and of the Ironwood pool
   alike, is the tuple $(\nfsym, \cmx, \mathsf{ephemeralKey},
   C_{\mathsf{enc}}[0{:}52])$, a payload of $32 + 32 + 32 + 52 = 148$ bytes.
@@ -3416,7 +3566,7 @@ the interface.
 \begin{table}[tp]
 \centering\small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{3.2cm} p{3.3cm} p{8.6cm}@{}}
+\begin{tabular}{@{}p{3.2cm} p{3.3cm} p{7.8cm}@{}}
 \toprule
 Query & Arguments & Response \\
 \midrule
@@ -3715,8 +3865,12 @@ The nullifier of an Orchard-protocol note is
 $\mathsf{DeriveNullifier}_{\nksym}(\rho, \psi, \cmsym)$ (\emph{Ironwood
 Guide}, \S``The nullifier'', Definition ``Nullifier''), and that of a
 Sapling note is $\mathsf{PRF}^{\mathsf{nfSapling}}_{\nksym^{\star}}
-(\rho^{\star})$ with $\rho^{\star} = \mathsf{repr}_{\mathbb{J}}\bigl(
-\mathsf{MixingPedersenHash}(\cmsym, \mathsf{pos})\bigr)$, a function of the
+(\rho^{\star})$ with
+\[
+  \rho^{\star} = \mathsf{repr}_{\mathbb{J}}\bigl(
+  \mathsf{MixingPedersenHash}(\cmsym, \mathsf{pos})\bigr),
+\]
+a function of the
 nullifier deriving key and of the note's position (protocol specification,
 \S``Computing $\rho$ values and Nullifiers'').
 \begin{enumerate}[label=(\alph*)]
@@ -4716,7 +4870,7 @@ are scanned, Theorem~\ref{thm:tree-witness} makes the path computable.
 
 \begin{figure}[tp]
 \centering
-\begin{tikzpicture}[
+\begin{tikzpicture}[x=0.96cm,
   font=\footnotesize,
   st/.style={draw=black!60, line width=0.5pt},
   cn/.style={circle, draw=black!60, line width=0.6pt, inner sep=0pt,
@@ -4806,7 +4960,7 @@ are scanned, Theorem~\ref{thm:tree-witness} makes the path computable.
 \node[lb, anchor=north] at ($(s2)+(0,-1.65)$) {$2$};
 \node[lb, anchor=north] at ($(s3)+(-0.45,-1.65)$) {$\kappa = 3$};
 \foreach \i in {4,...,7} {
-  \node[lb, anchor=north, text=gray] at ($(s\i)+(0,-1.65)$) {$\i$};
+  \node[lb, anchor=north, text=muted] at ($(s\i)+(0,-1.65)$) {$\i$};
 }
 \node[lb, anchor=south] at ($(root.north)+(0,0.02)$) {anchor of $A$};
 \node[lb, anchor=south east] at ($(r0.north west)+(0.05,-0.05)$)
@@ -5692,7 +5846,7 @@ concerns the mempool.
 \centering\small
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{@{}p{2.9cm} p{3.9cm} p{4.6cm} p{3.4cm}@{}}
+\begin{tabular}{@{}p{2.8cm} p{3.6cm} p{4.3cm} p{3.3cm}@{}}
 \toprule
 Observable & Reveals & Mitigation & Class \\
 \midrule
@@ -6845,7 +6999,10 @@ states this workflow, and ZIP 318, ``Note preparation transactions'', uses
 it.
 
 (d)~A Sapling nullifier is computed from
-$\rho = \mathsf{MixingPedersenHash}(\cmsym, \mathsf{pos})$, where
+\[
+  \rho = \mathsf{MixingPedersenHash}(\cmsym, \mathsf{pos}),
+\]
+where
 $\mathsf{pos}$ is the note's position (protocol specification,
 \S``Computing $\rho$ values and Nullifiers''), and it is effecting data,
 committed by the signature digest (ZIP 244, ``Signature Digest'').
@@ -6931,9 +7088,9 @@ or the Sapling pool.
 \end{proposition}
 
 \begin{proof}
-Condition A10 of the Action statement with $\mathsf{enableCrossAddress} =
-0$ (\emph{Ironwood Guide}, \S``Bundle flags'' and \S``Chain state and pool
-rules'', rule~(i)) places each Orchard-pool output at the expanded receiver
+With $\mathsf{enableCrossAddress} = 0$, condition A10 of the Action
+statement (\emph{Ironwood Guide}, \S``Bundle flags'' and \S``Chain state and
+pool rules'', rule~(i)) places each Orchard-pool output at the expanded receiver
 of the note consumed in its Action. By the first rule of ZIP 326 under the
 reading of Construction~\ref{def:route}, an output of non-zero value lies at
 an internal-scope receiver of an account of the wallet, and by the second
@@ -7903,7 +8060,8 @@ and cannot perform the checks itself (ZIP 374, ``Verifier'').
 \end{definition}
 
 \begin{definition}[Modification state]\label{def:pczt-modifiable}
-The Global field $\mathsf{tx\_modifiable} \in \{0,1\}^8$, bits numbered from
+The Global field $\mathsf{tx\_}\allowbreak\mathsf{modifiable} \in \{0,1\}^8$,
+bits numbered from
 the least significant, has the following bits (ZIP 374, ``Global'' and
 ``Combiner''):
 \begin{enumerate}[label=(\roman*)]
@@ -8796,7 +8954,8 @@ The \emph{merge} $P \sqcup Q$ of two PCZTs is defined, or fails, as
 follows (ZIP 374, ``Combiner'').
 \begin{enumerate}[label=(\arabic*)]
 \item \emph{Global.} The fields $\mathsf{tx\_version}$,
-  $\mathsf{version\_group\_id}$, $\mathsf{consensus\_branch\_id}$,
+  $\mathsf{version\_group\_id}$,
+  $\mathsf{consensus\_}\allowbreak\mathsf{branch\_id}$,
   $\mathsf{fallback\_lock\_time}$, $\mathsf{expiry\_height}$ and
   $\mathsf{coin\_type}$ MUST be equal. The field $\mathsf{tx\_modifiable}$
   merges bitwise, bits~$0$, $1$ and~$7$ by AND and bit~$2$ by OR, bits~$3$
@@ -9660,7 +9819,7 @@ the rendering is canonical, not required.
 %   1, 10^8, MAX_MONEY - 1, MAX_MONEY} and 10^5 random v in [0,
 %   MAX_MONEY]; render(MAX_MONEY) = 21000000, render(1) = 0.00000001
 \begin{lemma}[Round trip of amounts]\label{lem:zip321-amount}
-For every $v \in \{0, \dots, \mathsf{MAX\_MONEY}\}$, the string
+For every integer $v$ with $0 \le v \le \mathsf{MAX\_MONEY}$, the string
 $\mathrm{render}(v)$ matches \texttt{1*DIGIT [ "." 1*8DIGIT ]} and
 $\mathrm{parse}(\mathrm{render}(v)) = v$. The map $\mathrm{parse}$ is not
 injective. For every accepted $s$, $\mathrm{render}(\mathrm{parse}(s))$ is

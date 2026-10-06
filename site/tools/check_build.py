@@ -6,6 +6,7 @@ their sources only after the entire gate passes.
 """
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -30,6 +31,11 @@ def log_errors(text):
         r"|^! ).*$", text, re.M)
 
 
+def git(*args):
+    return subprocess.run(["git", *args], cwd=sitegen.ROOT, capture_output=True,
+                          text=True, check=True).stdout.strip()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--update-pdfs", action="store_true")
@@ -41,6 +47,12 @@ def main():
     sources += sorted((sitegen.ROOT / "talks").glob("*.tex"))
     sitegen.omnibus()
     sources.append(sitegen.ROOT / "arboretum-complete.tex")
+    # the colophon names the commit, and its time is the build time, so a
+    # rebuild of one commit reproduces its PDFs
+    env = dict(os.environ, SOURCE_DATE_EPOCH=git("log", "-1", "--format=%ct"))
+    for folder in (sitegen.ROOT, sitegen.ROOT / "parked"):
+        (folder / "edition.tex").write_text(
+            f"\\def\\arbedition{{{git('rev-parse', '--short', 'HEAD')}}}\n")
     failed = []
     for source in sources:
         if errors := source_errors(source.read_text()):
@@ -50,7 +62,7 @@ def main():
         result = subprocess.run(
             ["tectonic", "-Z", "shell-escape", "--keep-logs",
              "--outdir", str(out), str(source)], cwd=sitegen.ROOT,
-            capture_output=True, text=True)
+            capture_output=True, text=True, env=env)
         (out / f"{source.stem}.build-output").write_text(
             result.stdout + result.stderr)
         log = out / f"{source.stem}.log"

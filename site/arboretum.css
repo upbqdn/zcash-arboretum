@@ -1,810 +1,744 @@
-/* The Zcash Arboretum — site stylesheet.
-   EB Garamond prose, Pagella mathematics, and quiet monospace metadata. */
+/* The Zcash Arboretum: site stylesheet. EB Garamond text, Garamond-Math mathematics (native
+   MathML), Iosevka identifiers; tokens, kinds and layout as the PDFs. */
 
 /* ---------- faces ---------- */
+/* EB Garamond with real small caps and lining numerals; its subset covers Latin, Greek and IPA */
 @font-face {
-  font-family: "EB Garamond";
-  src: url("fonts/EBGaramond.woff2") format("woff2");
-  font-weight: 400 800; font-style: normal; font-display: swap;
-}
-@font-face {
-  font-family: "EB Garamond";
-  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
-  font-weight: 400 800; font-style: italic; font-display: swap;
-}
-/* IPA symbols and Greek letters, which the EB Garamond subset lacks; scaled to its
-   x-height. */
-@font-face {
-  font-family: "Arboretum IPA";
-  src: url("fonts/stix2-ipa.woff2") format("woff2");
-  unicode-range: U+0250-02FF, U+014B, U+0370-03FF;
-  size-adjust: 84.6%;
+  font-family: "EB Garamond"; src: url("fonts/eb-garamond-regular.woff2") format("woff2");
   font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
-  font-family: "TeX Gyre Pagella Math";
-  src: url("fonts/texgyrepagella-math.woff2") format("woff2");
+  font-family: "EB Garamond"; src: url("fonts/eb-garamond-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond"; src: url("fonts/eb-garamond-semibold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond"; src: url("fonts/eb-garamond-semibolditalic.woff2") format("woff2");
+  font-weight: 600; font-style: italic; font-display: swap;
+}
+/* Garamond-Math, its cmap without the italic Greek capitals that share a Latin glyph, so copied
+   text and search see the Latin */
+@font-face {
+  font-family: "Garamond-Math"; src: url("fonts/garamond-math.woff2") format("woff2");
+  font-display: swap;
+}
+/* \mathsf: Garamond-Math's own sans (U+1D5A0-), whose x is 431.5/1000 against the text's 405
+   (measured); the same file, scaled to the text x-height. */
+@font-face {
+  font-family: "Garamond-Math Sans"; src: url("fonts/garamond-math.woff2") format("woff2");
+  unicode-range: U+1D5A0-1D66F, U+1D7E2-1D7F5; size-adjust: 93.9%; font-display: swap;
+}
+/* \mathtt (U+1D670-) in the text mono: Iosevka's letters and digits mapped to those code points,
+   scaled to the text x-height (405/520). */
+@font-face {
+  font-family: "Iosevka Math"; src: url("fonts/iosevka-math.woff2") format("woff2");
+  unicode-range: U+1D670-1D6A3, U+1D7F6-1D7FF; size-adjust: 77.9%; font-display: swap;
+}
+@font-face {
+  font-family: "Iosevka"; src: url("fonts/iosevka.woff2") format("woff2");
   font-weight: 400; font-style: normal; font-display: swap;
 }
+:root {
+  --text: "EB Garamond", Garamond, serif;
+  --mono: "Iosevka", ui-monospace, monospace;
+  --math: "Iosevka Math", "Garamond-Math Sans", "Garamond-Math", math;
+  --body: 1.375rem;       /* 22 px: the family is small-eyed (x 405/1000) */
+  --leading: 1.5;
+  --xh: .405;             /* the text 'x', measured; the OS/2 field says 400 */
+  --bold: 600;            /* the family has a semibold */
+  /* the face is narrow: 28.25 body ems set a median of 70 cpl; in body ems wherever it is used */
+  --measure: calc(28.25 * var(--body));
+}
+@media (max-width: 480px) { :root { --body: 1.25rem; } }
+/* Native MathML: the primary math font is Garamond-Math (the faces before it claim only their
+   ranges); ss03 draws the script capitals calligraphic, as \mathcal is meant. */
+math { font-family: var(--math); font-feature-settings: "ss03"; }
+/* justification stops at a formula: inheriting it, Chromium widened a sized operator (\bigl).
+   Text in a formula neither wraps nor hyphenates: a formula breaks only between its pieces, and a
+   wrappable \texttt let Chromium size the formula narrower than its content. */
+math { text-align: start; white-space: nowrap; hyphens: manual; }
+.ltx_mathvariant_monospace { font-family: var(--mono); font-size-adjust: ex-height var(--xh); }
+/* LaTeXML.css sets \mathcal in Lucida Calligraphy / Zapf Chancery; the math font draws it */
+math .ltx_font_mathcaligraphic { font-family: inherit; }
+/* \textsf names code (ChaCha20, zebra): no sans text face in the family, so the mono, as the PDF */
+.ltx_font_sansserif { font-family: var(--mono); font-size-adjust: ex-height var(--xh); }
 
-/* ---------- tokens ---------- */
+/* ---------- tokens: ink on paper; colour means a link or a figure tier ---------- */
 :root {
   color-scheme: light;
-  --desk: #fff;
   --paper: #fff;
-  --ink: #1f2328;
-  --muted: #59636e;
-  --conifer: #0969da;
-  --leafline: #d1d9e0;
-  --plate: #f6f8fa;
-  --edge: #d1d9e0;
-  --plaque-ink: #59636e;
-  --tierin-mix: 6%;
-  --tierfull-mix: 7%;
-  --serif: "EB Garamond", "Arboretum IPA", Garamond, Georgia, "Times New Roman",
-    serif;
-  --display: var(--serif);
-  --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+  --ink: #1a1a1a;
+  --muted: #5e5e5e;
+  --hairline: #d6d6d6;
+  --accent: #1c5a3a;
+  --gutter: 1.125rem;     /* 18 px */
+  --bar-h: 2.75rem;       /* 44 px, also the touch target */
+  --small: .875em;
+  --rule-in: .9em;        /* statement rule to text */
+  --nav-w: clamp(17rem, 22vw, 21rem);
+  --plate-pad: 0;         /* figures sit on a paper plate; it shows only in the dark theme */
 }
-:root[data-theme="warm"] {
-  --desk: #fbfaf5;
-  --paper: #fbfaf5;
-  --ink: #20261e;
-  --muted: #5d6656;
-  --conifer: #2f5138;
-  --leafline: #b9c2ae;
-  --plate: #f1f1e8;
-  --edge: #d9dcc9;
-  --plaque-ink: #4e5a45;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #141414;
+    --ink: #e8e6e3;
+    --muted: #a6a29c;
+    --hairline: #383838;
+    --accent: #8cc7a4;
+    --plate-pad: .6em;
+  }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --desk: #0d1117;
-  --paper: #0d1117;
-  --ink: #f0f6fc;
-  --muted: #9198a1;
-  --conifer: #4493f8;
-  --leafline: #3d444d;
-  --plate: #151b23;
-  --edge: #3d444db3;
-  --plaque-ink: #9198a1;
-  --tierin-mix: 12%;
-  --tierfull-mix: 10%;
-}
-:root[data-theme="midnight"] {
-  color-scheme: dark;
-  --desk: #171411;
-  --paper: #171411;
-  --ink: #eee8df;
-  --muted: #aaa096;
-  --conifer: #d6ad72;
-  --leafline: #3d352d;
-  --plate: #211d19;
-  --edge: #473d33;
-  --plaque-ink: #b7aa9e;
-  --tierin-mix: 12%;
-  --tierfull-mix: 10%;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    color-scheme: dark;
-    --desk: #0d1117;
-    --paper: #0d1117;
-    --ink: #f0f6fc;
-    --muted: #9198a1;
-    --conifer: #4493f8;
-    --leafline: #3d444d;
-    --plate: #151b23;
-    --edge: #3d444db3;
-    --plaque-ink: #9198a1;
-    --tierin-mix: 12%;
-    --tierfull-mix: 10%;
-  }
+  --paper: #141414;
+  --ink: #e8e6e3;
+  --muted: #a6a29c;
+  --hairline: #383838;
+  --accent: #8cc7a4;
+  --plate-pad: .6em;
 }
 
 /* ---------- base ---------- */
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
-  background: var(--desk);
+  background: var(--paper);
   color: var(--ink);
-  font-family: var(--serif);
-  font-size: 1.25rem;
-  line-height: 1.5;
+  font-family: var(--text);
+  font-size: var(--body);
+  line-height: var(--leading);
+  font-variant-numeric: lining-nums;
+  font-kerning: normal;
 }
-a { color: var(--conifer); text-decoration: none; }
-a:hover { text-decoration: underline; text-underline-offset: 3px; }
-:focus-visible {
-  outline: 2px solid var(--conifer);
-  outline-offset: 2px;
-  border-radius: 2px;
+b, strong, .ltx_font_bold { font-weight: var(--bold); }
+.ltx_font_smallcaps { font-variant-caps: small-caps; letter-spacing: .04em; }
+/* links: accent and always underlined (hue alone fails WCAG 1.4.1 against ink) */
+a {
+  color: var(--accent);
+  text-decoration: underline 1px;
+  text-underline-offset: .18em;
 }
-::selection { background: var(--conifer); color: var(--paper); }
-code, kbd, pre { font-family: var(--mono); }
-
-/* ---------- status metadata ---------- */
-.plaque {
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* identifiers: the mono, scaled to the text x-height */
+code, kbd, pre, .ltx_font_typewriter {
   font-family: var(--mono);
-  font-size: .68rem;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--plaque-ink);
-  white-space: nowrap;
+  font-size-adjust: ex-height var(--xh);
 }
+.ltx_page_main .ltx_font_typewriter, .ltx_page_main .ltx_ref.ltx_url { overflow-wrap: anywhere; }
+.ltx_page_main .ltx_font_typewriter:not(pre) { line-height: 0; }
+/* verbatim blocks keep their own leading; a wide one scrolls */
+.ltx_page_main pre { margin: .8em 0; line-height: 1.4; overflow-x: auto; }
+/* no break between inline math and a hyphenated suffix ("64-byte") */
+.arb-nobr { white-space: nowrap; }
+button { font: inherit; color: inherit; }
+summary { list-style: none; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
 
-/* ---------- site bar (injected on every volume page) ---------- */
+/* ---------- the bar (running head) ---------- */
 .arb-bar {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  padding: .65rem 1.2rem;
-  border-bottom: 1px solid var(--edge);
-  background: color-mix(in srgb, var(--paper) 92%, var(--plate));
   position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 1.4em;
+  height: var(--bar-h);
+  padding: 0 var(--gutter);
+  background: var(--paper);
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--small);
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--muted);
 }
+.arb-bar a, .arb-bar summary, .arb-bar button {
+  color: var(--muted);
+  text-decoration: none;
+}
+.arb-bar :is(a, summary, button):hover { color: var(--ink); text-decoration: underline 1px; }
 .arb-bar .wordmark {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 1rem;
+  font-variant-caps: small-caps;
+  letter-spacing: .04em;
+}
+.arb-bar .volname {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis;
   color: var(--ink);
 }
-.arb-bar .wordmark:hover { text-decoration: none; color: var(--conifer); }
-.arb-bar .volname {
-  font-family: var(--mono);
-  font-size: .68rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  flex: 1;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.arb-bar details.arb-search { position: relative; }
-.arb-bar .arb-pdf,
-.arb-bar details.arb-search summary {
-  list-style: none; cursor: pointer;
-  font-family: var(--mono); font-size: .72rem;
-  letter-spacing: .1em; color: var(--muted);
-}
-.arb-bar .arb-pdf:hover { color: var(--conifer); text-decoration: none; }
-.arb-bar details.arb-search summary::-webkit-details-marker { display: none; }
-.arb-bar details.arb-search[open] summary { color: var(--conifer); }
+.arb-bar .arb-acc { margin-right: .3em; }
 .arb-theme {
-  max-width: 7rem;
-  border: 1px solid var(--edge); border-radius: 3px;
-  padding: .18rem .35rem;
-  background: var(--paper); color: var(--muted);
-  font-family: var(--mono); font-size: .7rem;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--muted);
 }
+.arb-bar details[open] > summary { color: var(--ink); text-decoration: underline 1px; }
 .arb-bar .arb-search-panel {
-  position: absolute; right: 0; top: 1.8rem;
-  width: min(38rem, calc(100vw - 2.4rem));
-  /* The sticky bar cannot scroll an unbounded popup into view. */
-  max-height: calc(100vh - 4rem);
-  max-height: calc(100dvh - 4rem);
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  background: var(--plate);
-  border: 1px solid var(--edge);
-  border-radius: 2px;
-  padding: .8rem;
-  box-shadow: 0 10px 30px rgb(0 0 0 / .12);
+  position: absolute; top: calc(100% + 1px); right: var(--gutter);
+  width: min(34rem, calc(100vw - 2 * var(--gutter)));
+  max-height: calc(100dvh - var(--bar-h) - 1rem);
+  overflow-y: auto; overscroll-behavior-y: contain;
+  padding: .9rem 1.1rem 1rem;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-top: 0;
+  white-space: normal;
+  font-size: calc(1em / .875);   /* results at body size */
+  color: var(--ink);
+}
+.arb-toc > summary { display: none; }
+
+/* ---------- search: a plain field on a hairline, results in the text face ---------- */
+.pagefind-ui, #search, #arb-search-ui {
+  --pagefind-ui-scale: 1;
+  --pagefind-ui-primary: var(--accent);
+  --pagefind-ui-text: var(--ink);
+  --pagefind-ui-background: var(--paper);
+  --pagefind-ui-border: var(--hairline);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 0;
+  --pagefind-ui-tag: var(--paper);
+  --pagefind-ui-font: var(--text);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__form::before { content: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__search-input {
+  height: auto;
+  padding: .35em 3.5em .35em 0;
+  border: 0; border-bottom: 1px solid var(--hairline); border-radius: 0;
+  background: transparent;
+  font: inherit; font-size: 1em; font-weight: 400;
+  color: var(--ink);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__search-input:focus { outline: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__search-input:focus-visible {
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: calc(.35em - 1px);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__search-input::placeholder { color: var(--muted); opacity: 1; }
+:is(#search, #arb-search-ui) .pagefind-ui__search-clear {
+  top: .5em; right: 0; height: auto; padding: 0; line-height: 1.5;
+  background: transparent; color: var(--muted);
+  font: inherit; font-size: var(--small);
+  text-decoration: underline 1px; text-underline-offset: .18em;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__drawer { gap: 0; }
+:is(#search, #arb-search-ui) .pagefind-ui__results-area { margin-top: .6em; }
+:is(#search, #arb-search-ui) .pagefind-ui__message {
+  height: auto; padding: .4em 0;
+  font-size: var(--small); font-weight: 400; color: var(--muted);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__results { margin: 0; padding: 0; }
+:is(#search, #arb-search-ui) .pagefind-ui__result {
+  position: relative; isolation: isolate;
+  display: block; margin: 0; padding: .7em 0;
+  border: 0; border-top: 1px solid var(--hairline);
+  overflow-wrap: anywhere;
+}
+/* The whole result is its link, native new-tab actions included; nested matches sit above it
+   with their own links, each a 44 px touch target. */
+:is(#search, #arb-search-ui) .pagefind-ui__result-link { position: static; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-link::after {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible { outline: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible::after {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-inner { min-width: 0; margin: 0; align-items: stretch; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-tags { order: -1; margin: 0 0 .15em; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-tag {
+  padding: 0; background: none; color: var(--muted);
+  font-size: 0; font-style: italic;
+}
+/* the tag's own text ("V Ironwood Guide: ") stays for assistive tech; the printed name is silent */
+:is(#search, #arb-search-ui) .pagefind-ui__result-tag::before {
+  content: attr(data-pagefind-ui-meta);
+  content: attr(data-pagefind-ui-meta) / "";
+  font-size: calc(var(--body) * .875);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-title {
+  font-size: 1em; font-weight: var(--bold); line-height: 1.35;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-link {
+  color: var(--accent); text-decoration: underline 1px; text-underline-offset: .18em;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-link::before { content: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-excerpt {
+  min-width: 0;  /* Pagefind sets 250 px, wider than a phone's panel */
+  margin-top: .2em; font-size: var(--small); line-height: 1.45; color: var(--ink);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested {
+  position: relative; z-index: 2;
+  min-height: 44px; justify-content: center;
+  margin: 0; padding: 0 0 0 1.2em;
+}
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-excerpt { display: none; }
+:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-link { font-weight: 400; }
+:is(#search, #arb-search-ui) mark {
+  background: none; color: inherit; font-weight: var(--bold);
+}
+:is(#search, #arb-search-ui) .pagefind-ui__button {
+  margin-top: .4em; padding: .4em 0; height: auto;
+  border: 0; border-top: 1px solid var(--hairline); border-radius: 0;
+  background: none; color: var(--accent);
+  font: inherit; font-size: var(--small);
+  text-decoration: underline 1px; text-underline-offset: .18em;
 }
 
 /* ---------- landing ---------- */
 main.arb-landing {
-  max-width: 46rem;
+  max-width: calc(var(--measure) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: 3rem 2.6rem 3.5rem;
-  background: var(--paper);
+  padding: 4.5rem var(--gutter) 3rem;
+  --num: 2.6em;           /* numeral column, in landing-title ems */
 }
-@media (max-width: 700px) {
-  main.arb-landing { margin: 0; border: 0; box-shadow: none;
-    padding: 2.2rem 1.2rem 3rem; }
-}
-.arb-landing .eyebrow {
-  font-family: var(--mono);
-  font-size: .7rem;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 .6rem;
-}
+.arb-heading { display: flex; align-items: baseline; gap: 1em; }
 .arb-landing h1 {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: clamp(2.3rem, 6vw, 3.1rem);
-  letter-spacing: -.015em;
-  line-height: 1.08;
-  margin: 0 0 .9rem;
+  flex: 1; min-width: 0; margin: 0;
+  font-size: 2.07em; font-weight: 400; line-height: 1.15;
 }
-.arb-heading { display: flex; align-items: flex-start; gap: 1rem; }
-.arb-heading h1 { flex: 1; min-width: 0; }
-.arb-heading .arb-theme { margin-top: .35rem; flex: none; }
-.arb-landing .stem {
-  border: 0; height: 1px;
-  background: var(--leafline);
-  margin: 0 0 1.1rem;
-  position: relative;
-  overflow: visible;
-}
-.arb-landing .tag { color: var(--muted); margin: 0 0 1.6rem; max-width: 38rem; }
-.arb-landing h2 {
-  font-family: var(--display); font-weight: 600;
-  font-size: 1.35rem; margin: 2.6rem 0 .3rem;
-}
+.arb-heading .arb-theme { font-size: var(--small); }
+.arb-heading .arb-theme:hover { color: var(--ink); text-decoration: underline 1px; }
+.arb-landing .tag { margin: .9em 0 1.4em; }
+.arb-landing #search { margin-bottom: 1rem; }
 .arb-landing h3.grp {
-  font-family: var(--mono);
-  font-size: .68rem;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 2rem 0 .6rem;
-  display: flex; align-items: center; gap: .7rem;
+  margin: 2.4em 0 .5em;
+  font-size: 1em; font-weight: 400; line-height: inherit;
+  font-variant-caps: small-caps; letter-spacing: .04em;
 }
-.arb-landing h3.grp::after {
-  content: ""; flex: 1; height: 1px; background: var(--leafline);
-}
-
-/* volume list */
 ol.plates { list-style: none; margin: 0; padding: 0; }
-ol.plates li.plate {
-  padding: .9rem 0 .85rem;
-  margin: 0;
+li.plate {
+  display: grid;
+  grid-template-columns: calc(var(--num) * 1.2) auto minmax(0, 1fr);
+  column-gap: .8em;
+  margin: 0 0 1.1em;
+  margin-left: calc(-1.2 * var(--num) - .8em);
 }
-ol.plates li.plate + li.plate { border-top: 1px solid var(--edge); }
-.plate .label {
-  display: flex; align-items: baseline; gap: .7rem;
-  margin-bottom: .28rem;
-}
+.plate .label { display: contents; }
 .plate .acc {
-  font-family: var(--mono);
-  font-size: .68rem;
-  letter-spacing: .16em;
-  color: var(--muted);
-  flex: 1;
+  grid-column: 1; grid-row: 1;
+  justify-self: end;
+  font-size: 1.2em; line-height: 1.3;
 }
 .plate a.title {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 1.375rem;
-  color: var(--ink);
-  display: block;
+  grid-column: 2 / 4; grid-row: 1;
+  font-size: 1.2em; line-height: 1.3; font-weight: var(--bold);
+  color: var(--ink); text-decoration: none;
 }
-.plate a.title:hover { color: var(--conifer); text-decoration: none; }
-.plate .sub {
-  color: var(--muted);
-  font-size: 1.0625rem;
-  margin: .15rem 0 .5rem;
-}
+.plate a.title:hover { text-decoration: underline 1px; }
+.plate .sub { grid-column: 2 / 4; grid-row: 2; margin: .1em 0 .15em; }
 .plate .links {
-  display: flex; gap: 1rem;
-  font-family: var(--mono); font-size: .78rem;
-  letter-spacing: .08em; text-transform: uppercase;
+  grid-column: 2; grid-row: 3;
+  display: flex; gap: 1em;
+  font-size: var(--small);
+}
+.plate .plaque {
+  grid-column: 3; grid-row: 3; align-self: baseline;
+  font-size: var(--small); font-style: italic; color: var(--muted);
 }
 .arb-landing .foot {
-  border-top: 1px solid var(--edge); margin-top: 3rem; padding-top: 1rem;
-  font-size: .88rem; color: var(--muted); text-align: center;
+  margin-top: 3.5em;
+  font-size: var(--small); color: var(--muted);
 }
-.arb-landing .foot p { margin: .2rem 0; }
-
-/* pagefind widget tuning — scoped to the element so these beat the
-   plugin stylesheet's :root defaults regardless of load order */
-.pagefind-ui, #search, #arb-search-ui {
-  --pagefind-ui-scale: .9;
-  --pagefind-ui-primary: var(--conifer);
-  --pagefind-ui-text: var(--ink);
-  --pagefind-ui-background: var(--paper);
-  --pagefind-ui-border: var(--edge);
-  --pagefind-ui-border-width: 1px;
-  --pagefind-ui-border-radius: 4px;
-  --pagefind-ui-tag: var(--plate);
-  --pagefind-ui-font: var(--serif);
-}
-
-/* Pagefind's generated selectors and reset load after this stylesheet. */
-:is(#search, #arb-search-ui) .pagefind-ui__results-area { margin-top: .5rem; }
-:is(#search, #arb-search-ui) .pagefind-ui__message {
-  height: auto;
-  padding: .65rem 0;
-  font-size: .875rem;
-  font-weight: 400;
-  color: var(--muted);
-}
-:is(#search, #arb-search-ui) .pagefind-ui__results { margin: 0; }
-:is(#search, #arb-search-ui) .pagefind-ui__result {
-  position: relative;
-  isolation: isolate;
-  display: block;
-  margin: 0 0 .6rem;
-  padding: .85rem 1rem;
-  border: 1px solid var(--edge);
-  border-radius: 4px;
-  background: var(--paper);
-  overflow-wrap: anywhere;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-inner {
-  min-width: 0;
-  margin-top: 0;
-  align-items: stretch;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-tags {
-  order: -1;
-  margin: 0 0 .35rem;
-  gap: .4rem;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-tag {
-  padding: 0;
-  background: transparent;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: .7rem;
-  letter-spacing: .025em;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-excerpt {
-  min-width: 0;
-  margin-top: .3rem;
-  font-size: 1.125rem;
-  line-height: 1.5;
-  color: var(--muted);
-}
-/* Stretch real links, preserving native keyboard and open-in-new-tab actions.
-   Nested matches sit above the parent link and keep their own destinations. */
-:is(#search, #arb-search-ui) .pagefind-ui__result-link { position: static; }
-:is(#search, #arb-search-ui) .pagefind-ui__result-link::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: 4px;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-nested {
-  position: relative;
-  z-index: 2;
-  min-height: 44px;
-  justify-content: center;
-  margin-top: .4rem;
-  padding: .5rem .8rem;
-  border-left: 2px solid var(--edge);
-  background: var(--plate);
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-excerpt {
-  display: none;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-nested .pagefind-ui__result-link {
-  font-size: 1rem;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-link::before { content: none; }
-:is(#search, #arb-search-ui) .pagefind-ui__result-link:hover::after {
-  box-shadow: inset 0 0 0 1px var(--conifer);
-}
-:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible { outline: none; }
-:is(#search, #arb-search-ui) .pagefind-ui__result-link:focus-visible::after {
-  outline: 2px solid var(--conifer);
-  outline-offset: -2px;
-}
-:is(#search, #arb-search-ui) mark {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--conifer) 20%, var(--paper));
-  border-radius: 2px;
-  font-weight: 600;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__button {
-  min-height: 44px;
-  margin-top: .3rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-:is(#search, #arb-search-ui) :is(input, button):focus-visible {
-  outline: 2px solid var(--conifer);
-  outline-offset: 2px;
-}
-:is(#search, #arb-search-ui) .pagefind-ui__search-input::placeholder {
-  color: var(--muted);
-  opacity: 1;
-}
-
-/* ---------- volume pages: re-dress LaTeXML ---------- */
-.ltx_page_main {
-  max-width: 49rem;
-  margin: 2.4rem auto 3.5rem;
-  padding: 1rem 3rem 3.2rem;
-  font-family: var(--serif);
-  background: var(--paper);
-  color: var(--ink);
-  /* long words (URLs, DOIs) break at the column edge on narrow screens
-     rather than pushing the page wider than the viewport */
-  overflow-wrap: break-word;
-}
-.ltx_page_content { background: transparent; color: var(--ink); }
+.arb-landing .foot p { margin: 0; }
+.arb-landing .foot .arb-colophon { margin-top: .3em; }
+/* the concordance: a citation's number in the first column, its places in the second */
+.zc table { border-collapse: collapse; width: 100%; font-size: var(--small); }
+.zc td { padding: .45em .8em .45em 0; border-top: 1px solid var(--hairline); vertical-align: top; }
+.zc td.zk { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.zc h2 { margin: 2.4em 0 .6em; font-size: 1.2em; font-weight: var(--bold); }
+.zc .foot { margin-top: 2.4em; }
 @media (max-width: 1099px) {
-  .ltx_page_main { margin: 0 auto; border: 0; box-shadow: none;
-    padding: .5rem 1.2rem 3rem; }
+  li.plate { margin-left: 0; }
+  .arb-landing h3.grp { margin-left: calc(1.2 * var(--num) + .8em); }
 }
-.ltx_document { line-height: 1.5; }
+@media (max-width: 700px) {
+  main.arb-landing { padding-top: 2.5rem; --num: 2.2em; }
+}
 
-/* LaTeXML wraps list-item paragraphs in an inline-block .ltx_para, which
-   shrink-wraps to content and lets a wide child (a display equation) jut
-   past the list item and the sheet, or drift a few px past the column on
-   mobile. Force it back to block so it fills its container and its child's
-   own overflow-scroll can engage. LaTeXML's list-item rule outranks this on
-   specificity, so !important is required to win. */
-.ltx_page_main .ltx_para { display: block !important; max-width: 100%; }
+/* ---------- volume pages: layout ---------- */
+.ltx_page_main {
+  max-width: calc(var(--measure) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 2.2rem var(--gutter) 3rem;
+  overflow-wrap: break-word;  /* a word wider than a phone's line ("…_noncompact_digest") */
+}
+.ltx_page_content { color: var(--ink); background: none; }
+.ltx_page_main .ltx_page_header { display: none; }
+.ltx_page_main [id] { scroll-margin-top: calc(var(--bar-h) + 1rem); }
 
-/* …but inside a list item that block display shoves the body under its
-   label (LaTeXML pairs li > .ltx_tag with an inline-block .ltx_para).
-   Re-pair them as a flex row — every item site-wide is tag + single para
-   with list-style-type:none inline, so no native markers are lost.
-   LaTeXML's hanging-label margins on the tag still apply; min-width: 0
-   lets wide children overflow-scroll instead of bursting the row. */
-.ltx_page_main li.ltx_item { display: flex; align-items: baseline; gap: .4em; }
-.ltx_page_main li.ltx_item > .ltx_tag { flex: none; }
-.ltx_page_main li.ltx_item > .ltx_para { flex: 1 1 0; min-width: 0; }
+/* contents: the navigation (LaTeXML's context contents) and the title pages' lists; numbers hang */
+.ltx_page_navbar {
+  font-size: var(--small);
+  line-height: 1.4;
+}
+.ltx_page_navbar > a[rel="start"] { display: none; }
+.ltx_TOC { margin: 0; padding: 0; border: 0; background: none; }
+.ltx_toclist { list-style: none; margin: 0; padding: 0; }
+.ltx_toclist .ltx_toclist { padding-left: 1.6em; }
+.ltx_tocentry { margin: .3em 0; }
+/* the PDF contents stop at subsections; so do these lists */
+.ltx_TOC :is(.ltx_tocentry_subsubsection, .ltx_tocentry_paragraph) { display: none; }
+.ltx_TOC a { color: var(--muted); text-decoration: none; }
+.ltx_TOC a:hover { color: var(--ink); text-decoration: underline 1px; }
+.ltx_TOC :is(a, span) { white-space: normal !important; overflow-wrap: anywhere; }
+.ltx_TOC .ltx_ref_title { display: block; padding-left: 1.6em; text-indent: -1.6em; }
+/* a number wider than its column ("10.13") keeps a gap before its title */
+.ltx_TOC .ltx_tag_ref {
+  display: inline-block; min-width: 1.6em; padding-right: .35em; text-indent: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ltx_TOC .ltx_toclist_section { --tagw: 2.4em; }
+.ltx_TOC .ltx_toclist_section:has(> .ltx_tocentry:nth-child(10)) { --tagw: 2.8em; }  /* x.10 */
+.ltx_TOC .ltx_toclist_section .ltx_ref_title {
+  padding-left: var(--tagw); text-indent: calc(-1 * var(--tagw));
+}
+.ltx_TOC .ltx_toclist_section .ltx_tag_ref { min-width: var(--tagw); }
+/* the complete edition's parts: numerals up to VIII; their sections align under the name */
+.ltx_TOC .ltx_tocentry_part > a .ltx_ref_title { padding-left: 2.6em; text-indent: -2.6em; }
+.ltx_TOC .ltx_tocentry_part > a .ltx_tag_ref { min-width: 2.6em; }
+.ltx_TOC .ltx_toclist .ltx_toclist_part { padding-left: 2.6em; }
+.ltx_page_main .ltx_TOC { margin: 2.4em 0 0; }
+.ltx_page_main .ltx_TOC a { color: var(--ink); }
+.ltx_title_contents { margin: 0 0 .5em; font-size: 1.2em; font-weight: var(--bold); }
+.ltx_page_navbar span.ltx_ref_self,
+.ltx_page_navbar a[aria-current="location"] { color: var(--ink); font-weight: var(--bold); }
+.arb-nav-tools { display: none; }
 
-/* Book typography: match the PDF's justified, hyphenated, indented
-   paragraph blocks instead of ragged blog paragraphs. Indent marks every
-   paragraph that continues another (LaTeXML wraps each in .ltx_para), and
-   the inter-paragraph gap shrinks to a book-like sliver. The wrapper also
-   needs alignment because LaTeXML makes run-in and list paragraphs inline. */
-.ltx_page_main .ltx_para,
-.ltx_page_main .ltx_para > .ltx_p,
-.ltx_page_main .ltx_abstract > .ltx_p {
+@media (min-width: 1100px) {
+  body[data-arb="vol"] {
+    display: grid;
+    grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  }
+  .arb-bar { grid-column: 1 / -1; }
+  .ltx_page_navbar {
+    grid-column: 1; grid-row: 2;
+    position: sticky; top: var(--bar-h); align-self: start;
+    max-height: calc(100vh - var(--bar-h));
+    overflow-y: auto;
+    padding: 2.3rem 1rem 2rem var(--gutter);
+  }
+  .ltx_page_main { grid-column: 2; grid-row: 2; width: 100%; }
+}
+@media (max-width: 1099px) {
+  .arb-toc > summary { display: block; }
+  .ltx_page_navbar { display: none; }
+  body:has(.arb-toc[open]) .ltx_page_navbar {
+    display: flex; flex-direction: column;
+    position: fixed; z-index: 45;
+    top: var(--bar-h); bottom: 0; left: 0;
+    width: min(100%, 24rem);
+    overflow-y: auto; overscroll-behavior: contain;
+    padding: 1.2rem var(--gutter) 2rem;
+    background: var(--paper);
+    border-right: 1px solid var(--hairline);
+  }
+  body:has(.arb-toc[open]) .ltx_page_navbar > a[rel="start"] {
+    display: block; margin-bottom: 1em; order: -1;
+    font-size: calc(1em / .875); line-height: 1.3;
+    color: var(--ink);
+  }
+  .ltx_page_navbar .arb-start-sub {
+    display: block; margin-top: .15em;
+    font-size: .875em; color: var(--muted);
+  }
+}
+@media (max-width: 700px) {
+  .arb-bar { gap: 1.1em; }
+  .arb-bar .wordmark-prefix, .arb-bar .arb-volname, .arb-bar .arb-pdf, .arb-bar .arb-theme { display: none; }
+  .arb-bar .arb-acc { margin-right: 0; }
+  .arb-nav-tools {
+    display: flex; gap: 1.4em; margin: 0 0 1em;
+  }
+  .arb-nav-tools a, .arb-nav-tools button { color: var(--muted); }
+  body:has(.arb-toc[open]) .ltx_page_navbar { width: 100%; border-right: 0; }
+}
+
+/* ---------- headings: size and weight, never colour ---------- */
+/* a title page: the volume name at 2.07 body ems in the regular weight, as the landing's title,
+   its subtitle at 1.2 (LaTeXML sets 120 % and 248 % bold inline) */
+.ltx_page_main .ltx_title_document {
+  margin: 0 0 1.4em; text-align: left;
+  font-size: 1.2em !important; font-weight: 400; line-height: 1.3;
+}
+.ltx_title_document .ltx_font_bold {
+  font-size: 1.725em !important; font-weight: 400; line-height: 1.2;
+}
+.ltx_page_main .ltx_authors { display: none; }  /* empty: the web sources drop the author line */
+.ltx_page_main .ltx_abstract { margin: 0; }
+.ltx_title_part {
+  font-size: 1.44em; font-weight: var(--bold); line-height: 1.2;
+  margin: 0 0 1em;
+  text-wrap: balance;
+}
+.ltx_title { font-family: inherit; }
+.ltx_title_section {
+  font-size: 1.44em; font-weight: var(--bold); line-height: 1.2;
+  margin: 0 0 .7em;
+  text-wrap: balance;
+}
+.ltx_title_subsection {
+  font-size: 1.2em; font-weight: var(--bold); line-height: 1.25;
+  margin: 1.8em 0 .5em;
+}
+/* the design has no heading below subsection; LaTeXML subsubsections get body size */
+.ltx_title_subsubsection {
+  font-size: 1em; font-weight: var(--bold); line-height: inherit;
+  margin: 1.4em 0 .3em;
+}
+.ltx_section, .ltx_subsection, .ltx_subsubsection { margin-top: 0; }
+.ltx_title > .arb-heading-link, .ltx_title_theorem .arb-heading-link, .ltx_title_paragraph .arb-heading-link {
+  color: inherit; text-decoration: none;
+}
+.ltx_title > .arb-heading-link:hover { text-decoration: underline 1px; }
+.ltx_tag_section, .ltx_tag_subsection, .ltx_tag_subsubsection { margin-right: .3em; }
+@media (max-width: 1099px) {
+  /* a wrapped title continues under its text, not under the number */
+  .ltx_title_section { --tagw: 1.5em; }
+  .ltx_title_subsection { --tagw: 2.1em; }
+  .ltx_title_subsubsection { --tagw: 2.6em; }
+  :is(.ltx_title_section, .ltx_title_subsection, .ltx_title_subsubsection) {
+    padding-left: var(--tagw); text-indent: calc(-1 * var(--tagw));
+  }
+  .ltx_title :is(.ltx_tag_section, .ltx_tag_subsection, .ltx_tag_subsubsection) {
+    display: inline-block; min-width: var(--tagw); margin-right: 0; text-indent: 0;
+  }
+}
+@media (min-width: 1100px) {
+  /* section numbers hang in the margin */
+  .ltx_title_section, .ltx_title_subsection, .ltx_title_subsubsection { position: relative; }
+  .ltx_title :is(.ltx_tag_section, .ltx_tag_subsection, .ltx_tag_subsubsection) {
+    position: absolute; right: 100%;
+    margin-right: .8em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+/* \paragraph: bold run-in */
+.ltx_paragraph { margin-top: .9em; }
+.ltx_title_paragraph {
+  display: inline; margin: 0;
+  font-size: 1em; font-weight: var(--bold);
+}
+/* the gap after the head is a space, so it hangs where a line ends after the head (a margin
+   would stop that line short), as TeX drops the head's glue at a break */
+.ltx_title_paragraph::after { content: " "; word-spacing: .5em; }
+
+/* ---------- paragraphs: indent, no gap, justified and hyphenated ---------- */
+.ltx_p { margin: 0; }
+.ltx_para { margin: 0; }
+/* Every line spans the column, as in the PDF. Inline formulas break where TeX breaks them
+   (sitegen's native_math), so a line does not end loose before one. Greedy wrapping: Chromium's text-wrap:
+   pretty balances a ragged edge and loosens justified lines. A run-in head's paragraph is
+   inline: its container sets it (\paragraph heads are not marked ltx_runin). */
+.ltx_page_main :is(.ltx_p:not([class*="ltx_align_"]), :has(> .ltx_runin), .ltx_paragraph,
+                   .ltx_subparagraph), .arb-landing .tag {
   text-align: justify;
-  hyphens: auto;
-  -webkit-hyphens: auto;
+  hyphens: auto; -webkit-hyphens: auto;
 }
-.ltx_page_main .ltx_para { margin-bottom: .45em; }
-.ltx_page_main .ltx_abstract > .ltx_p { text-indent: 0; }
-.ltx_page_main .ltx_para + .ltx_para > .ltx_p:first-child {
-  text-indent: 1.4em;
+/* LaTeXML indents every paragraph but the first after a title, as TeX does; 1.2 em, not 2 */
+.ltx_para > .ltx_p:first-child { text-indent: 1.2em; }
+.ltx_abstract > .ltx_p { text-indent: 0; }
+.ltx_title_abstract {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
 }
-.ltx_title_document {
-  font-family: var(--display); font-weight: 600;
-  font-size: 2rem; line-height: 1.15;
-  margin: 2.2rem 0 1rem;
-}
-h2.ltx_title_section, .ltx_title_section {
-  font-family: var(--display); font-weight: 600;
-  font-size: 1.5rem; margin-top: 2.4rem;
-}
-h3.ltx_title_subsection, .ltx_title_subsection {
-  font-family: var(--display); font-weight: 600;
-  font-size: 1.3rem; margin-top: 1.8rem;
-}
-.ltx_tag_section, .ltx_tag_subsection { color: var(--muted); }
-.ltx_title > .arb-heading-link { color: inherit; }
+em.ltx_emph { font-style: italic; }
 
-/* theorem plates: same family as the specimen cards */
+/* ---------- statements: coded by rule weight, never by hue ---------- */
 .ltx_theorem {
-  background: var(--plate);
-  border: 1px solid var(--edge);
-  border-left: 3px solid var(--conifer);
-  border-radius: 2px;
-  padding: .7rem 1rem;
-  margin: 1.1rem 0;
+  margin: 1.1em 0;
+  padding-left: calc(var(--rule-in) + 3px - var(--rule, 0px));
+  border-left: var(--rule, 0px) solid var(--ink);
 }
-.ltx_theorem .ltx_title { font-family: inherit; }
+/* proved: solid 3 px */
+.ltx_theorem_theorem, .ltx_theorem_lemma, .ltx_theorem_proposition, .ltx_theorem_corollary {
+  --rule: 3px;
+}
+/* defined: solid 1 px */
+.ltx_theorem_definition, .ltx_theorem_construction { --rule: 1px; }
+/* assumed: dashed 1.5 px, dash 3/2 */
+.ltx_theorem_assumption {
+  border-left: 0;
+  padding-left: calc(var(--rule-in) + 3px);
+  background: repeating-linear-gradient(to bottom, var(--ink) 0 6px, transparent 6px 10px)
+    left top / 1.5px 100% no-repeat;
+  print-color-adjust: exact; -webkit-print-color-adjust: exact;
+}
+/* remarks and examples: no rule, italic head */
+.ltx_theorem_remark, .ltx_theorem_example { padding-left: 0; border-left: 0; }
+.ltx_theorem_remark .ltx_title_theorem .ltx_font_bold,
+.ltx_theorem_example .ltx_title_theorem .ltx_font_bold { font-weight: 400; font-style: italic; }
+/* the head runs in; the name sits in roman parentheses */
+.ltx_title_theorem { display: inline; font-size: 1em; font-style: normal; font-weight: 400; }
+.ltx_title_theorem .ltx_tag_theorem { font-style: normal; }
 .ltx_theorem .arb-permalink {
-  margin-left: .35em;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: .78em;
-  font-style: normal;
-  font-weight: 400;
-  text-decoration: none;
-}
-.ltx_theorem .arb-permalink:hover {
-  color: var(--conifer);
-  text-decoration: none;
+  margin-left: .3em;
+  color: var(--muted); font-style: normal; font-weight: 400; text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .ltx_theorem .arb-permalink { opacity: 0; }
-  .ltx_theorem:hover .arb-permalink,
-  .ltx_theorem .arb-permalink:focus-visible { opacity: 1; }
+  .ltx_theorem:hover .arb-permalink, .ltx_theorem .arb-permalink:focus-visible { opacity: 1; }
 }
-.ltx_proof { display: flow-root; margin: 1rem 0 1rem .2rem; padding-left: .9rem;
-             border-left: 1px solid var(--leafline); }
+/* Proof: italic run-in head, box flush right on the last line */
+.ltx_proof { display: flow-root; margin: 1.1em 0; }
+.ltx_title_proof { font-size: 1em; font-weight: 400; font-style: italic; }
 .arb-proof-end { white-space: nowrap; }
-.arb-qed { float: right; margin-left: .35em; }
+.arb-qed { float: right; margin-left: .5em; }
 
-/* math + tables breathe, never overflow the page */
+/* ---------- mathematics ---------- */
 .ltx_eqn_table {
   display: block; width: 100%; max-width: 100%;
-  overflow-x: auto; overflow-y: hidden; padding: .2rem 0;
+  margin: .6em 0;
+  overflow-x: auto; overflow-y: hidden;
 }
-/* keep the inner rows a real (auto-sizing) table so centring works;
-   the block wrapper above provides the scroll when they are too wide.
-   Drop LaTeXML's 50%-wide pad cells, which force every row full-width. */
-.ltx_eqn_table > tbody { display: table; margin-inline: auto; }
-.ltx_eqn_cell.ltx_eqn_center_padleft,
-.ltx_eqn_cell.ltx_eqn_center_padright { display: none; }
-.ltx_eqn_cell.ltx_eqn_eqno { min-width: 2.5rem; padding-left: .75rem; }
-.ltx_p math[display="block"] { display: block; max-width: 100%; overflow-x: auto; }
-.ltx_page_main math[display="inline"] {
+/* A group's (align, gather, aligned) row tbodies stay row groups, so one anonymous table holds
+   them all: aligned columns line up across rows, and LaTeXML's 50% pad cells centre the group
+   (they shrink to 0 when it overflows, and the box scrolls). */
+.ltx_equationgroup :is(.ltx_eqn_center_padleft, .ltx_eqn_center_padright) {
+  width: 50%; min-width: 0; padding: 0;
+}
+/* A single equation's one centred cell spans the row. */
+.ltx_eqn_table:not(.ltx_equationgroup) :is(.ltx_eqn_center_padleft, .ltx_eqn_center_padright) {
+  display: none;
+}
+.ltx_eqn_table:not(.ltx_equationgroup) > tbody { display: table; width: 100%; }
+.ltx_eqn_table:not(.ltx_equationgroup) .ltx_eqn_cell.ltx_align_center { width: 100%; }
+.ltx_eqn_cell.ltx_eqn_eqno {
+  min-width: 2.5em; padding-left: .75em;
+  position: sticky; right: 0; background: var(--paper);
+}
+.ltx_eqn_table:has(.ltx_eqn_eqno) { --eqw: 2.5em; }
+/* a formula piece wider than its column (an unbreakable tuple on a phone) scrolls in its own box,
+   which the page script puts around it */
+.arb-math-scroll {
   display: inline-block; max-width: 100%;
   overflow-x: auto; overflow-y: hidden;
   vertical-align: middle;
+  text-indent: 0;  /* not the paragraph's */
 }
-/* MathJax handles normal TeX line breaks. Only expressions with no legal
-   breakpoint get a local scroll box instead of widening the page. */
-mjx-container.arb-math-scroll {
-  display: inline-block;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  vertical-align: middle;
+/* wide displays, tables and verbatim scroll in their own box; a fade marks the clipped edge.
+   The scroll timeline is inactive when nothing overflows, so the fade appears only then. */
+.ltx_eqn_table, .ltx_page_main :is(table.ltx_tabular, pre), .arb-math-scroll {
+  animation: arb-edge linear both;
+  animation-timeline: scroll(self inline);
+}
+@keyframes arb-edge {
+  0% { mask-image: linear-gradient(to right, #000 calc(100% - 2.5em - var(--eqw, 0px)),
+    transparent calc(100% - var(--eqw, 0px)), #000 0); }
+  1%, 99% { mask-image: linear-gradient(to right, transparent, #000 2.5em,
+    #000 calc(100% - 2.5em - var(--eqw, 0px)), transparent calc(100% - var(--eqw, 0px)), #000 0); }
+  100% { mask-image: linear-gradient(to right, transparent, #000 2.5em); }
 }
 
-.ltx_tabular { font-size: 1.125rem; }
-.ltx_tabular .ltx_td, .ltx_tabular .ltx_th { padding: .25rem .6rem; }
-/* a table wider than the column scrolls inside its own box instead of
-   pushing the page. Floated tables sit in a figure.ltx_table wrapper (scroll
-   that); a bare tabular has none, so make the table itself the scroll box. */
-figure.ltx_table { overflow-x: auto; max-width: 100%; }
-:not(.ltx_table) > table.ltx_tabular {
-  display: block; overflow-x: auto; max-width: 100%; width: max-content;
+@media (min-width: 1100px) {
+  /* A display or table wider than the measure extends into the right margin, up to 1.2
+     measures (as the PDFs' 150 mm against the 125 mm block) and no further than the margin;
+     beyond that it scrolls. */
+  :root { --wide: min(.2 * var(--measure), (100vw - var(--nav-w) - var(--measure)) / 2 - 1.5rem); }
+  .ltx_eqn_table.arb-wide { width: auto; max-width: none; margin-right: calc(-1 * var(--wide)); }
+  .ltx_page_main table.ltx_tabular.arb-wide { max-width: calc(100% + var(--wide)); }
 }
+
+/* ---------- lists ---------- */
+.ltx_page_main :is(ul.ltx_itemize, ol.ltx_enumerate) { margin: .5em 0; padding: 0; }
+.ltx_page_main li.ltx_item {
+  display: flex; align-items: baseline; gap: .5em;
+  margin: .2em 0; white-space: normal;
+}
+.ltx_page_main li.ltx_item > .ltx_tag { flex: none; min-width: 1.2em; margin: 0; text-align: right; }
+.ltx_page_main li.ltx_item > .ltx_para { display: block; flex: 1 1 0; min-width: 0; }
+.ltx_page_main li.ltx_item > .ltx_para > .ltx_p { display: block; }
+
+/* ---------- tables: booktabs on hairlines ---------- */
+.ltx_page_main table.ltx_tabular {
+  display: block; width: max-content; max-width: 100%;
+  margin: 1.2em auto .2em;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--small);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.ltx_tabular :is(.ltx_td, .ltx_th) { padding: .3em .75em; line-height: 1.35; }
+.ltx_tabular :is(.ltx_td, .ltx_th):first-child { padding-left: 0; }
+.ltx_tabular :is(.ltx_td, .ltx_th):last-child { padding-right: 0; }
+.ltx_tabular .ltx_th { font-weight: 400; text-transform: none; letter-spacing: 0; }
+/* LaTeXML draws booktabs as 3 px double black; replace every border it sets */
+.ltx_tabular :is(.ltx_border_tt) { border-top: 2px solid var(--hairline); }
+.ltx_tabular :is(.ltx_border_bb) { border-bottom: 2px solid var(--hairline); }
+.ltx_tabular :is(.ltx_border_t, .ltx_border_T) { border-top: 1px solid var(--hairline); }
+.ltx_tabular :is(.ltx_border_b, .ltx_border_B) { border-bottom: 1px solid var(--hairline); }
+.ltx_tabular :is(.ltx_border_l, .ltx_border_L, .ltx_border_ll) { border-left: 1px solid var(--hairline); }
+.ltx_tabular :is(.ltx_border_r, .ltx_border_R, .ltx_border_rr) { border-right: 1px solid var(--hairline); }
+
+figure.ltx_table table.ltx_tabular { margin-left: 0; }
+
+/* ---------- figures and captions: small, left ---------- */
+figure.ltx_figure, figure.ltx_table { margin: 1.6em 0; max-width: 100%; text-align: left; }
+figure.ltx_figure { overflow-x: auto; }
 .ltx_graphics { max-width: 100%; height: auto; }
-/* a figure wider than the column scrolls inside its box rather than pushing
-   the page. This catches scaled diagrams, whose ltx_transformed_outer wrapper
-   carries a hard pt width baked in from the desktop layout that max-width on
-   the inner image cannot reach. */
-figure.ltx_figure { margin: 1.6rem 0; overflow-x: auto; max-width: 100%; }
 .ltx_transformed_outer { max-width: 100%; }
-/* The PDF resizebox survives LaTeXML around some pre-rendered diagrams.
-   Its negative translation clips the image against the figure's scroll box.
-   Size image-only wrappers normally; retain transforms on mathematical boxes. */
+/* a lone image takes the column, as \includegraphics[width=\textwidth] does in the PDF */
 figure.ltx_figure > .ltx_transformed_outer:has(> .ltx_transformed_inner > img:only-child) {
-  height: auto !important;
+  width: 100% !important; height: auto !important;
 }
 figure.ltx_figure > .ltx_transformed_outer > .ltx_transformed_inner:has(> img:only-child) {
-  position: static;
-  transform: none !important;
+  position: static; transform: none !important;
 }
+figure.ltx_figure > img.ltx_graphics,
 figure.ltx_figure > .ltx_transformed_outer > .ltx_transformed_inner > img:only-child {
-  display: block;
-  width: 100%;
+  display: block; width: 100%;
+  padding: var(--plate-pad);
+  background: #fff;
 }
-figure.ltx_table figcaption,
-figure.ltx_figure figcaption {
-  margin: .75rem 0 0;
-  color: var(--muted); font-size: 1rem; line-height: 1.45;
+/* LaTeXML's figure is a centring flex column, in which a caption grows to its widest formula;
+   stretched to the column, its formulas are fitted as the text's */
+figcaption.ltx_caption {
+  align-self: stretch; min-width: 0;
+  margin: .7em 0 0;
+  font-size: var(--small); line-height: 1.45;
   text-align: left !important;
-}
-figcaption .ltx_tag { color: var(--ink); font-weight: 600; }
-
-/* TOC + navigation */
-.ltx_TOC { background: var(--plate); border: 1px solid var(--edge);
-           border-radius: 2px; padding: .9rem 1.1rem; }
-.ltx_TOC .ltx_toclist { margin: 0; padding-left: 1.1rem; }
-.ltx_TOC a { color: var(--ink); }
-.ltx_TOC a:hover { color: var(--conifer); }
-.ltx_page_header, .ltx_page_footer {
-  border: 0; background: transparent; color: var(--muted);
-  font-size: .85rem;
-}
-
-/* ---------- volume layout: sticky specimen-index sidebar ---------- */
-body[data-arb="vol"] {
-  display: grid;
-  grid-template-columns: 17rem minmax(0, 1fr);
-}
-body[data-arb="vol"] .arb-bar { grid-column: 1 / -1; }
-body[data-arb="vol"] .ltx_page_main { grid-column: 2; width: 100%; }
-.ltx_page_navbar {
-  grid-column: 1;
-  position: sticky;
-  top: 2.6rem;
-  align-self: start;
-  max-height: calc(100vh - 2.6rem);
-  overflow-y: auto;
-  padding: 1.1rem 1rem 2rem 1.2rem;
-  font-size: 1rem;
-  line-height: 1.45;
-}
-/* the site bar already names the volume; drop the navbar's giant title */
-.ltx_page_navbar > a[rel="start"] { display: none; }
-.ltx_page_navbar .ltx_TOC {
-  background: transparent; border: 0; border-radius: 0; padding: 0;
-}
-.ltx_page_navbar .ltx_toclist { list-style: none; padding-left: 0; }
-.ltx_page_navbar .ltx_toclist .ltx_toclist { padding-left: .85rem; }
-.ltx_page_navbar .ltx_tocentry { margin: .18rem 0; }
-.ltx_page_navbar a { color: var(--muted); }
-.ltx_page_navbar a:hover { color: var(--conifer); text-decoration: none; }
-.ltx_page_navbar .ltx_tag_ref {
-  font-family: var(--mono); font-size: .68rem; color: var(--muted);
-  margin-right: .15rem;
-}
-/* entries wrap; LaTeXML's nowrap would clip them at the column edge */
-.ltx_page_navbar a, .ltx_page_navbar span {
-  white-space: normal !important;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 1099px) {
-  body[data-arb="vol"] { display: block; }
-  .ltx_page_navbar { display: none; }
-}
-
-/* content title block: ink, not link-green; subtitle quiet.
-   The heading may sit inside the anchor or contain it — cover both. */
-.ltx_page_main .ltx_title_document,
-.ltx_page_main .ltx_title_document a,
-.ltx_page_main a:has(.ltx_title_document),
-.ltx_page_main a .ltx_title_document { color: var(--ink); }
-.ltx_page_main a:has(.ltx_title_document):hover { text-decoration: none; }
-.ltx_subtitle, .ltx_page_main .ltx_title_document .ltx_text {
   color: var(--muted);
 }
-.ltx_title_abstract {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
-}
-/* Navigation lives in the footer; do not repeat it above every section. */
-.ltx_page_main .ltx_page_header { display: none; }
+figcaption .ltx_tag { color: var(--ink); font-weight: var(--bold); }
 
-/* footer navigation */
+/* ---------- footer ---------- */
 .ltx_page_footer {
-  font-family: var(--mono); font-size: .7rem; letter-spacing: .05em;
-  border-top: 1px solid var(--edge);
-  margin-top: 2.8rem; padding: 1rem 0 2.2rem;
+  margin-top: 3em; padding: 1.2em 0 2em;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--small); color: var(--muted);
 }
 .ltx_page_footer > .ltx_align_center {
-  display: flex; justify-content: space-between; gap: 1.5rem;
-  text-align: left;
+  display: flex; justify-content: space-between; gap: 1.5em; text-align: left;
 }
-.ltx_page_footer a { color: var(--muted); min-width: 0; }
-.ltx_page_footer a:hover { color: var(--conifer); }
 .ltx_page_footer a span { font-size: 1em !important; }
-.ltx_page_footer a[rel="up"], .ltx_page_footer a[rel="start"] {
-  display: none;
-}
-.ltx_page_footer a[rel="prev"]::before { content: "\2190  "; }
-.ltx_page_footer a[rel="next"]::after { content: "  \2192"; }
-.ltx_page_footer a[rel="next"] { margin-left: auto; }
-.ltx_page_footer > .ltx_page_logo {
-  display: block; float: none; width: 100%;
-  margin-top: 1rem; text-align: center;
-}
-.ltx_page_footer > .arb-feedback { margin-top: .55rem; text-align: center; }
-a[href="https://github.com/upbqdn/zcash-arboretum/issues/new"] {
-  color: var(--conifer); text-decoration: underline; text-underline-offset: 3px;
+.ltx_page_footer a[rel="up"], .ltx_page_footer a[rel="start"] { display: none; }
+/* inline-block stops the link's underline from running under the arrows */
+.ltx_page_footer a[rel="prev"]::before { content: "\2190\2002"; display: inline-block; }
+.ltx_page_footer a[rel="next"]::after { content: "\2002\2192"; display: inline-block; }
+.ltx_page_footer a[rel="next"] { margin-left: auto; text-align: right; }
+.arb-colophon { margin: 1.2em 0 0; }
+.arb-colophon .arb-series { font-variant-caps: small-caps; letter-spacing: .04em; }
+.ltx_page_footer > .arb-feedback { margin-top: .2em; }
+@media (max-width: 700px) {
+  .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .5em; }
+  .ltx_page_footer a[rel="next"] { margin-left: 0; text-align: left; }
 }
 
-/* mobile: stack the prev/next crumbs so long section titles never collide */
-@media (max-width: 640px) {
-  /* Narrow lines need natural word spacing, especially around inline math. */
-  .ltx_page_main .ltx_para,
-  .ltx_page_main .ltx_para > .ltx_p,
-  .ltx_page_main .ltx_abstract > .ltx_p { text-align: left; }
-  .arb-bar { gap: .75rem; }
-  .arb-bar .volname { display: none; }
-  .arb-bar .wordmark-prefix { display: none; }
-  .arb-bar details.arb-search { margin-left: auto; }
-  .arb-heading { flex-direction: column-reverse; gap: .75rem; }
-  .arb-heading h1 { align-self: stretch; }
-  .arb-heading .arb-theme { margin-top: 0; align-self: flex-end; }
-  .ltx_abstract { margin-inline: 0; }
-  .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .35rem; }
-  .ltx_page_footer a[rel="next"] { margin-left: 0; align-self: flex-end; }
-}
-@media (max-width: 360px) {
-  .arb-bar { gap: .5rem; padding-inline: .75rem; }
-}
-
-/* keyword/emph harmony */
-.ltx_text.ltx_font_typewriter { font-family: var(--mono); font-size: .92em; }
-/* long code identifiers and paths (e.g. v3_combine_hash_commits_to_ironwood_fields,
-   src/rust/src/history.rs) break mid-token rather than overflow a phone column */
-.ltx_page_main .ltx_font_typewriter,
-.ltx_page_main .ltx_ref.ltx_url { overflow-wrap: anywhere; }
-.ltx_note { color: var(--muted); }
-
-/* ---------- reading-experience overhaul (volume pages) ---------- */
-
-/* anchor jumps land below the sticky bar, not under it */
-.ltx_page_main [id] { scroll-margin-top: 4.25rem; }
-
-/* internal cross-references read as part of the text; only external
-   links keep the conifer. LaTeXML marks refs with .ltx_ref. */
-.ltx_page_main a.ltx_ref {
-  color: var(--ink);
-  text-decoration: underline solid color-mix(in srgb, var(--ink) 40%, transparent) 1px;
-  text-underline-offset: 3px;
-}
-.ltx_page_main a.ltx_ref:hover { color: var(--conifer); text-decoration-color: var(--conifer); }
-
-/* environment kind-coding: the volumes' own TikZ tier palette.
-   proof-bearing (theorem family) = conifer; definitional = tierin;
-   premises = tierfull; asides (remark/example) = hairline, no fill. */
-.ltx_theorem_definition, .ltx_theorem_construction {
-  border-left-color: var(--tierin, #3c82b4);
-  background: color-mix(in srgb, #3c82b4 var(--tierin-mix), var(--plate));
-}
-.ltx_theorem_assumption {
-  border-left-color: var(--tierfull, #d28c28);
-  background: color-mix(in srgb, #d28c28 var(--tierfull-mix), var(--plate));
-}
-.ltx_theorem_remark, .ltx_theorem_example {
-  background: transparent;
-  border-color: transparent;
-  border-left: 1px solid var(--leafline);
-  border-radius: 0;
-}
-
-/* the specimen tag: at desktop width, section numbers detach into the
-   left gutter as small mono accession tags; titles sit flush. */
-@media (min-width: 1100px) {
-  h1.ltx_title_section, h2.ltx_title_section,
-  h2.ltx_title_subsection, h3.ltx_title_subsection { position: relative; }
-  .ltx_title_section > .ltx_tag_section,
-  .ltx_title_subsection > .ltx_tag_subsection,
-  .ltx_title_section > .arb-heading-link > .ltx_tag_section,
-  .ltx_title_subsection > .arb-heading-link > .ltx_tag_subsection {
-    position: absolute;
-    right: calc(100% + .55rem);
-    top: .45em;
-    font-family: var(--mono);
-    font-size: .62rem;
-    letter-spacing: .1em;
-    color: var(--plaque-ink);
-    border: 1px solid var(--leafline);
-    border-radius: 2px;
-    padding: .12rem .3rem .09rem;
-    line-height: 1;
-    background: var(--paper);
-  }
-}
-
-/* tables: quiet booktabs manners */
-.ltx_tabular { border-collapse: collapse; }
-.ltx_tabular thead .ltx_th {
-  font-family: var(--mono);
-  font-size: .72rem;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  color: var(--plaque-ink);
-  border-bottom: 1px solid var(--leafline);
-}
-
-/* Style the current page's label, not the list item whose children would
-   otherwise inherit bold. Only the subsection being read is emphasised. */
-.ltx_page_navbar .ltx_ref.ltx_ref_self {
-  color: var(--conifer);
-  font-weight: 600;
-}
-.ltx_page_navbar a[aria-current="location"] {
-  color: var(--conifer);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* titles and paragraphs: small rhythm refinements */
-.ltx_title_section { text-wrap: balance; }
-.ltx_para p, .ltx_p { text-wrap: pretty; }
-h2.ltx_title_section, .ltx_title_section { margin-top: 2.9rem; }
-
-/* print: the sheet alone */
+/* ---------- print: the sheet alone ---------- */
 @media print {
-  .arb-bar, .arb-permalink, .ltx_page_navbar, .ltx_page_footer {
-    display: none !important;
+  /* 12 pt, as print sets; the measure stays 28.25 ems (120 mm, as the PDFs' 125 mm block). Paper
+     cannot scroll: what scrolls on screen is shown whole, a wide display or table running into
+     the right margin as in the PDFs. The page script's line-end trims fit the screen's lines. */
+  :root { --body: 12pt; }
+  .arb-bar, .arb-permalink, .ltx_page_navbar, .ltx_page_footer { display: none !important; }
+  body { display: block !important; background: #fff; color: #000; --ink: #000; }
+  .ltx_page_main { max-width: var(--measure); margin: 0; padding: 0; }
+  .ltx_theorem, .ltx_proof, figure { break-inside: avoid; }
+  * { animation: none !important; }
+  a { color: inherit; }
+  .ltx_eqn_table, .ltx_page_main :is(table.ltx_tabular, pre), figure.ltx_figure, .arb-math-scroll {
+    overflow: visible !important; max-width: none !important;
   }
-  body, .ltx_page_main {
-    background: #fff; color: #000;
-    box-shadow: none; border: 0; max-width: none; margin: 0;
-  }
-  .ltx_theorem { break-inside: avoid; }
-  a { color: #000; text-decoration: none; }
-}
-
-/* MathML: serve the matching math face. Without
-   this, readers lacking a local Pagella Math get system-font glyph
-   soup with broken script placement and stretchy delimiters. */
-math {
-  font-family: "TeX Gyre Pagella Math", "Cambria Math", math;
+  .ltx_page_main pre { white-space: pre-wrap; }
+  .ltx_page_main math { margin-inline-end: 0 !important; }
+  .arb-ws { word-spacing: normal !important; }
 }

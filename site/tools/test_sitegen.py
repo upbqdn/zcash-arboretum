@@ -32,6 +32,15 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len(errors) == 2, errors
     assert any("image has no source" in error for error in errors)
     assert any("LaTeXML error markup" in error for error in errors)
+    # A linked stylesheet's fonts must ship; an unlinked copy is not checked.
+    (out / "other" / "index.html").write_text(
+        '<p id="ok"></p><link rel="stylesheet" href="../site.css?v=1">')
+    (out / "site.css").write_text('@font-face { src: url("fonts/a.woff2"), url(data:x); }')
+    (out / "other" / "site.css").write_text('@font-face { src: url("fonts/b.woff2"); }')
+    assert check(out)[1] == ["site.css: missing fonts/a.woff2"], check(out)[1]
+    (out / "fonts").mkdir()
+    (out / "fonts" / "a.woff2").write_bytes(b"")
+    assert check(out) == (2, [])
 
 assert not log_errors("Underfull \\hbox (badness 1000)\nOutput written.")
 document = "\\begin{document}\nText.\n\\end{document}\n"
@@ -47,28 +56,60 @@ for warning in (r"Overfull \hbox (2.0pt too wide)",
                 "! Undefined control sequence."):
     assert log_errors(warning), warning
 
-math_refs = (
-    '<math id="refs" alttext="'
-    + r'\text{See \S\ref{sec:first}, \S\ref{sec:%'
-    + '\nsecond}.}" display="block"><mrow><mtext>See §</mtext>'
-    '<mtext><a class="ltx_ref" href="S3.html">3</a></mtext>'
-    '<mtext>, §</mtext><mtext><a href="#SS3" class="ltx_ref">2.3</a></mtext>'
-    '</mrow></math>')
-resolved_math = sitegen.math_reference_links(math_refs)
-assert r'\text{See \S\href{S3.html}{3}, \S\href{#SS3}{2.3}.}' in resolved_math
-assert resolved_math.split('<mrow>')[1] == math_refs.split('<mrow>')[1]
-assert sitegen.math_reference_links(resolved_math) == resolved_math
-assert sitegen.math_reference_links('<math alttext="x"><mi>x</mi></math>') == (
-    '<math alttext="x"><mi>x</mi></math>')
-for broken in (math_refs.replace(r'\ref{sec:first}', '3'),
-               math_refs.replace('href="S3.html"', ''),
-               math_refs.replace('>3</a>', '>??</a>')):
-    try:
-        sitegen.math_reference_links(broken)
-    except ValueError as error:
-        assert 'unresolved math references' in str(error)
-    else:
-        raise AssertionError('unresolved math reference was silently accepted')
+# An inline formula breaks where TeX breaks it: after a relation or binary operator, not inside a
+# tuple, not after a unary sign. Each piece is its own <math>; nothing but invisible operators is
+# lost, and only the first piece keeps the ID and the TeX.
+split = sitegen.mathml_fix(
+    '<math id="m" alttext="a=b+c" display="inline"><mrow><mi>a</mi><mo>=</mo>'
+    '<mrow><mi>b</mi><mo>+</mo><mrow><mo stretchy="false">(</mo><mi>c</mi><mo>,</mo>'
+    '<mrow><mo>−</mo><mi>d</mi></mrow><mo stretchy="false">)</mo></mrow></mrow></mrow></math>')
+assert split.count('<wbr>') == 2 and split.count('<math') == 3, split
+assert split.count('id="m"') == 1 and split.count('alttext=') == 1, split
+assert '<mo>=</mo></math><wbr>' in split and '<mo>+</mo></math><wbr>' in split, split
+assert sitegen.mathml_fix(split.split('<wbr>')[0]) == split.split('<wbr>')[0]
+assert '<wbr>' not in sitegen.mathml_fix(
+    '<math display="inline"><mi>a</mi><mo>=</mo><mi>b</mi></math>', split=False)
+assert '<wbr>' not in sitegen.native_math(
+    '<table><tr><td><math display="inline"><mi>a</mi><mo>=</mo><mi>b</mi></math></td></tr></table>')
+# Search sees a formula's NFKC text; the MathML itself is not indexed.
+indexed = sitegen.MATH_RE.sub(sitegen.ascii_copy, '<math><mi>𝗂𝗏𝗄</mi><mo>∈</mo><mi>K</mi></math>')
+assert indexed.startswith('<math data-pagefind-ignore="all">')
+assert indexed.endswith('<span class="arb-idx" hidden> ivk ∈ K </span>'), indexed
+# \, stays a kern in text, but a tag's attributes are never rewritten; text glued to a formula
+# stays with it.
+kept = sitegen.text_fixes('<a title="§\u20095">§\u20095</a> (<math><mi>x</mi></math>), y')
+assert kept == ('<a title="§\u20095"><span class="arb-nobr">§\u20095</span></a> '
+                '<span class="arb-nobr">(<math><mi>x</mi></math>),</span> y'), kept
+# Glued text holds to the adjacent piece only: a <wbr> in a nowrap span breaks in Chromium alone.
+assert sitegen.unglue(
+    '<span class="arb-proof-end"><span class="arb-nobr">(<math>a</math><wbr><math>b</math><wbr>'
+    '<math>c</math><span class="arb-idx" hidden> a b c </span>).</span></span>') == (
+    '<span class="arb-proof-end"><span class="arb-nobr">(<math>a</math></span></span><wbr>'
+    '<math>b</math><wbr><span class="arb-proof-end"><span class="arb-nobr"><math>c</math>'
+    '<span class="arb-idx" hidden> a b c </span>).</span></span>')
+# A prime follows its base at base size, never in the superscript (Garamond-Math's is raised);
+# a script's other content stays a script, after the prime.
+prime = sitegen.mathml_fix(
+    '<math display="inline"><mrow><msup><mi>a</mi><mo>′</mo></msup><mo>=</mo>'
+    '<msubsup><mi>b</mi><mi>i</mi><mo>′</mo></msubsup><mo>+</mo>'
+    '<msup><mi>y</mi><mrow><mo>′</mo><mn>2</mn></mrow></msup></mrow></math>', split=False)
+p = '<mo form="postfix" lspace="0em" rspace="0em">′</mo>'
+assert f'<mrow><mi>a</mi>{p}</mrow>' in prime, prime
+assert f'<msub><mrow><mi>b</mi>{p}</mrow><mi>i</mi></msub>' in prime, prime
+assert f'<msup><mrow><mi>y</mi>{p}</mrow><mrow><mn>2</mn></mrow></msup>' in prime, prime
+# A comma keeps TeX's thin space before an operator LaTeXML spaced it against, not in a script.
+comma = sitegen.mathml_fix(
+    '<math display="inline"><mrow><mo>{</mo><mn>0</mn><mo rspace="0em">,</mo><mo>⊥</mo>'
+    '<mo>}</mo><msub><mi>E</mi><mrow><mi>P</mi><mo rspace="0em">,</mo><mo>⋅</mo></mrow></msub>'
+    '</mrow></math>', split=False)
+assert comma.count('<mo>,</mo>') == 1 and '<mo rspace="0em" lspace="0em">,' in comma, comma
+# \, in a \mathtt constant is TeX's 0.167 em, not the mono's U+2009.
+hexed = sitegen.mathml_fix('<math display="inline"><mn class="ltx_mathvariant_monospace">'
+                           ' 0db5 7d4a</mn></math>', split=False)
+assert hexed == (
+    '<math display="inline"><mrow><mspace width="0.167em"></mspace>'
+    '<mn class="ltx_mathvariant_monospace">0db5</mn><mspace width="0.167em"></mspace>'
+    '<mn class="ltx_mathvariant_monospace">7d4a</mn></mrow></math>'), hexed
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
 MERGED = ("halo2-intuition-guide", "sync-guide")
@@ -84,11 +125,22 @@ assert all(not (sitegen.ROOT / f"{vol}{suffix}").exists()
            for vol in MERGED for suffix in (".tex", ".pdf"))
 assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
             if vol == "flyclient-guide") == ("Frontier", "design-stage")
-for volume in sitegen.VOLUMES:
+for n, (volume, _, chip) in enumerate(sitegen.VOLUME_META):
     source = (sitegen.ROOT / f"{volume}.tex").read_text()
-    assert source.count(r"\tableofcontents") == 1, volume
-    assert source.index(r"\tableofcontents") < source.index(r"\section{"), volume
+    body = source.split(r"\begin{document}")[1]
+    assert body.count(r"\tableofcontents") == 1, volume
+    assert body.index(r"\tableofcontents") < body.index(r"\section{"), volume
     assert sitegen.FONT_BLOCK in source, volume
+    assert sitegen.DESIGN_BLOCK_RE.search(source), volume
+    # the title page and running head carry the landing's numeral and chip
+    assert ("\\renewcommand{\\accession}{%s}\n\\renewcommand{\\volstatus}{%s}\n\\title{"
+            % (sitegen.ROMANS[n], chip)) in source, volume
+for volume in PARKED:
+    source = (sitegen.ROOT / "parked" / f"{volume}.tex").read_text()
+    assert sitegen.FONT_BLOCK.replace("Path=fonts/", "Path=../fonts/") in source, volume
+    assert sitegen.DESIGN_BLOCK_RE.search(source), volume
+    assert "\\renewcommand{\\volstatus}{parked}\n\\title{" in source, volume
+    assert "\\renewcommand{\\accession}" not in source, volume
 
 # Table 2 introduces every Greek letter, with both lower-case and capital forms.
 greek_table = (sitegen.ROOT / "math-guide.tex").read_text().split(
@@ -261,6 +313,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert re.sub(r'<a class="arb-crossref" href="[^"]+">(.*?)</a>',
                   r'\1', linked, flags=re.S) == source
     assert sitegen.link_references(linked, 'crypto-guide', index) == linked
+    # A formula's hidden search copy is no citation, on any pass.
+    hidden = '<p>ZIP 32 <math></math><span class="arb-idx" hidden> ZIP 2005 </span>.</p>'
+    assert sitegen.link_references(hidden, 'crypto-guide', index).count('arb-crossref') == 1
     for tag in ('td', 'figcaption'):
         paragraphs = f'<{tag}><p>Math Guide.</p><p>“Elliptic curves” is a label.</p></{tag}>'
         result = sitegen.link_references(paragraphs, 'crypto-guide', index)
@@ -343,10 +398,10 @@ with tempfile.TemporaryDirectory() as tmp:
         html = (out / name).read_text()
         assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
         assert html.count('class="arb-theme"') == 1
-        for value in ("system", "light", "warm", "dark", "midnight"):
-            assert f'value="{value}"' in html
-        assert ">Warm light</option>" in html
-        assert ">Warm dark</option>" in html
+        assert html.count(sitegen.PAGE_SCRIPT) == 1
+        assert '<html lang="en-GB">' in html
+        assert '<link rel="icon" href="favicon.svg"' in html
+    assert "warm: 'light'" in sitegen.THEME_INIT and "midnight: 'dark'" in sitegen.THEME_INIT
 
     landing = (out / "index.html").read_text()
     concordance = (out / "concordance.html").read_text()
@@ -362,6 +417,9 @@ with tempfile.TemporaryDirectory() as tmp:
         assert f'href="{vol}/"' not in landing
         assert f'href="{vol}/"' not in concordance
     assert landing.count('href="complete/"') == 2
+    assert '<span class="acc">I</span>' in landing
+    assert f'<span class="acc">I–{sitegen.ROMANS[len(sitegen.VOLUMES) - 1]}</span>' in landing
+    assert 'class="arb-colophon"' in landing and "edition of " in landing
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
     assert landing.index('<h3 class="grp">Frontier</h3>') < landing.index(
@@ -371,12 +429,18 @@ with tempfile.TemporaryDirectory() as tmp:
     omnibus = out / "arboretum-complete.tex"
     sitegen.omnibus(out=omnibus)
     complete_tex = omnibus.read_text()
-    assert complete_tex.count(r"\tableofcontents") == 1
+    assert complete_tex.split(r"\begin{document}")[1].count(r"\tableofcontents") == 1
     native_section_id = (
         r"\def\thesection@ID{V\arabic{arbvolume}.S\@section@ID}")
     assert native_section_id not in complete_tex
     assert sitegen.OMNIBUS_INTRO in complete_tex
-    assert r"\setlength{\headheight}{21pt}" in complete_tex
+    # the design block, head rule and section marks included, precedes the contents
+    assert ("\\renewcommand{\\headrulewidth}{0pt}"
+            in complete_tex.split(r"\begin{document}")[0])
+    assert r"\headheight}{" not in complete_tex
+    # deduplication keeps the design block whole, its repeated lines included
+    first = (sitegen.ROOT / f"{sitegen.VOLUMES[0]}.tex").read_text()
+    assert sitegen.DESIGN_BLOCK_RE.search(first).group(0) in complete_tex
     assert complete_tex.count("\\stepcounter{arbvolume}") == len(
         sitegen.VOLUMES)
     assert "\\part*{How Halo 2 Proves:" not in complete_tex
@@ -387,6 +451,13 @@ with tempfile.TemporaryDirectory() as tmp:
     assert complete_tex.count(r"\part{Wallet Guide:") == 1
     for label in WALLET_CHAPTERS:
         assert complete_tex.count(r"\label{wallet:" + label + "}") == 1
+    # each part sets its own numeral and running-head name; the edition has none
+    ironwood = complete_tex.split(r"\part{Ironwood Guide:")[1].split(r"\part{")[0]
+    assert "\\def\\accession{V}" in ironwood
+    assert "\\def\\arbvolname{Ironwood Guide}" in ironwood
+    edition = complete_tex.split(r"\begin{document}")[0]
+    assert "\\renewcommand{\\accession}" not in edition
+    assert edition.count("\\makeatletter") == edition.count("\\makeatother")
 
     webdir = out / "web"
     webdir.mkdir()
@@ -395,8 +466,11 @@ with tempfile.TemporaryDirectory() as tmp:
     for volume in (*sitegen.VOLUMES, "arboretum-complete"):
         prepared = (webdir / f"{volume}.tex").read_text()
         assert r"\mdfsetup" not in prepared, volume
-        assert r"\setmainfont" not in prepared, volume
-        assert r"\setmathfont" not in prepared, volume
+        # LaTeXML has neither fontspec nor the PDF design packages
+        for pdf_only in (r"\setmainfont", r"\setmathfont", "polyglossia",
+                         "unicode-math", "framed", "titlesec", r"\patchcmd"):
+            assert pdf_only not in prepared.split(r"\begin{document}")[0], (volume, pdf_only)
+        assert r"\providecommand{\accession}{}" in prepared, volume
     assert "Statistical distance" in (webdir / "math-guide.tex").read_text()
     assert "FF1" in (webdir / "crypto-guide.tex").read_text()
     web_wallet = (webdir / "wallet-guide.tex").read_text()
@@ -425,9 +499,12 @@ Volume summary.
     page = out / "math-guide" / "index.html"
     page.parent.mkdir()
     page.write_text(
-        '<html><head><link rel="stylesheet" '
-        'href="_site/math-guide/arboretum.css"></head>'
-        '<body><main class="ltx_page_content">'
+        '<html lang="en"><head><title>1 Notation ‣ Math Guide Foundations</title>'
+        '<link rel="stylesheet" href="_site/math-guide/arboretum.css"></head>'
+        '<body><nav class="ltx_page_navbar"><a href="./" title="" class="ltx_ref" rel="start">'
+        '<span class="ltx_text ltx_ref_title"><span class="ltx_text ltx_font_bold">Math Guide'
+        '<span class="ltx_text"> </span></span>Foundations</span></a></nav>'
+        '<main class="ltx_page_content">'
         '<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">Contents</nav>'
         '<section id="SS1"><h2 class="ltx_title">A subsection</h2></section>'
         '<section id="SS2"><h2>Squared '
@@ -441,8 +518,10 @@ Volume summary.
         '<div class="ltx_proof"><p>'
         'Given <math display="inline" alttext="S"><mi>S</mi></math>, thus '
         '<math display="inline" alttext="x=1"><mi>x</mi></math>.\n∎'
-        '</p><p>Done.\n∎</p></div></main>'
-        '<footer><div>Generated on today by '
+        '</p><p>Done.\n∎</p></div>'
+        '<p>Then <math display="inline" alttext="a=b"><mi>a</mi><mo>=</mo><mi>b</mi></math> '
+        'and <img src="build/web/figures/math-guide-fig1.png"></p></main>'
+        '<footer class="ltx_page_footer"><div class="ltx_page_logo">Generated on today by '
         '<a class="ltx_LaTeXML_logo">LaTeXML</a></div></footer></body></html>')
     reading_order = [page, page.parent / "S1.html", page.parent / "S2.html",
                      page.parent / "S10.html", out / "crypto-guide" / "index.html",
@@ -451,6 +530,8 @@ Volume summary.
     for sibling in reversed(reading_order[1:]):
         sibling.parent.mkdir(exist_ok=True)
         sibling.write_text(page.read_text())
+    for sibling in reading_order:  # LaTeXML copies a volume's figures there
+        (sibling.parent / "build/web/figures").mkdir(parents=True, exist_ok=True)
     complete_page = out / "complete" / "index.html"
     complete_page.parent.mkdir()  # A failed prior build may leave the directory.
     run = sitegen.subprocess.run
@@ -471,13 +552,13 @@ Volume summary.
         sitegen.postprocess(out)
     html = page.read_text()
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
-    assert html.count('class="arb-theme"') == 1
+    assert html.count('class="arb-theme"') == 2  # the bar's and the navigation's
     assert html.count("showImages: false") == 1
     assert html.count(sitegen.SEARCH_OPTIONS) == 1
     assert "search.querySelector('summary').addEventListener('click'" in html
     assert "search.open = !search.open" in html
     assert "search.querySelector('.pagefind-ui__search-input').focus()" in html
-    assert html.count('data-pagefind-meta="volume:Math Guide"') == 1
+    assert html.count('data-pagefind-meta="volume:I Math Guide"') == 1
     assert '<a class="volname" href="./#arb-contents"' in html
     assert html.count('id="arb-contents"') == 1
     for index, sibling in enumerate(reading_order, 1):
@@ -490,27 +571,31 @@ Volume summary.
     assert "e.target.closest('.arb-search a.pagefind-ui__result-link')" in html
     assert "e.key === 'Escape' && search.open" in html
     assert '<body data-arb="vol">' in html
-    assert html.count("window.MathJax") == 1
-    assert html.count(sitegen.TOC_SCRIPT) == 1
+    assert "MathJax" not in html
+    for script in (sitegen.TOC_SCRIPT, sitegen.PAGE_SCRIPT, sitegen.TRIM_SCRIPT):
+        assert html.count(script) == 1
     assert 'href="../arboretum.css?v=' in html
     assert 'href="_site/math-guide/arboretum.css"' not in html
-    assert 'font: \'mathjax-pagella\'' in html
-    assert 'matchFontHeight: false' in html
-    assert "macros: { qed: '\\\\tag*{□}' }" in html
-    assert "linebreaks: { inline: true" in html
-    assert "replace(/%\\s+/g, '')" in html
-    assert 'src="../mathjax-4.1.3/tex-chtml-nofont.js"' in html
-    assert 'document.fonts.ready.then(() => MathJax.startup.defaultPageReady())' in html
-    assert 'MathJax.startup.promise = MathJax.startup.promise.then(async function' in html
-    assert "document.querySelector(':target')?.scrollIntoView()" in html
+    assert '<html lang="en-GB">' in html
+    assert '<title>1 Notation — I Math Guide</title>' in html
+    assert '<link rel="icon" href="../favicon.svg"' in html
+    assert '<p class="arb-nav-tools"><a href="../pdf/math-guide.pdf">PDF</a> ' in html
+    assert ('<a href="./" class="ltx_ref arb-start" rel="start"><span class="arb-acc">I</span> '
+            'Math Guide<span class="arb-start-sub">Foundations</span></a>') in html
+    assert "Generated" not in html
+    assert html.count('class="arb-colophon"') == 1 and html.count('class="arb-feedback"') == 1
+    assert '<mo>=</mo></math><wbr><math' in html
+    assert '<span class="arb-idx" hidden> a = b </span>' in html
+    assert 'src="build/web/figures/math-guide-fig1.svg"' in html
+    assert (page.parent / "build/web/figures/math-guide-fig1.svg").is_file()
     assert ('<a class="ltx_ref" href="#Thmtheorem0">prior result</a>).'
             '<a class="arb-permalink" data-pagefind-ignore href="#Thmtheorem1" '
             'aria-label="Permalink to this item" '
             'title="Permalink">#</a></h6>') in html
     assert html.count('class="arb-permalink"') == 1
-    assert ('<span class="arb-proof-end"><math display="inline" '
-            'alttext="x=1"><mi>x</mi></math>.</span> '
-            '<span class="arb-qed">□</span>') in html
+    assert re.search(r'<span class="arb-proof-end"><span class="arb-nobr"><math [^>]*'
+                     r'alttext="x=1"[^>]*><mi>x</mi></math><span class="arb-idx" hidden> x '
+                     r'</span>\.</span></span> <span class="arb-qed">□</span>', html)
     assert html.count('class="arb-proof-end"') == 1
     assert html.count('class="arb-qed"') == 2
     complete_html = complete_page.read_text()
@@ -522,14 +607,8 @@ Volume summary.
     assert 'data-pagefind-sort=' not in complete_html
     assert complete_html.count(sitegen.TOC_SCRIPT) == 1
     assert complete_html.count('id="arb-contents"') == 1
-    assert ('<a class="volname" href="./#arb-contents"\ntitle="Table of contents">'
-            'The Complete Arboretum</a>') in complete_html
-    assert (out / "mathjax-4.1.3" / "tex-chtml-nofont.js").is_file()
-    boldsymbol = out / "mathjax-4.1.3" / "input" / "tex" / "extensions" / "boldsymbol.js"
-    assert 'checkVersion("[tex]/boldsymbol","4.1.3"' in boldsymbol.read_text()
-    html_extension = out / "mathjax-4.1.3" / "input" / "tex" / "extensions" / "html.js"
-    assert 'checkVersion("[tex]/html","4.1.3"' in html_extension.read_text()
-    assert (out / "@mathjax" / "mathjax-pagella-font" / "chtml.js").is_file()
+    assert (f'<span class="arb-acc">I–{sitegen.ROMANS[len(sitegen.VOLUMES) - 1]}</span><span'
+            '\nclass="arb-volname"> The Complete Arboretum</span>') in complete_html
 
     # A second finishing pass must not duplicate controls, scripts or IDs.
     sitegen.postprocess(out)
@@ -548,7 +627,7 @@ Volume summary.
     # Previously finished HTML needs heading anchors and metadata too, without
     # duplicating existing controls, theorem links or formatting.
     page.write_text(html.replace(' id="SS1-heading"', '').replace(
-        ' data-pagefind-meta="volume:Math Guide"', '').replace(
+        ' data-pagefind-meta="volume:I Math Guide"', '').replace(
         'class="arb-permalink" data-pagefind-ignore', 'class="arb-permalink"').replace(
         ' data-pagefind-meta="heading-SS2-heading:Squared x^(2)"', ''))
     complete_page.write_text(complete_html.replace(' id="SS1-heading"', ''))
@@ -566,24 +645,22 @@ Volume summary.
         raise AssertionError("unexpanded cross-reference macro was accepted")
 
 css = (sitegen.ROOT / "site" / "arboretum.css").read_text()
-assert '--serif: "EB Garamond"' in css
-assert 'font-family: "TeX Gyre Pagella Math",' in css
-for face in ("EBGaramond.woff2", "EBGaramond-Italic.woff2", "texgyrepagella-math.woff2"):
-    assert f'url("fonts/{face}")' in css
-    assert (sitegen.ROOT / "site" / "fonts" / face).is_file()
-assert 'font-weight: 400 800; font-style: normal' in css
-assert 'font-weight: 400 800; font-style: italic' in css
-assert ':root[data-theme="warm"]' in css
-assert ':root[data-theme="dark"]' in css
-assert ':root[data-theme="midnight"]' in css
+# Every face the stylesheet names ships with its licence; the MathJax assets are gone.
+fonts = sitegen.ROOT / "site" / "fonts"
+faces = re.findall(r'url\("fonts/([^"]+)"\)', css)
+assert {"eb-garamond-regular.woff2", "garamond-math.woff2", "iosevka.woff2"} <= set(faces)
+assert all((fonts / face).is_file() for face in faces)
+assert {path.name for path in fonts.glob("*.woff2")} == set(faces)
+for licence in ("EBGaramond-OFL.txt", "Garamond-Math-OFL.txt", "Iosevka-OFL.txt"):
+    assert (fonts / licence).is_file()
+assert (sitegen.ROOT / "site" / "favicon.svg").is_file()
+assert not (sitegen.ROOT / "site" / "mathjax-4.1.3").exists()
+assert '--text: "EB Garamond"' in css
+assert 'math { font-family: var(--math); font-feature-settings: "ss03"; }' in css
+assert ':root[data-theme="dark"]' in css and 'warm' not in css and 'midnight' not in css
 assert '.ltx_theorem .arb-permalink {' in css
-assert 'a[rel="next"] { margin-left: 0; align-self: flex-end; }' in css
-assert 'mjx-container.arb-math-scroll' in css
 search_panel = css.split('.arb-bar .arb-search-panel {', 1)[1].split('}', 1)[0]
-assert 'max-height: calc(100dvh - 4rem)' in search_panel
+assert 'max-height: calc(100dvh' in search_panel
 assert 'overflow-y: auto' in search_panel
 assert 'overscroll-behavior-y: contain' in search_panel
-assert (sitegen.ROOT / "site" / "mathjax-4.1.3" / "tex-chtml-nofont.js").is_file()
-assert (sitegen.ROOT / "site" / "@mathjax" / "mathjax-pagella-font"
-        / "chtml.js").is_file()
 print("site generator checks passed")

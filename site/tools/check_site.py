@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Check generated HTML for duplicate IDs and broken local links/assets."""
+"""Check generated HTML for duplicate IDs and broken local links/assets, including the fonts and
+other files its stylesheets load."""
 
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -34,7 +36,7 @@ class Page(HTMLParser):
 def check(out):
     out = Path(out).resolve()
     pages = {path: Page(path.read_text()) for path in out.rglob("*.html")}
-    errors = []
+    errors, sheets = [], set()
     if not pages:
         errors.append("no HTML pages")
     for path, page in pages.items():
@@ -53,9 +55,17 @@ def check(out):
                 target /= "index.html"
             if not target.is_file():
                 errors.append(f"{path.relative_to(out)}: missing {link}")
+            elif target.suffix == ".css":
+                sheets.add(target)
             elif url.fragment and target in pages:
                 if unquote(url.fragment) not in pages[target].ids:
                     errors.append(f"{path.relative_to(out)}: missing anchor {link}")
+    for sheet in sorted(sheets):
+        for link in re.findall(r"""url\(\s*["']?([^"')]+)""", sheet.read_text()):
+            url = urlsplit(link)
+            if not (url.scheme or url.netloc
+                    or (sheet.parent / unquote(url.path)).resolve().is_file()):
+                errors.append(f"{sheet.relative_to(out)}: missing {link}")
     return len(pages), errors
 
 

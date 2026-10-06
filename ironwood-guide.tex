@@ -1,14 +1,33 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=2.4cm]{geometry}
+% head height 14pt: the italic Th ligature of a running head stands 13.01pt
+\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
-\usepackage{unicode-math}
-\setmainfont{texgyrepagella}[Path=fonts/, Extension=.otf,
-  UprightFont=*-regular, ItalicFont=*-italic,
-  BoldFont=*-bold, BoldItalicFont=*-bolditalic]
-\setmathfont{texgyrepagella-math}[Path=fonts/, Extension=.otf]
-% Pagella uses U+2216 for set difference.
-\AtBeginDocument{\let\setminus\smallsetminus}
+\usepackage[mathsf=sym]{unicode-math}
+\setmainfont{EBGaramond}[Path=fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \textsf (crate names) is code, in the mono
+\defaultfontfeatures[Iosevka]{Path=fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\setsansfont{Iosevka}
+\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\setmathfont{Garamond-Math-Latin.otf}[Path=fonts/,
+  range=\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \rivk takes a further subscript
+\AtBeginDocument{\let\arbsymsf\mathsf\protected\def\mathsf#1{{\arbsymsf{#1}}}}
+\usepackage{polyglossia}
+\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\PolyglossiaSetup{english}{frenchspacing=true}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
 \usepackage{placeins}
@@ -35,31 +54,143 @@
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem{example}[theorem]{Example}
 
-% kind-coded theorem blocks, palette shared with the figures and the website:
-% definitions/constructions blue (tierin), assumptions amber (tierfull),
-% proved statements a neutral bar; remarks and examples run unframed
-\usepackage{mdframed}
+% kind-coded theorem blocks: the rule weight codes the kind, in ink, no fill:
+% proved statements 1.6pt, definitions and constructions 0.4pt, assumptions
+% dashed 0.8pt; remarks and examples run unframed with an italic head
+\usepackage{etoolbox,framed}
+\makeatletter
 \providecolor{tierin}{RGB}{60,130,180}
 \providecolor{tierfull}{RGB}{210,140,40}
-\mdfdefinestyle{kindbar}{topline=false,bottomline=false,rightline=false,
-  linewidth=1.5pt,innerleftmargin=9pt,innerrightmargin=4pt,
-  innertopmargin=5pt,innerbottommargin=6pt,leftmargin=0pt,rightmargin=0pt,
-  skipabove=10pt,skipbelow=10pt}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{definition}
-\surroundwithmdframed[style=kindbar,linecolor=tierin!70,backgroundcolor=tierin!4]{construction}
-\surroundwithmdframed[style=kindbar,linecolor=tierfull!80,backgroundcolor=tierfull!5]{assumption}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{theorem}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{lemma}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{proposition}
-\surroundwithmdframed[style=kindbar,linecolor=black!30]{corollary}
-
+\providecolor{tierspend}{RGB}{200,60,60}
+\providecolor{muted}{HTML}{5E5E5E}
+% a left rule 0.9em from the text; framed spaces it like a list. Inside,
+% \topsep is cleared so the statement's own list adds nothing, and
+% FrameRestore's \sloppy is dropped so statements break like prose. A frame
+% split across pages counts the last line's depth, which framed's
+% \boxmaxdepth=0 turns into height
+\setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
+\patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
+% the frame sits flush left, as framed would centre it: a display wider than
+% the text then runs into the outer margin, up to 150 mm, and the rule stays
+\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \hbox to\hsize{#1\hfil}}}
+\patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\newcommand\arb@kind[2]{%
+  \BeforeBeginEnvironment{#2}{\def\FrameCommand{#1}%
+    \MakeFramed{\advance\hsize-\width\let\sloppy\relax\FrameRestore\topsep\z@}}%
+  \AfterEndEnvironment{#2}{\endMakeFramed}}
+\newcommand\arb@dashed[1]{\setbox\z@\hbox{#1}\hbox{\vbox to\ht\z@{\cleaders
+  \vbox{\hrule\@width.8pt\@height3pt\vskip2pt}\vfill}\hspace{.9em}\box\z@}}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{definition}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{construction}
+\arb@kind{\arb@dashed}{assumption}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{theorem}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{lemma}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{proposition}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{corollary}
+\AtBeginEnvironment{remark}{\thm@headfont{\itshape}}
+\AtBeginEnvironment{example}{\thm@headfont{\itshape}}
+% a proof head breaks and hyphenates as the text it opens: amsthm sets it as a
+% list label, one unbreakable box
+\renewenvironment{proof}[1][\proofname]{\par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax\trivlist\item\relax{\itshape#1\@addpunct{.}}%
+  \hskip\labelsep\ignorespaces}{\popQED\endtrivlist\@endpefalse}
+% 11/14.5 pt; small (captions, tables, footnotes) 0.875; both size commands
+% are robust, so the patches go to their inner macros. A 10pt class (the
+% figure render's standalone) keeps its sizes
+\ifnum\@ptsize=1
+\expandafter\patchcmd\csname normalsize \endcsname{{13.6}}{{14.5}}{}{\PatchFailed}
+\expandafter\patchcmd\csname small \endcsname{\@xpt\@xiipt}{{9.625}{12.7}}{}{\PatchFailed}
+\fi
+% the hyperref package wraps \@footnotetext; the size is set in the wrapped
+% original
+\patchcmd{\H@@footnotetext}{\footnotesize}{\small}{}{\PatchFailed}
+\normalsize
+\setlength{\parindent}{1.2em}
+% operator spacing shrinks by 1mu at most, so tight lines keep their operators
+\medmuskip=4mu plus 2mu minus 1mu
+\thickmuskip=5mu plus 3mu minus 1mu
+% headings on the 1.2 scale, semibold
+\usepackage{titlesec}
+\titleformat*{\section}{\fontsize{15.84}{19}\fontseries{sb}\selectfont}
+\titleformat*{\subsection}{\fontsize{13.2}{16}\fontseries{sb}\selectfont}
+% no heading below subsection: \subsubsection runs in, like \paragraph
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection}{0.5em}{}[.]
+% a part (the complete edition) opens as a title page does: numeral, name,
+% subtitle; its title reads "Name: subtitle"
+\titleformat{\part}[display]{\raggedright}%
+  {\fontsize{47.3}{50}\selectfont\thepart}{6mm}{\arb@parttitle}
+\titlespacing*{\part}{0pt}{0pt}{12mm}
+\def\arb@parttitle#1{\arb@partsplit#1\@nil}
+\def\arb@partsplit#1: #2\@nil{{\fontsize{22.8}{27}\selectfont#1\par}%
+  \vspace{3mm}{\fontsize{13.2}{17}\selectfont#2\par}}
+% captions small, flush left, bold label; table captions above, wherever the
+% source puts them
+\usepackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
+\usepackage[font=small,labelfont=bf,labelsep=period,
+  justification=raggedright,singlelinecheck=false]{caption}
+\captionsetup[table]{position=top}
+% floats and displays wider than the text run flush left into the outer
+% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
+% both in \@floatboxreset, after the float's \sloppy and \normalsize would
+% undo them
+\def\arb@table{table}
+\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
+  \ifx\@captype\arb@table\small\fi}
+\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+% links: a conifer underline on screen, nothing in print
+\hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
+  allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
+% contents: no link underlines; part and section entries in the heading
+% weight, ragged right
+\patchcmd{\l@part}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@section}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@part}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@section}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@part}{\hfil}{\hfill}{}{\PatchFailed}
+\patchcmd{\l@section}{\hfil}{\hfill}{}{\PatchFailed}
+\let\arb@tableofcontents\tableofcontents
+\renewcommand{\tableofcontents}{{\hypersetup{pdfborderstyle={/S/U/W 0}}%
+  \arb@tableofcontents}}
+% abstract: a flush-left head like the contents', body-size text
+\AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
+% identity from the title line: name, subtitle, accession numeral
+\providecommand{\accession}{}
+\providecommand{\volstatus}{}
+\providecommand{\arbedition}{}
+\InputIfFileExists{edition.tex}{}{}
+\def\arb@name#1#2\@nil{\def\arbvolname{#2}}
+\def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
+\providecommand{\arbvolname}{}
+\renewcommand{\maketitle}{\expandafter\arb@parsetitle\@title\@nil
+  \hypersetup{pdftitle={\arbvolname: \arb@sub},pdfauthor={Marek}}%
+  \thispagestyle{empty}\begingroup\raggedright
+  {\fontsize{13.2}{16}\selectfont\scshape The Zcash Arboretum\par}
+  \vspace*{50mm}
+  {\fontsize{47.3}{50}\selectfont\accession\par}
+  \vspace{6mm}
+  {\fontsize{22.8}{27}\selectfont\arbvolname\par}
+  \vspace{3mm}
+  {\fontsize{13.2}{17}\selectfont\arb@sub\par}
+  \vspace{18mm}
+  {\fontsize{13.2}{17}\selectfont Marek\par}
+  {\small\@author\par}
+  \vfill
+  % the colophon may run to the 150 mm wide measure
+  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
+    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
+  \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\footnotesize\scshape The Zcash Arboretum}
-\fancyhead[R]{\footnotesize\itshape\nouppercase{\leftmark}}
-\fancyfoot[C]{\footnotesize\thepage}
-\renewcommand{\headrulewidth}{0.3pt}
+\fancyhead[L]{\small\scshape\ifdefempty{\accession}{}{\accession\quad}\arbvolname}
+\fancyhead[R]{\small\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\makeatother
 \renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
 
 \newcommand{\F}{\mathbb{F}}
@@ -119,12 +250,13 @@
   \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
 }{\par\medskip}
 
+\renewcommand{\accession}{V}
+\renewcommand{\volstatus}{deployed}
 \title{\textbf{\Huge Ironwood Guide}\\[6pt]\large The Zcash Orchard protocol and its Ironwood pool}
 \author{m@rek.onl}
 \date{}
 \begin{document}
 \maketitle
-\thispagestyle{empty}
 
 \begin{abstract}
 This volume of \emph{The Zcash Arboretum} constructs the Orchard protocol for a
@@ -574,7 +706,7 @@ $\mathrm{LE}_{256}$ (the star encoding below; the key encoding of $\rivk$,
 \S\ref{sec:keys-viewing}).
 
 \begin{definition}[Coordinate extraction]
-The map $\Extract_{\PP} \colon \Ep(\F_{p_{\Pallas}}) \to \F_{p_{\Pallas}}$ is
+Let $\Extract_{\PP} \colon \Ep(\F_{p_{\Pallas}}) \to \F_{p_{\Pallas}}$ be
 \[
   \Extract_{\PP}(\mathcal{O}) := 0, \qquad
   \Extract_{\PP}\bigl((x, y)\bigr) := x .
@@ -690,9 +822,9 @@ point $\GroupHash(D, M) \in \Ep(\F_{p_{\Pallas}})$ is computed as follows.
   \]
   the map is defined when $\mathsf{DST}$ has at most $255$ bytes, which
   holds for every domain separator of Table~\ref{tab:prim-grouphash}.
-\item The map $\mathsf{hash\_to\_field}$ expands $(M, \mathsf{DST})$ by
-  $\mathsf{expand\_message\_xmd}$ over BLAKE2b-512 into two $64$-byte
-  strings. BLAKE2b runs with zero personalisation; the string
+\item The map $\mathsf{hash\_to\_field}$ expands $(M, \mathsf{DST})$ by the
+  function $\mathsf{expand\_message\_xmd}$ over BLAKE2b-512 into two
+  $64$-byte strings. BLAKE2b runs with zero personalisation; the string
   $\mathsf{DST}$, followed by a byte carrying its length, is part of the
   hashed input. Each string is read as a big-endian integer and reduced
   modulo $p_{\Pallas}$, giving $u_0, u_1 \in \F_{p_{\Pallas}}$.
@@ -1129,7 +1261,9 @@ For $x, y \in \F_{p_{\Pallas}}$ and $\rivk \in \F_{p_{\Vesta}}$,
 \]
 a $510$-bit message (protocol specification, \S``Sinsemilla
 commitments''). Its output is $\bot$ exactly when
-$\mathsf{SinsemillaHashToPoint}(\texttt{z.cash:Orchard-CommitIvk-M}, \cdot)$
+\[
+  \mathsf{SinsemillaHashToPoint}(\texttt{z.cash:Orchard-CommitIvk-M}, \cdot)
+\]
 returns $\bot$; it is $0$ exactly when the commitment point is
 $\mathcal{O}$ (Lemma~\ref{lem:extract-zero}); otherwise it is the
 $x$-coordinate of a non-identity point, an element of
@@ -1202,15 +1336,21 @@ Assumptions~\ref{ass:dl-pallas} and~\ref{ass:grouphash-ro}, no efficient
 algorithm outputs, except with negligible probability:
 \begin{enumerate}
 \item[(i)] messages $M, M' \in \{0,1\}^l$ whose hash points
-  $P := \mathsf{SinsemillaHashToPoint}(D', M)$ and
-  $P' := \mathsf{SinsemillaHashToPoint}(D', M')$ are not $\bot$ and satisfy
+  \[
+    P := \mathsf{SinsemillaHashToPoint}(D', M) \quad\text{and}\quad
+    P' := \mathsf{SinsemillaHashToPoint}(D', M')
+  \]
+  are not $\bot$ and satisfy
   $P = P'$ with $M \neq M'$, or $P = -P'$; hence, by
   Lemma~\ref{lem:opposite-points}, no $M \neq M'$ with equal values of the
   extracted form $\mathsf{SinsemillaHash}$ other than $\bot$;
 \item[(ii)] for a commitment instance, openings $(M, r)$ and $(M', r')$ in
   $\{0,1\}^l \times \F_{p_{\Vesta}}$ whose commitments
-  $C := \mathsf{SinsemillaCommit}_r(D, M)$ and
-  $C' := \mathsf{SinsemillaCommit}_{r'}(D, M')$ are not $\bot$ and satisfy
+  \[
+    C := \mathsf{SinsemillaCommit}_r(D, M) \quad\text{and}\quad
+    C' := \mathsf{SinsemillaCommit}_{r'}(D, M')
+  \]
+  are not $\bot$ and satisfy
   $C = C'$ with $M \neq M'$, or $C = -C'$; hence no $M \neq M'$ with equal
   values of $\ShortCommit$ other than $\bot$;
 \item[(iii)] a message in $\{0,1\}^l$ on which
@@ -1686,8 +1826,9 @@ For an index $j \in \{0, \dots, 2^{88} - 1\}$ chosen by the key holder:
   of NIST SP~800-38G''; protocol specification,
   \href{https://zips.z.cash/protocol/protocol.pdf#concreteprps}%
   {\S``Pseudo Random Permutations''});
-\item the \emph{diversified base} is $\gd := \mathsf{DiversifyHash}(d)$,
-  where
+\item the \emph{diversified base} is $\gd := \mathsf{DiversifyHash}(d)$
+  (protocol specification, \S``$\mathsf{DiversifyHash}^{\mathsf{Sapling}}$
+  and $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions''), where
   \[
     T := \GroupHash\bigl(\texttt{z.cash:Orchard-gd},\
       \mathsf{LEBS2OSP}_{88}(d)\bigr)
@@ -1698,11 +1839,9 @@ For an index $j \in \{0, \dots, 2^{88} - 1\}$ chosen by the key holder:
     \begin{cases}
       T & \text{if } T \neq \mathcal{O}, \\
       \GroupHash(\texttt{z.cash:Orchard-gd}, \varepsilon)
-        & \text{otherwise}
+        & \text{otherwise};
     \end{cases}
   \]
-  (protocol specification, \S``$\mathsf{DiversifyHash}^{\mathsf{Sapling}}$
-  and $\mathsf{DiversifyHash}^{\mathsf{Orchard}}$ Hash Functions'');
 \item the \emph{diversified transmission key} is $\pkd := [\ivk]\,\gd$, with
   $\ivk$ read as a scalar (\S\ref{sec:prim-fields}).
 \end{enumerate}
@@ -1800,7 +1939,9 @@ game below, so conditioning on $E$ at most doubles each cost.
   (Lemma~\ref{lem:prf-independence}); the reduction derives the remaining
   components and the addresses.
 \item For each key in turn, $(\ivk, \dk, \ovk)$ is replaced by
-  $(\CommitIvk_{\rivk'}(\aksym, \nksym), u_1, u_2)$
+  \[
+    (\CommitIvk_{\rivk'}(\aksym, \nksym), u_1, u_2)
+  \]
   (Assumption~\ref{ass:vk-hiding}); the reduction is given
   $(\aksym, \nksym)$, generates the other key itself, and computes the game
   from the triple. Now $\dk$ and $\ovk$ are uniform and independent of all
@@ -1901,9 +2042,9 @@ $\ask$, the outgoing viewing key no $\ivk$, and an address no $\ivk$.
 \draw[ed] (ask) -- node[mk] {a} node[lb, left=3mm]
   {$[\ask]\,G^{\mathsf{SpendAuth}}$,\\sign normalisation\\{}[DL]}
   (akP);
-\draw[alt] (0.2,-3.8) -- node[lb, below=2pt, text=gray]
+\draw[alt] (0.2,-3.8) -- node[lb, below=2pt, text=muted]
   {alternative source\\(ZIP 2005),\\not constructed} (akP);
-\draw[alt] (13.4,-1.9) -- node[lb, below=2pt, text=gray]
+\draw[alt] (13.4,-1.9) -- node[lb, below=2pt, text=muted]
   {alternative source\\(ZIP 2005),\\not constructed} (rivk);
 \draw[ed] (akP) -- node[lb, right]
   {$\Extract_{\PP}$; invertible\\(even-$y$ lift)} (ak);
@@ -2161,7 +2302,7 @@ inputs of its nullifier, constructed in ``The nullifier''
 % [sec:prim-sinsemilla] NoteCommit (g_d* || pk_d* || LE_64(v) || LE_255(rho)
 %   || LE_255(psi)): 1086 bits, 109 chunks of 10 bits (padding 4); <= c = 253
 \begin{definition}[Note commitment]\label{def:notecommit}
-For a note $n = ((d, \pkd), v, \rho, \psi, \rcm)$ let
+Let $n = ((d, \pkd), v, \rho, \psi, \rcm)$ be a note,
 $\gd := \mathsf{DiversifyHash}(d)$ (\S\ref{sec:keys-addr}) and
 \[
   M(n) := \gd^{\star} \,\|\, \pkd^{\star} \,\|\, \mathrm{LE}_{64}(v)
@@ -3065,7 +3206,7 @@ published in the chain.
     fill opacity=0.25, text opacity=1},
   anc/.style={nd, draw=tierspend, line width=1.4pt, fill=tierin,
     fill opacity=0.2, text opacity=1},
-  emp/.style={nd, draw=gray, dashed, text=gray},
+  emp/.style={nd, draw=gray, dashed, text=muted},
   ed/.style={line width=0.5pt, gray},
   fold/.style={->, line width=1.4pt, tierspend},
   lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
@@ -3245,8 +3386,11 @@ assumption.
 \end{assumption}
 
 \begin{definition}[Nullifier]\label{def:nullifier}
-Let $K^{\mathsf{Orchard}} := \GroupHash(\texttt{z.cash:Orchard},
-\texttt{K})$, the nullifier base, a fixed generator of
+Let
+\[
+  K^{\mathsf{Orchard}} := \GroupHash(\texttt{z.cash:Orchard}, \texttt{K}),
+\]
+the nullifier base, a fixed generator of
 Table~\ref{tab:prim-grouphash}. For $\nksym, \rho, \psi \in \F_{p_{\Pallas}}$
 and a point $\cmsym \in \Ep(\F_{p_{\Pallas}})$,
 \[
@@ -4678,10 +4822,10 @@ Rules'', fix the remaining bits:
 \item in $\mathsf{flagsOrchard}$, bits~$2$ to~$7$ are reserved and must be
   $0$, in version~$5$ and version~$6$ transactions alike.
 \end{enumerate}
-The format table of ZIP 229, ``Transaction Format'', lists
-$\mathsf{enableCrossAddress}$ at bit~$2$ of $\mathsf{flagsOrchard}$; this
-contradicts the consensus rules of the same ZIP, which reserve that bit, and
-the volume follows the consensus rules. The two texts differ in the role of
+ZIP 229, ``Transaction Format'', lists $\mathsf{enableCrossAddress}$ at
+bit~$2$ of $\mathsf{flagsOrchard}$ in its format table; this contradicts
+the consensus rules of the same ZIP, which reserve that bit, and the volume
+follows the consensus rules. The two texts differ in the role of
 the bit, not in its value in a valid transaction: ZIP 258, ``Consensus rules
 from~NU6.3 activation'', requires every Orchard-pool Action to be created
 with $\mathsf{enableCrossAddress} = 0$.
@@ -4777,17 +4921,20 @@ that have the following types and satisfy conditions A1 to A10 below.
 \begin{itemize}
 \item Primary input: $\mathit{rt}, \nfsym^{\mathsf{old}}, \cmx \in
   \{0, \dots, p_{\Pallas} - 1\}$, read as elements of $\F_{p_{\Pallas}}$;
-  $\cvsym^{\mathsf{net}}, \rk \in \Ep$; and $\mathsf{enableSpends},
-  \mathsf{enableOutputs}, \mathsf{disableCrossAddress} \in \{0, 1\}$.
+  $\cvsym^{\mathsf{net}}, \rk \in \Ep$; and
+  $\mathsf{enableSpends},\allowbreak \mathsf{enableOutputs},\allowbreak
+  \mathsf{disableCrossAddress} \in \{0, 1\}$.
 \item Auxiliary input: $\mathsf{path} = (s_0, \dots, s_{31})$ with every
   $s_t \in \{0, \dots, p_{\Pallas} - 1\}$; $\mathsf{pos} \in
-  \{0, \dots, 2^{32} - 1\}$; $\gd^{\mathsf{old}}, \pkd^{\mathsf{old}},
-  \gd^{\mathsf{new}}, \pkd^{\mathsf{new}}, \aksym^{\PP} \in \Ep^{*}$;
+  \{0, \dots, 2^{32} - 1\}$; $\gd^{\mathsf{old}},\allowbreak
+  \pkd^{\mathsf{old}},\allowbreak \gd^{\mathsf{new}},\allowbreak
+  \pkd^{\mathsf{new}},\allowbreak \aksym^{\PP} \in \Ep^{*}$;
   $v^{\mathsf{old}}, v^{\mathsf{new}} \in \{0, \dots, 2^{64} - 1\}$;
-  $\rho^{\mathsf{old}}, \psi^{\mathsf{old}}, \psi^{\mathsf{new}}, \nksym \in
-  \F_{p_{\Pallas}}$; $\cmsym^{\mathsf{old}} \in \Ep$;
-  $\rcm^{\mathsf{old}}, \rcm^{\mathsf{new}}, \rivk, \rcv, \alpha \in
-  \{0, \dots, 2^{255} - 1\}$; and
+  $\rho^{\mathsf{old}},\allowbreak \psi^{\mathsf{old}},\allowbreak
+  \psi^{\mathsf{new}},\allowbreak \nksym \in \F_{p_{\Pallas}}$;
+  $\cmsym^{\mathsf{old}} \in \Ep$; $\rcm^{\mathsf{old}},\allowbreak
+  \rcm^{\mathsf{new}},\allowbreak \rivk,\allowbreak \rcv,\allowbreak \alpha
+  \in \{0, \dots, 2^{255} - 1\}$; and
   $\mathsf{c} = (c_0, \dots, c_{63}) \in \{0, 1\}^{64}$.
 \end{itemize}
 Let $\rho^{\mathsf{new}} := \nfsym^{\mathsf{old}} \in \F_{p_{\Pallas}}$, let
@@ -4810,8 +4957,10 @@ $\F_{p_{\Pallas}}$ or in $\Ep$, are:
   $\NoteCommit_{\rcm^{\mathsf{old}}}(M^{\mathsf{old}}) \in
   \{\cmsym^{\mathsf{old}}, \bot\}$.
 \item New note commitment integrity:
-  $\Extract_{\PP}^{\bot}\bigl(\NoteCommit_{\rcm^{\mathsf{new}}}
-  (M^{\mathsf{new}})\bigr) \in \{\cmx, \bot\}$.
+  \[
+    \Extract_{\PP}^{\bot}\bigl(\NoteCommit_{\rcm^{\mathsf{new}}}
+    (M^{\mathsf{new}})\bigr) \in \{\cmx, \bot\}.
+  \]
 \item Merkle path validity: $v^{\mathsf{old}} \cdot (\mathit{root} -
   \mathit{rt}) = 0$ or some evaluation of $\mathsf{SinsemillaHash}$ in the
   fold, the root included, returns $\bot$. Here $\mathit{root} := a_{32}$ is
@@ -4842,8 +4991,11 @@ $\F_{p_{\Pallas}}$ or in $\Ep$, are:
 \item Spend authority:
   $\rk = \aksym^{\PP} + [\alpha]\,G^{\mathsf{SpendAuth}}$.
 \item Diversified address integrity: with
-  $\ivk := \CommitIvk_{\rivk}\bigl(\Extract_{\PP}(\aksym^{\PP}),
-  \nksym\bigr)$, either $\ivk = \bot$ or
+  \[
+    \ivk := \CommitIvk_{\rivk}\bigl(\Extract_{\PP}(\aksym^{\PP}),
+    \nksym\bigr),
+  \]
+  either $\ivk = \bot$ or
   $\pkd^{\mathsf{old}} = [\ivk]\,\gd^{\mathsf{old}}$.
 \item Enable spend flag:
   $v^{\mathsf{old}} \cdot (1 - \mathsf{enableSpends}) = 0$.
@@ -5192,7 +5344,7 @@ hiding content, with the results that discharge it.
 \begin{table}[tp]
 \centering\small
 \setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}p{2.4cm}p{6.8cm}p{6.1cm}@{}}
+\begin{tabular}{@{}p{2.3cm}p{6.3cm}p{5.6cm}@{}}
 \toprule
 Requirement & Soundness & Hiding \tabularnewline
 \midrule
@@ -5246,7 +5398,7 @@ map of the volume.}
 \begin{figure}[p]
 \centering
 \begin{tikzpicture}[
-  font=\footnotesize,
+  scale=0.89, font=\footnotesize,
   ax/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
     line width=0.6pt, rounded corners=2pt, inner sep=1.5pt,
     minimum height=5mm, minimum width=15mm},
@@ -5703,7 +5855,8 @@ uses $\mathsf{KDF}$, $\mathsf{PRF}^{\mathsf{ock}}$ or the derivation of
 $\mathsf{esk}$ names it.
 \end{assumption}
 
-\begin{assumption}[Confidentiality and integrity of ChaCha20-Poly1305]%
+\begin{assumption}[Confidentiality and integrity of ChaCha20-\allowbreak
+  Poly1305]%
 \label{ass:aead}
 For a uniform $256$-bit key that encrypts a single plaintext,
 ChaCha20-Poly1305 with the all-zero nonce and empty associated data is
@@ -6135,7 +6288,9 @@ $n = ((d, \pkd), v, \rho, \psi, \rcm)$.
   and its $\psi$ and $\rcm$ are derived from its $\mathsf{rseed}$ under
   $\mathtt{0x03}$.
 \item[(b)] The extracted commitment of $n$ satisfies
-  $\Extract_{\PP}(\NoteCommit_{\rcm}(M(n))) = \cmx$.
+  \[
+    \Extract_{\PP}(\NoteCommit_{\rcm}(M(n))) = \cmx.
+  \]
 \item[(c)] For every efficient sender, which may choose
   $\mathsf{epk}^{\star}$, $C_{\mathsf{enc}}$, $C_{\mathsf{out}}$ and the
   keys under which they are formed, the probability that the recipient
@@ -7856,8 +8011,11 @@ messages and trapdoors modulo $p_{\Vesta}$, hence
 $\cmsym^{\mathsf{old}} = \cmsym'^{\mathsf{old}}$.
 
 (2)~\emph{The key.} By A7, $\pkd^{\mathsf{old}} = [\ivk]\,\gd^{\mathsf{old}}$
-with $\ivk := \CommitIvk_{\rivk}(\Extract_{\PP}(\aksym^{\PP}), \nksym) \neq
-\bot$, and, the notes being equal, $\pkd^{\mathsf{old}} =
+with
+\[
+  \ivk := \CommitIvk_{\rivk}(\Extract_{\PP}(\aksym^{\PP}), \nksym) \neq \bot,
+\]
+and, the notes being equal, $\pkd^{\mathsf{old}} =
 [\ivk']\,\gd^{\mathsf{old}}$ likewise. Both values of $\CommitIvk$ are
 integers below $p_{\Pallas} < p_{\Vesta}$, read as scalars
 (\S\ref{sec:prim-fields}), and $\gd^{\mathsf{old}}$ is a non-identity point
