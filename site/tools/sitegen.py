@@ -741,13 +741,14 @@ def heading_self_links(text):
 
     def heading(match):
         tag, attrs, body = match.groups()
-        if re.search(r'<a\b', body):
+        # a title page's name and subtitle stay plain text
+        if re.search(r'<a\b', body) or 'ltx_title_document' in attrs:
             return match.group(0)
         identifier = HTML_ID_RE.search(attrs)
         if identifier:
             identifier = unescape(identifier.group(2))
         else:
-            kind = re.search(r'\bltx_title_(document|part|section)\b', attrs)
+            kind = re.search(r'\bltx_title_(part|section)\b', attrs)
             if not kind:
                 return match.group(0)
             base = kind.group(1) + '-heading'

@@ -215,9 +215,9 @@ self_link_source = (
     '<div id="citing" class="ltx_theorem"><h6 class="ltx_title">'
     'Theorem 2 (<a href="#result">Theorem 1</a> revisited).</h6></div>')
 self_linked = sitegen.heading_self_links(self_link_source)
-assert self_linked.count('class="arb-heading-link"') == 6
-for identifier in ('section-heading-2', 'kept', 'paragraph',
-                   'document-heading', 'part-heading', 'result'):
+assert self_linked.count('class="arb-heading-link"') == 5
+assert '<h1 class="ltx_title ltx_title_document">Guide title</h1>' in self_linked
+for identifier in ('section-heading-2', 'kept', 'paragraph', 'part-heading', 'result'):
     assert f'class="arb-heading-link" href="#{identifier}"' in self_linked
 assert '<math alttext="x"><mi>x</mi></math>' in self_linked
 assert '<span class="ltx_tag ltx_tag_section">2 </span>Section title</a></h1>' in self_linked
