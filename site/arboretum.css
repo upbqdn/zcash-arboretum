@@ -72,17 +72,18 @@ math .ltx_font_mathcaligraphic { font-family: inherit; }
 /* ---------- tokens: ink on paper; colour means a link or a figure tier ---------- */
 :root {
   color-scheme: light;
-  --paper: #fff;
-  --ink: #1a1a1a;
-  --muted: #5e5e5e;
-  --hairline: #d6d6d6;
-  --accent: #1c5a3a;
+  --paper: #fbfaf8;       /* a shade off white, the ink softened to match: less glare */
+  --ink: #2b2a28;
+  --muted: #68655f;
+  --hairline: #dedbd5;
+  --accent: #2d6a4a;
   --gutter: 1.125rem;     /* 18 px */
   --bar-h: 2.75rem;       /* 44 px, also the touch target */
   --small: .875em;
   --rule-in: .9em;        /* statement rule to text */
   --nav-w: clamp(17rem, 22vw, 21rem);
   --plate-pad: 0;         /* figures sit on a paper plate; it shows only in the dark theme */
+  --plate-blend: multiply; /* in the light theme a figure's white takes the paper's tone */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -93,6 +94,7 @@ math .ltx_font_mathcaligraphic { font-family: inherit; }
     --hairline: #383838;
     --accent: #8cc7a4;
     --plate-pad: .6em;
+    --plate-blend: normal;
   }
 }
 :root[data-theme="dark"] {
@@ -103,6 +105,7 @@ math .ltx_font_mathcaligraphic { font-family: inherit; }
   --hairline: #383838;
   --accent: #8cc7a4;
   --plate-pad: .6em;
+  --plate-blend: normal;
 }
 
 /* ---------- base ---------- */
@@ -726,6 +729,7 @@ figure.ltx_figure > .ltx_transformed_outer > .ltx_transformed_inner > img:only-c
   display: block; width: 100%;
   padding: var(--plate-pad);
   background: #fff;
+  mix-blend-mode: var(--plate-blend);
 }
 /* LaTeXML's figure is a centring flex column, in which a caption grows to its widest formula;
    stretched to the column, its formulas are fitted as the text's */
