@@ -227,6 +227,15 @@ assert sitegen.heading_self_links(self_linked) == self_linked
 assert 'data-pagefind-ignore' not in re.search(
     r'<a class="arb-heading-link"[^>]*>', self_linked).group()
 
+# A title page shows the volume's name alone.
+titled = sitegen.drop_subtitle(
+    '<h1 class="ltx_title ltx_title_document" style="font-size:120%;"><span class="ltx_text '
+    'ltx_font_bold" style="font-size:248%;">Wallet Guide <br class="ltx_break"></span>The Zcash '
+    'wallet layer</h1><p>Body</p>')
+assert titled == ('<h1 class="ltx_title ltx_title_document" style="font-size:120%;"><span '
+                  'class="ltx_text ltx_font_bold" style="font-size:248%;">Wallet Guide</span>'
+                  '</h1><p>Body</p>'), titled
+
 for expression, expected in (
         ('<msup><mi>x</mi><mn>2</mn></msup>', 'x^(2)'),
         ('<msup><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mn>2</mn></msup>',

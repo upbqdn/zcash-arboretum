@@ -714,6 +714,13 @@ def heading_anchors(text):
     return SECTION_HEADING_RE.sub(heading, text)
 
 
+def drop_subtitle(text):
+    """A title page shows the volume's name alone; the landing and the PDF carry the subtitle."""
+    return re.sub(r'(<h1 class="ltx_title ltx_title_document"[^>]*>\s*'
+                  r'<span class="ltx_text ltx_font_bold"[^>]*>)(.*?)\s*<br class="ltx_break"\s*/?>\s*'
+                  r'(</span>).*?(</h1>)', r'\1\2\3\4', text, count=1, flags=re.S)
+
+
 def heading_self_links(text):
     """Make authored titles shareable without changing their text or targets."""
     used = {unescape(m.group(2)) for m in HTML_ID_RE.finditer(text)}
@@ -1543,6 +1550,7 @@ class="arb-volname"> {title}</span></a>
             t2 = heading_self_links(heading_anchors(t))
             t2 = link_references(heading_search_titles(t2), vol, references, current)
             if page.name == "index.html":
+                t2 = drop_subtitle(t2)
                 t2 = t2.replace('<nav class="ltx_TOC ltx_list_toc ltx_toc_toc">',
                                 '<nav id="arb-contents" '
                                 'class="ltx_TOC ltx_list_toc ltx_toc_toc">', 1)
