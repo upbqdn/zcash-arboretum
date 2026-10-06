@@ -375,12 +375,17 @@ li.plate {
 .arb-landing .foot .arb-theme > summary:hover,
 .arb-landing .foot .arb-theme[open] > summary { color: var(--accent); text-decoration-thickness: 2px; }
 .arb-landing .foot .arb-themes { top: auto; bottom: calc(100% + .4em); right: 50%; transform: translateX(50%); }
-/* the concordance: a citation's number in the first column, its places in the second */
+/* the concordance: the citation in the first column; its volumes, one a line, in the second */
+.zc .up { margin: 0 0 1.4em; font-size: var(--small); font-variant-caps: small-caps; letter-spacing: .04em; }
+.zc .up a { color: var(--muted); text-decoration: none; }
+.zc .up a:hover { color: var(--ink); text-decoration: underline 1px; }
 .zc table { border-collapse: collapse; width: 100%; font-size: var(--small); }
-.zc td { padding: .45em .8em .45em 0; border-top: 1px solid var(--hairline); vertical-align: top; }
-.zc td.zk { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.zc h2 { margin: 2.4em 0 .6em; font-size: 1.2em; font-weight: var(--bold); }
-.zc .foot { margin-top: 2.4em; }
+.zc td { padding: .55em 1em .55em 0; border-top: 1px solid var(--hairline); vertical-align: baseline; }
+.zc td:last-child { padding-right: 0; }
+.zc td.zk { white-space: nowrap; font-variant-numeric: tabular-nums; width: 5.5em; }
+.zc td p { margin: 0; text-align: left; hyphens: manual; }
+.zc td p + p { margin-top: .3em; }
+.zc h2 { margin: 2.2em 0 .5em; font-size: 1.2em; font-weight: var(--bold); }
 @media (max-width: 1099px) {
   li.plate { margin-left: 0; }
   .arb-landing h3.grp { margin-left: calc(1.2 * var(--num) + .8em); }

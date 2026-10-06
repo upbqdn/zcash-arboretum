@@ -1408,58 +1408,74 @@ window.addEventListener('DOMContentLoaded', () => {{
     print(f"wrote {out / 'index.html'}")
 
 
+def tex_text(s):
+    """A section title's LaTeX as plain HTML text: commands unwrapped, dollars and ties gone."""
+    s = re.sub(r"\\(?:emph|textit|textbf|mathrm|mathsf|mathbb|mathcal|texttt)\{([^{}]*)\}", r"\1", s)
+    s = s.replace("\\S", "&sect;").replace("--", "&ndash;").replace("~", " ").replace("$", "")
+    return re.sub(r"\\[A-Za-z]+\s*", "", s)
+
+
 def concordance(outdir):
-    """ZIP number -> (volume, section) index, scanned from the sources."""
+    """ZIP and protocol-specification sections -> the volume sections that treat them."""
     import collections
     zips = collections.defaultdict(set)
     specs = collections.defaultdict(set)
+    order = {vol: n for n, (vol, _g) in enumerate(VOLUME_META)}
     for vol, _g in VOLUME_META:
         p = ROOT / f"{vol}.tex"
         if not p.exists():
             continue
         title, _ = vol_title(vol)
-        sec = "front matter"
+        sec = (0, "Front matter")  # LaTeXML names the n-th section's page Sn.html
         prev = ""
         for ln in p.read_text().splitlines():
             if ln.lstrip().startswith("%"):
                 continue
             m = re.match(r"\\section\{([^}]*)\}", ln.strip())
             if m:
-                sec = m.group(1)
+                sec = (sec[0] + 1, m.group(1))
             for z in re.findall(r"ZIP[-~ ]?(\d{2,4})\b", ln):
-                zips[int(z)].add((vol, title, sec))
+                zips[int(z)].add((vol, title) + sec)
             # protocol-spec sections; skip cross-volume cites ("... Guide"
             # on the same line) and internal \S\ref uses
             if not re.search(r"\\emph\{[^}]*Guide", prev + " " + ln):
                 for sp in re.findall(r"\\S[~ ]?(\d+(?:\.\d+)+)", ln):
-                    specs[tuple(int(x) for x in sp.split("."))].add(
-                        (vol, title, sec))
+                    specs[tuple(int(x) for x in sp.split("."))].add((vol, title) + sec)
             prev = ln
-    rows = []
-    for z in sorted(zips):
-        refs = "; ".join(
-            f'<a href="{v}/">{t}</a> &mdash; {s}'
-            for v, t, s in sorted(zips[z], key=lambda x: (x[1], x[2])))
-        rows.append(f'<tr><td class="zk">ZIP {z}</td><td>{refs}</td></tr>')
-    srows = []
-    for sp in sorted(specs):
-        dotted = ".".join(str(x) for x in sp)
-        refs = "; ".join(
-            f'<a href="{v}/">{t}</a> &mdash; {s}'
-            for v, t, s in sorted(specs[sp], key=lambda x: (x[1], x[2])))
-        srows.append(f'<tr><td class="zk">&sect; {dotted}</td>'
-                     f'<td>{refs}</td></tr>')
+
+    def places(refs):
+        """One line per volume, in reading order: the italic name, then its sections."""
+        by_vol = collections.defaultdict(list)
+        for vol, title, n, sec in refs:
+            by_vol[(order[vol], vol, title)].append((n, sec))
+        lines = []
+        for (_o, vol, title), secs in sorted(by_vol.items()):
+            links = "; ".join(f'<a href="{vol}/{f"S{n}.html" if n else ""}">{tex_text(s)}</a>'
+                              for n, s in sorted(set(secs)))
+            lines.append(f'<p><em>{title}</em>: {links}</p>')
+        return "".join(lines)
+
+    rows = [f'<tr><td class="zk"><a href="https://zips.z.cash/zip-{z:04d}">ZIP {z}</a></td>'
+            f'<td>{places(zips[z])}</td></tr>' for z in sorted(zips)]
+    srows = [f'<tr><td class="zk">&sect; {".".join(map(str, sp))}</td>'
+             f'<td>{places(specs[sp])}</td></tr>' for sp in sorted(specs)]
     html = f"""{page_head("Concordance &mdash; The Zcash Arboretum")}
 </head><body>
 <main class="arb-landing zc">
-<div class="arb-heading"><h1>Concordance</h1>
-{THEME_MENU}</div>
+<p class="up"><a href="./">The Zcash Arboretum</a></p>
+<div class="arb-heading"><h1>Concordance</h1></div>
 <p class="tag">Every ZIP and protocol-specification section cited across
-the volumes, and where each is treated. Generated from the sources.</p>
+the volumes, and the sections that treat it. Generated from the sources.</p>
+<h2>ZIPs</h2>
 <table>{"".join(rows)}</table>
 <h2>Protocol specification</h2>
 <table>{"".join(srows)}</table>
-<p class="foot"><a href="./">The Zcash Arboretum</a></p>
+<footer class="foot">
+{THEME_MENU}
+<p><a href="./">The Zcash Arboretum</a></p>
+<p>Spotted an error?
+<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
+</footer>
 </main>
 {PAGE_SCRIPT}
 </body></html>"""
