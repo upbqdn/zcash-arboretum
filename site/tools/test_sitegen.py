@@ -445,7 +445,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert f'<span class="acc">I–{sitegen.ROMANS[len(sitegen.VOLUMES) - 1]}</span>' in landing
     assert 'arb-colophon' not in landing
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
-    assert "Foundations, deployed protocol, and frontier designs" in landing
+    assert "frontier designs" not in landing
     assert landing.index('<h2 class="grp">Frontier</h2>') < landing.index(
         '<h2 class="grp whole">Complete edition</h2>')
     assert landing.count('<p class="gloss">') == 3
