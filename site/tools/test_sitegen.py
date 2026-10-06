@@ -2,6 +2,8 @@
 """Small regression check for shared generated-site controls."""
 
 import re
+import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -116,6 +118,15 @@ assert hexed == (
 runs = sitegen.mathml_fix('<math display="inline"><mrow><mi>𝚋</mi><mo>⁢</mo><mi>𝚎𝟼</mi>'
                           '</mrow></math>', split=False)
 assert '<mi>𝚋</mi>' in runs and '<mtext>𝚎𝟼</mtext>' in runs, runs
+
+# The inline scripts parse: a stray brace once silently disabled the theme control.
+if shutil.which("node"):
+    with tempfile.TemporaryDirectory() as tmp:
+        for name in ("THEME_INIT", "PAGE_SCRIPT", "TOC_SCRIPT", "TRIM_SCRIPT"):
+            js = Path(tmp) / f"{name}.js"
+            js.write_text(getattr(sitegen, name).removeprefix("<script>").removesuffix("</script>"))
+            run = subprocess.run(["node", "--check", str(js)], capture_output=True, text=True)
+            assert run.returncode == 0, (name, run.stderr)
 
 PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
 MERGED = ("halo2-intuition-guide", "sync-guide")
@@ -558,7 +569,7 @@ Volume summary.
         sitegen.postprocess(out)
     html = page.read_text()
     assert html.index(sitegen.THEME_INIT) < html.index("arboretum.css")
-    assert html.count('class="arb-theme"') == 2  # the bar's and the navigation's
+    assert html.count('class="arb-theme"') == 1  # the bar's
     assert html.count("showImages: false") == 1
     assert html.count(sitegen.SEARCH_OPTIONS) == 1
     assert "search.querySelector('summary').addEventListener('click'" in html
@@ -585,7 +596,7 @@ Volume summary.
     assert '<html lang="en-GB">' in html
     assert '<title>1 Notation — I Math Guide</title>' in html
     assert '<link rel="icon" href="../favicon.svg"' in html
-    assert '<p class="arb-nav-tools"><a href="../pdf/math-guide.pdf">PDF</a> ' in html
+    assert '<p class="arb-nav-tools"><a href="../pdf/math-guide.pdf">PDF</a></p>' in html
     assert ('<a href="./" class="ltx_ref arb-start" rel="start"><span class="arb-acc">I</span> '
             'Math Guide<span class="arb-start-sub">Foundations</span></a>') in html
     assert "Generated" not in html

@@ -81,24 +81,28 @@ try {
   if (theme) document.documentElement.dataset.theme = theme;
 } catch (_) {}
 </script>"""
-# Light, system or dark; PAGE_SCRIPT names each group's radios. System clears the stored key.
-THEME_BUTTON = ('<span class="arb-theme" role="radiogroup" aria-label="Theme">'
-                '<label><input type="radio" value="light">Light</label>'
-                '<span aria-hidden="true">&middot;</span>'
-                '<label><input type="radio" value="system">System</label>'
-                '<span aria-hidden="true">&middot;</span>'
-                '<label><input type="radio" value="dark">Dark</label></span>')
-# The theme control, the wide-display allowance and the Contents disclosure.
+# "Theme" (on phones a half disc) opens Light, System and Dark beneath it, as Search opens its
+# panel. System clears the stored key.
+THEME_MENU = ('<details class="arb-theme"><summary aria-label="Theme">'
+              '<span class="arb-theme-word">Theme</span>'
+              '<span class="arb-theme-mark" aria-hidden="true"></span></summary>'
+              '<span class="arb-themes" role="radiogroup" aria-label="Theme">'
+              '<label><input type="radio" name="arb-theme" value="light">Light</label>'
+              '<label><input type="radio" name="arb-theme" value="system">System</label>'
+              '<label><input type="radio" name="arb-theme" value="dark">Dark</label></span></details>')
+# The theme control, the scroll-edge fades and the Contents disclosure.
 PAGE_SCRIPT = """<script>
 (function () {
   const root = document.documentElement;
-  const radios = document.querySelectorAll('.arb-theme input');
-  document.querySelectorAll('.arb-theme').forEach(function (group, i) {
-    group.querySelectorAll('input').forEach(function (r) { r.name = 'arb-theme-' + i; });
-  });
+  const menu = document.querySelector('details.arb-theme');
+  const radios = document.querySelectorAll('.arb-themes input');
   function show() {
     const theme = root.dataset.theme || 'system';
     radios.forEach(function (r) { r.checked = r.value === theme; });
+    if (!menu) return;
+    const name = 'Theme: ' + theme[0].toUpperCase() + theme.slice(1);
+    menu.querySelector('summary').title = name;
+    menu.querySelector('summary').setAttribute('aria-label', name);
   }
   radios.forEach(function (r) {
     r.addEventListener('change', function () {
@@ -115,21 +119,28 @@ PAGE_SCRIPT = """<script>
     });
   });
   show();
-  // Displays and tables that overflow the measure take the .arb-wide allowance, by --over (CSS
-  // cannot see overflow).
-  function widen() {
-    const wide = '.ltx_eqn_table, .ltx_page_main table.ltx_tabular';
-    document.querySelectorAll(wide).forEach(function (t) {
-      t.classList.remove('arb-wide');
-      const over = t.scrollWidth - t.clientWidth;
-      if (over > 1) {
-        t.style.setProperty('--over', over + 'px');
-        t.classList.add('arb-wide');
-      }
+  // The panel closes on a choice (a click, or Enter, which Firefox would let reopen it), Escape,
+  // a click outside, or focus leaving it.
+  if (menu) {
+    const close = function () {
+      if (menu.contains(document.activeElement)) menu.querySelector('summary').focus();
+      menu.open = false;
+    };
+    menu.addEventListener('click', function (e) { if (e.target.localName === 'label') close(); });
+    menu.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.type === 'radio') { e.preventDefault(); close(); }
     });
-    requestAnimationFrame(edges);  // after the formula script's boxes too
+    menu.addEventListener('focusout', function (e) {
+      if (e.relatedTarget && !menu.contains(e.relatedTarget)) menu.open = false;
+    });
+    document.addEventListener('click', function (e) {
+      if (menu.open && !menu.contains(e.target)) menu.open = false;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menu.open) close();
+    });
   }
-  // A box that still scrolls fades the edge where content is hidden.
+  // A display, table or verbatim box that scrolls fades the edge where content is hidden.
   const boxes = '.ltx_eqn_table, .ltx_page_main :is(table.ltx_tabular, pre), .arb-math-scroll';
   function edge(b) {
     const more = b.scrollWidth - b.clientWidth;
@@ -140,9 +151,11 @@ PAGE_SCRIPT = """<script>
   document.addEventListener('scroll', function (e) {
     if (e.target.matches && e.target.matches(boxes)) edge(e.target);
   }, true);
-  document.fonts.ready.then(widen);
+  // after the formula script's boxes too
+  const refresh = () => requestAnimationFrame(edges);
+  document.fonts.ready.then(refresh);
   let timer;
-  addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(widen, 400); });
+  addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(refresh, 400); });
   const toc = document.querySelector('details.arb-toc');
   const nav = document.querySelector('.ltx_page_navbar');
   if (!toc || !nav) return;
@@ -1329,7 +1342,7 @@ def landing(outdir):
 </head><body>
 <main class="arb-landing">
 <div class="arb-heading"><h1>The Zcash Arboretum</h1>
-{THEME_BUTTON}</div>
+{THEME_MENU}</div>
 <p class="tag">Non-normative documentation of the deployed Zcash protocol
 and designs being built on top of it. The
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
@@ -1405,7 +1418,7 @@ def concordance(outdir):
 </head><body>
 <main class="arb-landing zc">
 <div class="arb-heading"><h1>Concordance</h1>
-{THEME_BUTTON}</div>
+{THEME_MENU}</div>
 <p class="tag">Every ZIP and protocol-specification section cited across
 the volumes, and where each is treated. Generated from the sources.</p>
 <table>{"".join(rows)}</table>
@@ -1452,7 +1465,7 @@ class="arb-volname"> {title}</span></a>
 <details class="arb-search"><summary>Search</summary>
 <div class="arb-search-panel"><div id="arb-search-ui"></div></div></details>
 <a class="arb-pdf" href="../pdf/{pdf}.pdf">PDF</a>
-{THEME_BUTTON}
+{THEME_MENU}
 </header>
 <link href="../pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="../pagefind/pagefind-ui.js"></script>
@@ -1548,10 +1561,10 @@ class="arb-volname"> {title}</span></a>
                 t2 = t2.replace('class="ltx_page_content"',
                                 'class="ltx_page_content" data-pagefind-body',
                                 1)
-            # PDF and theme inside the navigation, shown where the bar has no room for them
+            # PDF inside the navigation, shown where the bar has no room for it
             t2 = t2.replace('<nav class="ltx_page_navbar">',
                             '<nav class="ltx_page_navbar"><p class="arb-nav-tools">'
-                            f'<a href="../pdf/{pdf}.pdf">PDF</a> {THEME_BUTTON}</p>', 1)
+                            f'<a href="../pdf/{pdf}.pdf">PDF</a></p>', 1)
             # the Contents panel opens with "V Ironwood Guide", the subtitle on its own line
             t2 = re.sub(r'<a href="\./" title="" class="ltx_ref" rel="start">.*?</a>',
                         lambda m: '<a href="./" class="ltx_ref arb-start" rel="start">'

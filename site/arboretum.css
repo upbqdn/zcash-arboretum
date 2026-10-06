@@ -49,8 +49,9 @@
   --leading: 1.5;
   --xh: .405;             /* the text 'x', measured; the OS/2 field says 400 */
   --bold: 600;            /* the family has a semibold */
-  /* the face is narrow: 28.25 body ems set a median of 70 cpl; in body ems wherever it is used */
-  --measure: calc(28.25 * var(--body));
+  /* 36 body ems, the PDFs' 140 mm block at 11 pt: a display that fits the PDF fits here. The face
+     is narrow; this sets about 90 cpl. In body ems wherever it is used. */
+  --measure: calc(36 * var(--body));
 }
 @media (max-width: 480px) { :root { --body: 1.125rem; } }
 /* Native MathML: the primary math font is Garamond-Math (the faces before it claim only their
@@ -170,13 +171,34 @@ summary::-webkit-details-marker { display: none; }
   color: var(--ink);
 }
 .arb-bar .arb-acc { margin-right: .3em; }
-.arb-theme { color: var(--muted); white-space: nowrap; }
-.arb-theme span { margin: 0 .35em; }
-.arb-theme label { cursor: pointer; }
-.arb-theme label:hover { color: var(--ink); text-decoration: underline 1px; }
-.arb-theme label:has(:checked) { color: var(--ink); font-weight: var(--bold); }
-.arb-theme label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.arb-theme input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+/* the theme: "Theme" (on phones a half disc) opens its three choices beneath it, as Search opens
+   its panel; in the bar the panel hangs from the hairline */
+.arb-theme { position: relative; }
+.arb-bar .arb-theme { position: static; }
+.arb-theme > summary { color: var(--muted); }
+.arb-theme > summary:hover, .arb-theme[open] > summary {
+  color: var(--ink); text-decoration: underline 1px;
+}
+.arb-theme-mark {
+  display: none; width: .62em; height: .62em;
+  border: 1px solid; border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+.arb-themes {
+  position: absolute; z-index: 60; top: calc(100% + .4em); right: 0;
+  display: flex; flex-direction: column; min-width: 6em;
+  padding: .45em 1.1em .55em;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  color: var(--muted); white-space: nowrap;
+}
+.arb-bar .arb-themes { top: calc(100% + 1px); right: var(--gutter); border-top: 0; }
+.arb-themes label { position: relative; padding: .2em 0; cursor: pointer; }
+.arb-themes label:hover { color: var(--ink); text-decoration: underline 1px; }
+.arb-themes label:has(:checked) { color: var(--ink); font-weight: var(--bold); }
+.arb-themes label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.arb-themes input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+@media (pointer: coarse) { .arb-themes label { padding: .5em 0; } }
 .arb-bar details[open] > summary { color: var(--ink); text-decoration: underline 1px; }
 .arb-bar .arb-search-panel {
   position: absolute; top: calc(100% + 1px); right: var(--gutter);
@@ -448,7 +470,11 @@ li.plate {
 }
 @media (max-width: 700px) {
   .arb-bar { gap: 1.1em; }
-  .arb-bar .wordmark-prefix, .arb-bar .arb-volname, .arb-bar .arb-pdf, .arb-bar .arb-theme { display: none; }
+  .arb-bar .wordmark-prefix, .arb-bar .arb-volname, .arb-bar .arb-pdf { display: none; }
+  .arb-theme-word { display: none; }
+  /* the disc takes the bar's height as its hit area */
+  .arb-theme-mark { display: inline-block; vertical-align: -.05em; }
+  .arb-theme > summary { padding: .75em .45em; margin: -.75em -.45em; text-decoration: none !important; }
   .arb-bar .arb-acc { margin-right: 0; }
   .arb-nav-tools {
     display: flex; gap: 1.4em; margin: 0 0 1em;
@@ -630,20 +656,6 @@ em.ltx_emph { font-style: italic; }
     #000 calc(100% - 2em - var(--eqw, 0px)), transparent calc(100% - var(--eqw, 0px)), #000 0);
 }
 
-@media (min-width: 1100px) {
-  /* A display or table wider than the measure (by --over) stays centred and extends into both
-     margins, up to 1.5 measures in all and no further than the margins; beyond that it
-     scrolls. */
-  :root { --wide: min(.25 * var(--measure), (100vw - var(--nav-w) - var(--measure)) / 2 - 1.5rem); }
-  .ltx_eqn_table.arb-wide {
-    width: auto; max-width: none;
-    margin-inline: calc(-1 * min(var(--over) / 2, var(--wide)));
-  }
-  .ltx_page_main table.ltx_tabular.arb-wide {
-    max-width: calc(100% + 2 * var(--wide));
-    margin-left: calc(-1 * min(var(--over) / 2, var(--wide)));
-  }
-}
 
 /* ---------- lists ---------- */
 .ltx_page_main :is(ul.ltx_itemize, ol.ltx_enumerate) { margin: .5em 0; padding: 0; }
@@ -729,9 +741,8 @@ figcaption .ltx_tag { color: var(--ink); font-weight: var(--bold); }
 
 /* ---------- print: the sheet alone ---------- */
 @media print {
-  /* 12 pt, as print sets; the measure stays 28.25 ems (120 mm, as the PDFs' 125 mm block). Paper
-     cannot scroll: what scrolls on screen is shown whole, a wide display or table running into
-     the right margin as in the PDFs. The page script's line-end trims fit the screen's lines. */
+  /* 12 pt, as print sets; the measure stays 36 ems. Paper cannot scroll: what scrolls on screen
+     is shown whole, a wide display or table running into the right margin. The page script's line-end trims fit the screen's lines. */
   :root { --body: 12pt; }
   .arb-bar, .arb-permalink, .ltx_page_navbar, .ltx_page_footer { display: none !important; }
   body { display: block !important; background: #fff; color: #000; --ink: #000; }
