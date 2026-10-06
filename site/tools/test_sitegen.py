@@ -446,8 +446,10 @@ with tempfile.TemporaryDirectory() as tmp:
     assert 'arb-colophon' not in landing
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
-    assert landing.index('<h3 class="grp">Frontier</h3>') < landing.index(
-        '<h3 class="grp">Complete edition</h3>')
+    assert landing.index('<h2 class="grp">Frontier</h2>') < landing.index(
+        '<h2 class="grp whole">Complete edition</h2>')
+    assert landing.count('<p class="gloss">') == 3
+    assert 'aria-label="Math Guide, PDF"' in landing
     assert (out / "pdf" / "arboretum-complete.pdf").is_file()
 
     omnibus = out / "arboretum-complete.tex"

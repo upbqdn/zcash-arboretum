@@ -47,6 +47,12 @@ VOLUME_META = [
     ("frost-guide", "Frontier"),
 ]
 VOLUMES = [v for v, _ in VOLUME_META]
+# What each group covers and rests on, under its heading on the landing.
+GROUP_GLOSS = {
+    "Foundations": "The mathematics, cryptography, and proof system, from first principles",
+    "Deployed protocol": "Consensus, the shielded payment, and the wallet, built on the foundations",
+    "Frontier": "Light clients, shielded assets, and threshold signing, on the deployed protocol",
+}
 
 OMNIBUS_INTRO = r"""\phantomsection
 \section*{Introduction}
@@ -1358,24 +1364,25 @@ def landing(outdir):
 <div class="label"><span class="acc">{ROMANS[n - 1]}</span></div>
 <a class="title" href="{vol}/">{title}</a>
 <p class="sub">{sub}</p>
-<div class="links"><a href="pdf/{vol}.pdf">PDF</a></div></li>""")
+<div class="links"><a href="pdf/{vol}.pdf" aria-label="{title}, PDF">PDF</a></div></li>""")
     cards = []
     for group, items in groups.items():
-        cards.append(f'<h3 class="grp">{group}</h3><ol class="plates">'
-                     + "\n".join(items) + "</ol>")
-    complete = f"""<h3 class="grp">Complete edition</h3><ol class="plates">
+        cards.append(f'<h2 class="grp">{group}</h2>\n<p class="gloss">{GROUP_GLOSS[group]}</p>'
+                     '<ol class="plates">' + "\n".join(items) + "</ol>")
+    complete = f"""<h2 class="grp whole">Complete edition</h2><ol class="plates">
 <li class="plate">
 <div class="label"><span class="acc">I–{ROMANS[n - 1]}</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
-<p class="sub">Foundations, deployed protocol, and frontier designs</p>
-<div class="links"><a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
+<p class="sub">The nine volumes in one, in reading order</p>
+<div class="links"><a href="pdf/arboretum-complete.pdf" aria-label="The Complete Arboretum, PDF">PDF</a></div></li>
 </ol>"""
     html = f"""{page_head("The Zcash Arboretum")}
 <link href="pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="pagefind/pagefind-ui.js"></script>
 </head><body>
 <main class="arb-landing">
-<div class="arb-heading"><h1>The Zcash Arboretum</h1></div>
+<div class="arb-heading"><h1>The Zcash Arboretum</h1>
+<p class="series">Foundations, deployed protocol, and frontier designs</p></div>
 <p class="tag">Non-normative documentation of the deployed Zcash protocol
 and designs being built on top of it. The
 <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,

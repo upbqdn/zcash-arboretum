@@ -325,25 +325,34 @@ main.arb-landing {
   padding: 4.5rem var(--gutter) 3rem;
   --num: 2.6em;           /* numeral column, in landing-title ems */
 }
-.arb-heading { display: flex; align-items: baseline; gap: 1em; }
+/* the title and the series subtitle, as a title page sets a volume's */
 .arb-landing h1 {
-  flex: 1; min-width: 0; margin: 0;
+  margin: 0;
   font-size: 2.07em; font-weight: 400; line-height: 1.15;
 }
-.arb-heading .arb-theme { font-size: var(--small); }
-.arb-landing .tag { margin: .9em 0 1.4em; }
+.arb-landing .series { margin: .25em 0 0; font-size: 1.2em; line-height: 1.3; }
+.arb-landing .tag { margin: 1.2em 0 1.4em; }
 .arb-landing #search { margin-bottom: 1rem; }
-.arb-landing h3.grp {
-  margin: 2.4em 0 .5em;
+/* a layer: its name, then what it covers and rests on */
+.arb-landing .grp {
+  margin: 2.6em 0 0;
   font-size: 1em; font-weight: 400; line-height: inherit;
   font-variant-caps: small-caps; letter-spacing: .04em;
 }
+.arb-landing .gloss { margin: 0 0 .9em; font-style: italic; color: var(--muted); text-align: left; }
+/* the complete edition stands apart from the layers it joins */
+.arb-landing .grp.whole {
+  padding-top: 1.3em; margin-bottom: .9em;
+  border-top: 1px solid var(--hairline);
+}
 ol.plates { list-style: none; margin: 0; padding: 0; }
+/* numeral, title and PDF on one baseline; the subtitle beneath */
 li.plate {
   display: grid;
-  grid-template-columns: calc(var(--num) * 1.2) auto minmax(0, 1fr);
+  grid-template-columns: calc(var(--num) * 1.2) minmax(0, 1fr) auto;
   column-gap: .8em;
-  margin: 0 0 1.1em;
+  align-items: baseline;
+  margin: 0 0 .9em;
   margin-left: calc(-1.2 * var(--num) - .8em);
 }
 .plate .label { display: contents; }
@@ -352,17 +361,19 @@ li.plate {
   justify-self: end;
   font-size: 1.2em; line-height: 1.3;
 }
-/* a volume's title is its web edition's link, and looks it */
+/* a volume's title is its web edition's link */
 .plate a.title {
-  grid-column: 2 / 4; grid-row: 1;
-  font-size: 1.2em; line-height: 1.3; font-weight: var(--bold);
+  grid-column: 2; grid-row: 1; justify-self: start;
+  font-size: 1.2em; line-height: 1.3;
 }
-.plate .sub { grid-column: 2 / 4; grid-row: 2; margin: .1em 0 .15em; }
+.plate .sub { grid-column: 2 / 4; grid-row: 2; margin: .05em 0 0; }
+/* the PDF at the measure's right edge, on the title's line, in the group headings' small caps */
 .plate .links {
-  grid-column: 2; grid-row: 3;
+  grid-column: 3; grid-row: 1;
   display: flex; gap: 1em;
-  font-size: var(--small);
+  font-variant-caps: all-small-caps; letter-spacing: .04em; margin-right: -.04em;
 }
+@media (pointer: coarse) { .plate .links a { padding: .5em 0 .5em .75em; margin: -.5em 0 -.5em -.75em; } }
 .arb-landing .foot {
   margin-top: 3.5em;
   font-size: var(--small); color: var(--muted); text-align: center;
@@ -391,7 +402,7 @@ li.plate {
 .zc h2 { margin: 2.2em 0 .5em; font-size: 1.2em; font-weight: var(--bold); }
 @media (max-width: 1099px) {
   li.plate { margin-left: 0; }
-  .arb-landing h3.grp { margin-left: calc(1.2 * var(--num) + .8em); }
+  .arb-landing :is(.grp, .gloss) { margin-left: calc(1.2 * var(--num) + .8em); }
 }
 @media (max-width: 700px) {
   main.arb-landing { padding-top: 2.5rem; --num: 2.2em; }
