@@ -47,12 +47,8 @@ def main():
     sources += sorted((sitegen.ROOT / "talks").glob("*.tex"))
     sitegen.omnibus()
     sources.append(sitegen.ROOT / "arboretum-complete.tex")
-    # the colophon names the commit, and its time is the build time, so a
-    # rebuild of one commit reproduces its PDFs
+    # the commit's time is the build time, so a rebuild of one commit reproduces its PDFs
     env = dict(os.environ, SOURCE_DATE_EPOCH=git("log", "-1", "--format=%ct"))
-    for folder in (sitegen.ROOT, sitegen.ROOT / "parked"):
-        (folder / "edition.tex").write_text(
-            f"\\def\\arbedition{{{git('rev-parse', '--short', 'HEAD')}}}\n")
     failed = []
     for source in sources:
         if errors := source_errors(source.read_text()):

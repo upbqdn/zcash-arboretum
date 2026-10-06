@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 % head height 14pt: the italic Th ligature of a running head stands 13.01pt
-\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage[mathsf=sym]{unicode-math}
@@ -71,10 +71,8 @@
 % \boxmaxdepth=0 turns into height
 \setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
 \patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
-% the frame sits flush left, as framed would centre it: a display wider than
-% the text then runs into the outer margin, up to 150 mm, and the rule stays
-\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \hbox to\hsize{#1\hfil}}}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
 \patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \newcommand\arb@kind[2]{%
@@ -134,14 +132,9 @@
 \usepackage[font=small,labelfont=bf,labelsep=period,
   justification=raggedright,singlelinecheck=false]{caption}
 \captionsetup[table]{position=top}
-% floats and displays wider than the text run flush left into the outer
-% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
-% both in \@floatboxreset, after the float's \sloppy and \normalsize would
-% undo them
+% tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
-\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \ifx\@captype\arb@table\small\fi}
-\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -160,9 +153,6 @@
 \AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
 % identity from the title line: name, subtitle, accession numeral
 \providecommand{\accession}{}
-\providecommand{\volstatus}{}
-\providecommand{\arbedition}{}
-\InputIfFileExists{edition.tex}{}{}
 \def\arb@name#1#2\@nil{\def\arbvolname{#2}}
 \def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
 \providecommand{\arbvolname}{}
@@ -179,10 +169,6 @@
   \vspace{18mm}
   {\fontsize{13.2}{17}\selectfont Marek\par}
   {\small\@author\par}
-  \vfill
-  % the colophon may run to the 150 mm wide measure
-  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
-    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
   \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -250,7 +236,6 @@
 }{\par\medskip}
 
 \renewcommand{\accession}{III}
-\renewcommand{\volstatus}{stable}
 \title{\textbf{\Huge Halo 2 Guide}\\[6pt]\large The Halo 2 proof system, from arithmetisation to recursion}
 \author{m@rek.onl}
 \date{}
@@ -573,11 +558,11 @@ does not deploy its material.
 \centering
 \begin{tikzpicture}[
   stage/.style={draw, rounded corners=2pt, minimum height=9mm,
-    text width=2.3cm, align=center, font=\small, line width=0.8pt,
+    text width=2.2cm, align=flush center, font=\small, line width=0.8pt,
     inner sep=3pt},
   tag/.style={font=\scriptsize, text=black!60, inner sep=1pt},
   flow/.style={-{Stealth[length=2.2mm]}, line width=0.7pt, black!65},
-  node distance=1.5cm and 0.45cm]
+  node distance=1.5cm and 0.4cm]
 \node[stage, draw=tierrecv, fill=tierrecv!8] (claim)
   {claim\\$x^3 + x + 5 = 35$};
 \node[stage, draw=tierin, fill=tierin!8, right=of claim] (grid)
@@ -609,7 +594,7 @@ does not deploy its material.
 \draw[flow] (grid) -- (polys);
 \draw[flow] (polys) -- (ident);
 \draw[flow] (ident) -- (rand);
-\draw[flow] (rand.south) -- ++(0,-0.85) -| (comm.north);
+\draw[flow] ([xshift=-6mm]rand.south) -- ++(0,-0.85) -| (comm.north);
 \draw[flow] (comm) -- (ipa);
 \draw[flow] (ipa) -- (hash);
 \draw[flow] (hash) -- (proof);
@@ -759,9 +744,10 @@ its own right, the permutation argument of \S\ref{sec:arith-perm}.
     \draw[wire, tierfull] (c1.south) -- ++(0cm,-0.28cm) -| (a2.north);
     \draw[wire, tierspend] (c2.south) -- ++(0cm,-0.28cm) -| (a3.north);
   \end{scope}
-  \node[font=\small, anchor=north west, text width=9.6cm, align=left]
-    at (-1.2,3.55) {wires: $x$ shared by rows $0$--$2$ ({\color{tierin}%
-    blue}); the output of each row fed to the next
+  \node[font=\small, anchor=north, text width=7.2cm, align=flush center]
+    at ([yshift=-3mm]current bounding box.south) {wires: $x$ shared by
+    rows $0$--$2$ ({\color{tierin}blue}); the output of each row fed to
+    the next
     ({\color{tierrecv}$c_0 \to a_1$}, {\color{tierfull}$c_1 \to a_2$},
     {\color{tierspend}$c_2 \to a_3$}).};
 \end{tikzpicture}
@@ -1090,7 +1076,7 @@ verifier rejects.
   \fill[tierin] (20,0) circle (2.4pt);
   \draw[tierin] (20,-0.15) -- (14,-1.3);
   \node[tierin, below left, font=\small] at (14.5,-1.2) {$z = 20$};
-  \node[anchor=north west, text width=12.4cm, align=left, font=\small]
+  \node[anchor=north west, text width=12.4cm, align=flush left, font=\small]
     at (-2,-2.2) {{\color{tierspend}filled}: the roots of the gap
     polynomial $D$, the set $H \setminus \{1\}$, where the tampered
     identity still holds; $D(z) = 0$ on $3$ of the $97$ points only.
@@ -1207,10 +1193,10 @@ throughout this volume.
 \paragraph{Vanilla PLONK as the special case.}
 The original PLONK system of Gabizon, Williamson and Ciobotaru uses a
 single fixed five-selector universal gate,
-\[
-q_M(X)\,a(X)\,b(X) + q_L(X)\,a(X) + q_R(X)\,b(X) + q_O(X)\,c(X) + q_C(X)
-+ \mathrm{PI}(X) \equiv 0 \pmod{\ZH(X)},
-\]
+\begin{multline*}
+q_M(X)\,a(X)\,b(X) + q_L(X)\,a(X) + q_R(X)\,b(X) + q_O(X)\,c(X)\\
++ q_C(X) + \mathrm{PI}(X) \equiv 0 \pmod{\ZH(X)},
+\end{multline*}
 with three wire polynomials $a, b, c$, selector polynomials
 $q_M,\allowbreak q_L,\allowbreak q_R,\allowbreak q_O,\allowbreak q_C$ and the
 public-input polynomial $\mathrm{PI}$,
@@ -1232,7 +1218,7 @@ general shape.
 \begin{tikzpicture}[x=0.95cm, y=-0.78cm, font=\small,
   col/.style={draw, minimum width=0.85cm, minimum height=0.6cm,
     inner sep=1pt},
-  ann/.style={anchor=west, font=\small, text width=5.1cm, align=left},
+  ann/.style={anchor=west, font=\small, text width=5.1cm, align=flush left},
   lead/.style={-{Latex[length=1.8mm]}, thin}]
   \node[tierfull!80!black] at (0.5,-1.55) {fixed};
   \node[tierin!80!black] at (3,-1.55) {advice};
@@ -1258,7 +1244,7 @@ general shape.
   \draw[thick, tierin!80!black, rounded corners=2pt]
     (1.5,0.55) rectangle (4.5,2.45);
   \node[ann] (gate) at (7.5,0.6) {gate at row $\omega^1$: reads
-    rotation $0$ (row $\omega^1$) and rotation $+1$ (row $\omega^2$),
+    rotation $0$\\(row $\omega^1$) and rotation $+1$\\(row $\omega^2$),
     degree $\le d_{\max}$};
   \draw[lead, tierin!80!black] (gate.west) -- (4.55,1.0);
   % copy constraint cycle between two advice cells
@@ -1270,8 +1256,8 @@ general shape.
   % lookup from an advice cell into the table column
   \draw[thick, tierspend, -{Latex[length=1.8mm]}]
     (A1r5.east) .. controls (5.2,5.7) .. (Tr5.south west);
-  \node[ann] (look) at (7.5,5.3) {lookup: the value of $A_1$ at this
-    row appears somewhere in the table column $S$};
+  \node[ann] (look) at (7.5,5.3) {lookup: the value of $A_1$\\at this
+    row appears somewhere\\in the table column $S$};
   \draw[lead, tierspend] (look.west) -- (7.05,5.3);
 \end{tikzpicture}
 \caption{The PLONKish grid of Definition~\ref{def:plonkish}: columns by
@@ -1365,7 +1351,7 @@ Theorem~\ref{thm:arith-perm} below makes both halves precise.
 \centering
 \begin{tikzpicture}[
   cell/.style={draw, fill=white, minimum width=1.3cm, minimum height=0.78cm,
-    inner sep=2pt, align=center, font=\small},
+    inner sep=2pt, align=flush center, font=\small},
   arr/.style={line width=1pt, -{Latex[length=2.1mm]}, rounded corners=3pt},
   x=1.75cm, y=-1.3cm]
   \begin{scope}
@@ -1392,7 +1378,7 @@ Theorem~\ref{thm:arith-perm} below makes both halves precise.
     \draw[arr, tierspend, {Latex[length=2.1mm]}-{Latex[length=2.1mm]}]
       (c2.south) -- ++(0cm,-0.26cm) -| (a3.north);
   \end{scope}
-  \node[font=\small, anchor=north, text width=5.6cm, align=center]
+  \node[font=\small, anchor=north, text width=5.6cm, align=flush center]
     at (1,3.55) {honest trace: every arrow joins equal values;\\
     product $= 1$ at $\beta = \gamma = 2$};
   \end{scope}
@@ -1412,7 +1398,7 @@ Theorem~\ref{thm:arith-perm} below makes both halves precise.
   \draw[arr, tierin] (xb2.north) -- (xa0.south);
   % toy_trace.py: cheat b_1 = 4: unpartnered (value, label) factors: first
   %   product [(3, 95), (4, 44)], second product [(3, 44), (4, 95)]
-  \node[font=\small, anchor=north, text width=6.2cm, align=center]
+  \node[font=\small, anchor=north, text width=6.2cm, align=flush center]
     at (0.5,2.45) {cheat $b_1 = 4$: four factors are stranded,
     $4 + 44\beta + \gamma$ and $3 + 95\beta + \gamma$ in the first
     product, $3 + 44\beta + \gamma$ and $4 + 95\beta + \gamma$ in the
@@ -1754,9 +1740,9 @@ rearrangements of the table, the row checks pass for none.
   \draw[tierin, line width=1pt, -{Latex[length=1.8mm]}]
     (A2.north west) ++(0.12cm,0) -- ++(0,0.3cm);
   \draw[thick, black!60] (-1.55,-0.3) -- (-1.55,2.3)
-    node[midway, left=4pt, font=\scriptsize, align=center] {run\\of $2$};
+    node[midway, left=4pt, font=\scriptsize, align=flush center] {run\\of $2$};
   \draw[thick, black!60] (-1.55,2.7) -- (-1.55,3.3)
-    node[midway, left=4pt, font=\scriptsize, align=center] {run\\of $3$};
+    node[midway, left=4pt, font=\scriptsize, align=flush center] {run\\of $3$};
   \node[anchor=west, font=\small, tierrecv] at (1.55,0)
     {start: $A'_0 = S'_0$};
   \node[anchor=west, font=\small, tierin] at (1.55,1)
@@ -1768,7 +1754,7 @@ rearrangements of the table, the row checks pass for none.
   \node[font=\small\itshape, anchor=north] at (1.6,3.6)
     {$A = (2, 3, 2, 2)$, honest};
   \end{scope}
-  \begin{scope}[xshift=7.6cm]
+  \begin{scope}[xshift=6.9cm]
   \node[font=\small\itshape] at (0,-0.75) {$A'$};
   \node[font=\small\itshape] at (1,-0.75) {$S'$};
   \foreach \j/\va/\vs in {0/2/2, 1/2/0, 2/2/1} {
@@ -1786,9 +1772,10 @@ rearrangements of the table, the row checks pass for none.
   \draw[tierin, line width=1pt, -{Latex[length=1.8mm]}]
     (FA2.north west) ++(0.12cm,0) -- ++(0,0.3cm);
   \draw[tierspend, line width=1pt, dashed] (FA3.east) -- (FS3.west);
-  \node[anchor=west, font=\small, tierspend, text width=3.1cm]
+  \node[anchor=west, font=\small, tierspend, text width=2.8cm,
+    align=flush left]
     at (1.55,3) {$7 \ne 3$ and $7 \ne 2$: stranded};
-  \node[font=\small\itshape, anchor=north, text width=4.6cm, align=center]
+  \node[font=\small\itshape, anchor=north, text width=4.6cm, align=flush center]
     at (1.3,3.6) {$A = (2, 7, 2, 2)$, forged; one of the $4 \cdot 24$
     arrangements, all of which fail};
   \end{scope}
@@ -2438,7 +2425,7 @@ Section~\ref{sec:ipa-toy} fills these in with numbers.
 \centering
 \begin{tikzpicture}[font=\small,
   vec/.style={draw, rounded corners=2pt, minimum height=7mm, inner sep=3pt,
-    align=center},
+    align=flush center},
   lo/.style={vec, fill=tierin!10, draw=tierin},
   hi/.style={vec, fill=tierfull!10, draw=tierfull},
   cross/.style={vec, fill=tierspend!8, draw=tierspend},
@@ -2487,7 +2474,7 @@ Section~\ref{sec:ipa-toy} fills these in with numbers.
   \draw[arr] (u) -- (b2.west);
   % identity
   \node[draw=black!40, rounded corners=2pt, inner sep=4pt,
-    text width=12.6cm, align=center] at (5.3,-1.3)
+    text width=12.6cm, align=flush center] at (5.3,-1.3)
     {$C + [u^{2}]L + [u^{-2}]R
       = \ip{\mathbf a'}{\mathbf G'} + [\,r + u^{2}\ell + u^{-2}\rho\,]H
       + [\ip{\mathbf a'}{\mathbf b'}]U$};
@@ -2630,8 +2617,8 @@ numbers.
 \centering
 \begin{tikzpicture}[font=\small, x=1cm,
   stage/.style={draw, rounded corners=2pt, minimum height=7mm,
-    inner sep=3pt, align=center, fill=tierin!8, draw=tierin},
-  msg/.style={font=\scriptsize, align=center},
+    inner sep=3pt, align=flush center, fill=tierin!8, draw=tierin},
+  msg/.style={font=\scriptsize, align=flush center},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   \node[stage] (s0) at (0,0) {length $d$\\$C^{(k)}$};
   \node[stage] (s1) at (3,0) {length $d/2$\\$C^{(k-1)}$};
@@ -3166,12 +3153,12 @@ $u_2 = 18$ called out.
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  nd/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  nd/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierin!8, draw=tierin},
-  leaf/.style={draw, rounded corners=2pt, inner sep=2pt, align=center,
+  leaf/.style={draw, rounded corners=2pt, inner sep=2pt, align=flush center,
     font=\scriptsize, fill=tierrecv!10, draw=tierrecv},
   call/.style={draw=tierspend, rounded corners=2pt, inner sep=4pt,
-    align=left, fill=tierspend!5, font=\small},
+    align=flush left, fill=tierspend!5, font=\small},
   edge/.style={-{Stealth[length=1.6mm]}, black!60}]
   \node[nd] (root) at (0,4.0)
     {root: $C^{(2)} = P + [v]U = (43, 6)$; $(L_2, R_2)$ fixed};
@@ -3475,10 +3462,10 @@ coefficient $a_i$ multiplies $G_i$, the generators are
 % G4 = (49, 10)  (try-and-increment counter 1)
 % H = (78, 9)  (try-and-increment counter 0)
 % U = (53, 26)  (try-and-increment counter 0)
-\[
-G_0 = (12, 25),\quad G_1 = (17, 27),\quad G_2 = (71, 26),\quad
+\begin{gather*}
+G_0 = (12, 25),\quad G_1 = (17, 27),\quad G_2 = (71, 26),\\
 G_3 = (49, 10),\quad H = (78, 9),\quad U = (53, 26).
-\]
+\end{gather*}
 The hashed point $U$ stands in for the verifier's uniform sample of
 Construction~\ref{con:ipa-commit}. No party chose any of them, so no
 relation among them is known in advance; a single discrete logarithm
@@ -4211,7 +4198,7 @@ accidents of a $97$-element group, not consequences of the mask.
 \begin{table}[htbp]
 \centering
 \footnotesize
-\begin{tabular}{l p{6.0cm} p{6.0cm}}
+\begin{tabular}{@{}l p{5.6cm} p{5.6cm}@{}}
 \toprule
 step & prover & verifier \\
 \midrule
@@ -5041,16 +5028,16 @@ constraint reuses the permutation argument, at no extra gate degree.
   \draw[cp] (I0.east) -- (A0.west);
   \draw[cp] (I3.east) -- (A1.west);
   \draw[cp] (I6.east) -- (A2.west);
-  \node[draw=tierrecv, rounded corners=2pt, fill=tierrecv!6, align=left,
-    text width=4.6cm, inner sep=4pt] (comm) at (8.9,1.0)
+  \node[draw=tierrecv, rounded corners=2pt, fill=tierrecv!6, align=flush left,
+    text width=4.4cm, inner sep=4pt] (comm) at (8.99,1.0)
     {\textbf{verifier's own commitment}\\
-     $\Comm(\pi;\,1)$ from the public values, absorbed before any
+     $\Comm(\pi;\,1)$ from the public\\values, absorbed before\\any
      challenge};
-  \node[draw=tierin, rounded corners=2pt, fill=tierin!6, align=left,
-    text width=4.6cm, inner sep=4pt] (open) at (8.9,8.0)
+  \node[draw=tierin, rounded corners=2pt, fill=tierin!6, align=flush left,
+    text width=4.4cm, inner sep=4pt] (open) at (8.99,8.0)
     {\textbf{opened like any column}\\
-     $\pi(x)$ sent in phase 5, bound to the verifier's commitment in
-     phase 6, entering the permutation identities};
+     $\pi(x)$ sent in phase 5, bound\\to the verifier's commitment\\in
+     phase 6, entering the\\permutation identities};
   \draw[arr] (comm) -- (open);
 \end{tikzpicture}
 \caption{The instance column of the Action circuit. Rows $0$ to $8$ hold
@@ -5395,13 +5382,13 @@ opening. Figure~\ref{fig:halo2-multipoint} draws the data flow.
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  grp/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  grp/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierin!8, draw=tierin, minimum height=7mm},
-  stg/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  stg/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierrecv!10, draw=tierrecv, minimum height=7mm},
   chal/.style={draw, circle, inner sep=1.5pt, fill=tierfull!15,
     draw=tierfull, font=\small},
-  fin/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  fin/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierspend!8, draw=tierspend, minimum height=7mm},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   \node[grp, text width=2.5cm] (g1) at (0,2.0)
@@ -5411,18 +5398,18 @@ opening. Figure~\ref{fig:halo2-multipoint} draws the data flow.
   \node at (0,-0.5) {$\vdots$};
   \node[grp, text width=2.5cm] (gm) at (0,-1.6)
     {group $m$: queried\\at $T^{(m)}$};
-  \node[chal] (x1) at (2.4,0.2) {$x_1$};
-  \node[stg, text width=2.1cm] (q) at (4.3,0.2)
+  \node[chal] (x1) at (2.35,0.2) {$x_1$};
+  \node[stg, text width=2.1cm] (q) at (4.2,0.2)
     {$q_i$, $Q_i$, $r_i$\\one per group};
-  \node[chal] (x2) at (6.2,0.2) {$x_2$};
-  \node[stg, text width=2.2cm] (f) at (8.1,0.2)
+  \node[chal] (x2) at (6.05,0.2) {$x_2$};
+  \node[stg, text width=2.2cm] (f) at (7.9,0.2)
     {$f_i = \dfrac{q_i - r_i}{Z_i}$\\[3pt]$f = \sum x_2^{i-1} f_i$\\[2pt]%
      {\scriptsize send $F$}};
-  \node[chal] (x3) at (10.0,0.2) {$x_3$};
-  \node[stg, text width=1.9cm] (u) at (11.8,0.2)
+  \node[chal] (x3) at (9.75,0.2) {$x_3$};
+  \node[stg, text width=1.9cm] (u) at (11.5,0.2)
     {$\bar q_i = q_i(x_3)$\\$v_f$ computed};
-  \node[chal] (x4) at (11.8,-1.5) {$x_4$};
-  \node[fin, text width=5.2cm] (fin) at (8.1,-1.9)
+  \node[chal] (x4) at (11.5,-1.5) {$x_4$};
+  \node[fin, text width=5.2cm] (fin) at (7.9,-1.9)
     {$f^{*} = f + \sum_i x_4^{i} q_i$, opened once at $x_3$\\
      with value $v^{*}$ by the argument of \S\ref{sec:ipa}};
   \draw[arr] (g1.east) -- (x1);
@@ -5798,7 +5785,7 @@ that batching is distinct from the accumulation above.
 \begin{table}[htbp]
 \centering
 \footnotesize
-\begin{tabular}{l p{5.4cm} p{3.6cm} p{3.2cm}}
+\begin{tabular}{@{}l p{5.4cm} p{3.0cm} p{3.2cm}@{}}
 \toprule
 phase & prover sends & verifier squeezes & Orchard count \\
 \midrule
@@ -5836,13 +5823,13 @@ random-polynomial evaluation.}
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[font=\scriptsize, x=0.88cm,
+\begin{tikzpicture}[font=\scriptsize, x=0.8cm,
   msg/.style={draw, rounded corners=1.5pt, fill=tierin!10, draw=tierin,
-    inner sep=2pt, align=center, minimum height=5mm},
+    inner sep=2pt, align=flush center, minimum height=5mm},
   chal/.style={draw, rounded corners=1.5pt, fill=tierfull!15,
-    draw=tierfull, inner sep=2pt, align=center, minimum height=5mm},
+    draw=tierfull, inner sep=2pt, align=flush center, minimum height=5mm},
   pre/.style={draw, rounded corners=1.5pt, fill=tierrecv!12,
-    draw=tierrecv, inner sep=2pt, align=center, minimum height=5mm},
+    draw=tierrecv, inner sep=2pt, align=flush center, minimum height=5mm},
   tick/.style={black!60}]
   \draw[-{Stealth[length=2mm]}, line width=0.8pt, black!70]
     (0.3,0) -- (14.9,0) node[right, font=\small] {time};
@@ -5860,12 +5847,12 @@ random-polynomial evaluation.}
     \draw[tick] (\x,0.12) -- (\x,-0.12);
   }
   \foreach \x/\lab in {3.3/{$\theta$}, 4.5/{$\beta, \gamma$},
-      7.0/{$y$}, 8.3/{$x$}, 10.05/{$x_1, x_2$}, 11.25/{$x_3$},
+      7.0/{$y$}, 8.3/{$x$}, 10.15/{$x_1, x_2$}, 11.25/{$x_3$},
       12.5/{$x_4$}, 14.3/{$\xi, \zeta$;\\$u_j$}} {
     \node[chal] at (\x,-0.95) {\lab};
     \draw[tick] (\x,0.12) -- (\x,-0.12);
   }
-  \foreach \x in {2.05, 3.0, 4.05, 5.75, 7.9, 9.5, 12.95} {
+  \foreach \x in {2.05, 3.0, 4.05, 5.75, 7.9, 9.4, 12.95} {
     \draw[black!30, dashed] (\x,-0.35) -- (\x,-1.55);
   }
   \node[black!55, font=\scriptsize, anchor=east] at (0.2,-1.8) {phase};
@@ -6053,7 +6040,7 @@ evaluations are independent of them.
   \node[left=6pt, align=right, font=\scriptsize] at (-0.95,9)
     {$n_{\mathrm{blind}} = 5$ blinding rows:\\$\ell_{\mathrm{blind}} = 1$,\\
      no constraint applies};
-  \node[draw=tierrecv, rounded corners=2pt, fill=tierrecv!6, align=left,
+  \node[draw=tierrecv, rounded corners=2pt, fill=tierrecv!6, align=flush left,
     text width=6.1cm, inner sep=4pt] (op) at (5.0,2.6)
     {\textbf{openings are linear functionals}\\
      $v(z_i) = \sum_{j} v_j\,\ell_j(z_i)$ at $m \le 4$ points $z_i$
@@ -6298,8 +6285,8 @@ IOP's accept-or-reject check on the opened evaluations
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  layer/.style={draw, rounded corners=3pt, inner sep=6pt, align=left},
-  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  layer/.style={draw, rounded corners=3pt, inner sep=6pt, align=flush left},
+  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     minimum height=6.5mm},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   \node[layer, draw=tierin, fill=tierin!5, minimum width=13.4cm,
@@ -6314,19 +6301,19 @@ IOP's accept-or-reject check on the opened evaluations
     at (4.4,1.35) {oracle queries\\$p_i(x)$, $p_i(\omega^{r} x)$};
   \node[layer, draw=tierspend, fill=tierspend!4, minimum width=13.4cm,
     minimum height=2.1cm] (pcs) at (0,-1.6) {};
-  \node[anchor=north west, tierspend!80!black, font=\small\bfseries]
-    at (pcs.north west) {polynomial commitment scheme and hash
+  \node[anchor=south west, tierspend!80!black, font=\small\bfseries]
+    at (pcs.south west) {polynomial commitment scheme and hash
     (the cryptography)};
   \node[itm, fill=tierspend!10, draw=tierspend, text width=3.2cm] (co)
-    at (-4.4,-1.85) {commitments\\$C_i = \Comm(p_i;\, r_i)$};
+    at (-4.4,-1.35) {commitments\\$C_i = \Comm(p_i;\, r_i)$};
   \node[itm, fill=tierfull!15, draw=tierfull, text width=3.2cm] (ha)
-    at (0,-1.85) {transcript hashes\\(\S\ref{sec:halo2-fs})};
+    at (0,-1.35) {transcript hashes\\(\S\ref{sec:halo2-fs})};
   \node[itm, fill=tierspend!10, draw=tierspend, text width=3.2cm] (op)
-    at (4.4,-1.85) {openings: one\\multipoint + IPA (\S\ref{sec:ipa})};
+    at (4.4,-1.35) {openings: one\\multipoint + IPA (\S\ref{sec:ipa})};
   \draw[arr] (or) -- node[right, font=\scriptsize] {replaced by} (co);
   \draw[arr] (ch) -- node[right, font=\scriptsize] {replaced by} (ha);
   \draw[arr] (qu) -- node[right, font=\scriptsize] {answered by} (op);
-  \node[font=\scriptsize, black!60, align=center] at (0,-3.1)
+  \node[font=\scriptsize, black!60, align=flush center] at (0,-3.1)
     {phases $1$--$5$ of \S\ref{sec:halo2-protocol} are the upper layer
      compiled; phases $6$--$7$ are the lower layer's openings};
 \end{tikzpicture}
@@ -6615,7 +6602,7 @@ compiled error is not asserted to be the sum of the layers' errors.
 \centering
 \begin{tikzpicture}[font=\small,
   layer/.style={draw, rounded corners=3pt, inner sep=6pt},
-  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     minimum height=7mm},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   % upper layer: the polynomial IOP's extractor
@@ -6656,8 +6643,8 @@ compiled error is not asserted to be the sum of the layers' errors.
   \draw[arr] (ass) -- (pol);
   % the handover between layers
   \draw[arr, line width=0.9pt] (pol.north) -- node[right, font=\scriptsize,
-    align=left] {handed up as\\oracle contents} (or.south);
-  \node[font=\scriptsize, black!60, align=center] at (0,-3.9)
+    align=flush left] {handed up as\\oracle contents} (or.south);
+  \node[font=\scriptsize, black!60, align=flush center] at (0,-3.9)
     {the challenges are transcript hashes (\S\ref{sec:halo2-fs}); the
      loss of the naive lifting is paid in the lower layer's rewinding};
 \end{tikzpicture}
@@ -6810,7 +6797,7 @@ analysis may combine either group model with it.
 \centering
 \begin{tikzpicture}[font=\small,
   ring/.style={draw, rounded corners=4pt, line width=0.8pt},
-  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=left,
+  itm/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush left,
     font=\scriptsize, fill=white}]
   \node[ring, draw=tierin, fill=tierin!4, minimum width=13.4cm,
     minimum height=6.8cm] (std) at (0,0) {};
@@ -6832,7 +6819,7 @@ analysis may combine either group model with it.
      openings, tight in $Q$; the halo2 book's extraction theorem};
   \node[itm, text width=2.7cm, draw=tierin] at (-5.1,0.75)
     {Theorem~\ref{thm:ipa-ks}: interactive, rewinding, $3^{k}$ leaves;
-     lifted naively, a $Q^{O(\log d)}$ loss};
+     lifted naively,\\ a $Q^{O(\log d)}$ loss};
 \end{tikzpicture}
 \caption{Three models as nested restrictions on the adversary. Every
 adversary admitted by an inner ring is admitted by the rings around it,
@@ -7327,12 +7314,12 @@ as \S\ref{sec:intro-claim} fixed.
 \begin{figure}[htb]
 \centering
 \begin{tikzpicture}[font=\footnotesize,
-  st/.style={draw, rounded corners=2pt, inner sep=5pt, align=center,
-    text width=6.9cm, line width=0.8pt},
+  st/.style={draw, rounded corners=2pt, inner sep=5pt, align=flush center,
+    text width=6.0cm, line width=0.8pt},
   act/.style={st, draw=tierfull, fill=tierfull!10},
   alg/.style={st, draw=tierin, fill=tierin!8},
   con/.style={st, draw=tierrecv, fill=tierrecv!10},
-  lab/.style={font=\scriptsize, align=left, text width=7.0cm,
+  lab/.style={font=\scriptsize, align=flush left, text width=7.1cm,
     anchor=west, inner sep=2pt},
   assum/.style={lab, text=tierspend!80!black},
   exact/.style={lab, text=tierin!70!black},
@@ -7345,15 +7332,15 @@ as \S\ref{sec:intro-claim} fixed.
     and the inner-product equation~\eqref{eq:ipa-dep-final} all pass
     (\S\ref{sec:halo2-protocol}).};
   \node[alg, below=8mm of A] (B) {every claimed evaluation is the
-    value, at the hashed point, of a polynomial fixed before that point
+    value, at the\\hashed point, of a polynomial fixed before\\that point
     was drawn};
   \node[alg, below=8mm of B] (C) {the identity holds as polynomials,
     $C = h\,\ZH$: every constraint polynomial vanishes on the rows};
   \node[alg, below=8mm of C] (D) {every gate holds at every row; the
     copy constraints hold; every looked-up value is in its table};
-  \node[con, below=8mm of D] (E) {advice exists satisfying every gate,
-    every wire and every table at the public input the verifier chose:
-    filling the advice columns is knowing the witness
+  \node[con, below=8mm of D] (E) {advice exists satisfying every gate,\\
+    every wire and every table at the public\\input the verifier chose:
+    filling the advice\\columns is knowing the witness
     (\S\ref{sec:arith-grid})};
   \node[con, below=8mm of E] (F) {the prover knows the witness $3$; what the
     verifier learns is bounded as \S\ref{sec:halo2-zk} classifies};
@@ -7364,19 +7351,19 @@ as \S\ref{sec:intro-claim} fixed.
   \coordinate (mCD) at ($(C.south)!0.5!(D.north)$);
   \coordinate (mDE) at ($(D.south)!0.5!(E.north)$);
   \coordinate (mEF) at ($(E.south)!0.5!(F.north)$);
-  \node[assum] (lAB) at ($(mAB)+(3.75cm,0)$) {the openings bind:
+  \node[assum] (lAB) at ($(mAB)+(3.3cm,0)$) {the openings bind:
     Theorem~\ref{thm:ipa-ks} and Corollary~\ref{cor:ipa-deployed-ks},
     knowledge error $O(\log d/|\F|)$, under the discrete logarithm on
     Vesta; the multipoint reduction, one term of order $n/|\F|$
     (Lemma~\ref{lem:halo2-multipoint}); a hash in place of
     coins: the grinding factor $Q$ (\S\ref{sec:halo2-fs}) and the
     multi-round loss weighed in \S\ref{sec:ks}};
-  \node[exact] (lBC) at ($(mBC)+(3.75cm,0)$) {Schwartz--Zippel:
+  \node[exact] (lBC) at ($(mBC)+(3.3cm,0)$) {Schwartz--Zippel:
     Theorem~\ref{thm:arith-random}, error $\deg D/|\F|$, which is
     $11/97$ for the toy's degree budget and about $2^{-240}$ at Orchard
     scale; the $y$-combination: Lemma~\ref{lem:halo2-y-batch},
     $(T - 1)/|\F|$};
-  \node[exact] (lCD) at ($(mCD)+(3.75cm,0)$) {gates:
+  \node[exact] (lCD) at ($(mCD)+(3.3cm,0)$) {gates:
     Theorem~\ref{thm:arith-quotient} and
     Theorem~\ref{thm:arith-gate-vanish}, exact. wiring:
     Theorem~\ref{thm:arith-perm}, $2N/|\F|$ over $\beta, \gamma$, plus
@@ -7384,12 +7371,12 @@ as \S\ref{sec:intro-claim} fixed.
     (Corollary~\ref{cor:arith-perm-deployed}).
     tables: Theorem~\ref{thm:arith-lookup}, $4n/|\F|$, plus
     $n(m-1)/|\F|$ for $\theta$};
-  \node[exact] (lDE) at ($(mDE)+(3.75cm,0)$) {the instance: in the toy,
+  \node[exact] (lDE) at ($(mDE)+(3.3cm,0)$) {the instance: in the toy,
     $\mathrm{PI}(X)$, interpolated by the verifier; deployed, the
     verifier's own commitment to $\pi$, blinding factor $1$, absorbed
     before the first challenge, and the copy constraints from its designated
     cells (\S\ref{sec:halo2-instance}); no error term of its own};
-  \node[assum] (lEF) at ($(mEF)+(3.75cm,0)$) {existence becomes
+  \node[assum] (lEF) at ($(mEF)+(3.3cm,0)$) {existence becomes
     knowledge under the hypotheses of Remark~\ref{rem:halo2-compile},
     weighed in \S\ref{sec:ks}; what else is learnt is bounded by the
     interactive protocol's zero knowledge (\S\ref{sec:halo2-zk}, cited),
@@ -7468,7 +7455,8 @@ protocol, commit, and test at a random point.
 \begin{table}[htbp]
 \centering
 \footnotesize
-\begin{tabular}{l p{4.8cm} p{6.4cm}}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l p{4.8cm} p{6.1cm}@{}}
 \toprule
  & the toy & the Orchard Action \\
 \midrule
@@ -7480,7 +7468,7 @@ rows & $n = 4$, $H = \{1, 22, 96, 75\}$ & $n = 2^{11} = 2048$ \\
 columns & $3$ advice, $5$ selectors, $1$ instance & $10$ advice, $29$
   fixed, $1$ instance (\S\ref{sec:halo2-practice}) \\
 gates & one universal gate~\eqref{eq:arith-gate}, degree $3$,
-  rotation $0$ & custom gates at rotations, $d_{\max} = 9$
+  rotation~$0$ & custom gates at rotations, $d_{\max} = 9$
   (Definition~\ref{def:plonkish}; the deployed value,
   \S\ref{sec:halo2-handoff}) \\
 identity & $G = t\,\ZH$; $\deg G = 9$, $\deg t = 5$ & $C = h\,\ZH$
@@ -7558,7 +7546,7 @@ above depends.
 \begin{table}[htbp]
 \centering
 \footnotesize
-\begin{tabular}{p{3.0cm} p{4.0cm} p{6.6cm}}
+\begin{tabular}{@{}p{3.0cm} p{4.0cm} p{6.0cm}@{}}
 \toprule
 reduction & the toy exhibits & the statement that owns it \\
 \midrule
@@ -7895,15 +7883,15 @@ deployed by Orchard.
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  pf/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  pf/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierin!10, draw=tierin, minimum height=6.5mm, minimum width=1.4cm},
-  eq/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  eq/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierfull!12, draw=tierfull, minimum height=6.5mm},
-  msm/.style={draw, rounded corners=2pt, inner sep=4pt, align=center,
+  msm/.style={draw, rounded corners=2pt, inner sep=4pt, align=flush center,
     fill=tierspend!10, draw=tierspend, line width=0.9pt},
-  acc/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  acc/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierrecv!12, draw=tierrecv, minimum height=6.5mm},
-  note/.style={font=\scriptsize, black!60, align=center},
+  note/.style={font=\scriptsize, black!60, align=flush center},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   % left panel: batching
   \begin{scope}
@@ -7923,7 +7911,7 @@ deployed by Orchard.
     {random $\mu_i$ drawn by the verifier;\\nothing is emitted};
   \end{scope}
   % right panel: accumulation
-  \begin{scope}[xshift=8.0cm]
+  \begin{scope}[xshift=7.7cm]
   \node[font=\small\bfseries] at (1.4,3.6)
     {accumulation (not deployed)};
   \node[acc] (a0) at (0,2.6) {$\Acc_0$};
@@ -7943,8 +7931,8 @@ deployed by Orchard.
     {decider, \emph{once}:\\one MSM of length $d$};
   \draw[arr] (a3) -- (dec);
   \node[note, text width=3.3cm] at (3.7,-2.4)
-    {each step is checked in\\$O(\log d)$ and emits the next\\
-     accumulator; the chain may go on};
+    {each step is checked\\in $O(\log d)$ and emits\\the next
+     accumulator;\\the chain may go on};
   \end{scope}
 \end{tikzpicture}
 \caption{Left: batch verification. Each proof's complete verification
@@ -8106,13 +8094,13 @@ Lemma~\ref{lem:pcd-chain}.
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  vc/.style={draw, rounded corners=2pt, inner sep=4pt, align=left,
-    fill=tierin!8, draw=tierin, text width=3.9cm},
-  acc/.style={draw, rounded corners=2pt, inner sep=3pt, align=center,
+  vc/.style={draw, rounded corners=2pt, inner sep=4pt, align=flush left,
+    fill=tierin!8, draw=tierin, text width=3.5cm},
+  acc/.style={draw, rounded corners=2pt, inner sep=3pt, align=flush center,
     fill=tierrecv!12, draw=tierrecv, minimum height=6mm},
-  msm/.style={draw, rounded corners=2pt, inner sep=4pt, align=center,
+  msm/.style={draw, rounded corners=2pt, inner sep=4pt, align=flush center,
     fill=tierspend!10, draw=tierspend, line width=0.9pt},
-  note/.style={font=\scriptsize, black!60, align=center},
+  note/.style={font=\scriptsize, black!60, align=flush center},
   arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, black!65}]
   \node[vc] (v1) at (0,0)
     {\textbf{step $1$: verifier circuit}\\[2pt]
@@ -8120,17 +8108,17 @@ Lemma~\ref{lem:pcd-chain}.
      (2) witness its point $G'^{(0)}_{1}$\\
      (3) fold it with $\Acc_0$ by $\rho_1$\\
      (4) check its opening: $\Acc_1$};
-  \node[vc] (v2) at (5.9,0)
+  \node[vc] (v2) at (5.4,0)
     {\textbf{step $2$: verifier circuit}\\[2pt]
      \scriptsize (1) succinct check of $\pi_1$\\
      (2) witness its point $G'^{(0)}_{2}$\\
      (3) fold it with $\Acc_1$ by $\rho_2$\\
      (4) check its opening: $\Acc_2$};
-  \node[acc] (a0) at (-2.95,0) {$\Acc_0$};
-  \node[acc] (a1) at (2.95,0) {$\Acc_1$};
-  \node[acc] (a2) at (8.85,0) {$\Acc_2$};
-  \node at (9.85,0) {$\cdots$};
-  \node[acc] (am) at (10.85,0) {$\Acc_m$};
+  \node[acc] (a0) at (-2.7,0) {$\Acc_0$};
+  \node[acc] (a1) at (2.7,0) {$\Acc_1$};
+  \node[acc] (a2) at (8.1,0) {$\Acc_2$};
+  \node at (9.0,0) {$\cdots$};
+  \node[acc] (am) at (9.9,0) {$\Acc_m$};
   \draw[arr] (a0) -- (v1);
   \draw[arr] (v1) -- (a1); \draw[arr] (a1) -- (v2);
   \draw[arr] (v2) -- (a2);
@@ -8138,7 +8126,7 @@ Lemma~\ref{lem:pcd-chain}.
     {proof $\pi_1$ attests to\\step $1$ and to $\Acc_1$};
   \node[note, above=1mm of v2]
     {proof $\pi_2$ attests to\\step $2$, to $\pi_1$ and to $\Acc_2$};
-  \node[msm, text width=4.6cm] (dec) at (8.6,-3.0)
+  \node[msm, text width=3.6cm] (dec) at (8.3,-3.0)
     {decider, once,\\outside any circuit:\\
      $G^{(0)} \overset{?}{=} \ip{\mathbf s}{\mathbf G}$ for $\Acc_m$,\\
      one MSM of length $d$};
@@ -8414,11 +8402,11 @@ other. Then:
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\small,
-  cv/.style={draw, rounded corners=3pt, inner sep=5pt, align=center,
+  cv/.style={draw, rounded corners=3pt, inner sep=5pt, align=flush center,
     text width=4.3cm},
   pal/.style={cv, draw=tierin, fill=tierin!8},
   ves/.style={cv, draw=tierrecv, fill=tierrecv!10},
-  pf/.style={font=\scriptsize, align=center, inner sep=2pt},
+  pf/.style={font=\scriptsize, align=flush center, inner sep=2pt},
   arr/.style={-{Stealth[length=2.2mm]}, line width=0.9pt}]
   \node[pal] (P) at (0,0)
     {\textbf{Pallas} $E_p$\\[2pt]
@@ -8439,7 +8427,7 @@ other. Then:
     {a proof on Vesta: points with $\F_{p_{\Vesta}}$ coordinates,\\
      handled natively by the $\F_{p_{\Vesta}}$-circuit on Pallas};
   \node[draw=tierfull, fill=tierfull!10, rounded corners=2pt, inner sep=4pt,
-    align=center, font=\scriptsize, text width=6.2cm] at (4.3,-4.15)
+    align=flush center, font=\scriptsize, text width=6.2cm] at (4.3,-4.15)
     {\textbf{deployed half} (Orchard): the Action circuit is native to
      $\F_{p_{\Pallas}}$, committed on Vesta, and computes on Pallas
      points; no proof is verified in a circuit};

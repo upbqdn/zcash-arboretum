@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 % head height 14pt: the italic Th ligature of a running head stands 13.01pt
-\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage[mathsf=sym]{unicode-math}
@@ -70,10 +70,8 @@
 % \boxmaxdepth=0 turns into height
 \setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
 \patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
-% the frame sits flush left, as framed would centre it: a display wider than
-% the text then runs into the outer margin, up to 150 mm, and the rule stays
-\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \hbox to\hsize{#1\hfil}}}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
 \patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \newcommand\arb@kind[2]{%
@@ -133,14 +131,9 @@
 \usepackage[font=small,labelfont=bf,labelsep=period,
   justification=raggedright,singlelinecheck=false]{caption}
 \captionsetup[table]{position=top}
-% floats and displays wider than the text run flush left into the outer
-% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
-% both in \@floatboxreset, after the float's \sloppy and \normalsize would
-% undo them
+% tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
-\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \ifx\@captype\arb@table\small\fi}
-\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -159,9 +152,6 @@
 \AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
 % identity from the title line: name, subtitle, accession numeral
 \providecommand{\accession}{}
-\providecommand{\volstatus}{}
-\providecommand{\arbedition}{}
-\InputIfFileExists{edition.tex}{}{}
 \def\arb@name#1#2\@nil{\def\arbvolname{#2}}
 \def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
 \providecommand{\arbvolname}{}
@@ -178,10 +168,6 @@
   \vspace{18mm}
   {\fontsize{13.2}{17}\selectfont Marek\par}
   {\small\@author\par}
-  \vfill
-  % the colophon may run to the 150 mm wide measure
-  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
-    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
   \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -251,7 +237,6 @@
 }{\par\medskip}
 
 \renewcommand{\accession}{IX}
-\renewcommand{\volstatus}{frontier}
 \title{\textbf{\Huge FROST Guide}\\[6pt]\large Threshold RedPallas: FROST and its Zcash integration surfaces}
 \author{m@rek.onl}
 \date{}
@@ -500,7 +485,7 @@ follows that text.
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{2.3cm}p{3.2cm}p{2.8cm}p{3.1cm}p{2.4cm}@{}}
+\begin{tabular}{@{}p{2.1cm}p{3.0cm}p{2.6cm}p{2.9cm}p{2.2cm}@{}}
 \toprule
 \raggedright Object & \raggedright This volume & \raggedright RFC~9591
   & \raggedright ZIP~312 & \raggedright Papers\tabularnewline
@@ -527,7 +512,8 @@ follows that text.
   & \raggedright \texttt{Serialize\-Element}, \texttt{Deserialize\-Element}
   & \raggedright \(\mathsf{repr}_{\mathbb{P}}\),
   \(\mathsf{abst}_{\mathbb{P}}\) & \raggedright ---\tabularnewline
-\raggedright Scalar encoding & \raggedright \(\mathsf{ser}_{\Fq}\),
+\raggedright Scalar encoding
+  & \raggedright \lineskiplimit=1.5pt \lineskip=1.5pt \(\mathsf{ser}_{\Fq}\),
   \(\mathsf{deser}_{\Fq}\); on Pallas \(\mathsf{I2LEOSP}_{256}\)
   & \raggedright \texttt{Serialize\-Scalar}, \texttt{Deserialize\-Scalar}
   & \raggedright 32-byte little-endian & \raggedright ---\tabularnewline
@@ -3550,7 +3536,7 @@ effective randomiser outright (Remark~\ref{rem:effective-rand}).
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=0.92cm,
+\begin{tikzpicture}[x=0.87cm,
   font=\footnotesize,
   st/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
     line width=0.6pt, rounded corners=2pt, inner sep=2pt,
@@ -3560,16 +3546,16 @@ effective randomiser outright (Remark~\ref{rem:effective-rand}).
 ]
 \fill[black!3] (-1.45,3.55) rectangle (14.55,-0.75);
 \fill[black!3] (-1.45,-2.05) rectangle (14.55,-3.55);
-\node[rotate=90, font=\scriptsize\itshape] at (-1.2,1.4) {Coordinator};
-\node[rotate=90, font=\scriptsize\itshape] at (-1.2,-2.8) {Signers};
+\node[rotate=90, font=\scriptsize\itshape] at (-1.25,1.4) {Coordinator};
+\node[rotate=90, font=\scriptsize\itshape] at (-1.25,-2.8) {Signers};
 \node[st=tierin] (r1) at (0,-2.8) {Round One\\ \((D_i, E_i)\)};
-\node[st=tierfull] (ra) at (2.25,0) {randomiser\\ \(\hat{\alpha}\)};
-\node[st=tierfull] (al) at (4.5,0) {randomiser\\ \(\alpha := \hat{\alpha}\)};
-\node[st=tierin] (rk) at (6.75,0) {key\\ \(\rk\)};
-\node[st=tierin] (m) at (9,0) {digest\\ \(m\)};
+\node[st=tierfull] (ra) at (2,0) {randomiser\\ \(\hat{\alpha}\)};
+\node[st=tierfull] (al) at (4.4,0) {randomiser\\ \(\alpha := \hat{\alpha}\)};
+\node[st=tierin] (rk) at (6.8,0) {key\\ \(\rk\)};
+\node[st=tierin] (m) at (9.2,0) {digest\\ \(m\)};
 \node[st=tierspend] (r2) at (11.25,-2.8) {Round Two\\ \(z_i\)};
-\node[st=tierin] (ag) at (13.5,0) {aggregate\\ \((R, z)\)};
-\node[st=gray, text width=19mm] (pf) at (5.625,1.45) {Action proof};
+\node[st=tierin] (ag) at (13.4,0) {aggregate\\ \((R, z)\)};
+\node[st=gray, text width=19mm] (pf) at (5.6,1.45) {Action proof};
 \draw[ar] (r1) -- node[font=\scriptsize, right, pos=0.4] {\(L\)} (ra);
 \draw[ar] (ra) -- (al);
 \draw[ar] (al) -- (rk);
@@ -3578,7 +3564,7 @@ effective randomiser outright (Remark~\ref{rem:effective-rand}).
 \draw[ar] (r2) -- (ag);
 \draw[ar] (al) -- (pf);
 \draw[ar] (rk) -- (pf);
-\draw[ar, dashed] (m.north) .. controls (9,3.6) and (2.25,3.6) ..
+\draw[ar, dashed] (m.north) .. controls (9.2,3.6) and (2,3.6) ..
   node[font=\scriptsize, above, pos=0.5] {Draft derivation: \(m\) enters
   \(H_R\)} (ra.north);
 \end{tikzpicture}
@@ -4787,7 +4773,9 @@ lists the principal statements proved in this volume.
 \begin{table}[p]
 \centering
 \footnotesize
-\begin{tabular}{@{}p{103mm}p{42mm}@{}}
+\setlength{\tabcolsep}{0.5em}
+\renewcommand{\arraystretch}{0.98}
+\begin{tabular}{@{}p{\dimexpr\linewidth-36.5mm-2\tabcolsep\relax}p{36.5mm}@{}}
 \toprule
 Object and source & Home \\
 \midrule
@@ -4855,7 +4843,7 @@ Unforgeability of re-randomised FROST in the game of ePrint 2024/436,
 \midrule
 \multicolumn{2}{@{}l}{\emph{Established}} \\
 \raggedright TS-SUF-3 of FROST1 under OMDL in the random-oracle model;
-  ePrint 2022/833, Theorem~5.4
+  ePrint~2022/833, Theorem~5.4
   & Theorem~\ref{thm:frost-suf} \\
 \midrule
 \multicolumn{2}{@{}l}{\emph{Proved in this volume}} \\
@@ -4879,8 +4867,8 @@ Unforgeability of re-randomised FROST in the game of ePrint 2024/436,
   sharing
   & Lemma~\ref{lem:negate}, Construction~\ref{def:normalise} \\
 \raggedright Transfer of unforgeability to Orchard-protocol dealer keys
-  & Lemmas~\ref{lem:norm-transfer}, \ref{lem:viewing},
-    Corollary~\ref{cor:orchard-dealer} \\
+  & \raggedright Lemmas~\ref{lem:norm-transfer}, \ref{lem:viewing},
+    Corollary~\ref{cor:orchard-dealer}\tabularnewline
 \raggedright Order of a threshold spend authorisation
   & Proposition~\ref{prop:order} \\
 \raggedright Nonce-reuse criterion

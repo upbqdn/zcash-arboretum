@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 % head height 14pt: the italic Th ligature of a running head stands 13.01pt
-\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage[mathsf=sym]{unicode-math}
@@ -66,10 +66,8 @@
 % \boxmaxdepth=0 turns into height
 \setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
 \patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
-% the frame sits flush left, as framed would centre it: a display wider than
-% the text then runs into the outer margin, up to 150 mm, and the rule stays
-\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \hbox to\hsize{#1\hfil}}}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
 \patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \newcommand\arb@kind[2]{%
@@ -129,14 +127,9 @@
 \usepackage[font=small,labelfont=bf,labelsep=period,
   justification=raggedright,singlelinecheck=false]{caption}
 \captionsetup[table]{position=top}
-% floats and displays wider than the text run flush left into the outer
-% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
-% both in \@floatboxreset, after the float's \sloppy and \normalsize would
-% undo them
+% tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
-\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \ifx\@captype\arb@table\small\fi}
-\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -155,9 +148,6 @@
 \AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
 % identity from the title line: name, subtitle, accession numeral
 \providecommand{\accession}{}
-\providecommand{\volstatus}{}
-\providecommand{\arbedition}{}
-\InputIfFileExists{edition.tex}{}{}
 \def\arb@name#1#2\@nil{\def\arbvolname{#2}}
 \def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
 \providecommand{\arbvolname}{}
@@ -174,10 +164,6 @@
   \vspace{18mm}
   {\fontsize{13.2}{17}\selectfont Marek\par}
   {\small\@author\par}
-  \vfill
-  % the colophon may run to the 150 mm wide measure
-  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
-    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
   \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -230,7 +216,6 @@
 }{\par\medskip}
 
 \renewcommand{\accession}{II}
-\renewcommand{\volstatus}{stable}
 \title{\textbf{\Huge Crypto Guide}\\[6pt]\large Cryptographic primitives from scratch}
 \author{m@rek.onl}
 \date{}
@@ -3007,7 +2992,7 @@ image. The standardised pipeline repairs both defects.
 
 \begin{construction}[The hash-to-curve pipeline]\label{hash:con:h2c}
 The RFC~9380 map
-\(\mathsf{hash\_to\_curve} \colon \{0,1\}^{*} \to E(\Fp)\) composes
+\(\mathsf{hash\_to\_curve} \colon \allowbreak \{0,1\}^{*} \to E(\Fp)\) composes
 four steps:
 \begin{enumerate}
 \item hash to the field: \(\mathsf{hash\_to\_field}(m, 2)\) produces

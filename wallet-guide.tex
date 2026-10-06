@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 % head height 14pt: the italic Th ligature of a running head stands 13.01pt
-\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage[mathsf=sym]{unicode-math}
@@ -70,10 +70,8 @@
 % \boxmaxdepth=0 turns into height
 \setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
 \patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
-% the frame sits flush left, as framed would centre it: a display wider than
-% the text then runs into the outer margin, up to 150 mm, and the rule stays
-\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \hbox to\hsize{#1\hfil}}}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
 \patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \newcommand\arb@kind[2]{%
@@ -133,14 +131,9 @@
 \usepackage[font=small,labelfont=bf,labelsep=period,
   justification=raggedright,singlelinecheck=false]{caption}
 \captionsetup[table]{position=top}
-% floats and displays wider than the text run flush left into the outer
-% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
-% both in \@floatboxreset, after the float's \sloppy and \normalsize would
-% undo them
+% tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
-\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \ifx\@captype\arb@table\small\fi}
-\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -159,9 +152,6 @@
 \AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
 % identity from the title line: name, subtitle, accession numeral
 \providecommand{\accession}{}
-\providecommand{\volstatus}{}
-\providecommand{\arbedition}{}
-\InputIfFileExists{edition.tex}{}{}
 \def\arb@name#1#2\@nil{\def\arbvolname{#2}}
 \def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
 \providecommand{\arbvolname}{}
@@ -178,10 +168,6 @@
   \vspace{18mm}
   {\fontsize{13.2}{17}\selectfont Marek\par}
   {\small\@author\par}
-  \vfill
-  % the colophon may run to the 150 mm wide measure
-  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
-    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
   \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -251,7 +237,6 @@
 }{\par\medskip}
 
 \renewcommand{\accession}{VI}
-\renewcommand{\volstatus}{deployed}
 \title{\textbf{\Huge Wallet Guide}\\[6pt]\large The Zcash wallet layer: keys, transactions, and light-client synchronisation}
 \author{m@rek.onl}
 \date{}
@@ -655,7 +640,7 @@ addresses of both scopes.
 
 \begin{figure}[tp]
 \centering
-\begin{tikzpicture}[x=0.96cm,
+\begin{tikzpicture}[x=0.88cm,
   font=\footnotesize, >={Stealth[length=1.8mm]},
   kn/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
     line width=0.7pt, rounded corners=2pt, inner sep=3pt,
@@ -669,8 +654,8 @@ addresses of both scopes.
 % the account path
 \node[ix] (S) at (0,0) {seed $S$};
 \node[kn=tierspend] (m) at (3.0,0) {$(\mathsf{sk}_m, \mathsf{c}_m)$};
-\node[kn=tierspend] (p1) at (6.4,0) {$(\mathsf{sk}, \mathsf{c})$\\at $32'$};
-\node[kn=tierspend] (p2) at (9.8,0) {$(\mathsf{sk}, \mathsf{c})$\\at
+\node[kn=tierspend] (p1) at (6.2,0) {$(\mathsf{sk}, \mathsf{c})$\\at $32'$};
+\node[kn=tierspend] (p2) at (10.0,0) {$(\mathsf{sk}, \mathsf{c})$\\at
   $\mathit{coin\_type}'$};
 \node[kn=tierspend] (acct) at (13.6,0) {$\mathsf{sk}_{\mathsf{acct}}$};
 \node[lb, text=muted, anchor=south] at (acct.north)
@@ -701,7 +686,7 @@ addresses of both scopes.
 \node[kn=tierfull] (ak) at (1.0,-6.3) {$\aksym$};
 \draw[ed] (ask) -- node[lb, right] {$[\ask]\,G^{\mathsf{SpendAuth}}$\\{}[DL]}
   (akP);
-\node[lb, text=black!70] (inp) at (4.4,-4.4)
+\node[lb, text=black!70] (inp) at (3.8,-4.4)
   {input if\\$\mathsf{use\_qsk} = \mathsf{true}$};
 \draw[alt] (inp) -- (akP);
 \draw[ed] (akP) -- node[lb, right] {$\Extract_{\PP}$} (ak);
@@ -2309,8 +2294,6 @@ $\mathtt{0x82}$ expansion of the account's full viewing key, and FF1
 encryption of $\mathrm{LE}_{88}(1)$ gives $d_1$
 (Definition~\ref{def:addr-index}):
 \begin{center}\footnotesize\ttfamily
-% runs into the outer margin, up to 150 mm, like a wide float
-\hfuzz=\dimexpr150mm-\textwidth\relax
 \begin{tabular}{@{}l@{\quad}l@{}}
 $\dk$ & 82cc9d79742fe5ae9a142b9336a98677b154fe20401eb18998dbed915b0453ce \\
 $\mathsf{LEBS2OSP}_{88}(\mathrm{LE}_{88}(1))$ & 0100000000000000000000 \\
@@ -3566,7 +3549,7 @@ the interface.
 \begin{table}[tp]
 \centering\small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{3.2cm} p{3.3cm} p{7.8cm}@{}}
+\begin{tabular}{@{}p{2.9cm} p{3.0cm} p{7.4cm}@{}}
 \toprule
 Query & Arguments & Response \\
 \midrule
@@ -4870,7 +4853,7 @@ are scanned, Theorem~\ref{thm:tree-witness} makes the path computable.
 
 \begin{figure}[tp]
 \centering
-\begin{tikzpicture}[x=0.96cm,
+\begin{tikzpicture}[x=0.9cm,
   font=\footnotesize,
   st/.style={draw=black!60, line width=0.5pt},
   cn/.style={circle, draw=black!60, line width=0.6pt, inner sep=0pt,
@@ -5846,7 +5829,7 @@ concerns the mempool.
 \centering\small
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{@{}p{2.8cm} p{3.6cm} p{4.3cm} p{3.3cm}@{}}
+\begin{tabular}{@{}p{2.6cm} p{3.3cm} p{3.95cm} p{3.25cm}@{}}
 \toprule
 Observable & Reveals & Mitigation & Class \\
 \midrule
@@ -6798,12 +6781,12 @@ For a transaction $\mathit{tx}$ with fee $\mathit{tx.fee}$ as in
 Definition~\ref{def:fees-logical}, the number of \emph{unpaid actions} is
 $\mathit{unpaid\_actions}(\mathit{tx}) := 0$ if $\mathit{tx}$ is a coinbase
 transaction, and otherwise
-\[
-  \mathit{unpaid\_actions}(\mathit{tx}) :=
-  \max\bigl(0,\, \max(\mathit{grace\_actions},\,
-    \mathit{tx.logical\_actions})
-    - \lfloor \mathit{tx.fee} / \mathit{marginal\_fee} \rfloor\bigr).
-\]
+\begin{align*}
+  \mathit{unpaid\_actions}(\mathit{tx})
+  &:= \max\bigl(0,\, \max(\mathit{grace\_actions},\,
+    \mathit{tx.logical\_actions}) \\
+  &\qquad - \lfloor \mathit{tx.fee} / \mathit{marginal\_fee} \rfloor\bigr).
+\end{align*}
 The unpaid actions of a block are the sum over its transactions. The
 recommended block-template algorithm adds a transaction that pays less than
 the conventional fee only while that sum stays at most

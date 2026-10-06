@@ -149,14 +149,12 @@ for n, (volume, _, chip) in enumerate(sitegen.VOLUME_META):
     assert body.index(r"\tableofcontents") < body.index(r"\section{"), volume
     assert sitegen.FONT_BLOCK in source, volume
     assert sitegen.DESIGN_BLOCK_RE.search(source), volume
-    # the title page and running head carry the landing's numeral and chip
-    assert ("\\renewcommand{\\accession}{%s}\n\\renewcommand{\\volstatus}{%s}\n\\title{"
-            % (sitegen.ROMANS[n], chip)) in source, volume
+    # the title page and running head carry the landing's numeral
+    assert "\\renewcommand{\\accession}{%s}\n\\title{" % sitegen.ROMANS[n] in source, volume
 for volume in PARKED:
     source = (sitegen.ROOT / "parked" / f"{volume}.tex").read_text()
     assert sitegen.FONT_BLOCK.replace("Path=fonts/", "Path=../fonts/") in source, volume
     assert sitegen.DESIGN_BLOCK_RE.search(source), volume
-    assert "\\renewcommand{\\volstatus}{parked}\n\\title{" in source, volume
     assert "\\renewcommand{\\accession}" not in source, volume
 
 # Table 2 introduces every Greek letter, with both lower-case and capital forms.

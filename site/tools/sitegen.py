@@ -648,7 +648,7 @@ FONT_BLOCK = """\\usepackage{amsmath,amsthm,mathtools}
 \\PolyglossiaSetup{english}{frenchspacing=true}
 """
 FONT_CLASSIC = ("\\usepackage{amsmath,amssymb,amsthm,mathtools}\n"
-                "\\providecommand{\\accession}{}\\providecommand{\\volstatus}{}\n")
+                "\\providecommand{\\accession}{}\n")
 DESIGN_BLOCK_RE = re.compile(
     r"% kind-coded theorem blocks.*?"
     r"\\renewcommand\{\\sectionmark\}\[1\]\{[^\n]*\}\n",

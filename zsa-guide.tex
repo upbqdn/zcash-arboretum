@@ -1,6 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 % head height 14pt: the italic Th ligature of a running head stands 13.01pt
-\usepackage[margin=30mm,outer=76mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
 \usepackage{amsmath,amsthm,mathtools}
 \usepackage{fontspec}
 \usepackage[mathsf=sym]{unicode-math}
@@ -70,10 +70,8 @@
 % \boxmaxdepth=0 turns into height
 \setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
 \patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
-% the frame sits flush left, as framed would centre it: a display wider than
-% the text then runs into the outer margin, up to 150 mm, and the rule stays
-\def\arb@flushleft#1{{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \hbox to\hsize{#1\hfil}}}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
 \patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
 \newcommand\arb@kind[2]{%
@@ -133,14 +131,9 @@
 \usepackage[font=small,labelfont=bf,labelsep=period,
   justification=raggedright,singlelinecheck=false]{caption}
 \captionsetup[table]{position=top}
-% floats and displays wider than the text run flush left into the outer
-% margin, up to 150 mm; narrower ones stay centred on the text. Floats set
-% both in \@floatboxreset, after the float's \sloppy and \normalsize would
-% undo them
+% tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
-\g@addto@macro\@floatboxreset{\hfuzz=\dimexpr150mm-\textwidth\relax
-  \ifx\@captype\arb@table\small\fi}
-\everydisplay\expandafter{\the\everydisplay\hfuzz=\dimexpr150mm-\textwidth\relax}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -159,9 +152,6 @@
 \AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
 % identity from the title line: name, subtitle, accession numeral
 \providecommand{\accession}{}
-\providecommand{\volstatus}{}
-\providecommand{\arbedition}{}
-\InputIfFileExists{edition.tex}{}{}
 \def\arb@name#1#2\@nil{\def\arbvolname{#2}}
 \def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
 \providecommand{\arbvolname}{}
@@ -178,10 +168,6 @@
   \vspace{18mm}
   {\fontsize{13.2}{17}\selectfont Marek\par}
   {\small\@author\par}
-  \vfill
-  % the colophon may run to the 150 mm wide measure
-  {\small\hsize=150mm Edition of \today\ifdefempty{\arbedition}{}{ (\arbedition)}.
-    \ifdefempty{\volstatus}{}{Status: \volstatus. }Licence to be decided.\par}
   \endgroup\clearpage}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -251,7 +237,6 @@
 }{\par\medskip}
 
 \renewcommand{\accession}{VIII}
-\renewcommand{\volstatus}{frontier}
 \title{\textbf{\Huge ZSA Guide}\\[6pt]\large Zcash Shielded Assets: asset identity, issuance, transfer, and burn}
 \author{m@rek.onl}
 \date{}
@@ -3361,8 +3346,7 @@ the kind of its consumed note. The definition presupposes an Action Group,
 which rule (I1) of Definition~\ref{def:issue-auth} enforces. The derivation
 adds one row to the \emph{Ironwood Guide}'s Construction ``Domain bytes of
 PRF expansion'':
-% wider than the text: runs into the outer margin, as a float would
-\begin{center}\small\hfuzz=\dimexpr150mm-\textwidth\relax
+\begin{center}\small
 \begin{tabular}{@{}llllll@{}}
 \toprule
 $b$ & Key $\kappa$ & Remainder $t'$ & $f$ & Output & Section \\
@@ -4147,20 +4131,20 @@ map.
   font=\footnotesize,
   st/.style={draw=#1, fill=#1, fill opacity=0.12, text opacity=1,
     line width=0.7pt, rounded corners=3pt, inner sep=4pt, align=center,
-    minimum height=11mm, minimum width=30mm},
+    minimum height=11mm, minimum width=27mm},
   ed/.style={line width=0.6pt, draw=#1, -{Stealth[length=5pt]}},
   rj/.style={line width=0.6pt, draw=#1, dashed, -{Stealth[length=5pt]}},
   lb/.style={fill=white, inner sep=1.5pt, align=center},
 ]
 \node[st=darkgray] (A) at (0,0)
   {absent\\ read as $(0, 0, \bot)$};
-\node[st=tierin] (U) at (4.8,0)
+\node[st=tierin] (U) at (4.35,0)
   {$(\mathsf{balance}, 0, \mathsf{note}_{\mathsf{ref}})$\\
    {\scriptsize unfinalised}};
-\node[st=tierrecv] (F) at (9.6,0)
+\node[st=tierrecv] (F) at (8.7,0)
   {$(\mathsf{balance}, 1, \mathsf{note}_{\mathsf{ref}})$\\
    {\scriptsize finalised}};
-\node[st=tierspend] (R) at (9.6,3.0)
+\node[st=tierspend] (R) at (8.7,3.0)
   {transaction\\ rejected};
 \node[st=tierfull] (O) at (0,-3.0)
   {$(0, 1, \bot)$\\ {\scriptsize open case}};
@@ -4318,7 +4302,7 @@ last as in Table~\ref{tab:req-results}.
 
 \begin{table}[ht]
 \centering\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}p{1.9cm}p{2.3cm}p{3.3cm}p{1.8cm}p{4.4cm}@{}}
+\begin{tabular}{@{}p{1.9cm}p{2.2cm}p{3.1cm}p{1.8cm}p{3.8cm}@{}}
 \toprule
 Requirement & Conditions & Issuance and state rules & Checks
   & Result \tabularnewline
@@ -4974,18 +4958,18 @@ Tree''). Figure~\ref{fig:provenance} draws the induction.
   nt/.style={align=center, font=\scriptsize},
 ]
 \node[old] (e1) at (0,0) {native};
-\node[old] (e2) at (1.8,0) {$B$};
-\node at (3.2,0) {$\cdots$};
-\node[lf=tierin] (a1) at (4.8,0) {$B$};
-\node[lf=tierfull] (a2) at (6.6,0) {$V^{\mathsf{Orchard}}$};
-\node[lf=tierrecv] (i1) at (8.9,0) {$B'$\\[-1pt] {\tiny reference}};
-\node[lf=tierrecv] (i2) at (10.7,0) {$B'$};
-\node[emp] (z) at (12.8,0) {$2$};
+\node[old] (e2) at (1.7,0) {$B$};
+\node at (3.05,0) {$\cdots$};
+\node[lf=tierin] (a1) at (4.4,0) {$B$};
+\node[lf=tierfull] (a2) at (6.1,0) {$V^{\mathsf{Orchard}}$};
+\node[lf=tierrecv] (i1) at (8.2,0) {$B'$\\[-1pt] {\tiny reference}};
+\node[lf=tierrecv] (i2) at (9.9,0) {$B'$};
+\node[emp] (z) at (11.7,0) {$2$};
 \draw[ed=tierin] (a1.north) to[out=115, in=65]
   node[nt, above, pos=0.5] {A1$'$, A2$'$: one witnessed base;\\
   A3$'$: the consumed note opens this leaf} (e2.north);
 \node[nt, draw=tierrecv, rounded corners=2pt, fill=white, inner sep=3pt]
-  (der) at (9.8,2.0)
+  (der) at (9.05,2.0)
   {$\mathsf{ZSAValueBase}(\mathsf{AssetDigest})$ of\\
    $(\mathsf{issuer}, \mathsf{assetDescHash})$: (I4);\\
    commitment computed by (I6)};
@@ -4994,9 +4978,9 @@ Tree''). Figure~\ref{fig:provenance} draws the induction.
 \node[nt, below=3pt of e1] {Orchard-protocol:\\ native only};
 \node[nt, below=3pt of a2] {C1, A3$'$: exempt only\\ for ZEC of value $0$};
 \node[nt, below=3pt of z] {no opening\\ (uncommitted)};
-\foreach \a/\b/\t in {-0.7/3.5/earlier leaves:\\ induction hypothesis,
-    4.1/7.3/first:\\ Action outputs of $T$,
-    8.2/11.4/then:\\ Issue Notes of $T$}
+\foreach \a/\b/\t in {-0.7/3.35/earlier leaves:\\ induction hypothesis,
+    3.7/6.8/first:\\ Action outputs of $T$,
+    7.5/10.6/then:\\ Issue Notes of $T$}
   {\draw[line width=0.5pt] (\a,-1.3) -- (\a,-1.45) -- (\b,-1.45)
     -- (\b,-1.3);
   \node[nt, below=2pt] at ({(\a+\b)/2},-1.45) {\t};}
