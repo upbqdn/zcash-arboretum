@@ -1351,8 +1351,7 @@ def landing(outdir):
 <span class="plaque">{chip}</span></div>
 <a class="title" href="{vol}/">{title}</a>
 <p class="sub">{sub}</p>
-<div class="links"><a href="{vol}/">Web</a>
-<a href="pdf/{vol}.pdf">PDF</a></div></li>""")
+<div class="links"><a href="pdf/{vol}.pdf">PDF</a></div></li>""")
     cards = []
     for group, items in groups.items():
         cards.append(f'<h3 class="grp">{group}</h3><ol class="plates">'
@@ -1363,8 +1362,7 @@ def landing(outdir):
 <span class="plaque">complete</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
 <p class="sub">Foundations, deployed protocol, and frontier designs</p>
-<div class="links"><a href="complete/">Web</a>
-<a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
+<div class="links"><a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
 </ol>"""
     html = f"""{page_head("The Zcash Arboretum")}
 <link href="pagefind/pagefind-ui.css" rel="stylesheet">

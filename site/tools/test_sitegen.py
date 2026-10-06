@@ -431,7 +431,8 @@ with tempfile.TemporaryDirectory() as tmp:
     for vol in PARKED + MERGED:
         assert f'href="{vol}/"' not in landing
         assert f'href="{vol}/"' not in concordance
-    assert landing.count('href="complete/"') == 2
+    assert landing.count('href="complete/"') == 1  # the title; no separate Web link
+    assert '>Web</a>' not in landing
     assert '<span class="acc">I</span>' in landing
     assert f'<span class="acc">I–{sitegen.ROMANS[len(sitegen.VOLUMES) - 1]}</span>' in landing
     assert 'arb-colophon' not in landing
