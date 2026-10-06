@@ -385,7 +385,7 @@ li.plate {
 .ltx_page_main {
   max-width: calc(var(--measure) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: 2.2rem var(--gutter) 3rem;
+  padding: 2.2rem var(--gutter) 1.25rem;
   overflow-wrap: break-word;  /* a word wider than a phone's line ("…_noncompact_digest") */
 }
 .ltx_page_content { color: var(--ink); background: none; }
@@ -738,8 +738,8 @@ figcaption .ltx_tag { color: var(--ink); font-weight: var(--bold); }
 .ltx_page_footer a[rel="prev"]::before { content: "\2190\2002"; display: inline-block; }
 .ltx_page_footer a[rel="next"]::after { content: "\2002\2192"; display: inline-block; }
 .ltx_page_footer a[rel="next"] { margin-left: auto; text-align: right; }
-/* the feedback line stands apart from the links; the page's own padding ends it */
-.ltx_page_footer > .arb-feedback { margin-top: 2.8em; text-align: center; }
+/* the feedback line stands apart from the links, near the foot of the page */
+.ltx_page_footer > .arb-feedback { margin-top: 3.6em; text-align: center; }
 @media (max-width: 700px) {
   /* stacked, the next link stays on the right */
   .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .8em; }

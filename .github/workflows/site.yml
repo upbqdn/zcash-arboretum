@@ -31,22 +31,16 @@ jobs:
         run: |
           set -e
           mkdir -p _site/pdf
-          for vol in $(python3 site/tools/sitegen.py volumes); do
-            echo "=== $vol ==="
-            latexmlc --dest="_site/$vol/index.html" \
-                     --splitat=section --format=html5 \
-                     --navigationtoc=context \
-                     --css=../arboretum.css \
-                     --timeout=1200 \
-                     "build/web/$vol.tex"
-            cp "$vol.pdf" _site/pdf/
-          done
-          latexmlc --dest="_site/complete/index.html" \
-                   --splitat=section --format=html5 \
-                   --navigationtoc=context \
-                   --css=../arboretum.css \
-                   --timeout=1800 \
-                   build/web/arboretum-complete.tex
+          # one LaTeXML process per core, the long complete edition first; a failed volume
+          # prints its log and fails the step once the others finish
+          { echo "complete arboretum-complete 1800"
+            for vol in $(python3 site/tools/sitegen.py volumes); do echo "$vol $vol 1200"; done
+          } | xargs -P "$(nproc)" -L 1 sh -c '
+              latexmlc --dest="_site/$0/index.html" --splitat=section --format=html5 \
+                       --navigationtoc=context --css=../arboretum.css --timeout="$2" \
+                       "build/web/$1.tex" > "build/$0.latexml.log" 2>&1 \
+                && echo "=== $0 done" || { cat "build/$0.latexml.log"; exit 1; }'
+          for vol in $(python3 site/tools/sitegen.py volumes); do cp "$vol.pdf" _site/pdf/; done
       - name: Landing page and assets
         run: |
           python3 site/tools/sitegen.py landing --out _site

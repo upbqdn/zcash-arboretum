@@ -134,6 +134,9 @@
 % tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
 \g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
+% a table's paragraph columns are set ragged, as narrow measures want; \\ still ends
+% the row
+\g@addto@macro\@arrayparboxrestore{\raggedright\let\\\tabularnewline}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
@@ -1023,11 +1026,11 @@ $\mathtt{0x04}$ & $\mathsf{rseed}$ & $\mathsf{I2LEOSP}_{256}(\rho)$
 $\mathtt{0x09}$ & $\mathsf{rseed}$ & $\mathsf{I2LEOSP}_{256}(\rho)$
   & $\mathrm{ToBase}$ & $\psi$ & \S\ref{sec:notes-seed} \\
 $\mathtt{0x0B}$ & $\mathsf{rseed}$
-  & $\mathsf{LEBS2OSP}_{256}(\gd^{\star}) \,\|\,\allowbreak
-     \mathsf{LEBS2OSP}_{256}(\pkd^{\star}) \,\|\,\allowbreak
-     \mathsf{I2LEOSP}_{64}(v) \,\|\,\allowbreak
-     \mathsf{I2LEOSP}_{256}(\rho) \,\|\,\allowbreak
-     \mathsf{I2LEOSP}_{256}(\psi)$
+  & $\mathsf{LEBS2OSP}_{256}(\gd^{\star}) \,\|\,$\allowbreak
+     $\mathsf{LEBS2OSP}_{256}(\pkd^{\star}) \,\|\,$\allowbreak
+     $\mathsf{I2LEOSP}_{64}(v) \,\|\,$\allowbreak
+     $\mathsf{I2LEOSP}_{256}(\rho) \,\|\,$\allowbreak
+     $\mathsf{I2LEOSP}_{256}(\psi)$
   & $\mathrm{ToScalar}$ & $\rcm$ & \S\ref{sec:notes-seed} \\
 \bottomrule
 \end{tabular}

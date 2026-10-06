@@ -134,6 +134,9 @@
 % tables are small, set in \@floatboxreset, after the float's \normalsize
 \def\arb@table{table}
 \g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
+% a table's paragraph columns are set ragged, as narrow measures want; \\ still ends
+% the row
+\g@addto@macro\@arrayparboxrestore{\raggedright\let\\\tabularnewline}
 % links: a conifer underline on screen, nothing in print
 \hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
   allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
