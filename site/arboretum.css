@@ -361,10 +361,6 @@ li.plate {
   display: flex; gap: 1em;
   font-size: var(--small);
 }
-.plate .plaque {
-  grid-column: 3; grid-row: 3; align-self: baseline;
-  font-size: var(--small); font-style: italic; color: var(--muted);
-}
 .arb-landing .foot {
   margin-top: 3.5em;
   font-size: var(--small); color: var(--muted); text-align: center;

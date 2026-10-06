@@ -34,19 +34,19 @@ ROOT = Path(__file__).resolve().parents[2]
 FIGDIR = ROOT / "site" / "figures"
 WEBDIR = ROOT / "build" / "web"
 
-# Reading order, grouping, and status chip for the landing page.
+# Reading order and grouping for the landing page.
 VOLUME_META = [
-    ("math-guide", "Foundations", "stable"),
-    ("crypto-guide", "Foundations", "stable"),
-    ("halo2-guide", "Foundations", "stable"),
-    ("consensus-guide", "Deployed protocol", "deployed"),
-    ("ironwood-guide", "Deployed protocol", "deployed"),
-    ("wallet-guide", "Deployed protocol", "deployed"),
-    ("flyclient-guide", "Frontier", "design-stage"),
-    ("zsa-guide", "Frontier", "frontier"),
-    ("frost-guide", "Frontier", "frontier"),
+    ("math-guide", "Foundations"),
+    ("crypto-guide", "Foundations"),
+    ("halo2-guide", "Foundations"),
+    ("consensus-guide", "Deployed protocol"),
+    ("ironwood-guide", "Deployed protocol"),
+    ("wallet-guide", "Deployed protocol"),
+    ("flyclient-guide", "Frontier"),
+    ("zsa-guide", "Frontier"),
+    ("frost-guide", "Frontier"),
 ]
-VOLUMES = [v for v, _, _ in VOLUME_META]
+VOLUMES = [v for v, _ in VOLUME_META]
 
 OMNIBUS_INTRO = r"""\phantomsection
 \section*{Introduction}
@@ -1341,14 +1341,13 @@ def omnibus(srcdir=ROOT, out=None):
 
 def landing(outdir):
     groups, n = {}, 0
-    for vol, group, chip in VOLUME_META:
+    for vol, group in VOLUME_META:
         if not (ROOT / f"{vol}.tex").exists():
             continue
         title, sub = vol_title(vol)
         n += 1
         groups.setdefault(group, []).append(f"""<li class="plate">
-<div class="label"><span class="acc">{ROMANS[n - 1]}</span>
-<span class="plaque">{chip}</span></div>
+<div class="label"><span class="acc">{ROMANS[n - 1]}</span></div>
 <a class="title" href="{vol}/">{title}</a>
 <p class="sub">{sub}</p>
 <div class="links"><a href="pdf/{vol}.pdf">PDF</a></div></li>""")
@@ -1358,8 +1357,7 @@ def landing(outdir):
                      + "\n".join(items) + "</ol>")
     complete = f"""<h3 class="grp">Complete edition</h3><ol class="plates">
 <li class="plate">
-<div class="label"><span class="acc">I–{ROMANS[n - 1]}</span>
-<span class="plaque">complete</span></div>
+<div class="label"><span class="acc">I–{ROMANS[n - 1]}</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
 <p class="sub">Foundations, deployed protocol, and frontier designs</p>
 <div class="links"><a href="pdf/arboretum-complete.pdf">PDF</a></div></li>
@@ -1407,7 +1405,7 @@ def concordance(outdir):
     import collections
     zips = collections.defaultdict(set)
     specs = collections.defaultdict(set)
-    for vol, _g, _c in VOLUME_META:
+    for vol, _g in VOLUME_META:
         p = ROOT / f"{vol}.tex"
         if not p.exists():
             continue
@@ -1475,7 +1473,7 @@ def postprocess(outdir):
         ], cwd=ROOT, check=True)
     # The accession numeral: a volume's place in the reading order; the edition takes the range.
     documents = [(vol, vol_title(vol)[0], vol, ROMANS[i])
-                 for i, (vol, _group, _chip) in enumerate(VOLUME_META)]
+                 for i, (vol, _group) in enumerate(VOLUME_META)]
     documents.append(("complete", "The Complete Arboretum",
                       "arboretum-complete", f"I–{ROMANS[len(VOLUME_META) - 1]}"))
     references = reference_index(out)

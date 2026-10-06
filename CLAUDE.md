@@ -79,17 +79,16 @@ GitHub Pages). Modes:
 - `landing` / `concordance` / `postprocess` — generate the index page, the
   ZIP↔section concordance (scanned from the sources), and inject the site bar.
 
-`VOLUME_META` in `sitegen.py` is the site registry: `(volume, group, chip)`
-tuples in reading order, where group ∈ {Foundations, Deployed protocol,
-Frontier} and chip is the status badge. `VOLUMES` and the roman-numeral
-accession numbers derive from it.
+`VOLUME_META` in `sitegen.py` is the site registry: `(volume, group)` pairs in
+reading order, where group ∈ {Foundations, Deployed protocol, Frontier}.
+`VOLUMES` and the roman-numeral accession numbers derive from it.
 
 ### Adding a new volume
 
 1. Create `<name>-guide.tex` with the shared font/design blocks and a
    title matching the regex above.
-2. Append a `(<name>-guide, <group>, <chip>)` tuple to `VOLUME_META` at the
-   correct reading position.
+2. Append a `(<name>-guide, <group>)` pair to `VOLUME_META` at the correct
+   reading position.
 3. Extend `ROMANS` in `sitegen.py` if the count now exceeds the list.
 4. Add the volume to the `README.org` roster.
 5. If it has figures, run `python3 site/tools/sitegen.py render` and commit the

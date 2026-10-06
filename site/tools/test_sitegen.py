@@ -140,9 +140,8 @@ assert set(PARKED).isdisjoint(sitegen.VOLUMES)
 assert set(MERGED).isdisjoint(sitegen.VOLUMES)
 assert all(not (sitegen.ROOT / f"{vol}{suffix}").exists()
            for vol in MERGED for suffix in (".tex", ".pdf"))
-assert next((group, chip) for vol, group, chip in sitegen.VOLUME_META
-            if vol == "flyclient-guide") == ("Frontier", "design-stage")
-for n, (volume, _, chip) in enumerate(sitegen.VOLUME_META):
+assert dict(sitegen.VOLUME_META)["flyclient-guide"] == "Frontier"
+for n, (volume, _) in enumerate(sitegen.VOLUME_META):
     source = (sitegen.ROOT / f"{volume}.tex").read_text()
     body = source.split(r"\begin{document}")[1]
     assert body.count(r"\tableofcontents") == 1, volume
