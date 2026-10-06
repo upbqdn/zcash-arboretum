@@ -2,140 +2,75 @@
 #+AUTHOR: m@rek.onl
 #+OPTIONS: toc:nil num:nil
 
-The Zcash Arboretum is formal, full-depth documentation of the
-[[https://z.cash/][Zcash]] protocol, focused on the deployed Orchard and Ironwood
-core and the protocols being built on top of it. Each volume states its
-dependencies and is checked against the protocol specification, applicable
-ZIPs, and deployed implementations.
+Formal documentation of the [[https://z.cash/][Zcash]] protocol: the deployed Orchard and
+Ironwood core and the protocols built on it. Claims are checked against the
+protocol specification, the ZIPs and the deployed sources (librustzcash,
+orchard, zebra, wallets).
 
-These materials are *non-normative*: they explain and motivate the
-constructions. The [[https://zips.z.cash/protocol/protocol.pdf][Zcash protocol
-specification]], applicable [[https://zips.z.cash/][ZIPs]], and consensus rules
-remain authoritative. Where this text disagrees with them, this text is wrong.
+The volumes are *non-normative*. The [[https://zips.z.cash/protocol/protocol.pdf][protocol specification]], the
+[[https://zips.z.cash/][ZIPs]] and the consensus rules are authoritative; where this text disagrees
+with them, this text is wrong.
 
-* NU7 specification snapshot
+Only what lies on the critical path is included, and it is explained in full.
+Sprout, Sapling, the transparent layer and the legacy network stack appear
+only where the surviving protocols depend on them.
 
-The NU7 review is pinned to 23 September 2026. The merged but still Draft
-[[https://github.com/zcash/zips/blob/afa086bd976e316612a5c06fb139429958d07d84/zips/zip-0259.md][ZIP 259]]
-specifies 25-second blocks, halving-preserving Network Sustainability
-Mechanism issuance, and rejection of version 4 transactions; versions 5 and 6
-retain their formats. Activation and reissuance heights remain unassigned.
-The guides explain this target directly, distinguishing open amendments
-such as the Ironwood action limits from merged rules. Unresolved source
-conflicts are recorded in [[file:research/nu7-2026-09-23.md][the NU7 review]].
+* Volumes
 
-* The volumes
-
-Layered; read each atop the ones it names.
+Read each atop the volumes it names. Volume /name/ is =name-guide.tex=, its PDF
+beside it.
 
 ** Foundations
-1. *Math Guide* (=math-guide.tex=) — the algebraic and number-theoretic
-   groundwork: groups, finite fields, elliptic curves, and the relevant
-   hardness assumptions.
-2. *Crypto Guide* (=crypto-guide.tex=) — the provable-security model, the
-   DLP/CDH/DDH hierarchy, hashes, commitments, PRFs and ciphers, key agreement,
-   signatures, zero-knowledge and SNARKs, and Merkle trees, developed only as
-   far as the upper volumes require.
-3. *Halo 2 Guide* (=halo2-guide.tex=) — the Orchard proof system: PLONKish
-   arithmetisation and the inner-product commitment on a worked example over
-   a 97-element field, the deployed protocol and its knowledge soundness, and
-   recursion and accumulation, which Orchard does not deploy.
+1. *Math Guide*: groups, finite fields, elliptic curves, hardness assumptions.
+2. *Crypto Guide*: provable security, hashes, commitments, PRFs, ciphers, key
+   agreement, signatures, zero knowledge, SNARKs, Merkle trees.
+3. *Halo 2 Guide*: the Orchard proof system, worked over a 97-element field;
+   knowledge soundness; recursion, which Orchard does not deploy.
 
 ** Deployed protocol
-4. *Consensus Guide* (=consensus-guide.tex=) — Nakamoto consensus: the
-   double-spend race in the first-seen model (after Rosenfeld), the
-   arithmetic of confirmations, and the deployed most-work rule, including
-   implementation divergences and local safety rails; the NU7 timing,
-   shielded-work limits, halving schedule, and reserve accounting.
-5. *Ironwood Guide* (=ironwood-guide.tex=) — the Orchard protocol for a
-   shielded payment in its Ironwood pool: keys and addresses, notes and their
-   commitments, the commitment tree, nullifiers, spend authorisation, value
-   commitments and the binding signature, the Action statement and its proof,
-   note encryption, and the transaction rules, closing with theorems of value
-   conservation, double-spend resistance, spend authority, and privacy.
-6. *Wallet Guide* (=wallet-guide.tex=) — the protocols a wallet runs: key and
-   address derivation from one seed, note discovery through an untrusted
-   light-client server and what that server learns, and the construction,
-   authorisation, and submission of payments.
+4. *Consensus Guide*: Nakamoto consensus, confirmations, the most-work rule;
+   NU7 timing, shielded-work limits, halvings, reserve accounting.
+5. *Ironwood Guide*: an Orchard payment in the Ironwood pool, keys to proof;
+   value conservation, double-spend resistance, spend authority, privacy.
+6. *Wallet Guide*: key derivation, note discovery through a light-client
+   server and what it learns, payment construction.
 
 ** Frontier
-7. *FlyClient Guide* (=flyclient-guide.tex=) — Merkle mountain ranges, the
-   FlyClient sampling protocol and its security theorem, the ZIP 221
-   chain-history commitment, and the boundary between protocol and commitment.
-8. *ZSA Guide* (=zsa-guide.tex=) — Zcash Shielded Assets: asset identity,
-    issuance, transfer, burn, the global issuance state, and their security.
-9. *FROST Guide* (=frost-guide.tex=) — threshold spend authorisation: FROST
-    and its key generation, re-randomised FROST for RedPallas (ZIP 312), the
-    ZIP 2005 key constraints, and their security.
+7. *FlyClient Guide*: Merkle mountain ranges, FlyClient sampling, the ZIP 221
+   history commitment.
+8. *ZSA Guide*: Zcash Shielded Assets; issuance, transfer, burn, security.
+9. *FROST Guide*: threshold spend authorisation, re-randomised FROST (ZIP 312,
+   ZIP 2005).
 
-Compiled PDFs are committed alongside the sources. [[file:arboretum-complete.pdf][The Complete Arboretum]]
-combines all Arboretum volumes into one document; the landing page publishes it
-in Web and PDF formats.
+[[file:arboretum-complete.pdf][The Complete Arboretum]] joins all nine. The =parked/= directory holds research
+snapshots outside the series (Voting, Tachyon, PQ, Crosslink), which the site,
+the concordance and the complete edition omit; =talks/= holds slide decks.
 
-* Parked research
+* NU7
 
-The =parked/= directory retains the *Voting Guide* (=parked/voting-guide.tex=),
-*Tachyon Guide* (=parked/tachyon-guide.tex=), *PQ Guide*
-(=parked/pq-guide.tex=), and *Crosslink Guide* (=parked/crosslink-guide.tex=),
-with their compiled PDFs. They are research snapshots outside the Arboretum
-and are not published on its website or included in its concordance or
-complete edition.
+Pinned to 23 September 2026: the merged Draft [[https://github.com/zcash/zips/blob/afa086bd976e316612a5c06fb139429958d07d84/zips/zip-0259.md][ZIP 259]], with 25-second blocks,
+halving-preserving Network Sustainability Mechanism issuance and no version 4
+transactions (versions 5 and 6 unchanged). Activation and reissuance heights
+are unassigned. Open amendments, such as the Ironwood action limits, are marked
+as such. Unresolved conflicts: [[file:research/nu7-2026-09-23.md][the NU7 review]].
 
 * Website
 
-The rendered site is available at both addresses:
-
-- [[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]]
-- [[https://marek.onl/arboretum/][marek.onl/arboretum]]
-
-Both addresses serve the same generated site and should be verified after a
-deployment.
-
-* Method
-
-Protocol-level claims are checked against the protocol specification and the
-deployed sources (librustzcash, orchard, zebra, and the relevant wallet code).
-Review covers numbers, concepts, source currency, and cross-references. Shared
-notation and layering rules live in
-[[file:CONVENTIONS.org][CONVENTIONS.org]].
-
-* Scope
-
-The material includes only what lies on the critical path to understanding the
-documented protocols; off-path generality is deliberately pruned. Everything
-that does lie on that path is explained in full. Deprecation-bound layers
-(Sprout, Sapling, the transparent layer, the legacy network stack) are
-documented only where the surviving protocols depend on them.
+[[https://upbqdn.github.io/zcash-arboretum/][upbqdn.github.io/zcash-arboretum]], mirrored at [[https://marek.onl/arboretum/][marek.onl/arboretum]].
 
 * Building
 
-Each volume compiles independently with
-[[https://tectonic-typesetting.github.io/][Tectonic]]:
-
 #+begin_src sh
-tectonic -Z shell-escape <volume>.tex
+tectonic -Z shell-escape <volume>.tex   # one volume
+python3 -B site/tools/check_build.py    # every document; --update-pdfs refreshes the PDFs
 #+end_src
 
-The =-Z shell-escape= flag is required. To run the full PDF gate, including
-parked research, the talk, and the generated complete edition:
+The gate fails on overfull boxes, unresolved references, duplicate labels,
+missing glyphs or errors. CI runs it with the site checks and
+=research/check_*.py=. A clean build is no proof; claims still need review.
+Notation and layering: [[file:CONVENTIONS.org][CONVENTIONS.org]].
 
-#+begin_src sh
-python3 -B site/tools/check_build.py
-#+end_src
+* Licence
 
-The gate writes PDFs and logs under =build/pdf/= and fails on overfull boxes,
-unresolved references, duplicate labels or destinations, missing glyphs, or
-compilation errors. Add =--update-pdfs= to refresh the committed PDFs after
-every document passes. CI runs this gate, the site-tooling regression check,
-and the =research/check_*.py= numerical checks on pushes and pull
-requests.
-
-The website workflow also checks every generated local link and anchor with
-=python3 -B site/tools/check_site.py _site= after building its search index.
-External sources and mathematical claims still need human review; a clean
-build is not a proof of correctness.
-
-* License
-
-Unless noted otherwise, the prose and figures are the author's work, provided
-as-is for educational use.
+Unless noted otherwise, the prose and figures are the author's, provided as-is
+for educational use.
