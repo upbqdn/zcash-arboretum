@@ -658,7 +658,6 @@ em.ltx_emph { font-style: italic; }
 .ltx_tabular :is(.ltx_border_l, .ltx_border_L, .ltx_border_ll) { border-left: 1px solid var(--hairline); }
 .ltx_tabular :is(.ltx_border_r, .ltx_border_R, .ltx_border_rr) { border-right: 1px solid var(--hairline); }
 
-figure.ltx_table table.ltx_tabular { margin-left: 0; }
 
 /* ---------- figures and captions: small, left ---------- */
 figure.ltx_figure, figure.ltx_table { margin: 1.6em 0; max-width: 100%; text-align: left; }
