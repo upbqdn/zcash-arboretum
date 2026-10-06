@@ -171,19 +171,22 @@ summary::-webkit-details-marker { display: none; }
   color: var(--ink);
 }
 .arb-bar .arb-acc { margin-right: .3em; }
-/* the theme: "Theme" (on phones a half disc) opens its three choices beneath it, as Search opens
-   its panel; in the bar the panel hangs from the hairline */
+/* the theme: "Theme" (in the phone bar, the current choice's icon) opens its three choices
+   beneath it, as Search opens its panel; in the bar the panel hangs from the hairline */
 .arb-theme { position: relative; }
 .arb-bar .arb-theme { position: static; }
 .arb-theme > summary { color: var(--muted); }
 .arb-theme > summary:hover, .arb-theme[open] > summary {
   color: var(--ink); text-decoration: underline 1px;
 }
-.arb-theme-mark {
-  display: none; width: .62em; height: .62em;
-  border: 1px solid; border-radius: 50%;
-  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+.arb-theme-mark { display: none; }
+.arb-theme-mark svg {
+  display: none; width: 1em; height: 1em; vertical-align: -.14em;
+  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
 }
+.arb-theme-mark .arb-fill { fill: currentColor; stroke: none; }
+:root:not([data-theme]) .arb-mark-system, :root[data-theme="light"] .arb-mark-light,
+:root[data-theme="dark"] .arb-mark-dark { display: inline; }
 .arb-themes {
   position: absolute; z-index: 60; top: calc(100% + .4em); right: 0;
   display: flex; flex-direction: column; min-width: 6em;
@@ -471,9 +474,9 @@ li.plate {
 @media (max-width: 700px) {
   .arb-bar { gap: 1.1em; }
   .arb-bar .wordmark-prefix, .arb-bar .arb-volname, .arb-bar .arb-pdf { display: none; }
-  /* in the bar the disc stands in for the word, with the bar's height as its hit area */
+  /* in the bar the icon stands in for the word, with the bar's height as its hit area */
   .arb-bar .arb-theme-word { display: none; }
-  .arb-bar .arb-theme-mark { display: inline-block; vertical-align: -.05em; }
+  .arb-bar .arb-theme-mark { display: inline; }
   .arb-bar .arb-theme > summary {
     padding: .75em .45em; margin: -.75em -.45em; text-decoration: none !important;
   }

@@ -81,11 +81,19 @@ try {
   if (theme) document.documentElement.dataset.theme = theme;
 } catch (_) {}
 </script>"""
-# "Theme" (on phones a half disc) opens Light, System and Dark beneath it, as Search opens its
-# panel. System clears the stored key.
+# The current choice's icon in the phone bar: a sun, a half-filled circle (System), a moon.
+THEME_ICONS = ''.join(
+    f'<svg class="arb-mark-{k}" viewBox="0 0 24 24">{body}</svg>' for k, body in (
+        ("light", '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4'
+                  'M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>'),
+        ("system", '<circle cx="12" cy="12" r="8.5"/>'
+                   '<path class="arb-fill" d="M12 3.5a8.5 8.5 0 0 1 0 17z"/>'),
+        ("dark", '<path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a6.6 6.6 0 0 0 11 11z"/>')))
+# "Theme" (in the phone bar, the icon) opens Light, System and Dark beneath it, as Search
+# opens its panel. System clears the stored key.
 THEME_MENU = ('<details class="arb-theme"><summary aria-label="Theme">'
               '<span class="arb-theme-word">Theme</span>'
-              '<span class="arb-theme-mark" aria-hidden="true"></span></summary>'
+              '<span class="arb-theme-mark" aria-hidden="true">' + THEME_ICONS + '</span></summary>'
               '<span class="arb-themes" role="radiogroup" aria-label="Theme">'
               '<label><input type="radio" name="arb-theme" value="light">Light</label>'
               '<label><input type="radio" name="arb-theme" value="system">System</label>'
