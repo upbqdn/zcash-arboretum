@@ -36,15 +36,17 @@ an "Overfull \hbox" warning is a failure, not a nuisance. Diagnose overfull boxe
 with `--keep-logs` and fix with `\allowbreak` on long identifiers/paths, or by
 converting inline math to `gather*`/`align*` displays.
 
-Talk decks live in `talks/` (Beamer, `aspectratio=169`); same `tectonic`
-invocation.
+Talk decks live in `talks/` (Beamer, `aspectratio=169`, TeX Gyre Pagella); same
+`tectonic` invocation.
 
 ## The shared-preamble contract
 
-Volumes share the TeX Gyre Pagella text/math fonts and PDF design blocks: the font setup
-(`fontspec` + `unicode-math`, OTFs in `fonts/`; no `amssymb`), theorem
-environments, the mdframed kind-coded theorem bars and fancyhdr running
-heads, the `\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*`
+Volumes share the EB Garamond text, Garamond-Math mathematics and Iosevka mono
+fonts and PDF design blocks: the font setup (`fontspec` + `unicode-math` with
+`mathsf=sym`, fonts in `fonts/`; Garamond-Math is a copy whose cmap keeps copied
+italic capitals Latin; no `amssymb`), theorem environments, the framed
+kind-coded rules (proved, defined, assumed), the fancyhdr running heads with the
+accession numeral, the `\F`/`\Z`/`\NoteCommit`/key-hierarchy macros, the four `tier*`
 figure colours, and the redefined `abstract` environment. Packages, local macros,
 and some theorem declarations vary by volume; the entire preamble is not
 byte-identical. Preserve the shared font/design blocks when creating a volume,
