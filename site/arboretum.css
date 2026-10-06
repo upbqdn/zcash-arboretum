@@ -133,7 +133,7 @@ code, kbd, pre, .ltx_font_typewriter {
 .ltx_page_main .ltx_font_typewriter, .ltx_page_main .ltx_ref.ltx_url { overflow-wrap: anywhere; }
 .ltx_page_main .ltx_font_typewriter:not(pre) { line-height: 0; }
 /* verbatim blocks keep their own leading; a wide one scrolls */
-.ltx_page_main pre { margin: .8em 0; line-height: 1.4; overflow-x: auto; }
+.ltx_page_main pre { margin: .8em 0; line-height: 1.4; overflow-x: auto; overflow-y: hidden; }
 /* no break between inline math and a hyphenated suffix ("64-byte") */
 .arb-nobr { white-space: nowrap; }
 button { font: inherit; color: inherit; }
@@ -340,7 +340,7 @@ li.plate {
 }
 .arb-landing .foot {
   margin-top: 3.5em;
-  font-size: var(--small); color: var(--muted);
+  font-size: var(--small); color: var(--muted); text-align: center;
 }
 .arb-landing .foot p { margin: 0; }
 /* the concordance: a citation's number in the first column, its places in the second */
@@ -641,7 +641,7 @@ em.ltx_emph { font-style: italic; }
 .ltx_page_main table.ltx_tabular {
   display: block; width: max-content; max-width: 100%;
   margin: 1.2em auto .2em;
-  overflow-x: auto;
+  overflow-x: auto; overflow-y: hidden;
   border-collapse: collapse;
   font-size: var(--small);
   font-variant-numeric: lining-nums tabular-nums;
@@ -662,7 +662,7 @@ figure.ltx_table table.ltx_tabular { margin-left: 0; }
 
 /* ---------- figures and captions: small, left ---------- */
 figure.ltx_figure, figure.ltx_table { margin: 1.6em 0; max-width: 100%; text-align: left; }
-figure.ltx_figure { overflow-x: auto; }
+figure.ltx_figure { overflow-x: auto; overflow-y: hidden; }
 .ltx_graphics { max-width: 100%; height: auto; }
 .ltx_transformed_outer { max-width: 100%; }
 /* a lone image takes the column, as \includegraphics[width=\textwidth] does in the PDF */
@@ -704,7 +704,7 @@ figcaption .ltx_tag { color: var(--ink); font-weight: var(--bold); }
 .ltx_page_footer a[rel="prev"]::before { content: "\2190\2002"; display: inline-block; }
 .ltx_page_footer a[rel="next"]::after { content: "\2002\2192"; display: inline-block; }
 .ltx_page_footer a[rel="next"] { margin-left: auto; text-align: right; }
-.ltx_page_footer > .arb-feedback { margin-top: .2em; }
+.ltx_page_footer > .arb-feedback { margin-top: .2em; text-align: center; }
 @media (max-width: 700px) {
   .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .5em; }
   .ltx_page_footer a[rel="next"] { margin-left: 0; text-align: left; }
