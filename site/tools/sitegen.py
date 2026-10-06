@@ -81,31 +81,40 @@ try {
   if (theme) document.documentElement.dataset.theme = theme;
 } catch (_) {}
 </script>"""
-THEME_BUTTON = '<button class="arb-theme" type="button">Dark</button>'
-# The theme buttons, the wide-display allowance and the Contents disclosure.
+# Light, system or dark; PAGE_SCRIPT names each group's radios. System clears the stored key.
+THEME_BUTTON = ('<span class="arb-theme" role="radiogroup" aria-label="Theme">'
+                '<label><input type="radio" value="light">Light</label>'
+                '<span aria-hidden="true">&middot;</span>'
+                '<label><input type="radio" value="system">System</label>'
+                '<span aria-hidden="true">&middot;</span>'
+                '<label><input type="radio" value="dark">Dark</label></span>')
+# The theme control, the wide-display allowance and the Contents disclosure.
 PAGE_SCRIPT = """<script>
 (function () {
   const root = document.documentElement;
-  const dark = matchMedia('(prefers-color-scheme: dark)');
-  const buttons = document.querySelectorAll('.arb-theme');
-  const current = () => root.dataset.theme || (dark.matches ? 'dark' : 'light');
-  function label() {
-    const other = current() === 'dark' ? 'light' : 'dark';
-    buttons.forEach(function (b) {
-      b.textContent = other === 'dark' ? 'Dark' : 'Light';
-      b.setAttribute('aria-label', 'Use the ' + other + ' theme');
-    });
+  const radios = document.querySelectorAll('.arb-theme input');
+  document.querySelectorAll('.arb-theme').forEach(function (group, i) {
+    group.querySelectorAll('input').forEach(function (r) { r.name = 'arb-theme-' + i; });
+  });
+  function show() {
+    const theme = root.dataset.theme || 'system';
+    radios.forEach(function (r) { r.checked = r.value === theme; });
   }
-  buttons.forEach(function (b) {
-    b.addEventListener('click', function () {
-      const next = current() === 'dark' ? 'light' : 'dark';
-      root.dataset.theme = next;
-      try { localStorage.setItem('arb-theme', next); } catch (_) {}
-      label();
+  radios.forEach(function (r) {
+    r.addEventListener('change', function () {
+      try {
+        if (r.value === 'system') {
+          delete root.dataset.theme;
+          localStorage.removeItem('arb-theme');
+        } else {
+          root.dataset.theme = r.value;
+          localStorage.setItem('arb-theme', r.value);
+        }
+      } catch (_) {}
+      show();
     });
   });
-  dark.addEventListener('change', label);
-  label();
+  show();
   // Displays and tables that overflow the measure take the .arb-wide allowance (CSS cannot see
   // overflow).
   function widen() {

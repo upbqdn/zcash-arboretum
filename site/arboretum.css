@@ -168,10 +168,13 @@ summary::-webkit-details-marker { display: none; }
   color: var(--ink);
 }
 .arb-bar .arb-acc { margin-right: .3em; }
-.arb-theme {
-  background: none; border: 0; padding: 0; cursor: pointer;
-  color: var(--muted);
-}
+.arb-theme { color: var(--muted); white-space: nowrap; }
+.arb-theme span { margin: 0 .35em; }
+.arb-theme label { cursor: pointer; }
+.arb-theme label:hover { color: var(--ink); text-decoration: underline 1px; }
+.arb-theme label:has(:checked) { color: var(--ink); font-weight: var(--bold); }
+.arb-theme label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.arb-theme input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
 .arb-bar details[open] > summary { color: var(--ink); text-decoration: underline 1px; }
 .arb-bar .arb-search-panel {
   position: absolute; top: calc(100% + 1px); right: var(--gutter);
@@ -298,7 +301,6 @@ main.arb-landing {
   font-size: 2.07em; font-weight: 400; line-height: 1.15;
 }
 .arb-heading .arb-theme { font-size: var(--small); }
-.arb-heading .arb-theme:hover { color: var(--ink); text-decoration: underline 1px; }
 .arb-landing .tag { margin: .9em 0 1.4em; }
 .arb-landing #search { margin-bottom: 1rem; }
 .arb-landing h3.grp {
@@ -449,7 +451,7 @@ li.plate {
   .arb-nav-tools {
     display: flex; gap: 1.4em; margin: 0 0 1em;
   }
-  .arb-nav-tools a, .arb-nav-tools button { color: var(--muted); }
+  .arb-nav-tools a { color: var(--muted); }
   body:has(.arb-toc[open]) .ltx_page_navbar { width: 100%; border-right: 0; }
 }
 
