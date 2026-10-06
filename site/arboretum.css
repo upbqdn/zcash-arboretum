@@ -370,6 +370,10 @@ li.plate {
   font-size: var(--small); color: var(--muted); text-align: center;
 }
 .arb-landing .foot p { margin: 0; }
+/* the landing's footer stacks Theme, Concordance and the feedback line; Theme opens upwards */
+.arb-landing .foot > * + * { margin-top: .6em; }
+.arb-landing .foot .arb-theme { display: table; margin-inline: auto; }
+.arb-landing .foot .arb-themes { top: auto; bottom: calc(100% + .4em); right: 50%; transform: translateX(50%); }
 /* the concordance: a citation's number in the first column, its places in the second */
 .zc table { border-collapse: collapse; width: 100%; font-size: var(--small); }
 .zc td { padding: .45em .8em .45em 0; border-top: 1px solid var(--hairline); vertical-align: top; }
