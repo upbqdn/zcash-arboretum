@@ -419,7 +419,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert landing.count('href="complete/"') == 2
     assert '<span class="acc">I</span>' in landing
     assert f'<span class="acc">I–{sitegen.ROMANS[len(sitegen.VOLUMES) - 1]}</span>' in landing
-    assert 'class="arb-colophon"' in landing and "edition of " in landing
+    assert 'arb-colophon' not in landing
     assert landing.count('href="pdf/arboretum-complete.pdf"') == 1
     assert "Foundations, deployed protocol, and frontier designs" in landing
     assert landing.index('<h3 class="grp">Frontier</h3>') < landing.index(
@@ -583,7 +583,7 @@ Volume summary.
     assert ('<a href="./" class="ltx_ref arb-start" rel="start"><span class="arb-acc">I</span> '
             'Math Guide<span class="arb-start-sub">Foundations</span></a>') in html
     assert "Generated" not in html
-    assert html.count('class="arb-colophon"') == 1 and html.count('class="arb-feedback"') == 1
+    assert 'arb-colophon' not in html and html.count('class="arb-feedback"') == 1
     assert '<mo>=</mo></math><wbr><math' in html
     assert '<span class="arb-idx" hidden> a = b </span>' in html
     assert 'src="build/web/figures/math-guide-fig1.svg"' in html

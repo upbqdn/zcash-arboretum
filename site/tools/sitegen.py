@@ -1140,16 +1140,6 @@ def ver():
                           cwd=ROOT).stdout.strip() or "0"
 
 
-def colophon():
-    """The site's colophon; the edition is the commit's date and hash."""
-    date = subprocess.run(["git", "log", "-1", "--format=%cs"], capture_output=True,
-                          text=True, cwd=ROOT).stdout.strip()
-    day = datetime.date.fromisoformat(date) if date else datetime.date.today()
-    return ('<p class="arb-colophon"><span class="arb-series">The Zcash Arboretum</span> · Marek '
-            '(<a href="https://marek.onl/">marek.onl</a>) · '
-            f'edition of {day.day} {day:%B %Y} ({ver()}) · licence to be announced</p>')
-
-
 def page_head(title):
     """The head of a page at the site root."""
     return f"""<!doctype html>
@@ -1304,7 +1294,6 @@ window.addEventListener('DOMContentLoaded', () => {{
 <footer class="foot">
 <p><a href="concordance.html">Concordance</a> &middot; Spotted an error?
 <a href="https://github.com/upbqdn/zcash-arboretum/issues/new">Open an issue</a>.</p>
-{colophon()}
 </footer>
 </main>
 {PAGE_SCRIPT}
@@ -1397,7 +1386,6 @@ def postprocess(outdir):
     documents.append(("complete", "The Complete Arboretum",
                       "arboretum-complete", f"I–{ROMANS[len(VOLUME_META) - 1]}"))
     references = reference_index(out)
-    foot = colophon()
     reading_order = 0
     for vol, title, pdf, acc in documents:
         vdir = out / vol
@@ -1526,7 +1514,7 @@ class="arb-volname"> {title}</span></a>
                 '</footer>',
                 '<div class="arb-feedback">Spotted an error? '
                 '<a href="https://github.com/upbqdn/zcash-arboretum/issues/new">'
-                f'Open an issue</a>.</div>\n{foot}\n</footer>', 1)
+                f'Open an issue</a>.</div>\n</footer>', 1)
             t2 = PROOF_MATH_END_RE.sub(
                 r'<span class="arb-proof-end">\1\2</span>', t2)
             t2 = re.sub(r'\s*∎(?=</p>)',
