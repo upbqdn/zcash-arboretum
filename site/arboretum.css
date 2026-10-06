@@ -373,6 +373,12 @@ li.plate {
 /* the landing's footer stacks Theme, Concordance and the feedback line; Theme opens upwards */
 .arb-landing .foot > * + * { margin-top: .6em; }
 .arb-landing .foot .arb-theme { display: table; margin-inline: auto; }
+/* there it reads as a link, as Concordance below it does */
+.arb-landing .foot .arb-theme > summary {
+  color: var(--accent); text-decoration: underline 1px; text-underline-offset: .18em;
+}
+.arb-landing .foot .arb-theme > summary:hover,
+.arb-landing .foot .arb-theme[open] > summary { color: var(--accent); text-decoration-thickness: 2px; }
 .arb-landing .foot .arb-themes { top: auto; bottom: calc(100% + .4em); right: 50%; transform: translateX(50%); }
 /* the concordance: a citation's number in the first column, its places in the second */
 .zc table { border-collapse: collapse; width: 100%; font-size: var(--small); }
