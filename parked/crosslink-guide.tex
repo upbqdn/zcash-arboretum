@@ -3471,8 +3471,7 @@ to prevent reversing final transactions `out of band'\,''; ``final'' in the
 book always means assured finality, in contrast to proof-of-work's
 probabilistic finality (tfl-book \texttt{src/terminology.md}:11--13, 19),
 whose exact arithmetic --- and its divergence as the adversary nears half
-the work --- is the \emph{Consensus Guide}'s subject (\S``What the numbers
-say'').
+the work --- is the \emph{Consensus Guide}'s subject (\S``Confirmation requirements'').
 
 \begin{definition}[Assured Finality]\label{def:xl-assured-finality-wallet}
 An execution of Crosslink~2 has \emph{Assured Finality} iff for all times
@@ -3659,8 +3658,7 @@ The \emph{Ironwood Guide}'s anchor-depth discussion (\S``Anchors'',
 Remark ``Recommended anchor depth'') states the
 same policy-not-limit framing, and the \emph{Consensus Guide} owns the
 full three-way divergence register --- specification, retired
-\textsf{zcashd}, deployed \textsf{zebra} --- in \S``Reorg rails,
-maturity, and the finality floor''.
+\textsf{zcashd}, deployed \textsf{zebra} --- in \S``Rollback limits, coinbase maturity, and finality''.
 
 \paragraph{Classification.} \emph{Specified as code} at prototype rigor
 only. Several RPC comments still call their methods placeholders, and

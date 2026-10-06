@@ -3722,8 +3722,7 @@ most $d$ blocks re-mines no transaction below height $T - d + 1$; with $B$
 closer to the tip, such a reorganisation could re-mine a transaction paying
 the account at a height below $B$, which the wallet never scans, and the
 payment would be missed. Consensus imposes no maximum reorganisation depth
-(\emph{Consensus Guide}, \S``Reorg rails, maturity, and the finality
-floor''), so $d$ is a wallet parameter, not a guarantee. The rollback
+(\emph{Consensus Guide}, \S``Rollback limits, coinbase maturity, and finality''), so $d$ is a wallet parameter, not a guarantee. The rollback
 window of $600$ blocks that ZIP 218, ``Block-count-based constants'',
 recommends concerns nodes and bounds no wallet's choice of $d$. An earlier
 birthday is always safe for discovery and costs scanning work
@@ -4269,7 +4268,7 @@ scale with the wallet's own notes, the latter linearly in its unspent notes.
 %   Actions unbounded by ZIP 218 as written
 \begin{proposition}[Scanning work per target day]\label{prop:scan-cost}
 At NU7's target spacing of $25$ seconds (ZIP 218, ``Block target
-spacing''; \emph{Consensus Guide}, \S``Zcash time: 25-second blocks''), a
+spacing''; \emph{Consensus Guide}, \S``Confirmation times at 25-second spacing''), a
 target day of $86{,}400$ seconds holds $3456$ blocks. A block holds at most
 $330$ Orchard-pool Actions (ZIP 218, ``Shielded pool action limits''), so a
 target day holds at most $1{,}140{,}480$ compact Orchard-pool Actions, with
@@ -5207,8 +5206,7 @@ Theorem~\ref{thm:scan-discovery} characterises the notes found.
 
 \begin{remark}[The rollback window]\label{rem:tree-window}
 Consensus bounds no reorganisation depth, and node rollback windows are
-local policy (\emph{Consensus Guide}, \S``Reorg rails, maturity, and the
-finality floor''). ZIP 307, ``Local processing'', advises caching tree and
+local policy (\emph{Consensus Guide}, \S``Rollback limits, coinbase maturity, and finality''). ZIP 307, ``Local processing'', advises caching tree and
 witness state for $100$ recent blocks, on the ground that no full node
 rolls back the chain by more than $100$ blocks. That ground no longer
 holds: ZIP 218, ``Block-count-based constants'', recommends a node rollback
@@ -5972,7 +5970,7 @@ Guide}, \S``Wallet confirmation policy''); it is not a guarantee.
 % [sec:spend-confirmations] 10 blocks x 25 s = 250 s
 Confirmation counts are in blocks, not in time. At the $25$-second target
 spacing (ZIP 218, ``Block target spacing''; \emph{Consensus Guide},
-\S``Zcash time: 25-second blocks''), $10$ blocks are $10 \times 25 = 250$~s
+\S``Confirmation times at 25-second spacing''), $10$ blocks are $10 \times 25 = 250$~s
 and $3$ blocks are $3 \times 25 = 75$~s. ZIP 218 does not argue for reducing
 confirmation counts (ZIP 218, ``Motivation'') and keeps the anchor depth at
 $3$ blocks (ZIP 218, ``Anchor selection depth''). Neither an equal count nor

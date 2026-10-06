@@ -5121,7 +5121,7 @@ two assumptions he makes explicit --- constant hashrates and constant
 difficulty. How well Equihash fits it is a deployment question (the
 rails, later in this part).
 \src{\emph{Consensus Guide}, ``Memoryless clocks and the attribution
-  sequence''; ``Playing catch-up''}
+  sequence''; ``The catch-up probability''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5177,7 +5177,7 @@ succeeds the moment $z$ reaches $-1$: strictly ahead.
   success at breakeven and banks no pre-mined block; the two
   conventions cancel term for term (shown with the confirmations).
 \end{itemize}
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{frame}
 
 \begin{frame}{Proof idea: a walk between two barriers}
@@ -5203,7 +5203,7 @@ so for $q \neq p$
 and for $q = p$ the double root gives $h_N(z) = (N - z)/(N + 1) \to 1$.
 The limit is legitimate because the events ``reach $-1$ before $N$''
 increase to ``ever reach $-1$''.
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5225,7 +5225,7 @@ chance of ever returning is $(1/4)^{14} \approx 3.7 \times 10^{-9}$.
 Decay anchors: at $q = 10\%$, $a_0 = 1/9 \approx 0.1111$ and
 $a_5 \approx 1.88 \times 10^{-6}$; at $q = 30\%$, $a_0 = 3/7 \approx
 0.4286$ and $a_5 \approx 6.20 \times 10^{-3}$.
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5388,8 +5388,7 @@ and therefore different security per minute.
   blocks race one another and self-orphan, which effectively raises
   $q$; the comparison holds $q$ fixed.
 \end{itemize}
-\src{\emph{Consensus Guide}, ``Playing catch-up''; ``Zcash time:
-  25-second blocks''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''; ``Confirmation times at 25-second spacing''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5439,8 +5438,7 @@ adversary and an accepted risk --- not a law of nature.
 attacker below $10\%$ and a tolerable risk below $0.1\%$; both figures
 are arbitrary.
 \end{columns}
-\src{\emph{Consensus Guide}, ``Waiting for confirmations''; ``What the
-  numbers say''; ``Wallet confirmation policy''}
+\src{\emph{Consensus Guide}, ``Waiting for confirmations''; ``Confirmation requirements''; ``Wallet confirmation policy''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5486,7 +5484,7 @@ infinity as $q \uparrow 1/2$, because $r(1/2, n) = 1$ for every $n$.
 \alert{Bitcoin:} the same table, the same shape; only the wall-clock
 price of a row differs.
 \end{columns}
-\src{\emph{Consensus Guide}, ``What the numbers say''}
+\src{\emph{Consensus Guide}, ``Confirmation requirements''}
 \end{frame}
 
 % compute/k_catchup.py:
@@ -5599,8 +5597,7 @@ rooted below it needs operator intervention.
 
 \alert{Bitcoin:} maturity and the memoryless race are inherited;
 per-block retargeting and the block spacing are not.
-\src{\emph{Consensus Guide}, ``Difficulty in motion''; ``Reorg rails,
-  maturity, and the finality floor''; ``Wallet confirmation policy'';
+\src{\emph{Consensus Guide}, ``Difficulty adjustment''; ``Rollback limits, coinbase maturity, and finality''; ``Wallet confirmation policy'';
   protocol specification, ``Transaction Consensus Rules'';
   ``Difficulty adjustment''; ``Proof of Work''; draft ZIP-315}
 \end{frame}
@@ -5740,8 +5737,7 @@ theorem say about waiting?
 \item Waiting works in blocks, not minutes; it never reaches zero, and
   it stops working at $q = 1/2$.
 \end{itemize}
-\src{\emph{Consensus Guide}, ``Playing catch-up''; ``What the numbers
-  say''; protocol specification, ``Nullifier Sets''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''; ``Confirmation requirements''; protocol specification, ``Nullifier Sets''}
 \end{frame}
 
 %% ---- 11-close.tex

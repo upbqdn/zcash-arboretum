@@ -6987,7 +6987,7 @@ probability $q$, independently of everything before.
 $T_0$ drops out of every answer.} How well Equihash fits the model is a
 deployment question (the rails, later in this part).
 \src{\emph{Consensus Guide}, ``Memoryless clocks and the attribution
-  sequence''; ``Playing catch-up''}
+  sequence''; ``The catch-up probability''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7072,7 +7072,7 @@ term for term, shown on the confirmations boards.
 \Avoid
 The whitepaper's $(q/p)^{z}$ as this board's theorem: the theorem is
 Rosenfeld's --- success at $-1$, strictly ahead, exponent $z + 1$.
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{board}
 
 \begin{board}{Proof idea: a walk between two barriers}{not twice}
@@ -7106,7 +7106,7 @@ $(N - z)/(N + 1) \to 1$.
 
 \textbf{Emphasise why the limit is legitimate:} the events ``reach $-1$
 before $N$'' increase to ``ever reach $-1$''.
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7161,7 +7161,7 @@ $q = 30\%$ the ratio is $3/7$: $a_0 \approx 0.4286$ and $a_5 \approx
 
 \textbf{Emphasise:} every block of deficit multiplies the chance by
 $q/p$; at $q = 0.20$ the deficit runs away.
-\src{\emph{Consensus Guide}, ``Playing catch-up''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7364,8 +7364,7 @@ raises $q$; the comparison holds $q$ fixed.
 \Avoid
 A per-minute security claim beyond the board: the comparison holds $q$
 fixed, and the model has no network.
-\src{\emph{Consensus Guide}, ``Playing catch-up''; ``Zcash time:
-  25-second blocks''}
+\src{\emph{Consensus Guide}, ``The catch-up probability''; ``Confirmation times at 25-second spacing''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7421,8 +7420,7 @@ $20\%$ adversary $0.316\%$.
 
 \textbf{Bitcoin's six} assumes an attacker below $10\%$ and a tolerable
 risk below $0.1\%$; both figures are arbitrary.
-\src{\emph{Consensus Guide}, ``Waiting for confirmations''; ``What the
-  numbers say''; ``Wallet confirmation policy''}
+\src{\emph{Consensus Guide}, ``Waiting for confirmations''; ``Confirmation requirements''; ``Wallet confirmation policy''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7470,7 +7468,7 @@ infinity as $q \uparrow 1/2$, because $r(1/2, n) = 1$ for every $n$.
 
 \textbf{Bitcoin: the same table, the same shape;} only the wall-clock
 price of a row differs.
-\src{\emph{Consensus Guide}, ``What the numbers say''}
+\src{\emph{Consensus Guide}, ``Confirmation requirements''}
 \end{board}
 
 % compute/k_catchup.py:
@@ -7642,8 +7640,7 @@ A fork rooted below it needs operator intervention.
 \Avoid
 Do not present the recommended $600$-block window as a consensus rule or
 an established implementation default.
-\src{\emph{Consensus Guide}, ``Difficulty in motion''; ``Reorg rails,
-  maturity, and the finality floor''; ``Wallet confirmation policy'';
+\src{\emph{Consensus Guide}, ``Difficulty adjustment''; ``Rollback limits, coinbase maturity, and finality''; ``Wallet confirmation policy'';
   protocol specification, ``Transaction Consensus Rules'';
   ``Difficulty adjustment''; ``Proof of Work''; draft ZIP-315}
 \end{board}
@@ -7858,8 +7855,7 @@ re-anchoring as deployed --- it is specified (ZIP-374 v2), wallet
 support pending.
 \src{\emph{Ironwood Guide}, ``Anchors''; \emph{Wallet Guide}, ``Reorganisation
 detection and recovery''; protocol specification, ``Transactions and
-  Treestates''; ``Nullifier Sets''; \emph{Consensus Guide}, ``Playing
-  catch-up''; ``What the numbers say''}
+  Treestates''; ``Nullifier Sets''; \emph{Consensus Guide}, ``The catch-up probability''; ``Confirmation requirements''}
 \end{board}
 
 %% ---- 11-close.tex

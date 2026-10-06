@@ -321,7 +321,7 @@ path implies a collision'', \S``Layer and domain separation'',
 commitments''). From the \emph{Consensus Guide}: work and the most-work rule
 (\S``The block tree and the most-work rule'' and \S``Work, and the best
 chain''), memoryless clocks (\S``Memoryless clocks and the attribution
-sequence''), the retarget rule under NU7 (\S``Difficulty in motion'') and
+sequence''), the retarget rule under NU7 (\S``Difficulty adjustment'') and
 Equihash (\S``Equihash and the memoryless model''). From the \emph{Ironwood
 Guide}, only for the objects it constructs: block chain, height, network
 upgrades, ZIPs and the status Draft (\S``Scope and status''); the Orchard
@@ -1904,7 +1904,7 @@ chain commits to, which \S\ref{sec:protocol-diffmmr} constructs; no
 conclusion about that construction is drawn here. The Zcash retarget rule is
 a different function, a per-block rule over an averaging window, defined in
 protocol specification, \S``Difficulty adjustment'', and described in the
-\emph{Consensus Guide}, \S``Difficulty in motion''; it is not an instance of
+\emph{Consensus Guide}, \S``Difficulty adjustment''; it is not an instance of
 Definition~\ref{def:retarget}.
 \end{remark}
 
@@ -3507,7 +3507,7 @@ $B_{\eta'}$ itself:
 \item[(4), (5)] fields $\mathsf{nEarliestTargetBits}$ and
   $\mathsf{nLatestTargetBits}$ are the field $\mathsf{nBits}$ of $\mathrm{hdr}'$
   (the semantics of $\mathsf{nTime}$ and $\mathsf{nBits}$: \emph{Consensus
-  Guide}, \S``Difficulty in motion'');
+  Guide}, \S``Difficulty adjustment'');
 \item[(6), (7)] fields $\mathsf{hashEarliestSaplingRoot}$ and
   $\mathsf{hashLatestSaplingRoot}$ are $\mathsf{LEBS2OSP}_{256}(\mathsf{rt})$
   for $\mathsf{rt}$ the root of the Sapling note commitment tree of the
@@ -3627,7 +3627,7 @@ $\mathsf{D}_{\mathsf{start}}$. No field carries the elapsed time
 $\mathsf{t}$; the timestamps of the first and last block stand in its place.
 No field carries $\mathsf{D}_{\mathsf{next}}$: the next target of a Zcash
 block is a function of an averaging window of preceding blocks
-(\emph{Consensus Guide}, \S``Difficulty in motion''), which the aggregates of
+(\emph{Consensus Guide}, \S``Difficulty adjustment''), which the aggregates of
 a node do not determine.
 
 Fields $6$, $7$ and $11$ to $14$ are ZIP 221's ``Non-FlyClient
@@ -3763,8 +3763,7 @@ states the identity.
 Consensus bounds the field $\mathsf{nTime}$ of a block below, strictly above
 the median of the timestamps of the preceding eleven blocks, and above, by
 that median plus $90$ minutes (protocol specification, \S``Block Header
-Encoding and Consensus''; \emph{Consensus Guide}, \S``Difficulty in
-motion''). It orders two timestamps only at a distance: the
+Encoding and Consensus''; \emph{Consensus Guide}, \S``Difficulty adjustment''). It orders two timestamps only at a distance: the
 median-time-past never decreases and rises by at least one second every
 eleven blocks, so a block at least $11 \cdot 5{,}400 = 59{,}400$ heights
 after another has the strictly later timestamp. By the same count,
@@ -4945,8 +4944,7 @@ which is not Definition~\ref{def:retarget}. The blocks of the upgrade epochs
 from Heartwood through NU6.3 are governed by a $17$-block window at a
 $75$-second target spacing (protocol specification, \S``Difficulty
 adjustment''); NU7 as specified uses $102$ blocks at $25$ seconds (ZIP 218,
-Draft, ``Averaging window''; \emph{Consensus Guide}, \S``Difficulty in
-motion''). Neither regime is covered by Theorem~\ref{thm:flyclient}, and the
+Draft, ``Averaging window''; \emph{Consensus Guide}, \S``Difficulty adjustment''). Neither regime is covered by Theorem~\ref{thm:flyclient}, and the
 paper contains no derivation of $(c, L)$ from either
 (Remark~\ref{rem:cl-status}). The published analysis of a Zcash instantiation
 (Perazzo and Capecchi, arXiv 2604.26736, Section~IV-A, Definition~IV.1) assumes
