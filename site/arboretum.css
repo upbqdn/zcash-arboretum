@@ -349,12 +349,11 @@ li.plate {
   justify-self: end;
   font-size: 1.2em; line-height: 1.3;
 }
+/* a volume's title is its web edition's link, and looks it */
 .plate a.title {
   grid-column: 2 / 4; grid-row: 1;
   font-size: 1.2em; line-height: 1.3; font-weight: var(--bold);
-  color: var(--ink); text-decoration: none;
 }
-.plate a.title:hover { text-decoration: underline 1px; }
 .plate .sub { grid-column: 2 / 4; grid-row: 2; margin: .1em 0 .15em; }
 .plate .links {
   grid-column: 2; grid-row: 3;
