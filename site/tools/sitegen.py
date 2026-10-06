@@ -90,7 +90,8 @@ THEME_MENU = ('<details class="arb-theme"><summary aria-label="Theme">'
               '<label><input type="radio" name="arb-theme" value="light">Light</label>'
               '<label><input type="radio" name="arb-theme" value="system">System</label>'
               '<label><input type="radio" name="arb-theme" value="dark">Dark</label></span></details>')
-# The theme control, the scroll-edge fades and the Contents disclosure.
+# The theme control, the fitting of wide displays, the scroll-edge fades and the Contents
+# disclosure.
 PAGE_SCRIPT = """<script>
 (function () {
   const root = document.documentElement;
@@ -151,8 +152,29 @@ PAGE_SCRIPT = """<script>
   document.addEventListener('scroll', function (e) {
     if (e.target.matches && e.target.matches(boxes)) edge(e.target);
   }, true);
+  // On wider screens a display or table wider than the column shrinks to fit, to 75 % at most;
+  // beyond that it scrolls. The fixed widths of a table's paragraph columns shrink with it.
+  const roomy = matchMedia('(min-width: 701px)');
+  function shrink() {
+    document.querySelectorAll('.ltx_eqn_table, .ltx_page_main table.ltx_tabular').forEach(function (t) {
+      const fixed = t.querySelectorAll('[style*="width:"]');
+      t.style.fontSize = '';
+      fixed.forEach(function (e) { if (e.dataset.w) e.style.width = e.dataset.w; });
+      if (!roomy.matches) return;
+      // a formula's spacing does not scale exactly, so a step or two more
+      const base = parseFloat(getComputedStyle(t).fontSize);
+      for (let k = 1, i = 0; i < 4 && k > .75 && t.scrollWidth > t.clientWidth + 1; i++) {
+        k = Math.max(.75, .995 * k * t.clientWidth / t.scrollWidth);
+        t.style.fontSize = k * base + 'px';
+        fixed.forEach(function (e) {
+          e.dataset.w = e.dataset.w || e.style.width;
+          e.style.width = 'calc(' + e.dataset.w + ' * ' + k + ')';
+        });
+      }
+    });
+  }
   // after the formula script's boxes too
-  const refresh = () => requestAnimationFrame(edges);
+  const refresh = () => requestAnimationFrame(function () { shrink(); edges(); });
   document.fonts.ready.then(refresh);
   let timer;
   addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(refresh, 400); });

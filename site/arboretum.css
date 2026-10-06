@@ -49,9 +49,9 @@
   --leading: 1.5;
   --xh: .405;             /* the text 'x', measured; the OS/2 field says 400 */
   --bold: 600;            /* the family has a semibold */
-  /* 36 body ems, the PDFs' 140 mm block at 11 pt: a display that fits the PDF fits here. The face
-     is narrow; this sets about 90 cpl. In body ems wherever it is used. */
-  --measure: calc(36 * var(--body));
+  /* 32 body ems, about 82 cpl in this narrow face; on wider screens the page script shrinks a
+     display or table wider than it, to 75 % at most. In body ems wherever it is used. */
+  --measure: calc(32 * var(--body));
 }
 @media (max-width: 480px) { :root { --body: 1.125rem; } }
 /* Native MathML: the primary math font is Garamond-Math (the faces before it claim only their
@@ -471,10 +471,12 @@ li.plate {
 @media (max-width: 700px) {
   .arb-bar { gap: 1.1em; }
   .arb-bar .wordmark-prefix, .arb-bar .arb-volname, .arb-bar .arb-pdf { display: none; }
-  .arb-theme-word { display: none; }
-  /* the disc takes the bar's height as its hit area */
-  .arb-theme-mark { display: inline-block; vertical-align: -.05em; }
-  .arb-theme > summary { padding: .75em .45em; margin: -.75em -.45em; text-decoration: none !important; }
+  /* in the bar the disc stands in for the word, with the bar's height as its hit area */
+  .arb-bar .arb-theme-word { display: none; }
+  .arb-bar .arb-theme-mark { display: inline-block; vertical-align: -.05em; }
+  .arb-bar .arb-theme > summary {
+    padding: .75em .45em; margin: -.75em -.45em; text-decoration: none !important;
+  }
   .arb-bar .arb-acc { margin-right: 0; }
   .arb-nav-tools {
     display: flex; gap: 1.4em; margin: 0 0 1em;
@@ -677,6 +679,9 @@ em.ltx_emph { font-style: italic; }
   font-variant-numeric: lining-nums tabular-nums;
 }
 .ltx_tabular :is(.ltx_td, .ltx_th) { padding: .3em .75em; line-height: 1.35; }
+/* a paragraph column is set ragged, and widens for a formula that cannot break instead of running
+   it over the next column */
+.ltx_page_main .ltx_tabular .ltx_p { min-width: min-content; text-align: left; }
 .ltx_tabular :is(.ltx_td, .ltx_th):first-child { padding-left: 0; }
 .ltx_tabular :is(.ltx_td, .ltx_th):last-child { padding-right: 0; }
 .ltx_tabular .ltx_th { font-weight: 400; text-transform: none; letter-spacing: 0; }
@@ -733,15 +738,15 @@ figcaption .ltx_tag { color: var(--ink); font-weight: var(--bold); }
 .ltx_page_footer a[rel="prev"]::before { content: "\2190\2002"; display: inline-block; }
 .ltx_page_footer a[rel="next"]::after { content: "\2002\2192"; display: inline-block; }
 .ltx_page_footer a[rel="next"] { margin-left: auto; text-align: right; }
-.ltx_page_footer > .arb-feedback { margin-top: .2em; text-align: center; }
+.ltx_page_footer > .arb-feedback { margin-top: 1.6em; text-align: center; }
 @media (max-width: 700px) {
-  .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .5em; }
-  .ltx_page_footer a[rel="next"] { margin-left: 0; text-align: left; }
+  /* stacked, the next link stays on the right */
+  .ltx_page_footer > .ltx_align_center { flex-direction: column; gap: .8em; }
 }
 
 /* ---------- print: the sheet alone ---------- */
 @media print {
-  /* 12 pt, as print sets; the measure stays 36 ems. Paper cannot scroll: what scrolls on screen
+  /* 12 pt, as print sets; the measure stays 32 ems. Paper cannot scroll: what scrolls on screen
      is shown whole, a wide display or table running into the right margin. The page script's line-end trims fit the screen's lines. */
   :root { --body: 12pt; }
   .arb-bar, .arb-permalink, .ltx_page_navbar, .ltx_page_footer { display: none !important; }
