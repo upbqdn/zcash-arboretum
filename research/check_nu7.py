@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Recompute NU7 guide examples using only the standard library.
 
-Sources: ZIPs 218, 237 and 259 at zips afa086bd; proposed Ironwood
-coverage in PR 1361 at 721fbcad. No activation height or reserve seed
-is assigned here. The illustrative activation heights below are test inputs.
+Sources: ZIPs 207, 214, 218, 235, 237 and 259 at zips 660b3f80. ZIP 259
+assigns the Testnet activation height 4465026; Mainnet activation heights
+below are test inputs, not assignments.
 """
 
 from decimal import Decimal, localcontext
@@ -38,7 +38,7 @@ assert 30 * 60 // 25 == 72
 assert 3 * 25 == 75 and 10 * 25 == 250
 assert 120 * 25 == 3000 and 3000 // 60 == 50
 assert 600 * 25 == 15000 and 15000 // 60 == 250
-assert 100 * 25 == 2500 and 6 * 25 == 150
+assert 100 * 25 == 2500 and 18 * 25 == 6 * 75 == 450
 assert abs(F(539 * 25, 3600) - F("3.74")) < F("0.005")
 assert abs(F(600 * 25, 3600) - F("4.17")) < F("0.005")
 assert abs(F(100 * 25, 60) - F("41.7")) < F("0.05")
@@ -47,7 +47,7 @@ assert abs(r72 - F("9.35e-34")) < F("0.005e-34")
 assert r"$9.35\times10^{-34}$" in consensus
 assert risk(F(1, 10), 3) * 100 == F("1.712")
 for equation in (r"600\cdot25=15000", r"100\cdot25=2500",
-                 r"120\cdot25=3000", r"6\cdot25=150"):
+                 r"120\cdot25=3000", r"18\cdot25=6\cdot75=450"):
     assert equation in compact, equation
 print("NU7 timing and confirmation probabilities: exact checks pass")
 
@@ -66,9 +66,10 @@ assert r"\left\lfloor\frac{\overline{t}(h)}{T}\right\rfloorc(h)" in compact
 print("NU7 difficulty window, clamps, and rounding order: checks pass")
 
 
-def within_budget(orchard, ironwood, sapling):
+def within_budget(orchard, ironwood, sapling, sprout=0):
     return (0 <= orchard <= 330 and 0 <= ironwood <= 330
-            and 0 <= sapling <= 300 and orchard + ironwood + sapling <= 330)
+            and 0 <= sapling <= 300 and 0 <= sprout <= 0
+            and orchard + ironwood + sapling + 2 * sprout <= 330)
 
 
 assert within_budget(100, 200, 30)
@@ -76,8 +77,9 @@ assert not within_budget(100, 201, 30)
 assert within_budget(0, 330, 0)
 assert not within_budget(330, 330, 0)
 assert not within_budget(0, 0, 301)
+assert not within_budget(0, 0, 0, 1)
 assert 330 // 2 == 165 and F(165, 25) == F("6.6")
-assert r"O+I+S\leq330" in compact
+assert r"O+I+S+2J\leq330" in compact and r"J\leq0" in compact
 blocks_per_day = 86400 // 25
 actions_per_day = 330 * blocks_per_day
 field_bytes = 3 * 32 + 52
@@ -112,6 +114,87 @@ assert "s_h=52083333" in compact and "$26041666$" in consensus
 assert "$0.52083333$" in consensus
 assert 3 * 52083333 == 156250000 - 1  # Integer rounding is not exact issuance.
 print("NU7 activation-aware halving schedule and subsidies: checks pass")
+
+# ZIP 214 Revision 3 and ZIP 259: Testnet activation, rescaled third halving,
+# funding-stream values and the miner's remainder.
+testnet_a = 4465026
+assert testnet_a % 3 == 0 and 2796000 < testnet_a < 4476000
+assert testnet_a + 3 * (4476000 - testnet_a) == 4497948
+assert halving(4497947, testnet_a, 584000) == 2
+assert halving(4497948, testnet_a, 584000) == 3
+streams = (52083333 * 8 // 100, 52083333 * 12 // 100)
+assert streams == (4166666, 6249999) and 52083333 - sum(streams) == 41666668
+for value in (4465026, 4497948, 4166666, 6249999, 41666668):
+    assert str(value) in consensus, value
+print("NU7 Testnet activation, funding-stream end and miner subsidy: pass")
+
+
+def subsidy_any(h, activation, blossom):
+    """Scheduled subsidy at any height (specification 7.8, ZIP 218)."""
+    if h < 20000:
+        return 62500 * (h + (h >= 10000))
+    if h < blossom:
+        return 1250000000 >> ((h - 10000) // 840000)
+    if h < activation:
+        k = int(F(blossom - 10000, 840000) + F(h - blossom, 1680000))
+        return 1250000000 // (2 * 2**k)
+    return scheduled(h, activation, blossom)
+
+
+def cumulative(h, activation, blossom):
+    """Scheduled issuance at heights 0..h, summed over constant runs."""
+    edges = {20000, blossom, activation, h + 1}
+    edges |= {first_height(k, activation, blossom) for k in range(1, 8)}
+    total = sum(subsidy_any(i, activation, blossom) for i in range(20000))
+    cuts = sorted(e for e in edges if 20000 <= e <= h + 1)
+    for start, end in zip(cuts, cuts[1:]):
+        total += subsidy_any(start, activation, blossom) * (end - start)
+    return total
+
+
+def first_height(k, activation, blossom):
+    lo, hi = 0, 10**9
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if mid >= activation:
+            done = halving(mid, activation, blossom) >= k
+        else:
+            done = mid >= blossom and int(F(blossom - 10000, 840000)
+                                          + F(mid - blossom, 1680000)) >= k
+        lo, hi = (lo, mid) if done else (mid + 1, hi)
+    return lo
+
+
+def reissuance(activation, blossom):
+    """ZIP 237: first h in [max(A, H3 + 1), H4) with ceil(f R) < s_h."""
+    third = first_height(3, activation, blossom)
+    start = max(activation, third + 1)
+    rate = scheduled(start, activation, blossom)
+    remainder = 21_000_000 * 10**8 - cumulative(start - 1, activation, blossom)
+    largest = (rate - 1) * denominator // numerator
+    height = start + ceildiv(max(0, remainder - largest), rate)
+    for h, below in ((height, True), (height - 1, False)):
+        left = 21_000_000 * 10**8 - cumulative(h - 1, activation, blossom)
+        assert (ceildiv(numerator * left, denominator) < rate) == below
+    assert height < first_height(4, activation, blossom)
+    return height, third, remainder, largest
+
+
+denominator, numerator = 10**10, 6931680000 // 5040000
+d, third, remainder, largest = reissuance(testnet_a, 584000)
+assert largest == 189393927272727
+assert remainder == 262499975638334 - (testnet_a - 2796000)
+assert d == third + 2807274 == 16235274 - 2 * testnet_a == 7305222
+for activation in (2726403, 3543000, 4406397):
+    d, *_ = reissuance(activation, 653600)
+    assert d == 16026474 - 2 * activation, activation
+assert ceildiv(1375 * 36858445520, 10**10) == 5069
+assert ceildiv(1375 * 55768414957, 10**10) == 7669
+assert (6 * 2 // 10, 6 * 1 // 10) == (1, 0)  # ZIP 235 rounds the block total once
+for value in (189393927272727, 262499975638334, 2807274, 7305222,
+              16026474, 36858445520, 55768414957, 5069, 7669):
+    assert str(value) in consensus, value
+print("NU7 reissuance height, seed payouts and fee-removal rounding: pass")
 
 
 # Delayed reserve payout: current-block removals cannot fund this payout.

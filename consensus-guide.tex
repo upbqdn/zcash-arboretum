@@ -258,10 +258,11 @@ first-seen-model double-spending analysis of Rosenfeld's \emph{Analysis of
 hashrate-based double-spending} (the catch-up theorem, the confirmation
 formula, and the economics of the attack), with every derived number
 recomputed by script and the results instantiated for Zcash's proposed
-25-second blocks; describes the draft NU7 transition to 25-second blocks and
-halving-preserving reissuance; and describes the protocol and implementation
-safeguards (difficulty adjustment, reorg windows, coinbase maturity, wallet
-confirmation policy) and their relation to the model's assumptions. Where the
+25-second blocks; describes the draft NU7 transition to 25-second blocks, fee
+removal, and halving-preserving reissuance; and describes the protocol and
+implementation safeguards (difficulty adjustment, reorg windows, coinbase
+maturity, wallet confirmation policy) and their relation to the model's
+assumptions. Where the
 specification, the paper, and the deployed nodes disagree, the divergence is
 stated.
 \end{abstract}
@@ -316,14 +317,19 @@ before the model is instantiated for Zcash. The
 \href{https://zips.z.cash/protocol/protocol.pdf}{protocol specification}
 and the relevant ZIPs define the protocol.
 
-This volume targets the \emph{draft NU7 rules} as of 23~September 2026:
+This volume targets the \emph{draft NU7 rules} as of 6~October 2026:
 \href{https://zips.z.cash/zip-0259}{ZIP-259} selects
 \href{https://zips.z.cash/zip-0218}{ZIP-218},
-\href{https://github.com/zcash/zips/pull/1354}{ZIP-237}, and
-\href{https://zips.z.cash/zip-2003}{ZIP-2003}. Activation heights remain
-unassigned, and some proposed limits and issuance rules are incomplete.
-These gaps are stated where they affect a calculation; no unassigned
-constant is treated as a deployed rule.
+\href{https://zips.z.cash/zip-0235}{ZIP-235},
+\href{https://zips.z.cash/zip-0237}{ZIP-237},
+\href{https://zips.z.cash/zip-2003}{ZIP-2003}, and three funding-stream
+amendments: Revision~2 of \href{https://zips.z.cash/zip-0207}{ZIP-207},
+Revision~3 of \href{https://zips.z.cash/zip-0214}{ZIP-214}, and
+\href{https://zips.z.cash/zip-2008}{ZIP-2008}. The activation height is
+assigned on Testnet, the test network, but not on Mainnet, the production
+network, so the Mainnet heights derived from it are unassigned. These gaps
+are stated where they affect a calculation; no unassigned constant is
+treated as a deployed rule.
 
 \begin{remark}[Defects of the arXiv text]\label{rem:cons-paper}
 The arXiv v1 PDF of the paper contains exactly two citations, both rendered
@@ -756,7 +762,9 @@ When $q < p$, each additional block of deficit multiplies the catch-up
 probability by $q/p$. Concretely (script-computed): at $q = 10\%$,
 $a_0 = 1/9 \approx 0.1111$ and $a_5 \approx 1.88 \times 10^{-6}$; at
 $q = 30\%$, $a_0 = 3/7 \approx 0.4286$ and
-$a_5 \approx 6.20 \times 10^{-3}$.
+$a_5 \approx 6.20 \times 10^{-3}$; at $q = 45\%$, $a_0 = 9/11 \approx
+0.8182$ and $a_5 \approx 0.300$. Near one half the factor $q/p$ approaches
+$1$, and a deficit of five blocks still leaves the attacker a $30\%$ chance.
 \end{corollary}
 
 \begin{corollary}[Blocks, not time]\label{cor:cons-timefree}
@@ -844,10 +852,10 @@ By Proposition~\ref{prop:cons-negbin}, the number $m$ of attacker
 blocks found while the honest network finds its $n$ is negative
 binomial. Averaging the catch-up probability of
 Theorem~\ref{thm:cons-catchup} over $m$ gives the success probability
-under the first-seen tie rule of the specification and of Rosenfeld.
-Zebra's tie-break gives the attacker an additional opportunity to
-succeed, treated in Section~\ref{sec:cons-selection}. The model does
-not give an exact rollback probability for the deployed network.
+under the first-seen tie rule of the specification and of Rosenfeld,
+which Zebra also applies from version~6.4.0
+(Section~\ref{sec:cons-selection}). The model does not give an exact
+rollback probability for the deployed network.
 
 \begin{theorem}[Double-spend success probability; Rosenfeld
 eq.~(1)]\label{thm:cons-r}
@@ -1202,12 +1210,85 @@ $(q, \varepsilon)$ is chosen by policy; the model does not determine it.
 By Corollary~\ref{cor:cons-timefree}, the success probability depends on
 the confirmation count, not on elapsed time. The wall-clock duration of a
 count is set by the target spacing: $25$ seconds in
-\href{https://zips.z.cash/zip-0218}{ZIP-218}. Since public discoveries
-arrive at rate $p/T_0$, waiting for $n$ confirmations takes $nT_0/p$
-seconds in expectation in this model. Three confirmations take a nominal
-$75$ seconds and ten take $250$ seconds when all hashpower publishes on the
-public chain; a $10\%$ withholding attacker divides these expected waits
-by $0.9$.
+\href{https://zips.z.cash/zip-0218}{ZIP-218}. While the attacker mines in
+private, only the honest share of the hashrate extends the public chain,
+and the merchant's wait lengthens accordingly.
+
+\begin{proposition}[Expected wait for $n$ confirmations]%
+\label{prop:cons-wait}
+Under Assumptions \ref{ass:cons-hashrate} and~\ref{ass:cons-difficulty},
+let the attacker withhold all his blocks from the public chain, and let the
+first public block found after a transaction's broadcast include it. The
+time $S_n$ from the broadcast to the transaction's $n$-th confirmation has
+expectation
+\[
+  \E[S_n] \;=\; \frac{n T_0}{p}.
+\]
+\end{proposition}
+
+\begin{proof}
+Only honest blocks extend the public chain, and the honest network's clock
+has rate $\lambda = p/T_0$ (Proposition~\ref{prop:cons-attrib}). At the
+broadcast, and after each attacker block, that clock has not fired, so by
+Lemma~\ref{lem:cons-memoryless} its remaining wait has the law of a fresh
+clock. The restarts of Proposition~\ref{prop:cons-attrib} therefore leave
+the honest blocks, counted from the broadcast, the arrivals of an
+exponential clock of rate $\lambda$ in the sense of the \emph{Math Guide},
+\S``Exponential clocks, Poisson counts, and the Chernoff method''. By
+Definition~\ref{def:cons-conf} the $n$-th confirmation is the $n$-th
+arrival, whose time has density
+$f_n(s) = \lambda^n s^{n-1} e^{-\lambda s}/(n-1)!$ for $s \geq 0$ by that
+section's lemma ``Arrival-time density''. Since
+$s f_n(s) = (n/\lambda) f_{n+1}(s)$ and $f_{n+1}$ integrates to $1$,
+\[
+  \E[S_n] \;=\; \int_0^\infty s f_n(s)\,ds
+  \;=\; \frac{n}{\lambda} \int_0^\infty f_{n+1}(s)\,ds
+  \;=\; \frac{n T_0}{p}. \qedhere
+\]
+\end{proof}
+
+Table~\ref{tab:cons-wait} evaluates Proposition~\ref{prop:cons-wait} for
+every count of Table~\ref{tab:cons-nreq}, against the attacker share for
+which that count was computed, taking $T_0 = 25$ seconds, the spacing
+produced when the full hashrate publishes. The nominal wait $nT_0$
+understates each entry by the factor $p$: the $539$ confirmations required
+against a $45\%$ attacker take a nominal $3.74$ hours, but $6.81$ hours in
+expectation while that attacker withholds. A wait of hours spans many
+difficulty-averaging windows (Section~\ref{sec:cons-difficulty}), over which
+retargeting would lower the public chain's difficulty; the proposition rests
+on Assumption~\ref{ass:cons-difficulty} and omits that effect. Three
+confirmations take a nominal $75$ seconds and ten take $250$ seconds; a
+$10\%$ withholding attacker divides these waits by $0.9$.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}r rr rr rr@{}}
+\toprule
+& \multicolumn{2}{c}{$r < 10\%$} & \multicolumn{2}{c}{$r < 1\%$}
+  & \multicolumn{2}{c@{}}{$r < 0.1\%$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(l){6-7}
+$q$ & $n$ & min & $n$ & min & $n$ & min \\
+\midrule
+$2\%$ & $1$ & $0.4$ & $2$ & $0.9$ & $3$ & $1.3$ \\
+$5\%$ & $2$ & $0.9$ & $3$ & $1.3$ & $4$ & $1.8$ \\
+$8\%$ & $2$ & $0.9$ & $3$ & $1.4$ & $5$ & $2.3$ \\
+$10\%$ & $2$ & $0.9$ & $4$ & $1.9$ & $6$ & $2.8$ \\
+$15\%$ & $3$ & $1.5$ & $6$ & $2.9$ & $9$ & $4.4$ \\
+$20\%$ & $4$ & $2.1$ & $8$ & $4.2$ & $13$ & $6.8$ \\
+$25\%$ & $5$ & $2.8$ & $12$ & $6.7$ & $20$ & $11.1$ \\
+$30\%$ & $9$ & $5.4$ & $20$ & $11.9$ & $32$ & $19.0$ \\
+$35\%$ & $15$ & $9.6$ & $36$ & $23.1$ & $58$ & $37.2$ \\
+$40\%$ & $34$ & $23.6$ & $82$ & $56.9$ & $133$ & $92.4$ \\
+$45\%$ & $135$ & $102.3$ & $331$ & $250.8$ & $539$ & $408.3$ \\
+\bottomrule
+\end{tabular}
+\caption{The confirmation counts $n$ of Table~\ref{tab:cons-nreq} and their
+expected waits in minutes, $nT_0/p$ with $T_0 = 25$ seconds by
+Proposition~\ref{prop:cons-wait}, while an attacker of share $q$ withholds
+his blocks; computed by script.}
+\label{tab:cons-wait}
+\end{table}
 
 A nominal thirty-minute wait yields $72$ confirmations at $25$-second
 spacing and three at Bitcoin's $600$-second spacing.
@@ -1318,10 +1399,13 @@ circulation and awaiting reissuance.
 
 The income $B$ forfeited by an orphaned block is the amount its miner would
 have retained: miner subsidy plus retained transaction fees, not the
-subsidy allocated to other recipients. Under NU7 this depends on scheduled
-issuance, the prior reserve balance, and the applicable fee-removal rule
-(Section~\ref{sec:cons-nu7-nsm}). A universal ZEC figure would therefore
-hide assumptions about both chain state and unresolved draft rules.
+subsidy allocated to other recipients. Under NU7, from activation until
+the scheduled subsidy next halves, the miner subsidy is $41{,}666{,}668$
+zatoshi per block (Section~\ref{sec:cons-nu7-subsidy}), and the miner keeps
+the fees not removed from circulation, $40\%$ rounded in the miner's
+favour; once reissuance begins, the subsidy also depends on the prior
+reserve balance (Section~\ref{sec:cons-nu7-nsm}). A universal ZEC figure
+would therefore hide assumptions about fee income and chain state.
 
 Instead, Table~\ref{tab:cons-vmax} measures transaction value in units of
 the chosen block income $B$. With the paper's $o=20$, $k=5$, and
@@ -1364,8 +1448,7 @@ non-positive only up to about $21$ times the assumed block income $B$. By
 the geometric decay of Theorem~\ref{thm:cons-r}, the required count grows
 only logarithmically in the value at stake. These figures are neither
 exact finite-stop profit calculations nor bounds on deployed rollback
-risk; the deployed tie-break, changing difficulty, and rollback rails
-require separate modelling.
+risk; changing difficulty and rollback rails require separate modelling.
 
 \begin{remark}[Majority is a different problem]\label{rem:cons-majority}
 At $q=p$, eventual strict overtake has probability $1$, but the walk has zero
@@ -1402,15 +1485,22 @@ numerical precision.
 \sectionmark{NU7: 25-second blocks}
 
 This section describes the \href{https://zips.z.cash/zip-0259}{ZIP-259}
-draft, a proposal rather than a deployed upgrade, which combines three
+draft, a proposal rather than a deployed upgrade, which combines four
 changes: shorter blocks with limits on shielded work
-(\href{https://zips.z.cash/zip-0218}{ZIP-218}), reissuance that preserves the
+(\href{https://zips.z.cash/zip-0218}{ZIP-218}), removal of $60\%$ of
+transaction fees from circulation
+(\href{https://zips.z.cash/zip-0235}{ZIP-235}), reissuance that preserves the
 halving schedule --- periodic divisions of scheduled subsidy by two
-(\href{https://github.com/zcash/zips/pull/1354}{ZIP-237}) ---
+(\href{https://zips.z.cash/zip-0237}{ZIP-237}) ---
 and rejection of version~4 transactions
-(\href{https://zips.z.cash/zip-2003}{ZIP-2003}). Its activation height,
-denoted $A$, is unassigned on each network at the source boundary in
-Section~\ref{sec:cons-sources}.
+(\href{https://zips.z.cash/zip-2003}{ZIP-2003}). Three amendments adjust the
+existing funding streams: Revision~3 of ZIP-214 rescales their end heights
+to the new spacing (Section~\ref{sec:cons-nu7-subsidy}), Revision~2 of
+ZIP-207 rescales the periods for which each recipient address is used, and
+ZIP-2008 changes one stream's recipient address. The activation height,
+denoted $A$, must be a multiple of three (Revision~3 of ZIP-214). At the
+source boundary of Section~\ref{sec:cons-sources}, ZIP-259 sets
+$A=4{,}465{,}026$ on Testnet and leaves the Mainnet value unassigned.
 
 NU7 introduces no new transaction format: versions~5 and~6 remain available.
 Their signatures nevertheless commit to a \emph{consensus branch identifier},
@@ -1427,21 +1517,21 @@ sum of the blocks' work rather than their count, is unchanged. Changing target
 spacing changes neither the work definition nor this ordering.
 
 \begin{remark}[The implementation tie-break]\label{rem:cons-tiebreak}
-The specification and Rosenfeld's model prefer the first-seen block at
-equal cumulative work. The examined Zebra implementation instead uses the
-larger tip hash. This distinction concerns local chain choice, not the
-validity of a block, but it affects the attack model. At equal work, an
-attacker can compare its private tip hash with the public tip and reveal
-immediately when its hash wins the deployed deterministic tie-break; the
-strict-overtake boundary $z=-1$ used above does not count that success
-opportunity. Therefore $r(q,n)$ is exact for the stated strict-overtake
-model and is a lower bound if only its tie-break is replaced by Zebra's,
-keeping equal difficulty, unlimited rollback, and the other assumptions
-fixed.
-It is not thereby a lower bound on the full deployed process: changing
-difficulty and rollback limits also change the success event. Quantifying the
-extra probability, including any scope to choose among candidate private tips,
-requires a different stopping rule and is outside this volume.
+The specification and Rosenfeld's model prefer, at equal cumulative work,
+the tip received first. Zebra applies the same rule from version~6.4.0,
+released on 23~September 2026: of two chains with equal work it keeps the
+one whose tip it received first, and compares tip hashes only between tips
+whose receipt times it cannot order. A tying branch that reaches a node
+after the public tip therefore does not displace it there, as the
+strict-overtake boundary $z=-1$ assumes. Earlier versions broke every
+equal-work tie by the larger tip hash. Under that rule an attacker could
+release a tying private branch whose tip hash won; the boundary $z=-1$ does
+not count that success, so for those versions $r(q,n)$ is a lower bound
+when only the tie-break is replaced, the other assumptions held fixed. Under
+either rule the tie-break concerns local chain choice, not the validity of a
+block, and $r(q,n)$ remains exact only for the stated model: changing
+difficulty and rollback limits also change the deployed success event
+(Remarks \ref{rem:cons-difffidelity} and~\ref{rem:cons-railsregister}).
 \end{remark}
 
 \subsection{Difficulty adjustment}\label{sec:cons-difficulty}
@@ -1472,7 +1562,7 @@ The bounded timespan $c(h)$ is $d(h)$ clamped between
 $\lfloor0.84T\rfloor$ and $\lfloor1.32T\rfloor$: values below the
 lower endpoint are replaced by that endpoint, and similarly above the
 upper endpoint. The maximum target $\mathsf{PoWLimit}$ is $2^{243}-1$ on
-Mainnet, the production network, and $2^{251}-1$ on Testnet, the test network
+Mainnet and $2^{251}-1$ on Testnet
 (\href{https://zips.z.cash/protocol/protocol.pdf\#constants}{\S5.3}).
 The target calculation is
 \[
@@ -1493,9 +1583,13 @@ exceed the median of the preceding eleven and be at most $90$ minutes
 above it (\href{https://zips.z.cash/protocol/protocol.pdf\#blockheader}{\S7.6}).
 A further check, not a consensus rule, rejects received blocks more than two
 hours ahead of the validator's clock. Testnet's exceptional
-minimum-difficulty rule continues to use six target spacings: its delay
-threshold becomes $6\cdot25=150$ seconds. This exception does not apply to
-Mainnet.
+minimum-difficulty rule sets a block's target to $\mathsf{PoWLimit}$ when its
+timestamp exceeds its predecessor's by strictly more than a threshold. At
+the Testnet NU7 activation height the threshold changes from six to
+eighteen target spacings, so it remains $18\cdot25=6\cdot75=450$ seconds: a
+gap of $450$ seconds does not qualify, one of $451$ seconds does (ZIP-218,
+\S``Minimum difficulty blocks on Testnet''). This exception does not apply
+to Mainnet.
 
 \begin{remark}[What per-block retargeting changes]
 \label{rem:cons-difffidelity}
@@ -1572,14 +1666,27 @@ outputs placed directly in a shielded pool do not have this transparent
 maturity restriction. A $600$-block rollback window can therefore reverse
 an already mature coinbase: maturity permits spending, not finality.
 
+In the model, maturity is a confirmation count fixed by consensus. A spend
+can enter a block only once the coinbase's block has $100$ confirmations on
+the chain that the spend extends. A private branch forked below the coinbase
+block, under the conventions of Theorem~\ref{thm:cons-r}, therefore removes
+a newly mature output from the best chain with probability $r(q,100)$.
+Computed by script, $r(0.3,100)\approx3.68\times10^{-9}$,
+$r(0.4,100)\approx0.432\%$, and $r(0.45,100)\approx15.7\%$. The count is
+ample against a $30\%$ attacker and weak near one half, where, as for every
+fixed count, $r(q,100)$ tends to $1$ (proof of
+Proposition~\ref{prop:cons-divergence}).
+
 \subsection{Wallet confirmation policy}\label{sec:cons-walletpolicy}
 
 A wallet can distinguish \emph{trusted} outputs that its own transaction
 handling can recreate after a rollback from an \emph{untrusted} external
-payment that may require the sender to pay again. The examined wallet
-backend uses three confirmations for the former and ten for the latter,
-with zero-confirmation shielding of transparent funds allowed by its
-default policy. These choices are not consensus rules.
+payment that may require the sender to pay again. The draft
+\href{https://zips.z.cash/zip-0315}{ZIP-315} recommends three confirmations
+for the former and ten for the latter, and exempts the shielding of
+transparent funds from its three-confirmation minimum. The examined wallet
+backend follows both, allowing zero-confirmation shielding by default. These
+choices are not consensus rules.
 
 Table~\ref{tab:cons-r} quantifies their modelled trade-off: three
 confirmations assign a $10\%$ attacker risk $1.712\%$, while ten assign the
@@ -1588,11 +1695,90 @@ The count remains a $(q,\varepsilon)$ policy, not a guarantee.
 
 The \emph{anchor} is the note-commitment-tree root against which a spend
 proves membership (\emph{Crypto Guide}, \S{}Privacy-preserving membership
-via zero-knowledge paths). ZIP-218 keeps the recommended anchor depth
-at three blocks. Its recommended transaction-expiry delta is $120$
-blocks, a nominal $120\cdot25=3{,}000$ seconds, without overriding an
-explicitly configured expiry delta. ZIP-218 does not prescribe dividing
-every confirmation count by three.
+via zero-knowledge paths). ZIP-218 keeps at three blocks the anchor depth
+that ZIP-315 recommends. ZIP-218 also recommends a transaction-expiry
+delta of $120$ blocks, a nominal $120\cdot25=3{,}000$ seconds, without
+overriding an explicitly configured expiry delta. ZIP-218 does not
+prescribe dividing every confirmation count by three.
+
+Table~\ref{tab:cons-safeguards} collects the safeguards of
+Sections \ref{sec:cons-difficulty} to~\ref{sec:cons-walletpolicy}. Four are
+consensus rules, which decide block validity; the rollback window is node
+policy, and the confirmation counts and anchor depth are wallet policy,
+which govern only a node's or a wallet's own conduct. Every value is
+specified, in the protocol specification or in a draft ZIP at the source
+boundary of Section~\ref{sec:cons-sources}; none is designed but
+unspecified.
+
+\begin{table}[ht]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}p{21mm}p{32mm}p{16mm}p{30mm}p{29mm}@{}}
+\toprule
+Safeguard & Value & At $25$\,s & Standing & Model assumption \\
+\midrule
+Difficulty adjustment
+  & every block; window $N=102$ ($17$ before NU7); damping $4$; clamps
+    $\lfloor0.84T\rfloor$ and $\lfloor1.32T\rfloor$
+  & $T=2{,}550$\,s; clamps $2{,}142$ and $3{,}366$\,s
+  & consensus,
+    \href{https://zips.z.cash/protocol/protocol.pdf\#diffadjustment}{\S7.7.3};
+    $N=102$ draft ZIP-218
+  & constant difficulty (Assumption~\ref{ass:cons-difficulty}), replaced
+    (Remark~\ref{rem:cons-difffidelity}) \\
+\addlinespace[2pt]
+Timestamp bounds
+  & above the median of the $11$ preceding timestamps; at most $90$\,min
+    above it
+  & $216$ spacings
+  & consensus,
+    \href{https://zips.z.cash/protocol/protocol.pdf\#blockheader}{\S7.6}
+  & constant difficulty: bounds the timestamps that set a branch's targets \\
+\addlinespace[2pt]
+Proof of work
+  & Equihash $(200,9)$, then SHA-256d header hash at most the target
+  & ---
+  & consensus,
+    \href{https://zips.z.cash/protocol/protocol.pdf\#equihash}{\S7.7.1},
+    \href{https://zips.z.cash/protocol/protocol.pdf\#difficulty}{\S7.7.2}
+  & exponential clocks (Remark~\ref{rem:cons-hashtrials}), coarsened by
+    solver runs \\
+\addlinespace[2pt]
+Rollback window
+  & $600$ blocks
+  & $250$\,min
+  & node policy:
+    \href{https://zips.z.cash/protocol/protocol.pdf\#blockchain}{\S3.3}
+    permits one; draft ZIP-218
+  & unlimited rollback (Remark~\ref{rem:cons-railsregister}) \\
+\addlinespace[2pt]
+Coinbase maturity
+  & $100$ blocks, transparent outputs
+  & $41.7$\,min
+  & consensus,
+    \href{https://zips.z.cash/protocol/protocol.pdf\#txnconsensus}{\S7.1.2};
+    kept by draft ZIP-218
+  & none; fixes $n=100$ \\
+\addlinespace[2pt]
+Wallet confirmations
+  & $3$ trusted, $10$ untrusted
+  & $75$, $250$\,s
+  & wallet policy, draft ZIP-315
+  & none; a choice of $(q,\varepsilon)$ \\
+\addlinespace[2pt]
+Anchor depth
+  & $3$ blocks
+  & $75$\,s
+  & wallet policy, draft ZIP-315 and ZIP-218
+  & none; outside the race \\
+\bottomrule
+\end{tabular}
+\caption{The NU7 safeguards. Durations are nominal, at $25$ seconds per
+block (the draft ZIP-218 spacing), and computed by script; \S\ numbers are
+the protocol specification's; ``draft'' marks a ZIP of Draft status.}
+\label{tab:cons-safeguards}
+\end{table}
 
 \subsection{A block budget for shielded work}\label{sec:cons-nu7-limits}
 
@@ -1609,24 +1795,25 @@ shielded pool using the same Action structure
 pool counts spends and outputs separately; its cryptographic construction is
 not needed for this accounting.
 
-Let $O$ and $I$ count Orchard and Ironwood Actions in a block, and let $S$
-count Sapling spends plus outputs. With the Ironwood coverage proposed in
-\href{https://github.com/zcash/zips/pull/1361}{PR~1361}, the complete
-shielded budget is
+Let $O$ and $I$ count Orchard and Ironwood Actions in a block, let $S$
+count Sapling spends plus outputs, and let $J$ count Sprout transfers
+(JoinSplits), each of which creates two notes. ZIP-218 bounds each pool and
+charges all of them to one shared budget,
+$\mathsf{GlobalShieldedBudget}=330$:
 \[
- O\leq330,\qquad I\leq330,\qquad S\leq300,
- \qquad O+I+S\leq330.
+ O\leq330,\qquad I\leq330,\qquad S\leq300,\qquad J\leq0,
+ \qquad O+I+S+2J\leq330.
 \]
 The final inequality is shared across pools: their separate maxima cannot
 all be filled in one block. For example, $O=100$, $I=200$, $S=30$ exhausts
 the shared budget; increasing $I$ to $201$ violates it even though each
-per-pool limit still holds. Sprout transfers cannot occur because NU7
-rejects the version~4 format that represents them. The Ironwood term is
-under review and not specified by the merged ZIP-218 draft.
+per-pool limit still holds. The Sprout bound of zero restates what the
+rejection of version~4 already enforces, since only that format represents
+Sprout transfers.
 
-At two Actions per transaction, a block devoted to
-one Orchard-protocol pool fits at most $165$ such transactions under this
-budget, or a nominal $165/25=6.6$ transactions per second. This is a
+At two Actions per transaction, Orchard and Ironwood transactions together
+fit at most $165$ per block under this budget, or a nominal
+$165/25=6.6$ transactions per second. This is a
 capacity calculation under a specified transaction shape, not a measured
 throughput guarantee. Transparent components remain subject to the byte
 limit rather than this shielded-action budget.
@@ -1675,23 +1862,32 @@ gives
 \[
  H_3^{\mathrm{NU7}}=A+3(H_3-A)=13{,}219{,}200-2A.
 \]
-No numerical activation height is assigned here. Nor does retiming the
-halving function automatically retime a funding stream whose endpoint is
-specified as a literal block height. The draft does not provide such a
-change, so the funding-stream endpoints and the rescaled halving heights
-must be treated separately.
+On Testnet, where $H_3=4{,}476{,}000$ and $A=4{,}465{,}026$, the same
+conversion gives $H_3^{\mathrm{NU7}}=4{,}497{,}948$; the Mainnet value awaits
+the Mainnet activation height.
+
+Retiming the halving function does not by itself retime a funding stream
+whose end is a literal block height. Revision~3 of ZIP-214 supplies that
+change: the two streams that end at the old third halving, of $8\%$ and
+$12\%$ of the block subsidy, end at $H_3^{\mathrm{NU7}}$ instead. Each
+stream receives the floor of its share, so at $s_h=52{,}083{,}333$ they
+receive $4{,}166{,}666$ and $6{,}249{,}999$ zatoshi, and the miner subsidy,
+the remainder (specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#subsidies}{\S7.8}), is
+$41{,}666{,}668$ zatoshi per block.
 
 \subsection{The NSM reserve and delayed reissuance}
 \label{sec:cons-nu7-nsm}
 
 The \emph{Network Sustainability Mechanism} (NSM) separates temporarily
-removed funds from the still-unissued scheduled subsidy. In the
-\href{https://github.com/zcash/zips/pull/1354}{merged ZIP-237 draft}, the
+removed funds from the still-unissued scheduled subsidy. In
+\href{https://zips.z.cash/zip-0237}{ZIP-237}, the
 \emph{issued supply} $V_h$ is the total value recorded in the chain's
 value pools after block $h$. Each pool is a separately tracked balance
 for one part of the protocol; tracking a shielded pool's total does not
-reveal the values of its individual notes. The \emph{NSM reserve} $R_h$ records
-value removed from circulation and not yet reissued. The reserve is public
+reveal the values of its individual notes. The \emph{NSM reserve} $R_h$,
+which ZIP-237 calls the NSM Value Balance, records value removed from
+circulation and not yet reissued. The reserve is public
 consensus state, not a spendable pool or an account with a spending key.
 In particular, it is not $21$ million ZEC minus the issued supply: that
 larger difference also includes future scheduled issuance.
@@ -1701,18 +1897,69 @@ left unclaimed before NU6. Since
 \href{https://zips.z.cash/zip-0236}{ZIP-236}, a coinbase must account for
 its full available value, so that historical shortfall is fixed. The draft
 defines the seed $R_{A-1}$ as total scheduled issuance through the last
-pre-NU6 block minus issued supply there. The exact integer seeds for
-Mainnet and Testnet remain unspecified.
+pre-NU6 block minus issued supply there, and states the measured values:
+$36{,}858{,}445{,}520$ zatoshi (about $368.58$~ZEC) on Mainnet, through
+height $2{,}726{,}399$, and $55{,}768{,}414{,}957$ zatoshi on Testnet,
+through height $2{,}975{,}999$.
 
-Let $D\geq A$ be the separately assigned height at which reissuance starts,
-and let $d_h$ be the non-negative number of zatoshi removed from circulation
-in block $h$ by whatever removal mechanisms have been deployed. With
-$L=5{,}040{,}000$ blocks per halving interval, the draft selects
+Let $d_h$ be the number of zatoshi removed from circulation in block $h$.
+NU7 deploys one removal mechanism,
+\href{https://zips.z.cash/zip-0235}{ZIP-235}; ZIP-259 excludes the voluntary
+removal of ZIP-233. With $F_h$ the total fee paid by the non-coinbase
+transactions of block $h$,
+\[
+ d_h=\left\lfloor\frac{6F_h}{10}\right\rfloor,
+\]
+computed once from the block's total fee. The coinbase's total input value
+(specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#txnconsensus}{\S7.1.2})
+counts $F_h-d_h$ in place of $F_h$, and since ZIP-236 requires the coinbase
+to claim exactly its total input value, the miner receives exactly
+$F_h-d_h$; no transaction field states $d_h$. The rounding favours the
+miner and is applied once: two fees of $1$ zatoshi remove
+$\lfloor12/10\rfloor=1$ zatoshi, where rounding each transaction's share
+would remove none.
+
+With $L=5{,}040{,}000$ blocks per halving interval, the draft selects the
+reissuance fraction
 \[
  f=\frac{\lfloor6{,}931{,}680{,}000/L\rfloor}{10^{10}}
    =\frac{1375}{10^{10}}.
 \]
-Its additional subsidy $u_h$, total block subsidy $b_h$, and reserve update
+Reissuance starts at a height $D$ that ZIP-237 derives from the scheduled
+subsidy alone, independently of actual removals. Let $C_h$ be cumulative
+scheduled issuance through height $h$, with the pre-NU7 subsidies below $A$
+and $s_h$ from $A$, and let $H_3^{\mathrm{NU7}}$ and $H_4^{\mathrm{NU7}}$ be
+the heights at which $k(h)$ of equation~\eqref{eq:cons-nu7-halving} first
+reaches $3$ and~$4$. Then $D$ is the least $h$ with
+$\max(A,H_3^{\mathrm{NU7}}+1)\leq h<H_4^{\mathrm{NU7}}$ and
+\[
+ \left\lceil f\,(2.1\cdot10^{15}-C_{h-1})\right\rceil<s_h,
+\]
+the first block at which reissuing the fraction $f$ of the cap's unissued
+remainder, rounded up, would pay less than the scheduled subsidy; the cap
+$2.1\cdot10^{15}$ zatoshi is $21$ million ZEC. In that range
+$s_h=26{,}041{,}666$ is constant, so $C$ grows by that amount per block and
+the condition reads
+\[
+ 2.1\cdot10^{15}-C_{h-1}\leq
+ \left\lfloor\frac{26{,}041{,}665\cdot10^{10}}{1375}\right\rfloor
+ =189{,}393{,}927{,}272{,}727.
+\]
+Let $H_2$ be the pre-NU7 second-halving height: $2{,}726{,}400$ on Mainnet
+and $2{,}796{,}000$ on Testnet. If $A$ lies between $H_2$ and the pre-NU7
+third halving $H_3$, the remainder after block $H_3^{\mathrm{NU7}}$ is
+$262{,}499{,}975{,}638{,}334-(A-H_2)$ zatoshi, and for every multiple of
+three in that range the condition first holds $2{,}807{,}274$ blocks after
+$H_3^{\mathrm{NU7}}$, both figures computed by script. Hence
+\[
+ D=H_3^{\mathrm{NU7}}+2{,}807{,}274,
+\]
+about $2.2$ years of $25$-second blocks after the third halving:
+$7{,}305{,}222$ on Testnet, as ZIP-259 records, and $16{,}026{,}474-2A$ on
+Mainnet, unassigned with $A$.
+
+The additional subsidy $u_h$, total block subsidy $b_h$, and reserve update
 are
 \begin{align}
  u_h&=\begin{cases}0,&h<D,\\
@@ -1732,8 +1979,10 @@ For a small exact example, take $R_{h-1}=100{,}000{,}000$ zatoshi
 ($1$~ZEC) and $h\geq D$. The additional subsidy is
 $\lceil13.75\rceil=14$ zatoshi. Without a new removal the reserve becomes
 $99{,}999{,}986$; with a same-block removal of another $1$~ZEC it becomes
-$199{,}999{,}986$, but the current payout remains $14$. This example does
-not use the unassigned historical seed.
+$199{,}999{,}986$, but the current payout remains $14$. Because no payout
+precedes $D$ and $d_h\geq0$, the seed bounds the first payout from below:
+$\lceil1375\cdot36{,}858{,}445{,}520/10^{10}\rceil=5{,}069$ zatoshi on
+Mainnet and $7{,}669$ on Testnet. Fees removed between $A$ and $D$ raise it.
 
 \paragraph{Why this preserves supply and halvings.}
 Transfers between ordinary value pools cancel in their total. A block
@@ -1757,17 +2006,6 @@ $(1-1375/10^{10})^{5{,}040{,}000}\approx0.50007$.
 This is a half-life of the reserve without new contributions, not a new
 halving rule for the scheduled subsidy; small reserves depart from the
 smooth curve because every positive payout rounds up.
-
-\paragraph{Unresolved deployment and fee details.}
-ZIP-259 selects a reissuance date corresponding to February~2031, but the
-network-specific height $D$ remains unassigned.
-The drafts do not yet specify a complete, consistent NU7 removal rule:
-\href{https://zips.z.cash/zip-0235}{ZIP-235} requires removal of at least
-$60\%$ of fees through an explicit coinbase amount, while ZIP-259 describes
-a block-level contribution requiring no new transaction data. The reserve
-equations therefore leave $d_h$ as a defined input. Neither a particular
-fee-removal mechanism nor an exact NU7 miner income is inferred from these
-incomplete rules.
 
 \section{Layer boundary}\label{sec:cons-relations}
 

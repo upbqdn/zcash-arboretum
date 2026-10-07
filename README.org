@@ -48,11 +48,16 @@ the concordance and the complete edition omit; =talks/= holds slide decks.
 
 * NU7
 
-Pinned to 23 September 2026: the merged Draft [[https://github.com/zcash/zips/blob/afa086bd976e316612a5c06fb139429958d07d84/zips/zip-0259.md][ZIP 259]], with 25-second blocks,
-halving-preserving Network Sustainability Mechanism issuance and no version 4
-transactions (versions 5 and 6 unchanged). Activation and reissuance heights
-are unassigned. Open amendments, such as the Ironwood action limits, are marked
-as such. Unresolved conflicts: [[file:research/nu7-2026-09-23.md][the NU7 review]].
+Pinned to 6 October 2026: Draft [[https://github.com/zcash/zips/blob/660b3f80bf48a354f69a950a14fb15b157a100c5/zips/zip-0259.md][ZIP 259]], which deploys 25-second blocks with
+a shared shielded Action budget (ZIP 218), removal of 60% of fees from
+circulation (ZIP 235), halving-preserving Network Sustainability Mechanism
+reissuance (ZIP 237), no version 4 transactions (ZIP 2003; versions 5 and 6
+unchanged) and funding streams adjusted to the new spacing (ZIP 207 Revision 2,
+ZIP 214 Revision 3, ZIP 2008). It does not deploy ZIPs 233 or 234. Testnet
+activates at height 4,465,026 and reissues from 7,305,222; the Mainnet
+activation height, and with it the Mainnet reissuance height, is unassigned.
+[[file:research/nu7-2026-09-23.md][The review of the previous pin]] lists its conflicts; this pin resolves all
+but three in ZIP 218's rationale (its items 6–8).
 
 * Website
 

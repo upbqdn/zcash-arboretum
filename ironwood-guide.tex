@@ -257,10 +257,10 @@ relation that each Action of the payment proves is stated over those objects;
 and each security property is a theorem under named assumptions. The sealed
 Orchard pool enters only where a rule shared with the Ironwood pool, or a rule
 that distinguishes the two pools, is needed to state the Ironwood-pool payment
-correctly. The volume assumes the \emph{Math Guide} and the \emph{Crypto Guide}
-and cites the \emph{Halo 2 Guide} for the proof system. It is non-normative: the
-Zcash Protocol Specification and the Zcash Improvement Proposals are
-authoritative.
+correctly. The volume assumes the \emph{Math Guide} and the \emph{Crypto Guide},
+and cites the \emph{Halo 2 Guide} for the proof system and the \emph{Consensus
+Guide} for the shielded budget of a block. It is non-normative: the Zcash
+Protocol Specification and the Zcash Improvement Proposals are authoritative.
 \end{abstract}
 \clearpage
 \tableofcontents
@@ -285,9 +285,10 @@ sealed Orchard pool enters only where a rule shared with the Ironwood pool,
 or a rule that distinguishes the two pools, is needed to state the
 Ironwood-pool payment correctly. The volume assumes the \emph{Math Guide} and
 the \emph{Crypto Guide}, and cites the \emph{Halo 2 Guide} for the proof
-system. It is non-normative: the Zcash Protocol Specification, cited as the
-protocol specification with the title of a section, and the Zcash
-Improvement Proposals are authoritative.
+system and the \emph{Consensus Guide} for the shielded budget of a block. It
+is non-normative: the Zcash Protocol Specification, cited as the protocol
+specification with the title of a section, and the Zcash Improvement
+Proposals are authoritative.
 
 \begin{definition}[Block chain, transaction, consensus rules]
 A \emph{block chain} is a sequence of blocks that starts at the \emph{genesis
@@ -507,6 +508,26 @@ and by the component of the transaction that carries their bundles
 (\S\ref{sec:tx-format}), not by separate circuits (ZIP 229, Abstract, and
 Rationale, ``Reuse of the Orchard protocol with minimal changes'').
 
+\begin{remark}[Purpose of the seal]
+ZIP 258, ``Consensus rules from~NU6.3 activation'', states the aim of the
+rules that seal the Orchard pool: newly created shielded value is directed
+into the Ironwood pool. ZIP 229, Motivation, states two purposes for moving
+value into a new pool. The first is confidence in the integrity of the
+supply after a flaw in the implementation of the Orchard Action circuit that
+could have allowed the creation of value and the theft of funds (ZIP 257,
+Motivation), a substantial part of the supply being held in the Orchard pool
+when the flaw was remediated; how the chain bounds the value that leaves a
+pool is stated in ``Chain state and pool rules'' (\S\ref{sec:tx-pools}). The
+second is recoverability: ZIP 2005 proposes a later protocol that would let
+the holders of Ironwood-pool notes recover their funds if the Orchard
+protocol had to be disabled because discrete logarithms became computable,
+and states that recovery would not be possible for funds in the Orchard pool
+(ZIP 2005, Abstract). The difference lies in the commitment trapdoor: that
+of an Ironwood-pool note hashes every field that the commitment binds, that
+of an Orchard-pool note does not (``The note seed'',
+\S\ref{sec:notes-seed}, Remark ``Purpose of the hashed trapdoor'').
+\end{remark}
+
 Orchard-pool notes are spendable, in version-$5$ and version-$6$
 transactions (\S\ref{sec:tx-format}), subject to the rules that seal the
 Orchard pool (ZIP 258, ``Consensus rules from~NU6.3 activation''; ZIP 259,
@@ -578,6 +599,70 @@ later constructions rest, each with its Orchard parameters and domain
 separators. The underlying constructions belong to the \emph{Math Guide} and
 the \emph{Crypto Guide} and are cited, not re-derived; each named assumption
 is stated at the first construction whose security needs it.
+Table~\ref{tab:prim-map} maps each primitive of the \emph{Crypto Guide} that
+the Orchard protocol uses to its Orchard instance and to the public data of
+an Action or a bundle that the instance produces; the public data are those
+of Remark ``Division of verification'' (\S\ref{sec:intro-structure}), each
+constructed in the section named.
+
+\begin{table}[tp]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{4.5cm}p{4.0cm}p{4.7cm}@{}}
+\toprule
+\emph{Crypto Guide} section & Orchard instance & Public data produced,
+  or role \tabularnewline
+\midrule
+\S``Hashing to a curve point''
+  & $\GroupHash$ on Pallas (\S\ref{sec:prim-grouphash})
+  & no public field: the fixed bases, and the base $\gd$ of each address
+    (\S\ref{sec:keys-addr}) \tabularnewline
+\S``Sinsemilla: an algebraic hash-based commitment''
+  & $\NoteCommit$ (\S\ref{sec:notes-cm})
+  & the extracted note commitment of each created note \tabularnewline
+  & $\CommitIvk$ (\S\ref{sec:keys-viewing})
+  & no public field: the incoming viewing key \tabularnewline
+\S``Binary Merkle trees''
+  & the note commitment tree, hashed by $\mathsf{MerkleCRH}$
+    (\S\ref{sec:tree-hash})
+  & the anchor of each bundle (\S\ref{sec:tree-anchors}) \tabularnewline
+\S``The Pedersen commitment''
+  & $\mathsf{ValueCommit}^{\mathsf{Orchard}}$ (\S\ref{sec:value-cv})
+  & the commitment to the net value of each Action \tabularnewline
+\S``Pseudorandom functions and permutations''
+  & $\mathsf{PRFexpand}$ (\S\ref{sec:prim-prf})
+  & no public field: keys and the randomness of created notes
+    \tabularnewline
+\S``Arithmetisation-friendly hashing: Poseidon''
+  & Poseidon, keyed by $\nksym$ (\S\ref{sec:nf-nullifier})
+  & the nullifier of each consumed note \tabularnewline
+\S``Format-preserving encryption and FF1''
+  & FF1 over AES-256, keyed by $\dk$ (\S\ref{sec:keys-addr})
+  & no public field: the diversifier of each address \tabularnewline
+\S``Shielded-note delivery as deployed hybrid encryption''
+  & Diffie--Hellman on Pallas, BLAKE2b-256 and ChaCha20-Poly1305
+    (\S\ref{sec:enc-encrypt}, \S\ref{sec:enc-out})
+  & the note ciphertext of each created note \tabularnewline
+\S``RedDSA: re-randomisable Schnorr for Orchard''
+  & RedPallas, in two instances (\S\ref{sec:spendauth-redpallas})
+  & the spend-authorisation signature and its validating key
+    (\S\ref{sec:spendauth-rk}); the binding signature
+    (\S\ref{sec:value-bsig}) \tabularnewline
+\S``SNARKs: succinct non-interactive arguments of knowledge''
+  & Halo~2 on the Pasta curves, one fixed circuit
+    (\S\ref{sec:action-circuit})
+  & the Action proof of each bundle \tabularnewline
+\bottomrule
+\end{tabular}
+\caption{The primitives of the \emph{Crypto Guide} that the Orchard protocol
+uses, by the section that constructs each, their Orchard instances, and the
+public data of an Action or a bundle that each instance produces; an
+instance that produces no public field is listed with its role. Each
+instance is constructed, or its parameters fixed, in the section named.
+Remark ``Hash roles'' (\S\ref{sec:prim-prf}) lists the hash functions behind
+the instances.}
+\label{tab:prim-map}
+\end{table}
 
 \subsection{Fields, groups, and encodings}\label{sec:prim-fields}
 
@@ -1003,7 +1088,7 @@ reduction, form one row of Table~\ref{tab:prim-prf}. Each row's objects are
 defined in the section it names (protocol specification, \S``Orchard Key
 Components'' for $\mathtt{0x06}$, $\mathtt{0x07}$, $\mathtt{0x08}$ and
 $\mathtt{0x82}$; \S``Sending Notes (Orchard)'' for $\mathtt{0x04}$,
-$\mathtt{0x09}$ and $\mathtt{0x0B}$).
+$\mathtt{0x05}$, $\mathtt{0x09}$ and $\mathtt{0x0B}$).
 \end{construction}
 
 \begin{table}[ht]
@@ -1023,6 +1108,8 @@ $\mathtt{0x82}$ & $\mathrm{LE}_{256}(\rivk)$
   & none & $\dk \,\|\, \ovk$ & \S\ref{sec:keys-viewing} \\
 $\mathtt{0x04}$ & $\mathsf{rseed}$ & $\mathsf{I2LEOSP}_{256}(\rho)$
   & $\mathrm{ToScalar}$ & $\mathsf{esk}$ & \S\ref{sec:notes-seed} \\
+$\mathtt{0x05}$ & $\mathsf{rseed}$ & $\mathsf{I2LEOSP}_{256}(\rho)$
+  & $\mathrm{ToScalar}$ & $\rcm$ & \S\ref{sec:notes-seed} \\
 $\mathtt{0x09}$ & $\mathsf{rseed}$ & $\mathsf{I2LEOSP}_{256}(\rho)$
   & $\mathrm{ToBase}$ & $\psi$ & \S\ref{sec:notes-seed} \\
 $\mathtt{0x0B}$ & $\mathsf{rseed}$
@@ -1036,9 +1123,29 @@ $\mathtt{0x0B}$ & $\mathsf{rseed}$
 \end{tabular}
 \caption{Every lead byte of $\mathsf{PRFexpand}$ used in this volume. The
 row $\mathtt{0x82}$ applies no reduction: its $64$-byte output splits into
-$\dk$, the first $32$ bytes, and $\ovk$, the last $32$ bytes.}
+$\dk$, the first $32$ bytes, and $\ovk$, the last $32$ bytes. The rows
+$\mathtt{0x05}$ and $\mathtt{0x0B}$ derive the commitment trapdoor of an
+Orchard-pool and of an Ironwood-pool note; the volume relies on the second
+only.}
 \label{tab:prim-prf}
 \end{table}
+
+Each reduction matches the use of its output. The outputs $\ask$, $\rivk$,
+$\mathsf{esk}$ and $\rcm$ are reduced by $\mathrm{ToScalar}$ into
+$\F_{p_{\Vesta}}$, the scalar field of the Pallas group, because each
+multiplies a Pallas point: the scalar $\ask$ the generator
+$G^{\mathsf{SpendAuth}}$ (\S\ref{sec:keys-sk}), $\rivk$ and $\rcm$ the
+blinding bases of $\CommitIvk$ and $\NoteCommit$ (\S\ref{sec:keys-viewing},
+\S\ref{sec:notes-cm}), and $\mathsf{esk}$ the diversified base of the
+recipient's address (\S\ref{sec:enc-encrypt}). The outputs $\nksym$ and
+$\psi$ are reduced by $\mathrm{ToBase}$ into $\F_{p_{\Pallas}}$, the field
+of the nullifier's arithmetic, $\nksym$ as the key of the nullifier PRF on
+$\F_{p_{\Pallas}}$ and $\psi$ as a summand of its output
+(\S\ref{sec:nf-nullifier}); it is also the native field of the Action
+circuit (\S\ref{sec:action-circuit}). The outputs $\dk$ and $\ovk$ are used
+as byte strings, $\dk$ as the key of the permutation that derives
+diversifiers (\S\ref{sec:keys-addr}) and $\ovk$ as an input of BLAKE2b
+(\S\ref{sec:enc-out}), and are not reduced.
 
 \begin{lemma}[Independence of domain-separated expansions]%
 \label{lem:prf-independence}
@@ -2595,7 +2702,20 @@ commitments''). Against such an adversary $\NoteCommit$ alone is not
 binding: the discrete-logarithm relations between its bases give a linear
 equation over $\F_{p_{\Vesta}}$ with several solutions, hence two distinct
 notes that open one commitment (ZIP 2005, Rationale, ``Attacks against
-binding of note commitments''). What the deployed protocol checks of the
+binding of note commitments''). An Orchard-pool note, whose plaintext has
+lead byte $\mathtt{0x02}$, has instead the trapdoor
+\[
+  \rcm := \mathrm{ToScalar}\bigl(\mathsf{PRFexpand}_{\mathsf{rseed}}
+    ([\mathtt{0x05}] \,\|\, \mathsf{I2LEOSP}_{256}(\rho))\bigr),
+\]
+row $\mathtt{0x05}$ of Table~\ref{tab:prim-prf}, a function of
+$\mathsf{rseed}$ and $\rho$ alone that binds none of $\gd$, $\pkd$, $v$ and
+$\psi$ (protocol specification, \S``Sending Notes (Orchard)''; ZIP 2005,
+``High-level summary of changes''). It is not a recoverable note: ZIP 2005
+calls recoverable the notes created under its format, as deployed the
+Ironwood-pool notes, and states that recovery would not be possible for
+funds in the Orchard pool (ZIP 2005, Terminology and Abstract). What the
+deployed protocol checks of the
 derivation is stated with the Action statement, defined in ``The Action
 statement'' (\S\ref{sec:action-statement}).
 \end{remark}
@@ -3049,6 +3169,32 @@ is append-only (protocol specification, \S``Note Commitment Trees''), but
 that of the nullifier, constructed in ``Nullifiers'' (\S\ref{sec:nf}).
 \end{remark}
 
+\begin{corollary}[Paths to an admissible anchor]\label{cor:anchor-path}
+Let a bundle of a pool, in a transaction of a block $B$, have an anchor
+$\mathit{rt}$ that satisfies the anchor rule. Under
+Assumptions~\ref{ass:dl-pallas} and~\ref{ass:grouphash-ro}, for a valid path
+$(v, \mathsf{pos}, (s_0, \dots, s_{31}))$ to $\mathit{rt}$ with
+$v = \Extract_{\PP}(P)$ for a point $P$, the value $v$ is, except with
+negligible probability, the value appended to the pool's tree at position
+$\mathsf{pos}$ in a block that precedes $B$.
+\end{corollary}
+
+\begin{proof}
+By the anchor rule, $\mathit{rt}$ is the anchor of a block $B'$ that
+precedes $B$. Proposition~\ref{prop:membership}(iii), applied to $B'$, gives
+$\mathsf{pos} < n$, for $n$ the number of leaves appended through $B'$, and
+$v$ the value appended at position $\mathsf{pos}$ in $B'$ or earlier, except
+with negligible probability.
+\end{proof}
+
+For a consumed note of non-zero value, the relation that each Action proves,
+stated in ``The Action statement'' (\S\ref{sec:action-statement}), supplies
+such a path, up to two relaxations treated there.
+Corollary~\ref{cor:anchor-order}, in ``Double-spend resistance''
+(\S\ref{sec:security-double-spend}), concludes that such a note is consumed
+only in a block after the one that created it, so that its consumption does
+not chain within a block.
+
 \begin{definition}[Reorganisation]
 A \emph{reorganisation} is the replacement of the chain's most recent blocks
 by a competing branch.
@@ -3319,6 +3465,14 @@ set of its pool (\S\ref{sec:nf-sets}). The construction must make the nullifier
 \item[(b)] \emph{unlinkable}: to a party without $\nksym$, the published
   value reveals nothing about the note's commitment or address.
 \end{enumerate}
+Requirement~(b) forces a key: the extracted commitment $\cmx$ of a note is
+public, as its leaf (\S\ref{sec:tree-hash}), so an unkeyed function of it,
+such as a hash of $\cmx$, would be deterministic and, for a
+collision-resistant hash, distinct for distinct commitments, but any party
+could evaluate it on every leaf and so link each published nullifier to the
+leaf of its note; and an unkeyed function of the note's other fields would
+let its sender, who knows them, recognise the nullifier when the recipient
+consumes the note.
 
 \begin{construction}[Nullifier PRF]
 Let $f \colon \F_{p_{\Pallas}}^{3} \to \F_{p_{\Pallas}}^{3}$ be the Poseidon
@@ -4568,6 +4722,8 @@ signature (\S\ref{sec:value-bsig}) enforces it.
 %   spec 'Transactions and Treestates'
 % marginal_fee 5000, grace_actions 2; Ironwood contribution
 %   nActionsIronwood: ZIP 317 'Fee calculation' (Revision 1)
+% .wip/repin/scripts/ironwood_repin.py (zips 660b3f80), ZIP 235 from NU7:
+% [sec:value-balance] block fees 10000: removed 6000, coinbase 4000
 The protocol specification, \S``Transactions and Treestates'', states the
 consensus rule: the value remaining in the transparent transaction value
 pool must be non-negative. For a transaction other than a coinbase
@@ -4577,9 +4733,14 @@ encodes it (ZIP 229, ``Transaction Format'' and ``Non-requirements''). The
 pool of a coinbase transaction also receives, as implicit inputs, the block
 subsidy and the fees of the block's other transactions, and its outputs must
 consume all of the value in it (protocol specification, \S``Transactions and
-Treestates'' and \S``Transaction Consensus Rules''). ZIP 317, ``Fee
-calculation'', specifies the \emph{conventional fee}, which wallets SHOULD
-pay and which is not a consensus requirement:
+Treestates'' and \S``Transaction Consensus Rules''). From NU7 it receives
+only part of the fees: for $F$ the total fee of the block's other
+transactions, $\lfloor 6F/10 \rfloor$, computed once for the block, is
+removed from circulation, and the coinbase transaction receives
+$F - \lfloor 6F/10 \rfloor$ (ZIP 235, ``Consensus Rule Changes''; ZIP 259,
+``NU7 consensus changes''). ZIP 317, ``Fee calculation'', specifies the
+\emph{conventional fee}, which wallets SHOULD pay and which is not a
+consensus requirement:
 \begin{gather*}
   \mathit{marginal\_fee} \cdot \max(\mathit{grace\_actions},\,
     \mathit{logical\_actions}) \text{ zatoshi}, \\
@@ -4594,6 +4755,46 @@ Example~\ref{ex:payment} (\S\ref{sec:tx-construct}).
 The balancing value is cleartext, so a negative one discloses the amount
 that enters the pool; the field names no receiving note or address.
 \end{remark}
+
+% .wip/deck-harvest/scripts/ironwood/ironwood_additions.py:
+% [ex:shield-unshield] T1 inputs 1000000000 zatoshi = 10.0 ZEC ; fee 15000 ;
+%   valueBalanceIronwood -999985000
+% [ex:shield-unshield] T2 valueBalanceIronwood 999985000 ; output 999970000
+%   zatoshi = 9.9997 ZEC ; fee 15000
+\begin{example}[A shield and a later unshield]\label{ex:shield-unshield}
+A transaction $T_1$ has transparent inputs of $1\,000\,000\,000$ zatoshi,
+$10$~ZEC, no transparent output, and an Ironwood-pool bundle that creates
+one note $n_1$, of the whole amount less a fee of $15\,000$ zatoshi; its
+balancing value is
+\[
+  \mathsf{valueBalanceIronwood} = -(1\,000\,000\,000 - 15\,000)
+    = -999\,985\,000 .
+\]
+A later transaction $T_2$ has no transparent input, an Ironwood-pool bundle
+whose balancing value is $999\,985\,000$, and one transparent output of
+$999\,970\,000$ zatoshi, which leaves a fee of $15\,000$ zatoshi.
+An observer reads both balancing values, the transparent inputs and the
+output with their addresses, and the blocks that contain $T_1$ and $T_2$. It
+learns that $999\,985\,000$ zatoshi entered the Ironwood pool and that the
+same amount left it later.
+
+It does not learn that $T_2$ consumed $n_1$. Under the preconditions of
+Theorem~\ref{thm:privacy} (``Privacy'', \S\ref{sec:security-privacy}), the
+public data of the bundle of $T_2$ are computationally indistinguishable from
+those of a bundle with the same public leakage that consumes other leaves of
+the tree at its anchor, notes of other values included, while $n_1$ stays
+unconsumed. In particular the extracted commitment of $n_1$ hides its
+recipient and value (Proposition~\ref{prop:cm-derived}), a nullifier of
+$T_2$ is not linkable to a leaf (Proposition~\ref{prop:nf-unlinkable}), and
+the anchor of $T_2$ confines its consumed notes only to the leaves of the
+anchored tree (Remark ``Anchor choice as public data'',
+\S\ref{sec:tree-anchors}). The equal amounts are a correlation, which an
+observer may weigh with the timing of the two transactions and with how
+rarely the amount occurs; they are not a path from the leaf of $n_1$ to a
+nullifier of $T_2$, which the public data do not contain. ZIP 229, Privacy
+Implications, records this disclosure of the amounts that cross between
+pools.
+\end{example}
 
 \subsection{The binding signature}\label{sec:value-bsig}
 
@@ -5045,7 +5246,11 @@ position, and the volume asserts none.
 below with the requirement of ``Requirements on a shielded payment''
 (\S\ref{sec:intro-req}) that it serves and, where one exists, with the check
 outside the proof that completes it; Table~\ref{tab:action-req} collects the
-pairing and Figure~\ref{fig:action} draws it.
+pairing and Figure~\ref{fig:action} draws it. All ten conditions constrain
+one auxiliary input, so the note whose extracted commitment A3 proves to be
+a leaf is the note that A1 opens and whose nullifier A5 derives, under the key
+$\nksym$ that A7 ties to its address; Lemma~\ref{lem:one-nf}
+(\S\ref{sec:security-double-spend}) relies on this.
 
 Conditions A1 and A2 bind the consumed and the created note to the
 commitments $\cmsym^{\mathsf{old}}$ and $\cmx$ under $\NoteCommit$, the
@@ -5383,6 +5588,73 @@ map of the volume.}
 \label{tab:action-req}
 \end{table}
 
+% .wip/review/ironwood/necessity_range.py:
+% [rem:necessity(v)] p_V - p_P = 86663725065984043395317760 (2^86.16);
+%   a = p_P - 1, b = p_V - p_P + 1 - x; for 0 < x <= 2^63 - 1: a, b < p_P,
+%   -(a + b) = x - p_V = x mod p_V; one Action needs p_V - x > p_P - 1
+\begin{remark}[Necessity of the conditions]
+The requirement map pairs each of conditions A1 to A7 with a requirement
+that it serves. Each of the following conditions is also needed: removed
+from the relation, it admits witnesses that an accepted proof would then
+attest, and with them an attack.
+\begin{enumerate}[label=(\roman*)]
+\item Without A1, the note fields of the witness are unrelated to the
+  commitment $\cmsym^{\mathsf{old}}$ whose extracted value A3 proves to be a
+  leaf. A prover pairs any leaf, the note of another party included, with an
+  address of its own, any value and fresh $(\rho^{\mathsf{old}},
+  \psi^{\mathsf{old}})$, and so consumes one leaf many times, under distinct
+  nullifiers and at values of its choice, against R2, R3 and R4.
+\item Without A3, an Action consumes a note of non-zero value that was never
+  committed, one that the prover invents at its own address with any value:
+  value is created, against R2 and with it R4.
+\item Without A5, the published nullifier is unrelated to the consumed note,
+  so a prover consumes one committed note many times, publishing a fresh
+  nullifier each time, which the nullifier-set rule does not detect: against
+  R3.
+\item Without A6, the key $\rk$ need not derive from the witnessed
+  $\aksym^{\PP}$, so a holder of the full viewing key of a note's key, which
+  yields no $\ask$ (Proposition~\ref{prop:capabilities}(a)), signs under a
+  key of its own and consumes the note. Without A7, the witnessed key
+  components need not be those of the note's address, so any party that
+  knows the note, such as its sender, consumes it with key components of its
+  own, under a nullifier deriving key of its choice; step~(2) of the proof of
+  Lemma~\ref{lem:one-nf} then fails as well. Both are theft, against R5.
+\item Without the range $\{0, \dots, 2^{64} - 1\}$ of $v^{\mathsf{old}}$
+  and $v^{\mathsf{new}}$, each value ranges over $\F_{p_{\Pallas}}$, the
+  field of the conditions' equations, read as an integer in
+  $\{0, \dots, p_{\Pallas} - 1\}$ and encoded in $M^{\mathsf{old}}$ and
+  $M^{\mathsf{new}}$ by $\mathrm{LE}_{255}$, as $\rho$ and $\psi$ are. The
+  congruence modulo $p_{\Vesta}$ that the binding signature certifies
+  (Proposition~\ref{prop:bvk}) then no longer implies the equality of
+  integers of Lemma~\ref{lem:modular-balance}. For a balancing value $x$
+  with $0 < x < 2^{63}$, let a bundle have two Actions whose consumed notes
+  are dummies of value $0$ and whose created notes have the values
+  \[
+    a := p_{\Pallas} - 1, \qquad b := p_{\Vesta} - p_{\Pallas} + 1 - x,
+  \]
+  both in $\{0, \dots, p_{\Pallas} - 1\}$, since $p_{\Vesta} - p_{\Pallas}
+  > 2^{86}$ for the moduli of the protocol specification, \S``Pallas and
+  Vesta''. The net values sum to $-(a + b) = x - p_{\Vesta}$, congruent to
+  $x$ modulo $p_{\Vesta}$, so the net value commitments sum to a commitment
+  to $x$, and the bundle may carry the balancing value $x$, which no
+  consumed value funds: against R4. One Action does not suffice, since the
+  created value $p_{\Vesta} - x$ that it would need exceeds
+  $p_{\Pallas} - 1$.
+\item Without the chaining $\rho^{\mathsf{new}} := \nfsym^{\mathsf{old}}$
+  of A2, the element $\rho$ of a created note is a free witness. A sender can
+  then create one note in two Actions, two leaves that share one nullifier,
+  the Faerie Gold attack of ``Nullifier chaining'' (\S\ref{sec:nf-chaining}),
+  and part~(a) of Corollary~\ref{cor:faerie-gold} fails; only the recipient's
+  derivation of $\rho$ from the nullifier of the note's own Action, in
+  ``Trial decryption and note acceptance'' (\S\ref{sec:enc-trial}), would
+  still keep it from accepting both.
+\end{enumerate}
+No party chooses a weaker relation: consensus fixes the verifying key in
+force (\S\ref{sec:action-circuit}). A flaw in the circuit that encodes the
+relation can have the effect of a removed condition; Remark ``Outflow
+bound'' (\S\ref{sec:tx-pools}) names a recorded one.
+\end{remark}
+
 \begin{figure}[p]
 \centering
 \begin{tikzpicture}[
@@ -5559,7 +5831,17 @@ upgrade (protocol specification, \S``Action Descriptions'', consensus rules).
 The key in force for every Action, in either pool and in version~$5$ and
 version~$6$ transactions alike, is the post-NU6.3 verifying key, named by
 upgrade and not by pool (ZIP 258, ``Consensus rules from~NU6.3
-activation'').
+activation''). The selection by upgrade bears on soundness: the circuit
+whose verifying key consensus selected before NU6.2 had a soundness flaw in
+its implementation, not in the Action statement, which could have allowed
+the creation of value and the theft of funds; the corrected circuit has a
+different verifying key, and a proof made for one of the two circuits
+verifies only under its key (protocol specification, \S``Action Statement
+(Orchard)'', vulnerability disclosure; ZIP 257, Motivation). A flaw of this
+kind in the post-NU6.3 circuit would falsify Assumption~\ref{ass:ks} below,
+which includes that every satisfying assignment of that circuit yields a
+witness of the relation; Remark ``Outflow bound'' (\S\ref{sec:tx-pools})
+states what the chain value pool balances bound in that case.
 
 \begin{assumption}[Discrete logarithms on Vesta]\label{ass:dl-vesta}
 For every classical probabilistic polynomial-time algorithm, given a
@@ -6132,7 +6414,9 @@ public field of its Action, from the encryption of a fixed $64$-byte string
 under an independent uniform key. The hypotheses are
 Assumptions~\ref{ass:prf-expand}, \ref{ass:vk-hiding}, \ref{ass:kdf},
 \ref{ass:aead}, \ref{ass:zk}, \ref{ass:dl-pallas}
-and~\ref{ass:grouphash-ro}.
+and~\ref{ass:grouphash-ro}. A ciphertext $C_{\mathsf{out}}$ formed with
+$\ovk = \bot$ has the same property towards every efficient party, a holder
+of the whole key included, under Assumption~\ref{ass:aead} alone.
 \end{proposition}
 
 \begin{proof}
@@ -6152,9 +6436,13 @@ $\mathsf{ock}$ is a random-oracle output (Assumption~\ref{ass:kdf}) at an
 input that the party queries with negligible probability, hence uniform, and
 distinct Actions give distinct inputs, their $\mathsf{epk}$ differing except
 with negligible probability, so each $\mathsf{ock}$ encrypts once;
-Assumption~\ref{ass:aead}(a) then applies. With $\ovk = \bot$,
-$\mathsf{ock}$ is uniform by construction. The ciphertext $C_{\mathsf{out}}$
-thus reveals nothing about $(\pkd, \mathsf{esk})$.
+Assumption~\ref{ass:aead}(a) then applies. With $\ovk = \bot$, the sender
+draws $\mathsf{ock}$ and $\mathsf{op}$ uniformly, independently of the key
+and of every other field of the Action, and uses $\mathsf{ock}$ for
+$\mathsf{op}$ alone; a reduction that holds the whole key forms every other
+field itself, and Assumption~\ref{ass:aead}(a) applies with no other
+hypothesis. The ciphertext $C_{\mathsf{out}}$ thus reveals nothing about
+$(\pkd, \mathsf{esk})$.
 \end{proof}
 
 A holder of $\ovk$ recovers, for every output sent under that $\ovk$, the
@@ -6343,30 +6631,108 @@ generated with $\mathsf{use\_qsk} = \mathsf{false}$.
 
 \emph{Incoming tier.} A holder of the incoming viewing key $(\dk, \ivk)$, of
 which trial decryption and acceptance use only $\ivk$, detects and reads
-every note sent to any address of the key, value and memo included. It
-cannot compute the nullifiers of these notes, which require $\nksym$, and
+every note sent to any address of the key, value and memo included. The key
 $(\dk, \ivk)$ yields neither $\nksym$ nor $\ask$
-(Proposition~\ref{prop:capabilities}(b)). It cannot link a published
-nullifier to one of them, for notes with pairwise distinct $\rho$
+(Proposition~\ref{prop:capabilities}(b)). For notes with pairwise distinct
+$\rho$, its holder can neither compute the nullifier of one of the key's
+notes nor link a published nullifier to one of them
 (Proposition~\ref{prop:nf-unlinkable}), so the nullifier sets alone do not
-show it which are consumed; and it cannot authorise a spend.
+show it which are consumed. It cannot authorise the consumption of a note of
+the key: Theorem~\ref{thm:spend-authority}, in ``Authorisation of spends'',
+excludes this even for a holder of the full viewing key, from which
+$(\dk, \ivk)$ is derived.
 
 \emph{Full-viewing tier.} A holder of the full viewing key
 $(\aksym, \nksym, \rivk)$ derives $(\dk, \ivk)$ and $\ovk$ (``Viewing keys'',
 \S\ref{sec:keys-viewing}). It detects and reads incoming notes as above, and
 reads the outputs sent under its $\ovk$ (\S\ref{sec:enc-out}), not those sent
-under $\ovk = \bot$ or another outgoing viewing key. With $\nksym$ it
-computes the nullifier
+under $\ovk = \bot$ or another key's outgoing viewing key (Proposition
+``Confidentiality of the outgoing ciphertext'', \S\ref{sec:enc-out}). With
+$\nksym$ it computes the nullifier
 $\nfsym = \mathsf{DeriveNullifier}_{\nksym}(\rho, \psi, \cmsym)$ of each
 accepted note (Definition~\ref{def:nullifier}) and detects its consumption by
 the membership of $\nfsym$ in the nullifier set of the note's pool
 (``Nullifier sets'', \S\ref{sec:nf-sets}; protocol specification,
 \S``Decryption using an Incoming Viewing Key (Sapling and Orchard)'',
-notes). It cannot spend, since it yields no $\ask$
-(Proposition~\ref{prop:capabilities}(a)). For each unspent note the owner
-thus holds the note, its position, its authentication path and its
-nullifier, the consumed-note inputs of an Action
+notes). It cannot authorise the consumption of a note of the key
+(Theorem~\ref{thm:spend-authority}, whose adversary holds the full viewing
+key), and the key yields no $\ask$ (Proposition~\ref{prop:capabilities}(a)).
+For each unspent note the owner thus holds the note, its position, its
+authentication path and its nullifier, the consumed-note inputs of an Action
 (Definition~\ref{def:action}); spending authority is $\ask$.
+
+Table~\ref{tab:key-tiers} collects these powers with those of the other
+tiers, from the most to the least key material.
+
+\begin{table}[tp]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{2.7cm}p{5.6cm}p{4.9cm}@{}}
+\toprule
+Key material & Its holder can & Its holder cannot \tabularnewline
+\midrule
+spending key $\mathsf{sk}$, or $\ask$ with the full viewing key
+  & everything below, and authorise the consumption of a note of the key,
+    signing under $\rsk = \ask + \alpha$ (\S\ref{sec:spendauth-rk})
+  & --- \tabularnewline
+\addlinespace
+full viewing key $(\aksym, \nksym, \rivk)$
+  & derive $(\dk, \ivk)$ and $\ovk$ (\S\ref{sec:keys-viewing}), with the
+    powers of the rows below; compute the nullifier of each accepted note
+    and detect its consumption (\S\ref{sec:nf-sets})
+  & authorise a consumption (Theorem~\ref{thm:spend-authority}); it
+    yields no $\ask$ (Proposition~\ref{prop:capabilities}(a))
+    \tabularnewline
+\addlinespace
+incoming viewing key $(\dk, \ivk)$
+  & derive the $2^{88}$ addresses of the key (\S\ref{sec:keys-addr});
+    detect and read every note sent to them, value and memo included
+    (\S\ref{sec:enc-trial})
+  & compute $\nksym$ or $\ask$ (Proposition~\ref{prop:capabilities}(b));
+    compute the nullifier of one of its notes, or link a published
+    nullifier to one of them, for notes with pairwise distinct $\rho$
+    (Proposition~\ref{prop:nf-unlinkable}) \tabularnewline
+\addlinespace
+outgoing viewing key $\ovk$
+  & read every output sent under this $\ovk$: the recipient's address, the
+    value and the memo (\S\ref{sec:enc-out})
+  & learn anything from the outgoing ciphertext of an output sent under
+    $\ovk = \bot$ or under another key's $\ovk$ (Proposition
+    ``Confidentiality of the outgoing ciphertext'', \S\ref{sec:enc-out});
+    detect, by trial decryption, the notes sent to the
+    key's addresses, which needs $\ivk$
+    (Proposition~\ref{prop:capabilities}(c)) \tabularnewline
+\addlinespace
+address $(d, \pkd)$, public
+  & receive notes: any party creates a note to it (\S\ref{sec:enc-encrypt})
+  & compute $\ivk$ (Proposition~\ref{prop:capabilities}(d)) \tabularnewline
+\bottomrule
+\end{tabular}
+\caption{The powers of the key tiers over notes, nullifiers and note
+ciphertexts, for keys generated with $\mathsf{use\_qsk} = \mathsf{false}$.
+Each entry of the last column is a part of
+Proposition~\ref{prop:capabilities} or the result cited; no other separation
+is claimed. In particular the table does not claim that a holder of $\ovk$
+alone cannot read the notes sent to the key's addresses, only that trial
+decryption, which finds them, needs $\ivk$.}
+\label{tab:key-tiers}
+\end{table}
+
+\begin{remark}[The nullifier deriving key alone]
+A party that holds $\nksym$ alone computes, for a note whose $\rho$, $\psi$
+and commitment $\cmsym$ it is given, the nullifier
+$\mathsf{DeriveNullifier}_{\nksym}(\rho, \psi, \cmsym)$
+(Definition~\ref{def:nullifier}), and so tests whether that note has been
+consumed, by the membership of the nullifier in its pool's nullifier set.
+It finds no note by this means: the key $\nksym$ enters neither trial
+decryption, whose key is $\ivk$, nor acceptance. Within the full viewing
+key, $\nksym$ is thus the component that tells which notes are consumed: the
+incoming tier finds notes without it and yields no $\nksym$
+(Proposition~\ref{prop:capabilities}(b)), the nullifier sets alone do not
+show it which of its notes are consumed
+(Proposition~\ref{prop:nf-unlinkable}), and the full-viewing tier adds
+$\nksym$ to tell exactly that.
+\end{remark}
 
 \section{Transactions and consensus rules}\label{sec:tx}
 
@@ -6668,8 +7034,10 @@ Rules''; protocol specification, \S``Transaction Consensus Rules'').
 \begin{definition}[Coinbase transaction]
 A \emph{coinbase transaction} is the first transaction of a block; it
 collects the block subsidy, the value newly issued in that block, and the
-fees of the block's other transactions. Every block has exactly one
-(protocol specification, \S``Coinbase Transactions'').
+fees of the block's other transactions, less from NU7 the part of those fees
+removed from circulation (``The balancing value'',
+\S\ref{sec:value-balance}). Every block has exactly one (protocol
+specification, \S``Coinbase Transactions'').
 \end{definition}
 
 % cited constant, not in compute/OUTPUT.md: 499999999, the bound on
@@ -7254,7 +7622,13 @@ The consensus rules on the balances are: a block that would make the chain
 value pool balance of any pool negative is invalid, and a block that would
 make the total issued supply exceed $\mathsf{MAX\_MONEY}$
 (\S\ref{sec:tx-format}) is invalid (ZIP 209, ``Specification''; protocol
-specification, \S``Chain Value Pool Balances'').
+specification, \S``Chain Value Pool Balances''). ZIP 229, Motivation and
+Privacy Implications, calls this mechanism of ZIP 209 the
+\emph{turnstile}, a term that ZIP 258, ``Consensus rules from~NU6.3
+activation'', also uses: the value that a transaction moves across the
+boundary of a shielded pool is public, as the pool's balancing value, and
+the rule on the balances bounds what leaves each pool by what has entered
+it.
 
 \begin{remark}[Outflow bound]
 Fix a pool $P$ and write each of its balancing values as
@@ -7266,7 +7640,18 @@ net value that has left $P$ through positive balancing values, $\sum v^{+}$,
 is at most the net value that entered it through negative ones,
 $\sum v^{-}$. Value created inside $P$ by a failure of soundness can
 therefore leave $P$ only up to the value recorded as having entered it (ZIP
-209, ``Specification'').
+209, ``Specification''). The protocol specification records two soundness
+failures that could have allowed such creation of value. The first is a
+vulnerability of BCTV14, the proof system of the JoinSplit descriptions of
+Sprout (\S\ref{sec:tx-format}) before the Sapling network upgrade, which the
+specification believes fully mitigated by that upgrade, with no evidence of
+its use (CVE-2019-7167; protocol specification, \S``BCTV14'', vulnerability
+disclosure). The second is a flaw in the implementation of the Action
+circuit whose verifying key consensus selected before NU6.2, not in the
+Action statement, which could also have allowed the theft of funds (protocol
+specification, \S``Action Statement (Orchard)'', vulnerability disclosure;
+ZIP 257, Motivation; ``The Action circuit and the Halo 2 proof'',
+\S\ref{sec:action-circuit}).
 \end{remark}
 
 The following Orchard-pool rules apply to every transaction, whatever its
@@ -7323,12 +7708,115 @@ the byte is not allowed for the pool (``Trial decryption and note
 acceptance'', \S\ref{sec:enc-trial}; protocol specification,
 \S``Decryption using an Incoming Viewing Key (Sapling and Orchard)'').
 
-The rules of ZIP 218, ``Shielded pool action limits'', bound per block the
-number of Orchard-pool Actions and a shielded budget that counts them
-together with the descriptions of the other shielded protocols; they do not
-mention Ironwood-pool Actions, which a version-$6$ transaction counts in the
-separate field $\mathsf{nActionsIronwood}$ (ZIP 229, ``Transaction
-Format''). These are block-level rules, outside the Action statement.
+Figure~\ref{fig:pool-flows} draws the flows of value that these rules
+permit. Value moves between pools only through the transparent transaction
+value pool of a transaction (``The balancing value'',
+\S\ref{sec:value-balance}): transparent inputs and positive balancing values
+add to it, transparent outputs and negative balancing values draw from it,
+and the value that remains in it is the fee, which the block's coinbase
+transaction collects, less from NU7 the part of the block's fees removed
+from circulation (same section). The Sapling pool, the value pool of Zcash's
+second shielded protocol (\S\ref{sec:tx-sighash}), is not sealed by ZIP 258:
+its balancing value $\mathsf{valueBalanceSapling}$, of the same sign convention,
+may be positive or negative (protocol specification, \S``Balance and Binding
+Signature (Sapling)''). A coinbase transaction consumes no Sapling note, no
+Orchard-pool note and no Ironwood-pool note of non-zero value, and may pay
+transparent outputs, Sapling outputs and Ironwood-pool outputs (protocol
+specification, \S``Transaction Consensus Rules''; rules~(iii) and~(iv)). A
+transaction that spends a transparent output of a coinbase transaction has
+no transparent output (same section), so that value next enters a shielded
+pool or the fee. Value leaves the Orchard pool for the Ironwood pool within
+one transaction when that transaction has $\mathsf{valueBalanceOrchard} > 0$
+and $\mathsf{valueBalanceIronwood} < 0$, which ZIP 258 calls leaving the
+Orchard pool across the turnstile into the Ironwood pool.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=1.8mm]},
+  pool/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=9mm, text width=32mm, align=center},
+  pool/.default=gray,
+  hub/.style={draw=tierin, fill=tierin, fill opacity=0.08, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=55mm, text width=19mm, align=center},
+  fl/.style={->, line width=0.6pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt},
+]
+\node[pool] (tr) at (6.8,0) {transparent pool\\(unspent outputs)};
+\node[pool] (sap) at (6.8,-1.5) {Sapling pool\\$\mathsf{valueBalanceSapling}$};
+\node[pool=tierspend] (orc) at (6.8,-3.0)
+  {Orchard pool, sealed\\$\mathsf{valueBalanceOrchard}$};
+\node[pool] (irw) at (6.8,-4.5)
+  {Ironwood pool\\$\mathsf{valueBalanceIronwood}$};
+\node[hub] (tx) at (1.2,-2.25) {transparent transaction value pool of a
+  non-coinbase transaction};
+\node[hub] (cb) at (12.4,-2.25) {transparent transaction value pool of the
+  block's coinbase transaction};
+% non-coinbase transaction: both directions, except into the Orchard pool
+\draw[fl] ([yshift=1.5mm]tr.west) -- ([yshift=1.5mm]tr.west -| tx.east)
+  node[lb, midway, above] {inputs};
+\draw[fl] ([yshift=-1.5mm]tr.west -| tx.east) -- ([yshift=-1.5mm]tr.west)
+  node[lb, midway, below] {outputs};
+\foreach \p in {sap, irw} {
+  \draw[fl] ([yshift=1.5mm]\p.west) -- ([yshift=1.5mm]\p.west -| tx.east)
+    node[lb, midway, above] {$> 0$};
+  \draw[fl] ([yshift=-1.5mm]\p.west -| tx.east) -- ([yshift=-1.5mm]\p.west)
+    node[lb, midway, below] {$< 0$};
+}
+\draw[fl] (orc.west) -- (orc.west -| tx.east)
+  node[lb, midway, above] {$> 0$ only};
+% coinbase transaction: outputs only, none to the Orchard pool
+\draw[fl] (tr.east -| cb.west) -- (tr.east)
+  node[lb, midway, above] {outputs};
+\draw[fl] (sap.east -| cb.west) -- (sap.east)
+  node[lb, midway, above] {$< 0$};
+\draw[fl] (irw.east -| cb.west) -- (irw.east)
+  node[lb, midway, above] {$< 0$};
+\node[lb, text=muted] at ($(orc.east)!0.5!(orc.east -| cb.west)$) {none};
+\node[pool] (sub) at (12.4,1.45) {block subsidy};
+\draw[fl] (sub) -- (cb);
+\draw[fl] (tx.south) -- ++(0,-0.45) -| (cb.south)
+  node[lb, pos=0.25, below] {fee, the value remaining, $\geq 0$, less from
+    NU7 the part removed from circulation};
+\end{tikzpicture}
+\caption{The flows of value that the rules permit between the pools of the
+Orchard protocol, the Sapling pool and the transparent pool, the chain
+value pool of the unspent transparent outputs. Every flow passes through
+the transparent transaction value pool of a transaction, drawn as a hub
+for a non-coinbase transaction (left) and for the block's coinbase
+transaction (right). An arrow between a hub and a shielded pool is labelled
+by the sign of that pool's balancing value, positive out of the pool and
+negative into it; every such arrow crosses the turnstile, its amount
+public. No arrow enters the sealed Orchard pool (rule~(ii)), and the
+coinbase transaction has no Orchard-pool Action (rule~(iii)); it consumes no
+Ironwood-pool note of non-zero value (rule~(iv)) and no Sapling note, and
+its hub receives the block subsidy and the fees of the block's other
+transactions, less from NU7 the part of those fees removed from circulation,
+which no pool receives (``The balancing value'', \S\ref{sec:value-balance}).
+The Sprout pool, which no transaction of version~$5$ or~$6$ reaches
+(\S\ref{sec:tx-format}), and the deferred development fund pool of ZIP 209
+are not drawn.}
+\label{fig:pool-flows}
+\end{figure}
+
+% .wip/repin/scripts/ironwood_repin.py (zips 660b3f80):
+% [sec:tx-pools] per-pool Action limit 330 each; Sapling 300; JoinSplits 0;
+%   shared budget 330; Orchard-pool + Ironwood-pool Actions per block <= 330
+The rules of ZIP 218, ``Shielded pool action limits'', bound the shielded
+components of a block. The Orchard-pool Actions of its transactions, counted
+by the fields $\mathsf{nActionsOrchard}$, and their Ironwood-pool Actions,
+counted by the fields $\mathsf{nActionsIronwood}$ (ZIP 229, ``Transaction
+Format''), number each at most
+$\mathsf{OrchardProtocolBlockActionLimit} = 330$; its Sapling spends and
+outputs together number at most $300$, and its JoinSplit descriptions at
+most $0$. The Actions of both pools, the Sapling spends and outputs, and
+twice the JoinSplit descriptions together number at most
+$\mathsf{GlobalShieldedBudget} = 330$, a budget that the pools share, so a
+block holds at most $330$ Actions of the two pools together (\emph{Consensus
+Guide}, \S``A block budget for shielded work''). These are block-level
+rules, outside the Action statement.
 
 \FloatBarrier
 \subsection{Construction of a transaction}\label{sec:tx-construct}
@@ -7437,13 +7925,17 @@ are authorising data, so signing can precede proving (ZIP 229, Motivation).
 % 120-block default expiry delta, about 50 minutes: ZIP 218 'Default
 %   expiry delta'
 % 25-second target spacing: ZIP 218 'Block target spacing'
+% .wip/repin/scripts/ironwood_repin.py (zips 660b3f80):
+% [sec:tx-construct] expiry delta 3 x 40 = 120 blocks; 120 x 25 s = 3000 s
+%   = 50 min
 The sender sets $\mathsf{nExpiryHeight}$. ZIP 218, ``Default expiry
 delta'', recommends to node implementations that create transactions a
-default expiry height $120$ blocks above the current height (ZIP 203,
-``Specification''), which at the $25$-second target spacing stated in
-``Anchors'' (\S\ref{sec:tree-anchors}) is $120 \times 25 = 3000$ seconds,
-$50$ minutes. The consensus rule is the expiry rule of ``The transaction
-format'' (\S\ref{sec:tx-format}).
+default expiry height $120$ blocks above the current height, in place of
+$40$ blocks before NU7, and ZIP 203, ``Changes for NU7'', records the change
+without changing the expiry rule. At the $25$-second target spacing stated
+in ``Anchors'' (\S\ref{sec:tree-anchors}) that default spans
+$120 \times 25 = 3000$ seconds, $50$ minutes. The consensus rule is the
+expiry rule of ``The transaction format'' (\S\ref{sec:tx-format}).
 
 % compute/worked_payment.py:
 % [sec:tx-construct] consumed note 700000000 zatoshi = 7 ZEC; payment
@@ -7511,7 +8003,10 @@ transaction value pool.
 $\mathsf{addr}_{\mathsf{R}} = (d_{\mathsf{R}}, \pkd{}_{,\mathsf{R}})$ from
 its incoming viewing key (``Diversified addresses'', \S\ref{sec:keys-addr})
 and gives it to the sender; $\mathsf{addr}_{\mathsf{S}}$ is an address of
-the sender's own key. Write $(\gd{}_{,1}, \pkd{}_{,1})$ and
+the sender's internal key, the key with components $(\aksym_{\mathsf{S}},
+\nksym_{\mathsf{S}}, t_{\mathsf{S}})$ that ZIP 32 derives from the sender's
+full viewing key for change (\S\ref{sec:keys-viewing}; ZIP 32, ``Orchard
+internal key derivation''). Write $(\gd{}_{,1}, \pkd{}_{,1})$ and
 $(\gd{}_{,2}, \pkd{}_{,2})$ for the expanded receivers of
 $\mathsf{addr}_{\mathsf{R}}$ and $\mathsf{addr}_{\mathsf{S}}$, and
 $\nksym_1 := \nksym_{\mathsf{S}}$, $\nksym_2 := \nksym_{\mathsf{D}}$. For
@@ -7560,9 +8055,69 @@ $(\mathit{rt}, \cvsym^{\mathsf{net}}_i, \nfsym^{\mathsf{old}}_i, \rk_i,
 \cmx_i, 1, 1, 0)$ for $i = 1, 2$. Finally
 $\mathsf{epk}_i := [\mathsf{esk}_i]\,\gd{}_{,i}$, $C_{\mathsf{enc},i}$
 encrypts the plaintext of $n^{\mathsf{new}}_i$ to its receiver, and
-$C_{\mathsf{out},i}$ is formed under the sender's $\ovk$ (``Encryption to
-the recipient'', \S\ref{sec:enc-encrypt}; ``The outgoing ciphertext'',
-\S\ref{sec:enc-out}).
+$C_{\mathsf{out},i}$ is formed under an outgoing viewing key of the sender
+(``Encryption to the recipient'', \S\ref{sec:enc-encrypt}; ``The outgoing
+ciphertext'', \S\ref{sec:enc-out}): that of the payment, $C_{\mathsf{out},1}$,
+under the outgoing viewing key $\ovk_{\mathsf{S}}$ of the sender's key, and
+that of the change, $C_{\mathsf{out},2}$, under the outgoing viewing key of
+the internal key, the output of Construction ``Diversifier key and outgoing
+viewing key'' (\S\ref{sec:keys-viewing}) with $t_{\mathsf{S}}$ in place of
+$\rivk$ (ZIP 32, ``Orchard internal key derivation''). ZIP 316, ``Usage of
+Outgoing Viewing Keys'', recommends the external outgoing viewing key for a
+payment and the internal one for a transfer internal to the wallet, such as
+change.
+
+The witnesses of the two Actions satisfy the conditions of
+Definition~\ref{def:action} as follows, where
+$(\gd^{\mathsf{old}}, \pkd^{\mathsf{old}})$ is the expanded receiver of the
+Action's consumed note, $\ivk_{\mathsf{S}}$ and $\ivk_{\mathsf{D}}$ are the
+incoming viewing keys of the sender's key and of the dummy key, and
+$\delta = 1 - \mathsf{enableCrossAddress} = 0$.
+
+% .wip/deck-harvest/scripts/ironwood/ironwood_additions.py:
+% [ex:payment] v_old 700000000 0 ; v_new 500000000 199990000 ;
+%   net 200000000 -199990000 ; valueBalanceIronwood 10000
+% [ex:payment] A3: v_old_1 != 0 needs a path; v_old_2 == 0 is exempt
+% [ex:payment] A8: v_old_2 * (1 - enableSpends) = 0 for either flag
+% [ex:payment] A9: v_new_i != 0 for both, so enableOutputs = 1
+\begin{center}\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lp{6.1cm}p{5.6cm}@{}}
+\toprule
+ & Action $1$ & Action $2$ \tabularnewline
+\midrule
+A1 & $\NoteCommit$ of $n^{\mathsf{old}}_1$ is $\cmsym^{\mathsf{old}}_1$
+  & $\NoteCommit$ of the dummy $n^{\mathsf{old}}_2$ is
+    $\cmsym^{\mathsf{old}}_2$ \tabularnewline
+A2 & $\cmx_1$ is the extracted commitment of $n^{\mathsf{new}}_1$, whose
+    $\rho$ is $\nfsym^{\mathsf{old}}_1$
+  & $\cmx_2$ is that of $n^{\mathsf{new}}_2$, whose $\rho$ is
+    $\nfsym^{\mathsf{old}}_2$ \tabularnewline
+A3 & $v^{\mathsf{old}}_1 \neq 0$: the path of
+    $\Extract_{\PP}(\cmsym^{\mathsf{old}}_1)$ is valid to $\mathit{rt}$
+  & $v^{\mathsf{old}}_2 = 0$: holds for any path \tabularnewline
+A4 & $\cvsym^{\mathsf{net}}_1$ commits to $200\,000\,000$ under $\rcv_1$
+  & $\cvsym^{\mathsf{net}}_2$ commits to $-199\,990\,000$ under $\rcv_2$
+    \tabularnewline
+A5 & $\nfsym^{\mathsf{old}}_1$ is derived under $\nksym_{\mathsf{S}}$
+  & $\nfsym^{\mathsf{old}}_2$ is derived under $\nksym_{\mathsf{D}}$
+    \tabularnewline
+A6 & $\rk_1 = \aksym^{\PP}_{\mathsf{S}} + [\alpha_1]\,G^{\mathsf{SpendAuth}}$
+  & $\rk_2 = \aksym^{\PP}_{\mathsf{D}} + [\alpha_2]\,G^{\mathsf{SpendAuth}}$
+    \tabularnewline
+A7 & $\pkd^{\mathsf{old}} = [\ivk_{\mathsf{S}}]\,\gd^{\mathsf{old}}$
+  & $\pkd^{\mathsf{old}} = [\ivk_{\mathsf{D}}]\,\gd^{\mathsf{old}}$
+    \tabularnewline
+A8 & $v^{\mathsf{old}}_1 \neq 0$ and $\mathsf{enableSpends} = 1$
+  & $v^{\mathsf{old}}_2 = 0$: holds for either flag \tabularnewline
+A9 & $v^{\mathsf{new}}_1 \neq 0$ and $\mathsf{enableOutputs} = 1$
+  & $v^{\mathsf{new}}_2 \neq 0$ and $\mathsf{enableOutputs} = 1$
+    \tabularnewline
+A10 & $\delta = 0$: no constraint & $\delta = 0$: no constraint
+  \tabularnewline
+\bottomrule
+\end{tabular}
+\end{center}
 
 % compute/worked_payment.py:
 % [sec:tx-construct] binding relation: sum(v_old - v_new)
@@ -7619,7 +8174,9 @@ $(\mathtt{0x03}, d_{\mathsf{R}}, 500\,000\,000, \mathsf{rseed}_1,
 $\rho = \nfsym^{\mathsf{old}}_1$ of the same Action, checks
 $\mathsf{epk}_1$ and $\cmx_1$, and records the leaf position of $\cmx_1$
 (``Trial decryption and note acceptance'', \S\ref{sec:enc-trial}); the
-sender recovers the change note of output~$2$ in the same way. Either note
+sender recovers the change note of output~$2$ in the same way, with the
+incoming viewing key $\CommitIvk_{t_{\mathsf{S}}}(\aksym_{\mathsf{S}},
+\nksym_{\mathsf{S}})$ of its internal key. Either note
 is later consumed by the procedure of this subsection.
 \end{example}
 
@@ -7684,7 +8241,9 @@ only if the following checks pass.
   \S\ref{sec:value-balance}), a coinbase transaction satisfying instead the
   coinbase rule of the protocol specification, \S``Transaction Consensus
   Rules'', which balances its outputs against the block subsidy and the fees
-  of the block's other transactions. [R4, with A4.]
+  of the block's other transactions, less from NU7 the part of those fees
+  removed from circulation (ZIP 235, ``Consensus Rule Changes''). [R4, with
+  A4.]
 \item \emph{Pool rules.} The rules of ``Chain state and pool rules''
   (\S\ref{sec:tx-pools}), the expiry rule of ``The transaction format''
   (\S\ref{sec:tx-format}) and the capacity rule of each pool's note
@@ -7746,7 +8305,9 @@ and~\ref{ass:zk}. Theorem~\ref{thm:balance} states conservation per pool;
 its proof uses condition A4, the binding signature and
 Assumption~\ref{ass:ks}. Lemma~\ref{lem:one-nf} and
 Theorem~\ref{thm:no-double-spend} exclude a second consumption of a note,
-Corollary~\ref{cor:faerie-gold} the Faerie Gold attack and
+Corollary~\ref{cor:faerie-gold} the Faerie Gold attack,
+Corollary~\ref{cor:anchor-order} the consumption of a note of non-zero value
+in the block that creates it, and
 Theorem~\ref{thm:spend-authority} a consumption without the spend
 authorising key; Theorem~\ref{thm:privacy} states what the public data of a
 bundle hide. Theorem~\ref{thm:e2e} collects, under one list of assumptions,
@@ -7883,6 +8444,16 @@ $p_{\Vesta} > 2^{254}$ (\S\ref{sec:prim-fields}); the only such multiple of
 absolute value below $2^{80}$ is $0$.
 \end{proof}
 
+The range of the values $v^{\mathsf{old}}_i$ and $v^{\mathsf{new}}_i$ is a
+hypothesis that the conclusion needs. Proposition~\ref{prop:bvk} certifies
+the sum of the net values only modulo $p_{\Vesta}$, and values that differ
+from the true ones by multiples of $p_{\Vesta}$ have the same value
+commitments; without the range, a bundle could pass the binding signature
+while creating value (Remark ``Necessity of the conditions'',
+\S\ref{sec:action-statement}, item~(v); \emph{Crypto Guide}, \S``The
+Pedersen commitment'', whose worked example shows such a wrap-around in a
+small group).
+
 The security argument of the protocol specification, \S``Balance and
 Binding Signature (Orchard)'', bounds the balancing value by its signed
 $64$-bit encoding instead, which places $v^{\mathsf{sum}}$ in
@@ -7891,7 +8462,7 @@ $64$-bit encoding instead, which places $v^{\mathsf{sum}}$ in
     1\,208\,916\,596\,242\,592\,319\,864\,833\};
 \]
 that bound is also below $2^{80}$, so the conclusion holds without the range
-rule.
+rule of the balancing value.
 
 \begin{theorem}[Balance]\label{thm:balance}
 Under Assumptions~\ref{ass:ks}, \ref{ass:dl-pallas},
@@ -8106,6 +8677,49 @@ nullifier and create notes with the same $\rho$; a consumption in one pool
 inserts its nullifier into that pool's set only, and so blocks no note of
 the other pool (Remark ``Pool locality'', \S\ref{sec:nf-sets}).
 \end{proof}
+
+\begin{corollary}[Consumption after the appending block]%
+\label{cor:anchor-order}
+Let an accepted Action of a pool lie in a transaction of a block $B$, and
+let its witness consume a note $n$ of non-zero value. Under
+Assumptions~\ref{ass:ks}, \ref{ass:dl-pallas} and~\ref{ass:grouphash-ro},
+except with negligible probability, the extracted commitment of $n$ was
+appended to the pool's tree in a block that precedes $B$, and $n$ is the
+note created by the accepted Action that appended it and by no other
+accepted Action of the pool. Hence no accepted Action consumes a note of
+non-zero value created by its own transaction, by another transaction of
+$B$, or by a transaction not in a block that precedes $B$: consumptions of
+notes of non-zero value do not chain within a block or through transactions
+not yet in the chain.
+\end{corollary}
+
+\begin{proof}
+As stated after Definition ``Pools, accepted Actions and witnesses'', the
+witness satisfies Definition~\ref{def:action} with the anchor $\mathit{rt}$
+of the Action's bundle, and conditions A1, A2 and A3 hold without their
+$\bot$ cases, except with negligible probability. By A1 the note $n$ has the
+commitment $\cmsym^{\mathsf{old}}$, a point, so its extracted commitment is
+$\Extract_{\PP}(\cmsym^{\mathsf{old}})$. Since $v^{\mathsf{old}} \neq 0$,
+condition A3 gives a fold from that value, with the witnessed encodings
+$\mathsf{c}$, that ends at $\mathit{rt}$, and $\mathit{rt}$ satisfies the
+anchor rule, step~(3) of the verification of \S\ref{sec:tx-verify}.
+Parts~(ii) and~(iii) of Proposition~\ref{prop:membership} hold for that
+fold, whose encodings need not be canonical (\S\ref{sec:action-statement}),
+so the proof of Corollary~\ref{cor:anchor-path} (\S\ref{sec:tree-anchors})
+applies to it: the extracted commitment of $n$ is the value appended at
+position $\mathsf{pos}$ in a block that precedes $B$. That value is the
+$\cmx$ of an accepted Action of that block (Definition ``Note commitment
+tree'', \S\ref{sec:tree-hash}), whose created note opens it by A2. By Remark
+``Binding for notes given by expanded receivers'' that created note is $n$,
+and by Corollary~\ref{cor:faerie-gold}(a) no other accepted Action of the
+pool creates $n$, except with negligible probability.
+\end{proof}
+
+A note of value zero, such as a dummy consumed note, is exempt from
+condition A3 (\S\ref{sec:action-statement}) and needs no path: it may be
+consumed in any block, whether or not its extracted commitment is a leaf.
+Corollary~\ref{cor:anchor-order} therefore concerns notes of non-zero value
+only.
 
 \subsection{Authorisation of spends}\label{sec:security-auth}
 

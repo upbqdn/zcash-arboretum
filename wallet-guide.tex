@@ -344,6 +344,7 @@ ZIP & Title & Status \\
 227 & Issuance of Zcash Shielded Assets & Draft \\
 229 & Version 6 Transaction Format & Draft \\
 231 & Memo Bundles & Draft \\
+235 & Remove 60\% of Transaction Fees From Circulation & Draft \\
 244 & Transaction Identifier Non-Malleability & Final \\
 248 & Extensible Transaction Format & Draft \\
 256 & Deployment of Consensus Bug Fixes Between NU6.1 and NU6.2 & Final \\
@@ -4257,49 +4258,45 @@ number of trials. Restoring an account repeats this work from its birthday.
 Retrieval of full transactions and the maintenance of authentication paths
 scale with the wallet's own notes, the latter linearly in its unspent notes.
 
-% compute/compact.py:
-% [sec:scan-cost] target day at 25 s spacing: 86400 / 25 = 3456 blocks
-% [sec:scan-cost] at 330 Orchard-pool Actions per block: 3456 x 330 =
-%   1,140,480 compact Actions per target day, 1,140,480 x 148 =
-%   168,791,040 payload bytes (about 168.8 MB); per block 330 x 148 =
-%   48,840 bytes
-% [sec:scan-cost] trial decryptions per candidate ivk per target day: at
-%   most 1,140,480 (one key agreement per compact Action); Ironwood-pool
-%   Actions unbounded by ZIP 218 as written
+% compute/compact.py; .wip/repin/scripts/wallet_zip218.py (zips 660b3f80):
+% [sec:scan-cost] 3456 target blocks per day at 25 s
+% [sec:scan-cost] Orchard-pool + Ironwood-pool Actions per block <= 330; per
+%   target day <= 1,140,480; compact payload <= 168,791,040 bytes; per block
+%   <= 48,840
+% [sec:scan-cost] Actions of both pools + Sapling spends and outputs per
+%   block <= 330
 \begin{proposition}[Scanning work per target day]\label{prop:scan-cost}
-At NU7's target spacing of $25$ seconds (ZIP 218, ``Block target
-spacing''; \emph{Consensus Guide}, \S``Confirmation times at 25-second spacing''), a
-target day of $86{,}400$ seconds holds $3456$ blocks. A block holds at most
-$330$ Orchard-pool Actions (ZIP 218, ``Shielded pool action limits''), so a
-target day holds at most $1{,}140{,}480$ compact Orchard-pool Actions, with
-at most $168{,}791{,}040$ bytes of their compact payload at $148$ bytes
-each (Definition~\ref{def:compact-elements}), and requires at most
-$1{,}140{,}480$ trial decryptions of Orchard-pool Actions per candidate
+At NU7's target spacing of $25$ seconds (ZIP 218, ``Block target spacing'';
+\emph{Consensus Guide}, \S``Confirmation times at 25-second spacing''), a target
+day of $86{,}400$ seconds holds $3456$ blocks. A block holds at most $330$
+Actions of the Orchard pool and the Ironwood pool together (ZIP 218, ``Shielded
+pool action limits''), so a target day holds at most $1{,}140{,}480$ compact
+Actions of the two pools, with at most $168{,}791{,}040$ bytes of their compact
+payload at $148$ bytes each (Definition~\ref{def:compact-elements}), and
+requires at most $1{,}140{,}480$ trial decryptions of Actions per candidate
 $\ivk$; the number of candidate keys of an account is fixed by
-Definition~\ref{def:scan-keys}. The same bounds hold for Orchard-pool
-Actions, Sapling spends and Sapling outputs together, since the shared
-budget of the same section limits their sum to $330$ per block, and a
-compact Sapling output ($116$ bytes) or spend ($32$ bytes) is smaller than
-a compact Action. The figures count target blocks: the number of blocks
-mined in a day varies, and the target spacing is not a rate limit.
-
-The bound covers no Ironwood-pool Action: ZIP 218 counts none against any
-limit, so the specified text bounds neither their number nor the trial
-decryptions they cost. A proposed amendment would charge them to the shared
-budget of $330$ units, under which the same figures would bound the
-Orchard-protocol total (\emph{Consensus Guide}, \S``A block budget for
-shielded work''). The Ironwood term is an open problem
-(Definition~\ref{def:intro-classes}).
+Definition~\ref{def:scan-keys}. The same bounds hold for Actions, Sapling spends
+and Sapling outputs together, since the shared budget of the same section limits
+their sum to $330$ per block, and a compact Sapling output ($116$ bytes) or
+spend ($32$ bytes) is smaller than a compact Action. The figures count target
+blocks: the number of blocks mined in a day varies, and the target spacing is
+not a rate limit.
 \end{proposition}
 
 \begin{proof}
 The counts are $86{,}400 / 25 = 3456$, $330 \cdot 3456 = 1{,}140{,}480$ and
-$148 \cdot 1{,}140{,}480 = 168{,}791{,}040$. The per-block limits are
-$\mathsf{OrchardBlockActionLimit} = 330$ and $\mathsf{GlobalShieldedBudget}
-= 330$ of ZIP 218, ``Shielded pool action limits''. Each compact Action,
-and each compact Sapling output, costs one trial decryption per candidate
-key (Construction~\ref{def:compact-trial}); a compact Sapling spend costs
-none.
+$148 \cdot 1{,}140{,}480 = 168{,}791{,}040$. The per-block limits are those
+of ZIP 218, ``Shielded pool action limits'': each pool of the Orchard
+protocol is limited separately by
+\[
+  \mathsf{OrchardProtocolBlockActionLimit} = 330,
+\]
+and every Orchard-pool Action, Ironwood-pool Action, Sapling spend and
+Sapling output consumes one unit of a single shared budget
+$\mathsf{GlobalShieldedBudget} = 330$, so the two pools of the Orchard
+protocol together hold at most $330$ Actions. Each compact Action, and each
+compact Sapling output, costs one trial decryption per candidate key
+(Construction~\ref{def:compact-trial}); a compact Sapling spend costs none.
 \end{proof}
 
 \section{Commitment-tree synchronisation}\label{sec:sync-tree}
@@ -6201,17 +6198,24 @@ actually chosen.
 % [sec:tx-expiry] default delta readings at NU7: 40 blocks = 1000 s (about
 %   17 min); 120 blocks = 3000 s = 40 x 75 s (50 min, ZIP 218's scaled
 %   default)
+% .wip/repin/scripts/wallet_zip218.py (zips 660b3f80):
+% [sec:tx-expiry] 40 x 25 = 1000 s; 3 x 40 = 120 blocks; 120 x 25 = 3000 s
+%   = 40 x 75 s
 ZIP 315 specifies (SHOULD) that a wallet create transactions using the
 default expiration height of ZIP 203, which it gives as $40$ blocks from
 the current height (ZIP 315, ``Expiration height''). ZIP 218 changes the
 default of node implementations that create transactions to
 $\mathsf{NU7PoWTargetSpacingRatio} \times 40 = 120$ blocks (SHOULD), to keep
 an expiry of about $50$ minutes, and keeps an explicitly configured delta
-(ZIP 218, ``Default expiry delta''); ZIP 315 is not updated for the
-$25$-second spacing. At that spacing, ZIP 315's SHOULD therefore has two
-readings: the literal $40$ blocks, about $40 \times 25 = 1000$~s, and the
-ZIP 203 default as ZIP 218 changes it, $120$ blocks, about $120 \times 25 =
-3000$~s. Which one a wallet uses is an open problem
+(ZIP 218, ``Default expiry delta''). ZIP 203, ``Changes for NU7'', records
+that change for implementations creating transactions, from $40$ to $120$
+blocks at NU7 activation, and leaves the expiry consensus rule unchanged.
+ZIP 315 is not updated for the $25$-second spacing. At that spacing, ZIP
+315's SHOULD therefore has two readings: its literal $40$ blocks, about $40
+\times 25 = 1000$~s, and the default of ZIP 203 that it cites, which ZIP 203
+gives as $120$ blocks from NU7 activation, about $120 \times 25 = 3000$~s.
+ZIPs 203, 218 and 401 support the second; which one ZIP 315 intends is an
+open problem
 (Definition~\ref{def:intro-classes}). Either time is an estimate, since
 block intervals vary, and not a guaranteed period of validity.
 
@@ -6836,11 +6840,15 @@ $\mathit{nSpendsSapling} + \mathit{nOutputsSapling}$ of a block's Sapling
 descriptions, not the maximum that Definition~\ref{def:fees-logical}
 charges, so paying the conventional fee does not ensure that a transaction
 fits a given block (\emph{Consensus Guide}, ``A block budget for shielded
-work''). The limits add no transaction field. ZIP 259, ``Rationale for no new
-transaction format'', refers to a block-level fee contribution that needs no
-transaction field; no published ZIP specifies that calculation, so it is
-designed but unspecified (Definition~\ref{def:intro-classes}), and the
-conventional fee does not depend on it.
+work''). The limits add no transaction field. Nor does the block-level fee
+contribution of ZIP 259, ``Rationale for no new transaction format'': ZIP
+235, which NU7 deploys (ZIP 259, ``NU7 consensus changes''), removes from
+circulation $\lfloor 6F/10 \rfloor$ of the total fee $F$ of the
+non-coinbase transactions of a block, and the coinbase transaction claims
+only the remaining $F - \lfloor 6F/10 \rfloor$ of it (ZIP 235, ``Consensus
+Rule Changes''). The rule is specified (Definition~\ref{def:intro-classes}); it
+divides the fees of a block between removal and the miner, and changes
+neither the fee that a transaction pays nor the conventional fee.
 
 \section{Transaction construction}\label{sec:pipeline}
 
@@ -9939,17 +9947,17 @@ transaction (Definition~\ref{def:plan-payment}).
 % [sec:zip321-params] Sapling output in a v5/v6 transaction: cv 32 + cmu 32
 %   + epk 32 + C_enc 580 + C_out 80 + proof 192 = 948 bytes; floor(2,000,000
 %   / 948) = 2109 (specification's size-limit argument)
-% [sec:zip321-params] binding bound at NU7: ZIP 218's 300 Sapling spends
-%   plus outputs per block, so an all-Sapling transaction has at most
-%   min(2109, 300) = 300 outputs (fewer with spends), and one transaction at
-%   most 330 shielded units
-% compute/OUTPUT.md, fees.py:
+% .wip/repin/scripts/wallet_zip218.py (zips 660b3f80):
 % [sec:zip321-params] ZIP 218 per block: nActionsOrchard <= 330;
-%   nSpendsSapling + nOutputsSapling <= 300; nJoinSplit <= 25;
-%   nActionsOrchard + Sapling spends + outputs + 2 nJoinSplit <= 330
-%   (Ironwood-pool Actions counted by none)
-% Cited numbers: 330, 300, 25 and the 330-unit budget: ZIP 218, 'Shielded
-%   pool action limits'
+%   nActionsIronwood <= 330; nSpendsSapling + nOutputsSapling <= 300;
+%   nJoinSplit <= 0; nActionsOrchard + nActionsIronwood + Sapling spends +
+%   outputs + 2 nJoinSplit <= 330
+% [sec:zip321-params] Sapling output >= 948 bytes, size bound 2109; budget
+%   bound min(2109, 300) = 300
+% [sec:zip321-params] Orchard-protocol Action >= 820 + 2272 + 64 = 3156
+%   bytes, size bound 633 > 330, so the Ironwood bound is 330 - a_O - s - o
+% Cited numbers: 330, 300, 0 and the 330-unit budget: ZIP 218, 'Shielded
+%   pool action limits'; 820, 2272, 64: ZIP 229, 'Transaction Format'
 \emph{Capacity.} A request carries at most $10{,}000$ payments
 (\S\ref{sec:zip321-uri}), and the one transaction it asks for is bounded
 further by consensus; the bound that binds is the least of the following.
@@ -9962,36 +9970,47 @@ further by consensus; the bound that binds is the least of the following.
   Signature (Sapling)''). This is the bound that ZIP 321, ``URI
   Semantics'', states.
 \item \emph{Shielded budget.} ZIP 218, part of NU7, requires of every
-  block, with $S$ the number of Sapling spends plus outputs, $A$ the number
-  of Orchard-pool Actions and $n_{\mathsf{JS}}$ the number of JoinSplit
+  block, with $S$ the number of Sapling spends plus outputs,
+  $A_{\mathsf{O}}$ and $A_{\mathsf{I}}$ the numbers of Orchard-pool and
+  Ironwood-pool Actions, and $n_{\mathsf{JS}}$ the number of JoinSplit
   descriptions, each summed over the block's transactions,
-  \[
-    S \le 300, \qquad A \le 330, \qquad A + S + 2\, n_{\mathsf{JS}} \le 330
-  \]
-  (ZIP 218, ``Shielded pool action limits''). Versions~$5$ and~$6$ carry no
-  JoinSplit description (\emph{Ironwood Guide}, \S``The transaction
-  format''), so $n_{\mathsf{JS}} = 0$. Each of these sums over a block is at
+  \begin{gather*}
+    S \le 300, \qquad A_{\mathsf{O}} \le 330, \qquad
+    A_{\mathsf{I}} \le 330, \qquad n_{\mathsf{JS}} \le 0, \\
+    A_{\mathsf{O}} + A_{\mathsf{I}} + S + 2\, n_{\mathsf{JS}} \le 330
+  \end{gather*}
+  (ZIP 218, ``Shielded pool action limits''); versions~$5$ and~$6$ carry
+  no JoinSplit description in any case (\emph{Ironwood Guide},
+  \S``The transaction format''). Each of these sums over a block is at
   least the term of any one of its transactions. A transaction that pays
   $n$ payments by Sapling outputs has $o \ge n$ Sapling outputs; with $s$
-  Sapling spends and $a$ Orchard-pool Actions it is mined only if $s + o \le
-  300$ and $a + s + o \le 330$, hence only if
+  Sapling spends and $a$ Actions of the two pools it is mined only if
+  $s + o \le 300$ and $a + s + o \le 330$, hence only if
   \[
     n \le o \le \min(300,\, 330 - a) - s .
   \]
   The all-Sapling bound is therefore $\min(2109, 300) = 300$ outputs, fewer
-  with spends or Orchard-pool Actions, and the bound of~(i) never binds; one
+  with spends or Actions, and the bound of~(i) never binds; one
   transaction carries at most $330$ units of the shared budget.
 \item \emph{Orchard pool.} No payment output lies in the Orchard pool
   (Construction~\ref{def:route}, Proposition~\ref{prop:route-change}), so
   the Orchard-pool Actions of the transaction only consume the shared
   budget of~(ii).
-\item \emph{Ironwood pool and transparent outputs.} ZIP 218 as written
-  counts neither Ironwood-pool Actions nor transparent components, so
-  payments by Ironwood-pool or transparent outputs are bounded by the size
-  limit alone. Whether Ironwood-pool Actions enter the shared budget is an
-  open proposal (\emph{Consensus Guide}, \S``A block budget for shielded
-  work''). Class of~(iv): open problem
-  (Definition~\ref{def:intro-classes}).
+\item \emph{Ironwood pool.} An Action creates one note, so a transaction
+  that pays $n$ payments by Ironwood-pool outputs has $a_{\mathsf{I}} \ge
+  n$ Ironwood-pool Actions; with $a_{\mathsf{O}}$ Orchard-pool Actions, $s$
+  Sapling spends and $o$ Sapling outputs it is mined, by~(ii), only if
+  \[
+    n \le a_{\mathsf{I}} \le 330 - a_{\mathsf{O}} - s - o .
+  \]
+  An Action contributes at least $820 + 2272 + 64 = 3156$ bytes to a
+  transaction: its description, its share of the proof and its spend
+  authorisation signature (ZIP 229, ``Transaction Format''). The size limit
+  alone admits $\lfloor 2{,}000{,}000 / 3156 \rfloor = 633$ Actions, so the
+  shared budget binds, at $330$ payments by Ironwood-pool outputs.
+\item \emph{Transparent outputs.} ZIP 218 does not apply its limits to the
+  transparent components of transactions (same section), so payments by
+  transparent outputs are bounded by the size limit alone.
 \end{enumerate}
 
 \emph{From request to plan.} Each payment $P_i = (a, v, m)$ of an accepted
