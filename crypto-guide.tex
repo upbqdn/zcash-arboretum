@@ -2285,24 +2285,17 @@ twist-security threshold; the Vesta twist clears the threshold at
 about \(2^{108.2}\). The failure has no consequence in this setting: twist
 attacks require an implementation that accepts an attacker-supplied
 \(x\)-coordinate without validation (an \(x\)-only ladder) or that
-skips its on-curve checks, and the deployed arithmetic does neither.
-The \texttt{pasta\_curves} crate carries points in full coordinates
-and has no \(x\)-only code path; its deserialisation
-(\texttt{from\_bytes}) reconstructs \(y\)
-by taking the square root of \(x^{3} + 5\), failing exactly when
-\(x\) lies on the twist, where \(x^{3} + 5\) is a non-square, and
-even \texttt{from\_bytes\_unchecked} delegates to the checked path
-because a compressed encoding cannot skip the curve check, while
-points built from raw coordinates are gated on
-\texttt{is\_on\_curve}. This is the behaviour protocol specification
-\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S~5.4.9.6} mandates: its decoding map returns \(\bot\) (failure) when
-\(x^{3} + b\) has no square root, and an implementation must not
-assume that the root exists or that the encoding lies on the curve.
-Orchard deserialises its points through this
-routine, and cofactor \(1\) leaves no
-small subgroup on the curve itself. Invalid-curve and twist-point
-injection are therefore excluded by \emph{validation}, not by twist
-structure.
+skips its on-curve checks, and the deployed protocol admits neither.
+Protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S~5.4.9.6}
+decodes a point by recovering \(y\) as a square root of
+\(x^{3} + b\); its decoding map returns \(\bot\) (failure) when no
+root exists, exactly when \(x\) lies on the twist, and an
+implementation must not assume that the root exists or that the
+encoding lies on the curve. Orchard decodes its points through this
+map, and cofactor \(1\) leaves no small subgroup on the curve itself.
+Invalid-curve and twist-point injection are therefore excluded by
+\emph{validation}, not by twist structure.
 
 The standard generic analysis therefore governs, and the security
 level is about \(126\) bits.
@@ -4249,9 +4242,10 @@ We run the balance check of Remark~\ref{commitments:rem:homo-uses} in a
 group small enough to follow by hand. Take the primes \(q = 1019\) and
 \(p = 2q + 1 = 2039\). The group \(\F_{p}^{\times}\) is cyclic of order
 \(2q\) (\emph{Math Guide}, \S``Cyclicity of the multiplicative group''),
-so it has exactly one subgroup \(\G\) of the prime order \(q\): the
-nonzero squares modulo \(p\) (\emph{Math Guide}, \S``Quadratic residues
-and the Euler criterion''). We write \(\G\) multiplicatively, as in
+so it has exactly one subgroup \(\G\) of the prime order \(q\)
+(\emph{Math Guide}, \S``Cyclic groups''): the nonzero squares modulo
+\(p\) (\emph{Math Guide}, \S``Quadratic residues and the Euler
+criterion''). We write \(\G\) multiplicatively, as in
 \S\ref{sec:assumptions}: the multiple \([a]P\) becomes the power
 \(P^{a}\), and the group operation is multiplication modulo \(p\). The
 squares \(g = 4\) and \(h = 9\) differ from \(1\) and so generate \(\G\),
@@ -4763,11 +4757,15 @@ constant-size proofs by encoding a secret evaluation point in the
 parameters.
 
 \begin{construction}[KZG commitment]\label{commitments:def:kzg}
-Let \(\G_1, \G_2, \G_T\) be groups of prime order \(\abs{\F}\)
-equipped with a nondegenerate bilinear pairing
-\(e \colon \G_1 \times \G_2 \to \G_T\)
-(Example~\ref{assumptions:exa:pairing}), with generators
-\(G \in \G_1\) and \(\hat G \in \G_2\). The algorithm
+Let \(\G_1, \G_2, \G_T\) be groups of prime order \(\abs{\F}\), the
+first two written additively with generators \(G \in \G_1\) and
+\(\hat G \in \G_2\), equipped with a non-degenerate bilinear pairing
+\(e \colon \G_1 \times \G_2 \to \G_T\): an efficiently computable
+map with \(e([a]P, [b]Q) = e(P, Q)^{ab}\) for all \(P \in \G_1\),
+\(Q \in \G_2\), and \(a, b \in \F\), and with
+\(e(G, \hat G) \ne 1\). It is the pairing of
+Example~\ref{assumptions:exa:pairing} with its two arguments drawn
+from distinct groups. The algorithm
 \(\mathrm{Setup}\) samples a secret \(\tau \xleftarrow{\$} \F\),
 publishes the \emph{structured reference string}
 \[
@@ -8115,11 +8113,13 @@ and AEAD-encrypts the note plaintext---a version byte, the
 recipient's diversifier, the value, the note's random seed, and the
 memo---under \(K\) with \textsf{ChaCha20-Poly1305}
 (Construction~\ref{symmetric:def-chachapoly}), attaching the
-ciphertext to the transaction. The nonce is fixed to zero and the
-associated data is empty, safe because each \(K\) keys exactly one
-encryption (protocol specification
+ciphertext to the transaction (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#saplingandorchardencrypt}{\S``Encryption (Sapling and
-Orchard)''}).
+Orchard)''}). The nonce is fixed to zero and the associated data is
+empty
+(\href{https://zips.z.cash/protocol/protocol.pdf\#concretesym}{\S``Symmetric
+Encryption''} there), safe because each \(K\) keys exactly one
+encryption.
 
 Chain scanners see \((\mathsf{epk}, c)\) in every shielded output,
 but lacking \(\mathsf{ivk}\) they learn nothing
@@ -9017,9 +9017,15 @@ Theorem~\ref{signatures:thm:schnorr-euf} with \(G\) replaced by
 
 \begin{remark}[RedDSA as deployed]\label{signatures:rem:redpallas}
 The deployed scheme follows Construction~\ref{signatures:con:reddsa}
-line for line (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#concretereddsa}{\S~5.4.7}). The randomiser
-\(T\) is \(80\)
-uniform bytes, and both hashes are the function
+(protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#concretereddsa}{\S~5.4.7}),
+with two additions to verification. It rejects unless \(R\) decodes to a point,
+\(s < q\), and, from the NU5 network upgrade onward, the encoding of
+\(R\) is canonical (ZIP~216); and it checks the equation multiplied
+by the cofactor \(h\) of the curve,
+\([h]\bigl(R + [c]X - [s]P\bigr) = \mathcal{O}\), which for Pallas
+(\(h = 1\)) is the equation of the Construction. The randomiser
+\(T\) is \(80\) uniform bytes, and both hashes are the function
 \(\mathsf{H}^{\circledast}\): BLAKE2b-512 personalised with
 \texttt{Zcash\_RedPallasH}, its \(64\)-byte output reduced to
 \(\Fq\) by wide reduction---
@@ -9045,10 +9051,10 @@ instantiations differ \emph{only} in the base point:
 \end{itemize}
 The curve varies only across protocol generations: Sapling's
 \emph{RedJubjub} is the same scheme over the Jubjub curve;
-the curve, its two base
-points and the \(\mathsf{H}^{\circledast}\) personalisation
-(\texttt{Zcash\_RedJubjubH} against \texttt{Zcash\_RedPallasH}) are
-all that distinguish the two.
+the curve, with its cofactor \(h = 8\) in the verification
+equation, its two base points and the \(\mathsf{H}^{\circledast}\)
+personalisation (\texttt{Zcash\_RedJubjubH} against
+\texttt{Zcash\_RedPallasH}) are all that distinguish the two.
 \end{remark}
 
 \subsection{Key re-randomisation and unlinkability}
@@ -9397,10 +9403,10 @@ Definition~\ref{assumptions:def:dlog} in the group
 and \(6\)---the exponent of the largest power of \(2\) dividing \(p - 1\)
 and \(n - 1\) (\emph{Math Guide}, \S``Roots of unity and evaluation
 domains'')---against \(32\) for both Pasta primes
-(Definition~\ref{assumptions:def:pasta}). Power-of-two evaluation
-domains, on which proof systems run fast polynomial arithmetic, therefore
-have at most \(2\) and \(64\) points over the secp256k1 fields, against
-\(2^{32}\) over the Pasta fields.
+(\emph{Math Guide}, \S``Pallas and Vesta assembled''). Power-of-two
+evaluation domains, on which proof systems run fast polynomial
+arithmetic, therefore have at most \(2\) and \(64\) points over the
+secp256k1 fields, against \(2^{32}\) over the Pasta fields.
 
 \begin{construction}[ECDSA over secp256k1, schematically]
 \label{signatures:con:ecdsa}
@@ -10852,13 +10858,18 @@ cannot coexist with zero knowledge, except for languages whose membership
 is efficiently decidable, whereas zero knowledge against it, together with
 ordinary soundness, is attainable. Deployed BCTV14 attains the
 zero-knowledge half of that combination. The specification's note on
-the BCTV14 vulnerability, a flaw that admitted false proofs before the
-activation of Sapling, records that zero knowledge holds even under
-subversion of the parameter generation (protocol specification
-\href{https://zips.z.cash/protocol/protocol.pdf\#bctv}{\S~5.4.10.1},
-citing Bowe, Gabizon, and Green, 2017, Theorem~4.10). A holder of the
-BCTV14 toxic waste could thus forge proofs, and with them value, but
-could learn nothing about the witnesses of honest proofs.
+the BCTV14 vulnerability (CVE-2019-7167) records two facts (protocol
+specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#bctv}{\S~5.4.10.1}).
+First, soundness failed independently of the toxic waste: the
+published parameters contained elements from which anyone holding
+them could forge proofs, and with them value, until the activation of
+Sapling (Gabizon, 2019). Second, zero knowledge holds even under
+subversion of the parameter generation (Bowe, Gabizon, and Green,
+2017, Theorem~4.10). A holder of the BCTV14 toxic waste could
+likewise forge proofs; neither such a holder nor a forger exploiting
+the published parameters could learn anything about the witnesses of
+honest proofs.
 
 The other route rests on the discrete logarithm alone. The
 inner-product commitment of Construction~\ref{commitments:def:ipa}
@@ -11744,12 +11755,16 @@ collision of the field-valued compression function.
 
 Orchard's Merkle hash \(\mathsf{MerkleCRH}\) retains the tag
 mechanism of Definition~\ref{merkle:def-domain} in encoded form. Each
-internal call prepends the \(10\)-bit encoded layer index to the two
-\(255\)-bit child encodings---a single fixed input length of
-\(520\) bits (a total the volume's companion script checks), exactly
-the fixed-length-per-personalisation regime in
+internal call prepends to the two \(255\)-bit child encodings the
+\(10\)-bit little-endian encoding of \(31 - k\), where \(k\) is the
+layer of the computed node counted from the root of the depth-\(32\)
+tree. The tag is thus the level of the two children counted from the
+leaves, one less than the index \(t + 1\) of
+Definition~\ref{merkle:def-domain}. Every call has the single fixed
+input length of \(520\) bits (a total the volume's companion script
+checks), exactly the fixed-length-per-personalisation regime in
 which the deployed Sinsemilla hash is collision resistant
-(\S\ref{commitments:subsec:sinsemilla})---with \emph{all} layers
+(\S\ref{commitments:subsec:sinsemilla}), with \emph{all} layers
 sharing one Sinsemilla instance
 (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#merklecrh}{\S~5.4.1.3}). Separation between
 \emph{distinct} Sinsemilla instances comes from the personalisation
@@ -11979,23 +11994,21 @@ exactly Theorem~\ref{merkle:thm-soundness} applied to the
 corresponding fixed root.
 \end{definition}
 
-Deployed Orchard is history-binding by construction. The chain
-records each block's note-commitment-tree root---its \emph{anchor}
----and a spend may prove membership against \emph{any} recorded
-historical anchor: consensus requires the anchor named by a
-transaction to be the root of the Orchard note-commitment tree as it
-stood at the end of some earlier block, checked by membership in the
-set of recorded anchors (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#actions}{\S~3.7}, `Action Transfers and their
-Descriptions'). The deployed representation of the growing tree (in the
-\texttt{incrementalmerkletree} crate; the \texttt{orchard} crate
-precomputes the empty-subtree labels) is equivalent to the frontier,
-not identical to it. It stores the newest leaf with its left siblings
-on the path to the root. When \(m\) is odd these labels are exactly the
-carries of Definition~\ref{merkle:def-frontier}. When \(m\) is even,
-with lowest set bit \(z \ge 1\), the leaf and its left siblings at
-levels below \(z\) hash to the single carry \(f_z\), and the remaining
-siblings are the carries above \(z\). Either form serves both purposes
-(i) and (ii) of the definition.
+Deployed Orchard is history-binding by construction. The root of the
+note-commitment tree at the end of each block is an \emph{anchor}, and
+a spend may prove membership against \emph{any} historical anchor:
+consensus requires the anchor named by a transaction to be the root
+of the Orchard note-commitment tree as it stood at the end of some
+earlier block (protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#actions}{\S~3.7}, `Action
+Transfers and their Descriptions'). The deployed representation of the
+growing tree, the newest leaf with its left siblings on the path to
+the root, is equivalent to the frontier. When \(m\) is odd these
+labels are exactly the carries of Definition~\ref{merkle:def-frontier}.
+When \(m\) is even, with lowest set bit \(z \ge 1\), the leaf and its
+left siblings at levels below \(z\) hash to the single carry \(f_z\),
+and the remaining siblings are the carries above \(z\). Either form
+serves both purposes (i) and (ii) of the definition.
 
 \begin{remark}[Why append-only, and what it costs]
 \label{merkle:rem-append-only}
@@ -12205,11 +12218,14 @@ constraints for the swaps. The position enters \emph{only} through the bits
 \(b_0, \dots, b_{d-1}\)---the binary decomposition of \(i\)---so the
 index-consistency check of Definition~\ref{merkle:def-verify} is
 enforced structurally: there is no separate index to disagree with
-its bits. Deployed Orchard matches this shape exactly: the circuit's
-Merkle gadget decomposes the witnessed position into little-endian
-bits and applies a conditional swap per layer
-(protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#merklepath}{\S~4.9}, `Merkle Path
-Validity').
+its bits. The deployed Sapling circuit has exactly this shape: each
+layer boolean-constrains one path bit and conditionally swaps the
+previous-layer and sibling hashes on it (protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#cctmerklepath}{\S``Merkle
+path check''}), the path bits being those of the position, least
+significant at the leaf, that select the siblings of a Merkle path
+(\href{https://zips.z.cash/protocol/protocol.pdf\#merklepath}{\S~4.9},
+`Merkle Path Validity').
 \end{construction}
 
 \begin{theorem}[Privacy-preserving membership]
@@ -12295,9 +12311,10 @@ Remark~\ref{merkle:rem-poseidon}. Strictly, the leaf is the extracted
 \]
 a \(255\)-bit Pallas base-field element (\emph{Math Guide},
 \S``Pallas and Vesta assembled'') matching the child encodings of
-Remark~\ref{merkle:rem-poseidon}. The protocol
-periodically publishes the current root---the \emph{anchor}---on
-chain, one per block.
+Remark~\ref{merkle:rem-poseidon}. The tree as it stands at the end of
+each block has a root, and a transaction names one such root of an
+earlier block as its \emph{anchor} (protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#actions}{\S~3.7}).
 
 To spend a note, its owner:
 \begin{enumerate}

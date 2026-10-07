@@ -307,8 +307,8 @@ Actions of the Orchard pool and of the Ironwood pool, the second shielded
 pool of Orchard-protocol notes, prove this statement, extended at NU6.3
 by one public bit, $\mathsf{disableCrossAddress}$, that when set forces
 the new note's address to equal the spent note's, with one circuit and
-one verifying key (protocol specification,
-\href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S~4.6},
+one verifying key (protocol specification, NU6.3 edition,
+\href{https://zips.z.cash/protocol/nu6_3.pdf\#actiondesc}{\S~4.6},
 ``Action Descriptions''; \href{https://zips.z.cash/zip-0229}{ZIP~229};
 \href{https://zips.z.cash/zip-0258}{ZIP~258}), so
 the proof system and proof format described here serve both pools.
@@ -419,9 +419,10 @@ witness
 that the spent note's address is derived from the same keys, that the new note's
 commitment is well formed, and that two public bits, when zero, force the spent
 value and the created value, respectively, to zero. From NU6.3 the circuit
-checks a tenth condition on a further public bit, which restricts
-cross-address transfers and is set for every Orchard-pool Action
-(\href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S~4.6};
+checks a tenth condition, not yet listed in \S~4.18.4, on a further public
+bit that restricts cross-address transfers and is set for every Orchard-pool
+Action
+(\href{https://zips.z.cash/protocol/nu6_3.pdf\#actiondesc}{\S~4.6};
 \href{https://zips.z.cash/zip-0258}{ZIP~258}).
 Each condition unfolds into small arithmetic facts over the field
 $\F_{p_{\Pallas}}$ (the \emph{Math Guide}, \S``Base fields, scalar
@@ -2079,9 +2080,8 @@ evaluation proof is $O(\log n)$ group elements, and it needs \emph{no trusted
 setup}, because the generators come from a public hash rather than from anyone's
 secret (\emph{Crypto Guide}, \S``Polynomial commitment schemes'', the
 inner-product alternative). Halo~2 uses exactly this one polynomial commitment
-scheme and no other: the inner-product argument over a group with no pairing
-(the halo2 book, which the protocol specification names as the definition of
-the system,
+scheme and no other: the inner-product argument (the halo2 book, which the
+protocol specification names as the definition of the system,
 \href{https://zips.z.cash/protocol/protocol.pdf\#halo2}{\S~5.4.10.3},
 ``Halo 2''; its \emph{Inner product argument} chapter), on the Vesta curve,
 where the protocol specification places the Action statement's proofs
@@ -4373,7 +4373,7 @@ Theorem~\ref{thm:ipa-ks}.
 An Orchard proof is a byte string. The proofs of the $a \ge 1$ Action
 descriptions that one transaction carries in one pool, here called a
 \emph{bundle}, are aggregated into a single proof (protocol specification,
-\href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S~4.6},
+\href{https://zips.z.cash/protocol/nu6_3.pdf\#actiondesc}{\S~4.6},
 ``Action Descriptions''); a transaction with Actions in both the Orchard
 and the Ironwood pool carries one such proof for each. Its length is
 $2720 + 2272\,a$ bytes (\href{https://zips.z.cash/zip-0225}{ZIP~225},
@@ -4382,7 +4382,7 @@ the \texttt{sizeProofsOrchard} field;
 \texttt{sizeProofsOrchard} and \texttt{sizeProofsIronwood}; the
 consensus rule is the protocol
 specification's,
-\href{https://zips.z.cash/protocol/protocol.pdf\#actionencodingandconsensus}%
+\href{https://zips.z.cash/protocol/nu6_3.pdf\#actionencodingandconsensus}%
 {\S~7.5},
 ``Action Description Encoding and Consensus''), $4992$ bytes for a single
 Action. Every Vesta point and every field element in it occupies $32$
@@ -5138,10 +5138,12 @@ description specifies the proof with an eighth component,
 $\mathsf{disableCrossAddress} := 1 - \mathsf{enableCrossAddress}$, where
 $\mathsf{enableCrossAddress}$ permits the output note's receiver to
 differ from the input note's (protocol specification,
-\href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S~4.6},
+\href{https://zips.z.cash/protocol/nu6_3.pdf\#actiondesc}{\S~4.6},
 ``Action Descriptions''); from NU6.3 the proof of every Action of either
-pool is verified with this further public input, which is $1$ for every
-Orchard-pool Action (\href{https://zips.z.cash/zip-0258}{ZIP~258}).
+pool is verified with this further public input
+(\href{https://zips.z.cash/zip-0229}{ZIP~229}, the bit
+$\mathsf{enableCrossAddress}$ of \texttt{flagsIronwood}), which is $1$ for
+every Orchard-pool Action (\href{https://zips.z.cash/zip-0258}{ZIP~258}).
 Rows~$0$ to~$8$ of the instance column hold the nine values above; no
 normative text fixes the row of the further input, and every other row is
 $0$ (Figure~\ref{fig:halo2-instance}). Each is copy-constrained to an advice
@@ -5159,7 +5161,9 @@ $\mathsf{enableOutputs} = 1$; and $\mathsf{disableCrossAddress}$ to a cell
 read by a gate that, when it is nonzero, equates the coordinates of the
 receivers $(\gd, \pkd)$ of the two notes. That condition is the meaning
 \S~4.6 gives the flag; the list of conditions in \S~4.18.4 does not yet
-include it.
+include it, the consensus rule of \S~4.6 still verifies the proof against
+the seven-component input, and ZIP~2006, to which ZIP~229 and ZIP~258 defer
+the circuit change, is reserved and has no text.
 
 \paragraph{Binding to the instance.}
 The verifier computes the instance commitment from the public values
@@ -5739,12 +5743,14 @@ $X^{2^{14}} - 1$, so it contains $H$, and every coset of $H'$ other than
 $H'$ itself is disjoint from $H'$ (\emph{Math Guide}, \S``Cosets and
 Lagrange's theorem''), hence free of the roots of $\ZH$. Such a subgroup
 exists if and only if $2^{14} \mid p_{\Pallas} - 1$ (\emph{Math Guide},
-\S``Existence over finite fields: the condition $n \mid q-1$''): the field
-needs two-adicity at least $14$, where $H$ alone needs $11$. The
-two-adicity of $\F_{p_{\Pallas}}$ is $32$ (the same section, its remark on
-two-adicity).
-The requirement bears on the prover's running time only; the verifier
-checks $C = h\,\ZH$ at one point, and no soundness argument involves $D$.
+\S``Existence over finite fields: the condition $n \mid q-1$''): the
+prover's interpolation of $h$ by the fast Fourier transform needs
+two-adicity at least $14$, where $H$ alone needs $11$. The two-adicity of
+$\F_{p_{\Pallas}}$ is $32$ (the same section, its remark on two-adicity).
+The excess over $11$ serves that interpolation only and bears on the
+prover's running time alone; soundness does not depend on it, since the
+verifier checks $C = h\,\ZH$ at one point and no soundness argument
+involves $D$.
 \end{remark}
 
 \paragraph{Phase 5: the evaluation challenge $x$.}
@@ -7083,11 +7089,15 @@ passage to the compiled argument on the random oracle model as well;
 the special-soundness analysis of Attema, Fehr and Kloo\ss{} on the
 random oracle model alone. No standard-model tight bound is claimed for the
 deployment, by this volume or by the analyses it cites; this is a
-statement about the design's analyses, not a specification claim, and
-the specification makes none. Read against the bit-security budget, the
-consequence is concrete. The discrete-logarithm layer offers about
-$2^{126}$ operations of classical security (\S\ref{sec:ipa-binding};
-\emph{Crypto Guide}, \S``Standing assumptions''); a reduction tight in
+statement about the design's analyses, not a specification claim. The
+specification requires knowledge soundness and statistical zero knowledge
+of the proving system
+(\href{https://zips.z.cash/protocol/protocol.pdf\#abstractzk}{\S~4.1.13},
+``Zero-Knowledge Proving System'') but names neither a model nor a bound.
+Read against the bit-security budget, the consequence is concrete. The
+discrete-logarithm layer offers about $2^{126}$ operations of classical
+security (\S\ref{sec:ipa-binding}; \emph{Crypto Guide}, \S``Standing
+assumptions''); a reduction tight in
 $Q$ lets the argument inherit that strength, less the algebraic term
 $Q\,\varepsilon_{\mathrm{bad}}$ of Theorem~\ref{thm:ks-srwee}, about
 $2^{-159.8}$ at $2^{80}$ queries, which is not the bottleneck; a
@@ -7487,7 +7497,7 @@ which force the spent value to $0$ unless $\mathsf{enableSpends} = 1$
 and the created value to $0$ unless $\mathsf{enableOutputs} = 1$. From
 NU6.3 the circuit checks a tenth condition on the further public bit
 $\mathsf{disableCrossAddress}$
-(\href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S~4.6};
+(\href{https://zips.z.cash/protocol/nu6_3.pdf\#actiondesc}{\S~4.6};
 \href{https://zips.z.cash/zip-0258}{ZIP~258}): when it is set, the
 receivers $(\gd, \pkd)$ of the spent and created notes coincide
 (\S\ref{sec:halo2-instance}). Each condition unfolds into the gates of the
@@ -7752,12 +7762,14 @@ $n = 2^{11}$. Every proof under one key therefore attests to a
 computation laid out in those $n$ rows. The circuit computes nothing: the
 prover supplies every advice value, and the gates check them. A branch on
 a witness value lays out every arm, and an advice bit $c$, constrained by
-$c\,(1 - c) = 0$, selects the result; a loop is unrolled to a bound fixed
-with the circuit, one copy of its body per iteration. One circuit
-therefore expresses the statement $z_m = f^{(m)}(z_0)$ only for $m$ up to
-a bound fixed with its key. A single proof of a computation of unbounded
-length needs the recursive composition that follows, in which one circuit
-for a single step is proved as often as the computation runs.
+$c\,(1 - c) = 0$, selects the result: for two arms with values $r_0$ and
+$r_1$, a gate equates the result with $c\,r_1 + (1 - c)\,r_0$, which is
+$r_c$; a loop is unrolled to a bound fixed with the circuit, one copy of
+its body per iteration. One circuit therefore expresses the statement
+$z_m = f^{(m)}(z_0)$ only for $m$ up to a bound fixed with its key. A
+single proof of a computation of unbounded length needs the recursive
+composition that follows, in which one circuit for a single step is
+proved as often as the computation runs.
 \end{remark}
 
 \paragraph{The construction.}

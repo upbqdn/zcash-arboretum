@@ -335,6 +335,7 @@ ZIP & Title & Status \\
 48 & Transparent Multisig Wallets & Draft \\
 173 & Bech32 Format & Final \\
 203 & Transaction Expiry & Final \\
+204 & Zcash P2P Network Protocol & Draft \\
 211 & Disabling Addition of New Value to the Sprout Chain Value Pool
   & Final \\
 212 & Allow Recipient to Derive Ephemeral Secret from Note Plaintext
@@ -1188,9 +1189,10 @@ then $\ovk_{\mathsf{external}} := I_{\ovk}[0..32)$ and
 $\ovk_{\mathsf{internal}} := I_{\ovk}[32..64)$ (ZIP 316, ``Deriving
 Internal Keys''). The external transparent incoming viewing key is the
 extended public key of the non-hardened child $0$ of $(\mathsf{c},
-\mathsf{pk})$ and the internal one that of the non-hardened child $1$
-(ZIP 316, ``Deriving a UIVK from a UFVK''; BIP 44), each obtained by BIP 32
-public-to-public derivation, which is HMAC-SHA512 keyed by $\mathsf{c}$
+\mathsf{pk})$ (ZIP 316, ``Deriving a UIVK from a UFVK'') and the internal one
+that of the non-hardened child $1$, at the change level of BIP 44 (ZIP 316,
+``Deriving Internal Keys''), each obtained by BIP 32 public-to-public
+derivation, which is HMAC-SHA512 keyed by $\mathsf{c}$
 (BIP 32, ``Public parent key $\to$ public child key''; \emph{Crypto Guide},
 \S``PRFs from hash functions: length extension and keyed BLAKE2'').
 \end{construction}
@@ -1266,9 +1268,13 @@ of Construction~\ref{def:zip32-internal}, which that Definition names without
 constructing (protocol specification, \S``Orchard Key Components''; ZIP 32,
 ``Orchard internal key derivation''). ZIP 2005 amends the derivation for
 $\mathsf{use\_qsk} = \mathsf{true}$ (``Changes to the Protocol Specification'',
-\S 4.2.3), for which this volume states no validity condition. Only keys a
-wallet uses need be valid; intermediate path nodes are never expanded into
-components.
+\S 4.2.3), for which this volume states no validity condition. Child
+derivation reads only the spending key and chain code of an intermediate
+path node (ZIP 32, ``Orchard child key derivation''), so derivation needs
+valid keys only where a wallet uses them. The encoding of an extended
+spending key does expand its parent node, whose tag it carries
+(Construction~\ref{def:zip32-fvfp}), and the \textsf{orchard} crate rejects
+a path through any node whose key fails these conditions.
 \end{definition}
 
 \begin{remark}[Derivation failure]\label{rem:zip32-failure}
@@ -1382,8 +1388,8 @@ The sum is $\varepsilon$. Negligibility alone is the \emph{Ironwood Guide}'s
 Lemma ``Rejection in key generation'' (\S``Viewing keys''). For $n$ accounts,
 apply the
 replacements to the $n$ paths jointly and the union bound over the $n$
-keys; path nodes that are not account keys are never expanded into
-components and do not enter the union.
+keys; path nodes that are not account keys do not enter the union, since
+an account key's validity does not depend on theirs.
 \end{proof}
 
 \subsection{The \texorpdfstring{$\mathsf{PRFexpand}$}{PRFexpand}
@@ -2233,11 +2239,17 @@ substitution and against confusion of an address with a viewing key (ZIP 316,
 
 Length rules (ZIP 316, ``Rationale for length restrictions'' and
 ``Efficiency''). The $38$-byte minimum is Revision~$2$'s: one P2PKH item of
-$22$ bytes and the padding. Revision~$0$ specified $48$ bytes. No set of
-items valid in Revision~$0$ has an encoding of $22$ to $31$ bytes (the
-smallest Revision~$0$ input is $45 + 16 = 61$ bytes), so the difference is
+$22$ bytes and the padding. Revision~$0$ specified $48$ bytes. Since only
+typecodes $\mathtt{0x02}$ and $\mathtt{0x03}$ are shielded, no set of items
+valid in Revision~$0$ has an encoding of $22$ to $31$ bytes (the smallest
+Revision~$0$ input is $45 + 16 = 61$ bytes), so the difference is
 unobservable except in the error reported, and a Consumer supporting
-Revision~$2$ MAY apply either minimum to Revision~$0$ strings. A Consumer
+Revision~$2$ MAY apply either minimum to Revision~$0$ strings. ZIP 316
+argues from the same reading. A Consumer that requires of a Revision~$0$
+UA only an item that is not transparent, as the \textsf{zcash\_address}
+crate does, and that applies the $38$-byte minimum accepts a $38$-byte input
+holding one $22$-byte item of an unrecognised typecode, and observes the
+difference. A Consumer
 that cannot support strings up to $\ell_{\mathsf{MAX}}$ MUST support those
 with $\ell_M$ of at least $256$ bytes; a full implementation supports
 $\ell_{\mathsf{MAX}}$.
@@ -2793,10 +2805,15 @@ nor transparent data. ZIP 318 and ZIP 326 address light wallets and specify
 no compact format. The remainder of the format below (the parent hash of
 a block, the tree sizes, the compact Actions of both
 Orchard-protocol pools, the transparent part and pool selection) is designed
-but unspecified (Definition~\ref{def:intro-classes}). The volume states the
-format as an abstract message format, not as a serialisation, and states no
-field number, field width or encoded size. The status of each ZIP cited is
-that of Table~\ref{tab:intro-zips}.
+but unspecified (Definition~\ref{def:intro-classes}). For the compact
+Actions, the rationale of ZIP 218, ``Rationale: Compact sync bandwidth per
+action'', takes the compact form of the Actions of both pools to be one
+message of the format served by light-client servers, with the fields and
+the $148$-byte payload of Definition~\ref{def:compact-elements}; a
+rationale is not normative, so the classification stands. The volume states
+the format as an abstract message format, not as a serialisation, and
+states no field number, field width or encoded size. The status of each ZIP
+cited is that of Table~\ref{tab:intro-zips}.
 \end{remark}
 
 \begin{definition}[Compact block]\label{def:compact-block}
@@ -3983,7 +4000,7 @@ nullifier is compared only with nullifiers of its own pool (\emph{Ironwood
 Guide}, \S``Nullifier sets''). The retention period of $R_P$ is fixed by
 Lemma~\ref{lem:scan-spends} (\S\ref{sec:scan-order}).
 
-\emph{Enhancement.} For each wallet-relevant transaction the wallet may
+\emph{Retrieval.} For each wallet-relevant transaction the wallet may
 fetch the full transaction by $\mathsf{Tx}(\mathsf{txid})$ (phase~C of ZIP
 307, ``Client-server interaction''), which yields the memo, by decryption of
 the full $C_{\mathsf{enc}}$, and the outgoing plaintexts recoverable under
@@ -3991,7 +4008,7 @@ the account's $\ovk$, at the privacy cost stated in ``Leakage of transaction
 queries'' (\S\ref{sec:priv-txq}).
 
 \emph{Class} (Definition~\ref{def:intro-classes}). Trial decryption,
-nullifier matching in increasing height and enhancement are specified (ZIP
+nullifier matching in increasing height and retrieval are specified (ZIP
 307, ``Local processing'', ``Detecting spends'' and ``Client-server
 interaction''); the scanning keys are those of ZIP 326. The retained set
 $R_P$ and the chain state of step~3 are designed but unspecified.
@@ -5713,7 +5730,7 @@ buckets.
 A query $\mathsf{Tx}(\mathsf{txid})$ or $\mathsf{Status}(\mathsf{txid})$
 issued without cover puts that transaction into $L$ and reveals it as one
 that the wallet is fetching or tracking: a received transaction whose memo
-or outgoing plaintext the wallet recovers (the enhancement of
+or outgoing plaintext the wallet recovers (the retrieval of
 Construction~\ref{def:scan-block}), a sent one, or a transparent
 dependency. This is the set that payment-detection privacy protects.
 Against a policy that fetches exactly its wallet-relevant transactions,
@@ -6550,8 +6567,16 @@ input and output (ZIP 317, ``Rationale for the chosen parameters''):
     + 25\ (\text{P2PKH script}).
 \end{align*}
 Charging transparent parts by size rather than by count charges a large
-script in proportion to its size; a 2-of-3 P2SH multisig input, about 70\%
-larger than a P2PKH input, is counted so (same section).
+script in proportion to its size, and a P2SH multisig input is counted so
+(same section).
+% .wip/leftovers/scripts/wallet_multisig_input.py: P2SH multisig input,
+%   compressed keys, 72-byte signatures: 2-of-3 = 299 bytes (+99.3% over
+%   150), 2-of-2 = 262 bytes (+74.7%)
+A 2-of-3 input with compressed keys has at most $36 + 3 + 256 + 4 = 299$
+bytes, its script of $256$ bytes, with a $3$-byte length, being the opcode
+$\mathsf{OP\_0}$, two signature pushes of $74$ bytes and a $107$-byte push
+of the $105$-byte redeem script. It is thus nearly twice the $150$ bytes of
+a P2PKH input, not, as ZIP 317 states, about $70\%$ larger.
 
 \begin{definition}[Conventional fee]\label{def:fees-conventional}
 Let $\mathit{marginal\_fee} := 5000$ zatoshi per logical action and
@@ -7724,7 +7749,8 @@ whose bundles that theorem does not cover.
 
 The transaction carries the consensus branch identifier in force at its
 target height $H$ (\emph{Ironwood Guide}, \S``The transaction format'').
-Transaction versions $5$ and $6$ are valid and version $4$ is not (ZIP 2003,
+From NU6.3 activation, transaction versions $5$ and $6$ are valid, and
+version $4$ is valid only before NU7 activation (ZIP 2003,
 ``Specification''; ZIP 259, ``Abstract''); a transaction with an
 Ironwood-pool component is of version $6$. The lock time is specified: the
 field $\mathsf{nLockTime}$ is public and may distinguish a transaction if
@@ -8306,12 +8332,11 @@ the binding signatures are on that digest (ZIP 374, ``TransparentInput'').
 \begin{remark}[The sign of an Orchard-protocol value sum]
 The pair $\mathsf{value\_sum} = (m, b)$ denotes the net value of the
 bundle's spends minus its outputs, but ZIP 374 does not state the meaning
-of $b$: a gap in the specification. The reference implementation of ZIP 374
-reads $b = \mathsf{true}$ as the net value $-m$ and $b = \mathsf{false}$ as
-$+m$, and the canonical empty bundle has $(0, \mathsf{false})$. This volume
-adopts that reading, and writes $v^{\mathsf{balance}}$ for the integer that
-a bundle's $\mathsf{value\_sum}$ denotes; for Sapling it is the
-$\mathsf{i128}$ value itself.
+of $b$: a gap in the specification. This volume reads $b = \mathsf{true}$
+as the net value $-m$ and $b = \mathsf{false}$ as $+m$; the reading is
+designed but unspecified (Definition~\ref{def:intro-classes}). We write
+$v^{\mathsf{balance}}$ for the integer that a bundle's $\mathsf{value\_sum}$
+denotes; for Sapling it is the $\mathsf{i128}$ value itself.
 \end{remark}
 
 A Signer MUST parse the $\mathsf{user\_address}$ of each output that carries
@@ -8405,8 +8430,14 @@ present, and a parser MUST restore the canonical empty bundle from absence.
 Encoding in version~$1$ MUST fail when $\mathsf{tx\_version} \ne 5$, when
 the Ironwood bundle is not canonical empty, when the Orchard note version
 is not $\mathsf{V2}$, or when an anchor required before signing a
-transaction of version~$5$ is absent: these are the states version~$1$
-cannot represent.
+transaction of version~$5$ is absent. The version-$1$ anchor is a string of
+$32$ bytes, so an anchor that is absent but not yet required, such as that
+of a version-$5$ bundle without spends (Definition~\ref{def:pczt-v2}), has
+no version-$1$ encoding either, and ZIP 374 states none: a gap in the
+specification. The states version~$1$ cannot represent are therefore those
+of the first three conditions and those with an absent anchor, among them
+every state with a canonical empty Sapling or Orchard bundle
+(Definition~\ref{def:pczt-empty}).
 \end{construction}
 
 \begin{lemma}[Canonicity of the encoding]\label{lem:pczt-canonical}
@@ -8679,10 +8710,21 @@ following steps, failing where stated (ZIP 374, ``IO Finalizer'').
   verify that each Action's output recipient equals its spend recipient,
   and fail otherwise.
 \end{enumerate}
-The condition of step~(5) is condition A10 of the Action statement
-(\emph{Ironwood Guide}, \S``The Action statement''), so no valid proof
-exists for an Action that violates it; the step reports the violation at
-the role responsible for it.
+Equality of the raw recipients in step~(5) implies condition A10 of the
+Action statement, equality of the expanded receivers $(\gd, \pkd)$
+(\emph{Ironwood Guide}, \S``The Action statement''), and is stricter only
+for two diversifiers with one diversified base. An Action that violates
+A10, for which no valid proof exists, therefore fails the step, which
+reports the violation at the role responsible for it. ZIP 374 keys the step
+on the value of the bit alone, but before NU6.3 activation bit~$2$ of the
+Orchard bundle's flags is reserved as $0$ while cross-address transfers are
+unrestricted (ZIP 229, Rationale, ``\texttt{enableCrossAddress}
+polarity''); read literally, the step then rejects an Orchard bundle that
+pays another address, a gap in the specification. This volume applies the
+step only where bit~$2$ carries the meaning of
+$\mathsf{enableCrossAddress}$, and compares expanded receivers as A10 does;
+both readings are designed but unspecified
+(Definition~\ref{def:intro-classes}).
 \end{construction}
 
 \begin{lemma}[Value-sum consistency]\label{lem:pczt-valuesum}
@@ -9275,13 +9317,18 @@ The following rules are designed but unspecified
   outputs (Proposition~\ref{prop:plan-chaining}); the transfer to a TEX
   address of Construction~\ref{def:tex-transfer} is the instance (ZIP 320,
   ``Design considerations for Senders'').
+% .wip/leftovers/scripts/wallet_expiry_margin.py: ZIP 204 threshold 3; smallest
+%   relayed margin N - T is 4 if t must not be expired at T + 1 + 3, 3 if it
+%   must not be expired at T + 3
 \item \emph{Submission.} The wallet submits $t$ by
   $\mathsf{Submit}(\mathit{bytes})$, whose response is
   $\mathsf{accepted}(\mathsf{txid})$ or $\mathsf{rejected}$
   (Definition~\ref{def:service-queries}). Neither response changes the record.
   It submits at a tip $T$ that leaves a margin of blocks, a wallet parameter,
   before the last includable height $N$ (Definition~\ref{def:tx-expiry}), rather
-  than at $T = N - 1$.
+  than at $T = N - 1$. The margin $N - T$ exceeds the threshold of ZIP 204,
+  ``Transaction Expiry'': a node SHOULD NOT relay a transaction that will
+  expire within $3$ blocks of its view of the tip.
 \item \emph{Rebroadcast.} While $t$ is pending and unmined
   (Definition~\ref{def:life-states}), the wallet resubmits it at intervals
   whenever, at its tip $T$, $N = 0$ or $T < N$

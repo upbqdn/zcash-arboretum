@@ -322,8 +322,8 @@ This volume targets the \emph{draft NU7 rules} as of 6~October 2026:
 \href{https://zips.z.cash/zip-0218}{ZIP-218},
 \href{https://zips.z.cash/zip-0235}{ZIP-235},
 \href{https://zips.z.cash/zip-0237}{ZIP-237},
-\href{https://zips.z.cash/zip-2003}{ZIP-2003}, and three funding-stream
-amendments: Revision~2 of \href{https://zips.z.cash/zip-0207}{ZIP-207},
+\href{https://zips.z.cash/zip-2003}{ZIP-2003},
+Revision~2 of \href{https://zips.z.cash/zip-0207}{ZIP-207},
 Revision~3 of \href{https://zips.z.cash/zip-0214}{ZIP-214}, and
 \href{https://zips.z.cash/zip-2008}{ZIP-2008}. The activation height is
 assigned on Testnet, the test network, but not on Mainnet, the production
@@ -1518,14 +1518,14 @@ spacing changes neither the work definition nor this ordering.
 
 \begin{remark}[The implementation tie-break]\label{rem:cons-tiebreak}
 The specification and Rosenfeld's model prefer, at equal cumulative work,
-the tip received first. Zebra applies the same rule from version~6.4.0,
+the leaf received first. Zebra applies the same rule from version~6.4.0,
 released on 23~September 2026: of two chains with equal work it keeps the
-one whose tip it received first, and compares tip hashes only between tips
-whose receipt times it cannot order. A tying branch that reaches a node
-after the public tip therefore does not displace it there, as the
+one whose leaf it received first, and compares leaf hashes only between
+leaves whose receipt times it cannot order. A tying branch that reaches a
+node after the public leaf therefore does not displace it there, as the
 strict-overtake boundary $z=-1$ assumes. Earlier versions broke every
-equal-work tie by the larger tip hash. Under that rule an attacker could
-release a tying private branch whose tip hash won; the boundary $z=-1$ does
+equal-work tie by the larger leaf hash. Under that rule an attacker could
+release a tying private branch whose leaf hash won; the boundary $z=-1$ does
 not count that success, so for those versions $r(q,n)$ is a lower bound
 when only the tie-break is replaced, the other assumptions held fixed. Under
 either rule the tie-break concerns local chain choice, not the validity of a

@@ -442,11 +442,11 @@ Consensus'', \S``Difficulty filter'', \S``Difficulty adjustment'',
 which defines the ZIP process and its statuses; ZIP 200 (Final); ZIP 204
 (Draft); ZIPs 205, 206, 250, 251, 252, 253, 255 and 257 (Final), the
 deployment ZIPs of the upgrades named in Definition~\ref{def:upgrades}
-before NU6.3; ZIP 218 (Draft); ZIP 221 (Final); ZIP 229 (Draft); ZIP 244
-(Final); ZIP 258 (Draft); ZIP 259 (Draft); ZIP 307 (Draft); and ZIP 2003
-(Draft). A ZIP is cited by its number and the title of a section, the title
-following the number in the same sentence; the protocol specification is
-cited as protocol specification, \S``Title''.
+before NU6.3; ZIP 208 (Final); ZIP 218 (Draft); ZIP 221 (Final); ZIP 229
+(Draft); ZIP 244 (Final); ZIP 258 (Draft); ZIP 259 (Draft); ZIP 307 (Draft);
+and ZIP 2003 (Draft). A ZIP is cited by its number and the title of a section,
+the title following the number in the same sentence; the protocol specification
+is cited as protocol specification, \S``Title''.
 
 The conventions of the volume and the symbols of later sections are fixed in
 Table~\ref{tab:notation}. The paper overloads several symbols: $n$ denotes
@@ -704,7 +704,15 @@ solution for $\mathrm{hdr}$ and
 further require, for a block at height $\eta$, that
 $\mathsf{nBits} = \mathsf{ThresholdBits}(\eta)$, the value the
 difficulty-adjustment rule of protocol specification, \S``Difficulty
-adjustment'' assigns to that height.
+adjustment'' assigns to that height from the preceding headers. The one
+exception applies on Testnet, the test network, and not on Mainnet, the
+production network: from height $299{,}188$, a block whose $\mathsf{nTime}$
+exceeds that of its predecessor by more than a threshold is a
+\emph{minimum-difficulty block}, and its $\mathsf{nBits}$ encodes the
+proof-of-work limit $\mathsf{PoWLimit}$ (protocol specification,
+\S``Constants''; ZIP 205, ``Change to difficulty adjustment on Testnet'';
+ZIP 208, ``Minimum difficulty blocks on Testnet''; ZIP 218, ``Minimum
+difficulty blocks on Testnet'').
 \end{definition}
 
 The definition follows protocol specification, \S``Block Header Encoding and
@@ -751,7 +759,9 @@ every claimed chain and checks, for each chain $C$:
   $\mathrm{hdr}_\eta$ satisfies proof of work in the sense of
   Definition~\ref{def:header}, and its field $\mathsf{nBits}$ equals
   $\mathsf{ThresholdBits}(\eta)$, computed from $\mathrm{hdr}_0, \dots,
-  \mathrm{hdr}_{\eta-1}$.
+  \mathrm{hdr}_{\eta-1}$; on Testnet, when the timestamps of
+  $\mathrm{hdr}_{\eta-1}$ and $\mathrm{hdr}_\eta$ make $\mathrm{hdr}_\eta$ a
+  minimum-difficulty block, the field instead encodes $\mathsf{PoWLimit}$.
 \end{enumerate}
 It rejects every chain that fails a check and accepts, among the rest, the
 chain $C$ of greatest total work $\omega(C)$, under the best-chain rule of
@@ -809,15 +819,22 @@ Definition~\ref{def:header}, the checks are:
 \item the block hash, read as a little-endian integer, is at most
   $\mathsf{ToTarget}(\mathsf{nBits})$.
 \end{enumerate}
+% [sec:problem-zip307] ThresholdBits(eta) reads heights eta-W-11..eta-1:
+%   W = 17 -> 28 preceding headers; W = 102 (NU7) -> 113
 In that proposal, a compact block that fails a check MUST be discarded. The
+count $27$ of check (Z5) does not suffice. Let $W$ be the averaging window of
+protocol specification, \S``Difficulty adjustment'', $17$ blocks, and $102$ from
+NU7 (ZIP 218, ``Averaging window''). The value $\mathsf{ThresholdBits}(\eta)$
+reads the fields $\mathsf{nBits}$ of heights $\eta - W$ to $\eta - 1$ and,
+through the medians of the timestamps of the eleven heights below $\eta$ and
+below $\eta - W$, the fields $\mathsf{nTime}$ down to height $\eta - W - 11$; it
+therefore reads all $W + 11$ preceding headers, $28$, and $113$ from NU7. The
 same section of ZIP 307 further describes a check that the commitment field
-equals the root of the Sapling note commitment tree recomputed from the
-compact block; from Heartwood that check no longer applies, since the field
-changes meaning
-(Definition~\ref{def:header}; ZIP 221, ``Block header semantics and
+equals the root of the Sapling note commitment tree recomputed from the compact
+block; from Heartwood that check no longer applies, since the field changes
+meaning (Definition~\ref{def:header}; ZIP 221, ``Block header semantics and
 consensus rules''). Checks (Z1) to (Z6), where made on every header, cost
-communication linear in the chain length $N$, as in
-Definition~\ref{def:spv}.
+communication linear in the chain length $N$, as in Definition~\ref{def:spv}.
 
 Of the trust that ZIP 307 places in the node and proxy, a FlyClient verifier
 would replace only the trust in which header chain carries the most work,

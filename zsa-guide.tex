@@ -2322,21 +2322,26 @@ consumed ZEC note of value $0$ escapes membership.}
 \begin{remark}[Status of the OrchardZSA Action statement]
 \label{rem:zsa-action-status}
 The delta is specified at statement level (ZIP 226, Draft, ``Circuit
-Statement''). ZIP 226 states it against the specification's statement with
-seven primary inputs and conditions A1 to A9. The current Orchard statement
-has the eighth primary input $\mathsf{disableCrossAddress}$ and condition
-A10 (\emph{Ironwood Guide}, Definition ``Orchard Action statement'' and
-Remark ``Status''; protocol specification,
+Statement''). ZIP 226 states it against the specification's statement,
+which still has seven primary inputs and conditions A1 to A9 (protocol
+specification,
+\href{https://zips.z.cash/protocol/protocol.pdf\#actionstatement}{\S``Action
+Statement (Orchard)''}). The current Orchard statement has the eighth
+primary input $\mathsf{disableCrossAddress}$ and condition A10
+(\emph{Ironwood Guide}, Definition ``Orchard Action statement'' and Remark
+``Status''; ZIP 258, ``Consensus rules from NU6.3 activation''), which ZIP
+226 never mentions; the specification fixes that input, and the meaning of
+the flag that A10 formalises, only in
 \href{https://zips.z.cash/protocol/protocol.pdf\#actiondesc}{\S``Action
-Descriptions''}; ZIP 258, ``Consensus rules from NU6.3 activation''), which
-ZIP 226 never mentions. The composition of the delta with A10 is therefore
+Descriptions''}. The composition of the delta with A10 is therefore
 an open problem (Definition~\ref{def:classes}). The statement uses
 $\mathsf{enableZSA}$, which ZIP 226 never lists as a primary input. The
 encoded instance of the current Orchard statement has ten elements, the
 nine that encode its first seven primary inputs and
 $\mathsf{disableCrossAddress}$ (\emph{Ironwood Guide}, \S``The Action
-statement''); no live text places $\mathsf{enableZSA}$ in it, so its
-position is an open problem. ZIP 226 defers ``All
+statement''); no normative text fixes the position of
+$\mathsf{disableCrossAddress}$ in it or places $\mathsf{enableZSA}$ in it,
+so the position of $\mathsf{enableZSA}$ is an open problem. ZIP 226 defers ``All
 modifications in the Circuit'' to an unversioned document outside the ZIPs,
 ``Modifications to the Orchard circuit for the OrchardZSA Protocol''; no ZIP
 fixes a complete OrchardZSA circuit, which is designed but unspecified. The

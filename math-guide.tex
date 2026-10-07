@@ -5402,12 +5402,13 @@ symbol is \emph{completely multiplicative} in \(a\):
 
 \begin{example}[\(13\) is a non-square in both Pasta fields]
 \label{numbertheory:ex:pasta-nonsquare}
+% Source: .wip/leftovers/scripts/math_leftovers.py (RFC 9380 criteria for Z)
 Orchard uses the Pasta hash-to-curve construction, a procedure, treated
 in later volumes, that maps arbitrary byte strings to curve points and
-requires a fixed non-square constant in the base field. The construction
-fixes \(Z = -13\) as a verifiably non-square constant in both base
-fields. Let \(p\) and \(q\) be the Pasta primes of
-\cref{sec:ellipticcurves}; both satisfy
+requires a fixed constant in the base field that must, among other
+conditions, be a non-square. The construction fixes \(Z = -13\) as a
+verifiably non-square constant in both base fields. Let \(p\) and \(q\)
+be the Pasta primes of \cref{sec:ellipticcurves}; both satisfy
 \(p \equiv q \equiv 1 \pmod{4}\). The verification below works modulo
 \(p\); the computation modulo \(q\) is identical.
 
@@ -5431,7 +5432,12 @@ computation any computer-algebra system reproduces in milliseconds:
 \]
 whence \(\legendre{13}{p} = \legendre{13}{q} = -1\). Thus \(13\), and
 with it \(Z = -13\), is a quadratic non-residue modulo both Pasta
-primes, as the hash-to-curve construction requires.
+primes. Non-squareness is the first of four conditions that the
+construction (RFC~9380, \S6.6.2) imposes on \(Z\); the others are
+\(Z \neq -1\) and two conditions on the equation of an auxiliary curve
+onto which the construction first maps, and the Zcash protocol
+specification records \(-13\) as suitable for both auxiliary curves
+(\href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S5.4.9.8}).
 \end{example}
 
 \begin{example}[\(5\) is a non-square in the Pallas base field]
@@ -5502,7 +5508,10 @@ extraction grows with the \(2\)-adic valuation \(s\) of \(p - 1\):
 writing \(p - 1 = 2^s d\) with \(d\) odd, the Tonelli--Shanks algorithm
 below performs up to \(s\) corrective iterations. The Pasta primes have
 \(s = 32\), chosen for FFT-friendliness (\cref{rootsofunity:rem-twoadic}),
-so their implementations use Tonelli--Shanks.
+so neither shortcut applies: square roots in the Pasta fields need the
+Tonelli--Shanks algorithm below or a refinement of it, such as the
+table-based variant to which the Zcash protocol specification points
+(\href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S5.4.9.8}).
 \end{remark}
 
 For \(p \equiv 1 \pmod 4\), write \(p - 1 = 2^s d\) with \(d\) odd and
@@ -5601,9 +5610,9 @@ with probability exactly \(\tfrac12\)
 checked by one Euler-criterion exponentiation
 (Definition~\ref{numbertheory:def:legendre}), i.e.\ \(O(\log p)\)
 modular multiplications, so a few random trials find \(z\) with high
-probability. Implementations hard-code one non-residue per field,
-verified once, as Example~\ref{numbertheory:ex:pasta-nonsquare} verifies
-\(Z = -13\). This volume uses no deterministic polynomial-time method
+probability. In practice one non-residue per field is fixed and verified
+once: Example~\ref{numbertheory:ex:pasta-five} shows that \(5\) is one in
+both Pasta fields. This volume uses no deterministic polynomial-time method
 for finding a non-residue.
 
 \begin{remark}[Which root, and detecting failure]
@@ -8552,7 +8561,7 @@ twelve identities
     \tag{C6b}
 \end{align*}
 hold in \(\Fp\). These are, in this order, the twelve constraints of the
-gate \texttt{complete addition} in the \texttt{halo2\_gadgets} crate, each
+complete-addition gate of the \texttt{halo2\_gadgets} crate, each
 carrying there one further factor, a per-row cell equal to \(1\) on the
 rows where the gate applies and \(0\) elsewhere, which switches the list
 on or off; the crate assigns the cells as above, and the circuit field is
@@ -9567,7 +9576,8 @@ slightly below the \(128\)-bit security level targeted by Halo~2 and Zcash
 Orchard.
 \end{example}
 
-% Source: .wip/deck-harvest/scripts/math-halo2/numbers.py (item 2)
+% Source: .wip/deck-harvest/scripts/math-halo2/numbers.py (item 2);
+%   E[T] - sqrt(pi N/2) -> 2/3: .wip/leftovers/scripts/math_leftovers.py
 \begin{remark}[The expected cost of Pollard's rho on the Pasta curves]
 \label{ellipticcurves:rem-pasta-rho}
 We bound the expected step count of Pollard's rho under the modelling
@@ -9587,8 +9597,15 @@ first repeat,
 \]
 the last sum bounded by the integral of its decreasing summand, which the
 substitution \(x = u\sqrt{2N}\) turns into \(\sqrt{2N}\) times the Gaussian
-integral \(\int_0^\infty e^{-u^2}\,du = \sqrt\pi/2\). Three
-walks apply to a Pasta group \(G = \langle P \rangle\) of prime order
+integral \(\int_0^\infty e^{-u^2}\,du = \sqrt\pi/2\). The bound is
+tight up to its additive constant: the sum defining \(\E[T]\), less its
+first term, is Ramanujan's \(Q\)-function of \(N\), whose asymptotic
+expansion (Flajolet, Grabner, Kirschenhofer and Prodinger, \emph{On Ramanujan's
+\(Q\)-function}, J.~Comput.\ Appl.\ Math.\ 58 (1995), Theorem~1) gives
+\[
+\E[T] = \sqrt{\pi N/2} + \tfrac23 + O\bigl(N^{-1/2}\bigr) .
+\]
+Three walks apply to a Pasta group \(G = \langle P \rangle\) of prime order
 \(r\), each maintaining its position as \([a]P + [b]Q\) with known
 \(a, b\).
 \begin{itemize}
@@ -9612,8 +9629,8 @@ In a class walk a repeat presents positions \(R = [a]P + [b]Q\) and
 \(n \equiv (a - s a')(s b' - b)^{-1} \pmod r\) whenever
 \(s b' \not\equiv b\), as in the proof of
 \cref{ellipticcurves:prop-ecdlp-sqrt}. Both Pasta orders \(r\) satisfy
-\(\log_2 r = 254.0000\) to four places, so the bound, in which the
-additive \(2\) is negligible, gives
+\(\log_2 r = 254.0000\) to four places, so the expansion, whose additive
+terms are negligible, gives
 \[
 \sqrt{\pi r/2} \approx 2^{127.3}, \qquad
 \sqrt{\pi r/4} \approx 2^{126.8}, \qquad
@@ -11579,7 +11596,7 @@ value (commonly \(\lambda = 128\), targeting
 that target: the Pallas/Vesta group orders, slightly above
 \(2^{254}\), give about \(2^{126}\) group operations for the best known
 attack (\cref{ellipticcurves:rem-pasta-rho}; Zcash protocol specification
-\href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6}),
+\href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S5.4.9.8}),
 hash outputs of \({\ge}256\) bits per the birthday bound of
 \cref{probability:prop-birthday}, and sampling slack of at least
 \(128\) extra bits per \cref{probability:prop-modbias} (the deployed

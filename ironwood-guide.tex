@@ -485,9 +485,11 @@ The restriction of an Action's created note to the address of its consumed
 note, in force for every Orchard-pool Action and for every Ironwood-pool
 Action whose bundle does not enable cross-address transfers
 (\S\ref{sec:action-flags}), is specified: the protocol specification,
-\S``Action Descriptions'', fixes the meaning of the flag that controls it,
-although ZIP 2006, which that section cites for it, has status Reserved
-(ZIP 2006, preamble).
+\S``Action Descriptions'', fixes the meaning of the flag that controls it.
+The specification's Action statement, and the rule of that section that
+checks the Action proof, do not yet include the flag, and ZIP 2006, which
+that section cites for the restriction, has status Reserved (ZIP 2006,
+preamble; Remark ``Status'', \S\ref{sec:action-statement}).
 
 Notes of the two pools have the same form and the same note commitment. They
 differ only in the note plaintext format, the encoding in which note encryption
@@ -4756,24 +4758,34 @@ The balancing value is cleartext, so a negative one discloses the amount
 that enters the pool; the field names no receiving note or address.
 \end{remark}
 
-% .wip/deck-harvest/scripts/ironwood/ironwood_additions.py:
-% [ex:shield-unshield] T1 inputs 1000000000 zatoshi = 10.0 ZEC ; fee 15000 ;
+% .wip/leftovers/scripts/ironwood_shield_fee.py:
+% [ex:shield-unshield] transparent contribution T1 1 T2 1 ; fee = 5000 *
+%   max(2, 1 + 2) = 15000 15000
+% [ex:shield-unshield] T1 input 1000000000 zatoshi = 10.0 ZEC ;
 %   valueBalanceIronwood -999985000
 % [ex:shield-unshield] T2 valueBalanceIronwood 999985000 ; output 999970000
-%   zatoshi = 9.9997 ZEC ; fee 15000
+%   zatoshi = 9.9997 ZEC
 \begin{example}[A shield and a later unshield]\label{ex:shield-unshield}
-A transaction $T_1$ has transparent inputs of $1\,000\,000\,000$ zatoshi,
-$10$~ZEC, no transparent output, and an Ironwood-pool bundle that creates
-one note $n_1$, of the whole amount less a fee of $15\,000$ zatoshi; its
+A transaction $T_1$ has one transparent input, of $1\,000\,000\,000$
+zatoshi, $10$~ZEC, and of at most $150$ bytes, no transparent output, and an
+Ironwood-pool bundle of two Actions, which creates one note $n_1$, of the
+whole amount less a fee of $15\,000$ zatoshi, and one dummy note; its
 balancing value is
 \[
   \mathsf{valueBalanceIronwood} = -(1\,000\,000\,000 - 15\,000)
     = -999\,985\,000 .
 \]
 A later transaction $T_2$ has no transparent input, an Ironwood-pool bundle
-whose balancing value is $999\,985\,000$, and one transparent output of
-$999\,970\,000$ zatoshi, which leaves a fee of $15\,000$ zatoshi.
-An observer reads both balancing values, the transparent inputs and the
+of two Actions whose balancing value is $999\,985\,000$, and one transparent
+output, of $999\,970\,000$ zatoshi and of at most $34$ bytes, which leaves a
+fee of $15\,000$ zatoshi. Both fees are conventional: for the total sizes
+$s_{\mathsf{in}}$ and $s_{\mathsf{out}}$ in bytes of a transaction's
+transparent inputs and outputs, ZIP 317 adds to $\mathit{logical\_actions}$
+the transparent contribution $\max(\lceil s_{\mathsf{in}}/150 \rceil,
+\lceil s_{\mathsf{out}}/34 \rceil)$, which is $1$ for each transaction, so
+with its two Actions each fee is $5000 \cdot \max(2, 1 + 2) = 15\,000$
+zatoshi (ZIP 317, ``Fee calculation'').
+An observer reads both balancing values, the transparent input and the
 output with their addresses, and the blocks that contain $T_1$ and $T_2$. It
 learns that $999\,985\,000$ zatoshi entered the Ironwood pool and that the
 same amount left it later.
@@ -5217,7 +5229,10 @@ non-identity points (protocol specification, \S``Action Statement
 (Orchard)'', note on types). The trapdoors $\rcm^{\mathsf{old}}$,
 $\rcm^{\mathsf{new}}$, $\rivk$ and $\rcv$ and the randomiser $\alpha$ act only
 as scalars on points of order $p_{\Vesta}$, and the statement does not
-require them to be below $p_{\Vesta}$ (same note). The created note's element
+require them to be below $p_{\Vesta}$ (same section: for $\rcv$,
+$\rcm^{\mathsf{old}}$ and $\rcm^{\mathsf{new}}$, the note that this is not
+checked; for $\rivk$ and $\alpha$, their typing as $255$-bit integers and
+the note on canonical scalar decompositions). The created note's element
 $\rho$ is not an auxiliary input; condition A2 fixes it. The relation is an
 NP-relation in the sense of the cited definition: its instances and
 witnesses have fixed length, and membership is decided by evaluating the
@@ -6976,23 +6991,23 @@ $v^{\mathsf{balance}}$ the binding validating key $\mathsf{bvk}$.}
 \FloatBarrier
 \subsection{The transaction format}\label{sec:tx-format}
 
-The transaction formats in force are version~$5$, specified in ZIP 225, and
-version~$6$, specified in ZIP 229; a transaction of any other version,
-version~$4$ included, is invalid (protocol specification, \S``Transaction
-Consensus Rules'', as amended by ZIP 2003, ``Specification''; ZIP 259,
-Abstract). Of the two Orchard-protocol bundles a version-$5$ transaction can
-carry only the Orchard-pool bundle; a transaction with Ironwood-pool Actions
-is of version~$6$ (protocol specification, \S``Action Descriptions''). The
-Orchard-pool rules of ``Chain state and pool rules'' (\S\ref{sec:tx-pools})
-apply to Orchard-pool Actions in both versions (ZIP 229, ``Consensus
-Rules''). \emph{Sprout}, Zcash's first shielded protocol, spends its notes
-only through \emph{JoinSplit descriptions}, its transfer descriptions, which
-only transaction versions $2$ to $4$ carry (protocol specification,
-\S``Transaction Encoding and Consensus''); Sprout funds are therefore
-unspendable, and their value remains counted as issued, in the sense of the
-total issued supply defined in ``Chain state and pool rules''
-(\S\ref{sec:tx-pools}) (ZIP 2003, Abstract and ``Interaction with the
-proposed Network Sustainability Mechanism''; ZIP 259, Abstract). This
+From NU7 the transaction formats in force are version~$5$, specified in ZIP 225,
+and version~$6$, specified in ZIP 229; a transaction of any other version,
+version~$4$ included, is invalid (ZIP 2003, ``Specification'', which amends the
+rule of the protocol specification, \S``Transaction Consensus Rules'', that
+admits versions $4$, $5$ and~$6$ from NU6.3; ZIP 259, Abstract). Of the two
+Orchard-protocol bundles a version-$5$ transaction can carry only the
+Orchard-pool bundle; a transaction with Ironwood-pool Actions is of version~$6$
+(protocol specification, \S``Action Descriptions''). The Orchard-pool rules of
+``Chain state and pool rules'' (\S\ref{sec:tx-pools}) apply to Orchard-pool
+Actions in both versions (ZIP 229, ``Consensus Rules''). \emph{Sprout}, Zcash's
+first shielded protocol, spends its notes only through \emph{JoinSplit
+descriptions}, its transfer descriptions, which only transaction versions $2$ to
+$4$ carry (protocol specification, \S``Transaction Encoding and Consensus'');
+Sprout funds are therefore unspendable, and their value remains counted as
+issued, in the sense of the total issued supply defined in ``Chain state and
+pool rules'' (\S\ref{sec:tx-pools}) (ZIP 2003, Abstract and ``Interaction with
+the proposed Network Sustainability Mechanism''; ZIP 259, Abstract). This
 subsection describes version~$6$.
 
 % compute/OUTPUT.md, cited numbers:
@@ -7124,11 +7139,12 @@ are $0$; $\mathsf{valueBalanceIronwood}$ lies in
 $\{-\mathsf{MAX\_MONEY}, \dots, \mathsf{MAX\_MONEY}\}$, where
 $\mathsf{MAX\_MONEY} = 2.1 \cdot 10^{15}$ zatoshi is a protocol constant
 (protocol specification, \S``Constants''); and $\mathsf{proofsIronwood}$
-has exactly $2720 + 2272\,n$ bytes (ZIP 229, ``Consensus Rules''; protocol
-specification, \S``Transaction Consensus Rules'' and \S``Action Description
-Encoding and Consensus''). The flags byte differs from $\mathsf{flagsOrchard}$
-only in bit~$2$, which is $\mathsf{enableCrossAddress}$ in
-$\mathsf{flagsIronwood}$ and reserved and $0$ in $\mathsf{flagsOrchard}$
+has exactly $2720 + 2272\,n$ bytes (ZIP 229, ``Consensus Rules'', and
+protocol specification, \S``Transaction Consensus Rules'', for the first
+four rules; protocol specification, \S``Action Description Encoding and
+Consensus'', for the proof length). The flags byte differs from
+$\mathsf{flagsOrchard}$ only in bit~$2$, which is $\mathsf{enableCrossAddress}$
+in $\mathsf{flagsIronwood}$ and reserved and $0$ in $\mathsf{flagsOrchard}$
 (``Bundle flags'', \S\ref{sec:action-flags}). The proof length is the one
 that ZIP 229 fixes; the \emph{Halo 2 Guide}, \S``Halo 2's specifics:
 parameters, generators from a hash, the deferred multi-scalar
@@ -8193,8 +8209,9 @@ Given the chain state of each pool, a transaction $T$ in a block is
 accepted, as far as its Orchard-protocol components are concerned, if and
 only if the following checks pass.
 \begin{enumerate}[label=(\arabic*)]
-\item \emph{Parsing.} The version of $T$ is $5$ or $6$, with the version
-  group identifier of its version, and $\mathsf{nConsensusBranchId}$ equals
+\item \emph{Parsing.} The version of $T$ is $5$ or $6$, the versions in
+  force from NU7 (\S\ref{sec:tx-format}), with the version group identifier
+  of its version, and $\mathsf{nConsensusBranchId}$ equals
   the identifier of the consensus branch in force. Every field of every
   Action description is the canonical encoding of its type
   (Table~\ref{tab:tx-action}): $\cvsym^{\mathsf{net}}$ and $\rk$ are

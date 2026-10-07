@@ -339,7 +339,8 @@ retained as historical audit evidence and is no longer actionable.
 
 ## 12. zcash/zips — protocol.tex Action Statement omits the NU6.3 cross-address input the deployed circuit enforces
 
-**DRAFT. Severity: low.**
+**DRAFT. Severity: low (2026-07-16, NU6.3 unactivated); low-to-medium from
+2026-10-07 (see status).**
 
 **Title:** §7.1.5.4 Action Statement still specifies the pre-Ironwood 9-element
 primary input (conditions A1-A9), omitting the tenth flag ZIP-229/258 and the
@@ -377,6 +378,16 @@ Observed at zcash/zips `69610984` (protocol.tex `662dc87`, `§7.1.5.4`); orchard
 defines `enableCrossAddress` and passes `disableCrossAddress` as the eighth
 primary input (`protocol.tex:6228-6235`); the Action Statement's conditions
 still end at the enable-output flag (`8116`).
+
+**2026-10-07 correction and status:** the Action Statement is §4.18.4
+(``Zk-SNARK Statements''), not §7.1.5.4 as written in the title and
+observation line; §7.1 is ``Transaction Encoding and Consensus''. The
+numbering is the same at `69610984` and `660b3f80`. NU6.3 has since activated
+on Mainnet at height 3428143 (`README.rst:49-50`; `zip-0204.rst:585`;
+`zip-0258.md:68-70`), so the omission now concerns an active consensus
+circuit, and the ``NU6.3 is unactivated'' ground above has lapsed;
+ZIP-229/258 remain Draft. At zcash/zips `660b3f80` (protocol.tex unchanged
+since `afa086bd`) the 2026-09-24 status still holds.
 
 ---
 
@@ -1802,6 +1813,15 @@ has ỹ = 1" (ỹ = 1 denotes ODD y) — matching the code and ZIP 2005 / protoc
 Observed at reddsa `3792daa` (`src/frost/redpallas.rs:328-334,349-355,358-360,389-391,
 425-427`); guide correct at `frost-guide.tex:1480-1486,1666-1672`.
 
+**2026-10-07 correction:** the even-Y requirement on `ak` is a key-derivation
+rule, not a consensus rule, and the circuit does not enforce it. Protocol
+specification §4.2.3 (``Orchard Key Components'') and ZIP 2005
+(`zip-2005.md:700-701,708-710`) derive `ak` with ỹ = 0; the Action Statement
+lets the prover witness `ak` with ỹ = 0 or 1, which the specification notes is
+harmless (`protocol.tex:8187-8192`, zcash/zips `660b3f80`). An odd-Y `ak`
+built from the inverted comment fails conformance with key derivation, not
+spend validity.
+
 ---
 
 ## 42. frost-core — batch-verifier doc-comment says the blinding scalar `z_i` is "a random 128-bit Scalar", but the code samples a full-width field element (stale wording copied from reddsa)
@@ -2608,6 +2628,12 @@ network protocol versions unassigned; it does not assign the conflicting
 values below. See the [NU7 source review](nu7-2026-09-23.md). Retained as
 historical evidence, not a current finding against ZIP 259.
 
+**2026-10-07 status:** resolved. ZIP 259 assigns MIN_NETWORK_PROTOCOL_VERSION
+170180 (Testnet) and 170190 (Mainnet) (`zip-0259.md:131-133`, from `b344587a`,
+2026-09-30), as ZIP-204 requires (`zip-0204.rst:642-659`), and
+`draft-arya-deploy-nu7.md` was deleted in `7013ce13` (2026-09-29). Observed at
+zcash/zips `660b3f80`.
+
 **DRAFT. Severity: low.**
 
 **Title:** `draft-arya-deploy-nu7` assigns Testnet/Mainnet protocol versions
@@ -2703,3 +2729,12 @@ merges.
 
 Observed at zcash/zips `afa086bd` (`zips/zip-0218.md:6,97-148,352-397`;
 `zips/zip-0229.md:67-74,208,260`; `zips/zip-0259.md:5,87`).
+
+**2026-10-07 status:** resolved. PR 1361 merged on 2026-09-29 (`355e68a9`;
+content `708da653`). At zcash/zips `660b3f80`, ZIP 218 bounds
+Σ nActionsIronwood by `OrchardProtocolBlockActionLimit` = 330 (renamed from
+`OrchardBlockActionLimit`) and adds `nActionsIronwood` to the shielded cost
+bounded by `GlobalShieldedBudget` (`zip-0218.md:430-431,445-447,460-469`).
+Residual slip, introduced in `721fbcad`: the budget rule's prose says ``MUST
+NOT exceed BlockShieldedBudget'' (`462`), a name defined nowhere; the constant
+and the displayed inequality use `GlobalShieldedBudget`.

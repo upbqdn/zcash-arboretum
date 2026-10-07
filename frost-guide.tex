@@ -1386,12 +1386,14 @@ hashes by BLAKE2b personalisations instead, its \(H_2\) being that of
 RedPallas (Construction~\ref{def:pallas-suite}).
 
 The generic element serialisation of RFC~9591, Section~3.1, fails on
-\(\mathcal{O}\); a suite may instead serialise every element, as
-FROST(Pallas, BLAKE2b-512) does with the star encoding (\emph{Ironwood
+\(\mathcal{O}\). The suite FROST(Pallas, BLAKE2b-512), as ZIP~312 states
+it, instead serialises every element, by the star encoding (\emph{Ironwood
 Guide}, Definition ``Star encoding''; ZIP~312, ``FROST(Pallas,
-BLAKE2b-512)''). In both cases the element deserialisation rejects
-\(\mathcal{O}\). Whether \(\mathsf{ser}_{\G}\) is total is the one property
-of a suite on which Theorem~\ref{thm:frost-correct} distinguishes cases.
+BLAKE2b-512)''); the conflict between the two texts is stated after
+Construction~\ref{def:pallas-suite}. In both cases the element
+deserialisation rejects \(\mathcal{O}\). Whether \(\mathsf{ser}_{\G}\) is
+total is the one property of a suite on which
+Theorem~\ref{thm:frost-correct} distinguishes cases.
 
 % compute/frost_bounds.py:
 % [sec:auth-suite] H1, H2, H3, HR: 512-bit digest mod p_Vesta; Math Guide
@@ -2052,10 +2054,11 @@ and with \(\rho_1 = \rho_2\), \(z_1 - z_2 = (\mu_1 - \mu_2)\,
 \mathit{sk}_i\).
 \end{proof}
 
-The last case is the \emph{Crypto Guide}'s Proposition ``Nonce reuse reveals the secret key'' (\S``Security in the random oracle model and the forking lemma'')
-applied to the effective nonce \(d + e \rho\). Whoever sees the shares and
-the public data can compute \(\mathit{sk}_i\) in the determined cases,
-since the shares travel without confidentiality
+The last case is the \emph{Crypto Guide}'s Proposition ``Nonce reuse reveals
+the secret key'' (\S``Security in the random oracle model and the forking
+lemma'') applied to the effective nonce \(d + e \rho\). Whoever sees the
+shares and the public data can compute \(\mathit{sk}_i\) in the determined
+cases, since the shares travel without confidentiality
 (Definition~\ref{def:channels}, type (a)). RFC~9591 states the risk
 (Sections~1 and 7.3) and forbids the reuse (Section~5.2).
 
@@ -2913,15 +2916,28 @@ The data are those of ZIP~312, ``FROST(Pallas, BLAKE2b-512)'', which takes
 the group, the order and the encoding \(\mathsf{repr}_{\PP}\) from the
 protocol specification, \S``Pallas and Vesta'', and the base point from
 \href{https://zips.z.cash/protocol/protocol.pdf\#concretespendauthsig}%
-{\S``Spend Authorization Signature (Sapling and Orchard)''}. The generic
-element serialisation of RFC~9591, Section~3.1, fails on the identity; this
-one does not. Three consequences for Theorem~\ref{thm:frost-correct} follow.
-Its case~(2), \(R = \mathcal{O}\), does not arise, the serialisation being
-total. Its case~(1), a zero nonce, remains: a commitment \(D_i\) or \(E_i\)
-equal to \(\mathcal{O}\) is serialised in Round One and rejected by
-\(\mathsf{deser}_{\G}\) in check~(3) of Round Two. The only identity
-condition left on the output is the consensus rule
-\(\rk \ne \mathcal{O}\) (Corollary~\ref{cor:alpha}).
+{\S``Spend Authorization Signature (Sapling and Orchard)''}. The generic element
+serialisation of RFC~9591, Section~3.1, fails on the identity; this one, as
+ZIP~312 states it, does not. Three consequences for
+Theorem~\ref{thm:frost-correct} follow. Its case~(2), \(R = \mathcal{O}\), does
+not arise, the serialisation being total. Its case~(1), a zero nonce, remains: a
+commitment \(D_i\) or \(E_i\) equal to \(\mathcal{O}\) is serialised in Round
+One and rejected by \(\mathsf{deser}_{\G}\) in check~(3) of Round Two. The only
+identity condition left on the output is the consensus rule \(\rk \ne
+\mathcal{O}\) (Corollary~\ref{cor:alpha}).
+
+The two texts conflict. RFC~9591, Section~3.1, requires every element
+serialisation to fail on the identity; ZIP~312 defines this suite's as
+\(\mathsf{repr}_{\PP}\) and is silent on the identity; and the \textsf{reddsa}
+crate, which implements the suite, fails on it. Under the reading of RFC~9591
+the serialisation of part~(b) is not total: cases~(2) and~(3) of
+Theorem~\ref{thm:frost-correct} and the identity case of the shifted group key
+in Theorem~\ref{thm:rr-correct} apply to this suite, the bound of case~(2) being
+that stated after Theorem~\ref{thm:frost-correct}; and
+Proposition~\ref{prop:frost1}, which assumes a total serialisation, does not
+cover it. ZIP~312 does not settle which reading holds. This volume follows the
+text of ZIP~312: each statement that this suite's serialisation is total, and
+each result resting on one, holds under that reading only.
 
 \begin{table}[t]
 \centering
