@@ -33,6 +33,7 @@
 \usepackage{placeins}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
+\definecolor{tierrecv}{RGB}{70,150,90}
 \usepackage{xcolor}
 \usepackage[psdextra,hidelinks]{hyperref}
 % before \newtheorem, so each kind sharing the theorem counter keeps its name
@@ -1831,14 +1832,48 @@ divisors \(1, 2, 3, 4, 6, 12\), and inclusion between subgroups mirrors
 divisibility between the corresponding divisors: the subgroup lattice of
 \(\Z/12\Z\) is the divisor lattice of \(12\), with chains such as
 \(1 \mid 2 \mid 4\), \(1 \mid 2 \mid 6\), and \(3 \mid 6\).
+\Cref{fig:groups-z12lattice} draws this lattice.
 \end{remark}
 
-% FIGURE (wave 8): fig:groups-z12lattice --- subgroup lattice of
-% Z/12Z. One node per divisor d of 12 (the unique subgroup <12/d> of
-% order d), edges drawn for minimal inclusions; the diagram coincides
-% with the divisor lattice of 12 (chains 1|2|4, 1|2|6, 3|6, ...).
-% Caption cites Theorem~\ref{groups:thm-cyclic-subgroups}(3); shared
-% tier* palette per CONVENTIONS.org.
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (item 8)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  sg/.style={draw=black!40, rounded corners=2pt, inner sep=4pt,
+    font=\small, align=center},
+  two/.style={semithick, tierin},
+  three/.style={semithick, tierfull},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\node[sg] (d1)  at (0,0)     {$\langle 12\rangle = \{0\}$\\order $1$};
+\node[sg] (d2)  at (2.7,1.5) {$\langle 6\rangle = \{0, 6\}$\\order $2$};
+\node[sg] (d3)  at (-2.7,1.5) {$\langle 4\rangle = \{0, 4, 8\}$\\order $3$};
+\node[sg] (d4)  at (5.4,3)   {$\langle 3\rangle = \{0, 3, 6, 9\}$\\order $4$};
+\node[sg] (d6)  at (0,3)
+  {$\langle 2\rangle = \{0, 2, 4, 6, 8, 10\}$\\order $6$};
+\node[sg] (d12) at (2.7,4.5) {$\langle 1\rangle = \Z/12\Z$\\order $12$};
+\draw[two] (d1) -- (d2);
+\draw[two] (d2) -- (d4);
+\draw[two] (d3) -- (d6);
+\draw[two] (d6) -- (d12);
+\draw[three] (d1) -- (d3);
+\draw[three] (d2) -- (d6);
+\draw[three] (d4) -- (d12);
+\draw[two] (4.0,0.55) -- (4.6,0.55);
+\node[lab, anchor=west] at (4.65,0.55) {order doubles};
+\draw[three] (4.0,0) -- (4.6,0);
+\node[lab, anchor=west] at (4.65,0) {order triples};
+\end{tikzpicture}
+\caption{The subgroup lattice of \(\Z/12\Z\). By
+Theorem~\ref{groups:thm-cyclic-subgroups}(3) there is one subgroup
+\(\langle 12/d\rangle\) for each divisor \(d\) of \(12\), of order \(d\).
+An edge joins two subgroups when the lower is contained in the upper
+with no subgroup between them, which happens exactly when the quotient
+of their orders is prime: blue edges double the order, orange edges
+triple it. Inclusion of subgroups matches divisibility of their orders,
+so the diagram is also the divisor lattice of \(12\).}
+\label{fig:groups-z12lattice}
+\end{figure}
 
 The classification of the subgroups of \(\Z\) announced in
 Example~\ref{groups:exa-subgroups} is
@@ -3740,13 +3775,57 @@ f \;=\; 1 \cdot \ell_0 + 3 \cdot \ell_1 + 7 \cdot \ell_2
 \;=\; X^2 + X + 1,
 \]
 which satisfies \(f(0) = 1\), \(f(1) = 3\), \(f(2) = 7\) as required.
+\Cref{fig:polynomials-lagrange} plots the three basis polynomials and
+the interpolant.
 \end{example}
 
-% FIGURE PLACEHOLDER (figures pass): plot over R of the three Lagrange
-% basis polynomials l_0, l_1, l_2 for the nodes 0, 1, 2
-% (from polynomials:exa:lagrange), each dipping to 0 at the other two
-% nodes and reaching 1 at its own, with the worked interpolant
-% f = X^2 + X + 1 overlaid through the points (0,1), (1,3), (2,7).
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (item 1)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=4cm, y=1cm, font=\small,
+  ax/.style={->, black!40, text=black},
+  guide/.style={densely dotted, black!35},
+  crv/.style={semithick, smooth, samples=61},
+  pt/.style={circle, fill, inner sep=1.5pt},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\draw[guide] (-0.45,1) -- (2.35,1);
+\foreach \x in {1,2} \draw[guide] (\x,0) -- (\x,7.6);
+\draw[ax] (-0.45,0) -- (2.55,0) node[right] {$x$};
+\draw[ax] (-0.45,-1.3) -- (-0.45,8.0) node[above] {$y$};
+\foreach \x in {0,1,2} \node[lab, anchor=north, yshift=-1.2mm] at (\x,0) {$\x$};
+\foreach \y in {1,3,7} {
+  \draw[black!40] (-0.45,\y) -- (-0.465,\y);
+  \node[lab, anchor=east] at (-0.465,\y) {$\y$};
+}
+\draw[crv, tierin, domain=-0.35:2.35] plot (\x, {((\x)-1)*((\x)-2)/2});
+\draw[crv, tierfull, domain=-0.35:2.35] plot (\x, {-(\x)*((\x)-2)});
+\draw[crv, tierrecv, domain=-0.35:2.35] plot (\x, {(\x)*((\x)-1)/2});
+\draw[crv, thick, tierspend, domain=-0.35:2.117]
+  plot (\x, {(\x)*(\x)+(\x)+1});
+\foreach \x in {0,1,2} \fill (\x,0) circle (1.5pt);
+\node[pt, tierfull] at (1,1) {};
+\node[pt, tierrecv] at (2,1) {};
+\foreach \x/\y in {0/1,1/3,2/7} \node[pt, tierspend] at (\x,\y) {};
+\node[lab, tierin, anchor=south west] at (-0.35,1.586) {$\ell_0$};
+\node[lab, tierfull, anchor=north west] at (-0.35,-0.823) {$\ell_1$};
+\node[lab, tierrecv, anchor=south east] at (2.35,1.586) {$\ell_2$};
+\draw[tierspend!70] (0,1) -- (0.2,2.2);
+\node[lab, tierspend, anchor=south] at (0.2,2.2) {$(0, 1)$};
+\node[lab, tierspend, anchor=south east] at (1,3) {$(1, 3)$};
+\node[lab, tierspend, anchor=east] at (1.98,7) {$(2, 7)$};
+\node[lab, tierspend, anchor=west] at (1.36,3.5) {$f = X^2 + X + 1$};
+\end{tikzpicture}
+\caption{The Lagrange basis polynomials \(\ell_0\), \(\ell_1\),
+\(\ell_2\) for the nodes \(0, 1, 2\) of \cref{polynomials:exa:lagrange},
+read as functions on \(\R\). Each takes the value \(1\) at its own node
+and vanishes at the other two, the delta property
+\eqref{polynomials:eq:lagrange-delta}. The interpolant
+\(f = 1 \cdot \ell_0 + 3 \cdot \ell_1 + 7 \cdot \ell_2 = X^2 + X + 1\)
+passes through \((0, 1)\), \((1, 3)\) and \((2, 7)\); at the node \(0\)
+it meets \(\ell_0\), since \(y_0 = 1\).}
+\label{fig:polynomials-lagrange}
+\end{figure}
 
 \begin{remark}[The evaluation isomorphism]\label{polynomials:rem:eval-iso}
 Fix \(d+1\) distinct nodes and let
@@ -4312,6 +4391,41 @@ exponent \(p - 2\), at a cost of \(O(\log p)\) modular multiplications
 when \(p>2\). For \(p=2\), the only nonzero element is \(1\), whose
 inverse is \(1\); the exponent is zero and no multiplication is needed.
 \end{construction}
+
+% Source: .wip/deck-harvest/scripts/math-halo2/numbers.py (item 1)
+\begin{example}[Both routes in \(\F_{97}\)]\label{finitefields:ex:inv97}
+Take \(p = 97\) and \(a = 5\). For \cref{finitefields:con:inv-euclid}, the
+Euclidean algorithm on \(97\) and \(5\) runs
+\[
+\begin{aligned}
+97 &= 19\cdot 5 + 2, \\
+5 &= 2\cdot 2 + 1, \\
+2 &= 2\cdot 1 + 0,
+\end{aligned}
+\]
+and back-substitution gives
+\[
+1 = 5 - 2\cdot 2 = 5 - 2\,(97 - 19\cdot 5) = 39\cdot 5 - 2\cdot 97 ,
+\]
+so \(au + pv = 1\) with \((u, v) = (39, -2)\), and
+\(5^{-1} = [39]_{97}\). For \cref{finitefields:con:inv-fermat}, the
+exponent is \(e = p - 2 = 95 = 2^6 + 2^4 + 2^3 + 2^2 + 2^1 + 2^0\), and
+square-and-multiply (\cref{finitefields:con:sqmul}) tabulates its digits
+and the repeated squares in \(\F_{97}\):
+\[
+\begin{array}{c|ccccccc}
+i & 0 & 1 & 2 & 3 & 4 & 5 & 6 \\\hline
+e_i & 1 & 1 & 1 & 1 & 1 & 0 & 1 \\
+a^{2^i} & 5 & 25 & 43 & 6 & 36 & 35 & 61
+\end{array}
+\]
+Multiplying the factors with \(e_i = 1\) in order of \(i\) gives the
+partial products \(5, 28, 40, 46, 7\) and finally
+\(7 \cdot 61 = 427 = 4 \cdot 97 + 39\), so \(5^{95} = 39\). This route
+costs \(6\) squarings and \(5\) multiplications, against the \(94\)
+multiplications of the naive product. Both routes give \(39\), and
+\(5 \cdot 39 = 195 = 2 \cdot 97 + 1\).
+\end{example}
 
 \begin{remark}[Constant-time inversion]\label{finitefields:rem:cttime}
 The two methods have comparable asymptotic cost. In
@@ -8057,11 +8171,6 @@ line \(x = \text{const}\) passes through it.
 \subsection{The chord-and-tangent group law: geometry}
 \label{ellipticcurves:subsec-grouplaw-geom}
 
-% FIGURE (fig:ellipticcurves-chordtangent): chord-and-tangent addition
-% and doubling on a real Weierstrass curve --- a chord through P and Q
-% meeting the curve at R', reflected to P+Q; and a tangent at P meeting
-% the curve at R', reflected to [2]P. Dedicated figures pass.
-
 The geometric definition of addition rests on one fact: a line meets a
 cubic curve in exactly three points, counted with multiplicity, once the
 point at infinity is included.
@@ -8083,6 +8192,78 @@ Let \(P, Q \in E(K)\). Define \(P + Q\) as follows.
     \(P + Q = \mathcal{O}\).
 \end{itemize}
 \end{definition}
+
+\Cref{fig:ellipticcurves-chordtangent} draws the chord and the tangent
+on the real points of \(y^2 = x^3 + 5\), the equation of the Pasta curves
+(\cref{ellipticcurves:rem-pasta-smooth}) read over \(\R\).
+
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (items 2-4)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=0.5cm, font=\small,
+  ax/.style={->, black!35, text=black},
+  crv/.style={thick, black!70},
+  ln/.style={semithick, tierin},
+  refl/.style={densely dashed, tierspend},
+  pt/.style={circle, fill, inner sep=1.5pt},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\def\arbcurve{plot[smooth] coordinates {
+(3.141,-6.000) (2.746,-5.069) (2.367,-4.272) (2.004,-3.613)
+(1.659,-3.093) (1.331,-2.712) (1.019,-2.461) (0.724,-2.319)
+(0.446,-2.256) (0.185,-2.237) (-0.059,-2.236) (-0.287,-2.231)
+(-0.497,-2.208) (-0.691,-2.161) (-0.868,-2.085) (-1.028,-1.978)
+(-1.171,-1.842) (-1.297,-1.678) (-1.407,-1.489) (-1.499,-1.276)
+(-1.575,-1.045) (-1.634,-0.797) (-1.676,-0.538) (-1.702,-0.271)
+(-1.710,0.000) (-1.702,0.271) (-1.676,0.538) (-1.634,0.797)
+(-1.575,1.045) (-1.499,1.276) (-1.407,1.489) (-1.297,1.678)
+(-1.171,1.842) (-1.028,1.978) (-0.868,2.085) (-0.691,2.161)
+(-0.497,2.208) (-0.287,2.231) (-0.059,2.236) (0.185,2.237) (0.446,2.256)
+(0.724,2.319) (1.019,2.461) (1.331,2.712) (1.659,3.093) (2.004,3.613)
+(2.367,4.272) (2.746,5.069) (3.141,6.000)}}
+\foreach \dx in {0,6.6} {
+  \begin{scope}[xshift=\dx cm]
+    \draw[ax] (-2.3,0) -- (3.5,0) node[right] {$x$};
+    \draw[ax] (0,-6.4) -- (0,6.6) node[above] {$y$};
+    \draw[crv] \arbcurve;
+    \node[lab, anchor=west] at (3.141,6) {$E$};
+  \end{scope}
+}
+% chord: P = (-3/2, sqrt(13/8)), Q = (0, sqrt 5)
+\draw[ln] (-2.0,0.954) -- (3.0,4.159);
+\node[lab, tierin, anchor=east] at (-2.0,0.954) {$\ell$};
+\draw[refl] (1.911,3.461) -- (1.911,-3.461);
+\node[pt] at (-1.5,1.275) {};
+\node[lab, anchor=south east] at (-1.5,1.275) {$P$};
+\node[pt] at (0,2.236) {};
+\node[lab, anchor=north west, xshift=1pt] at (0,2.236) {$Q$};
+\node[pt, tierin] at (1.911,3.461) {};
+\node[lab, tierin, anchor=south east] at (1.911,3.461) {$R'$};
+\node[pt, tierspend] at (1.911,-3.461) {};
+\node[lab, tierspend, anchor=west, xshift=2.5pt] at (1.911,-3.461) {$P + Q$};
+% tangent at P = (-1, 2): slope 3/4, R' = (41/16, 299/64)
+\begin{scope}[xshift=6.6cm]
+  \draw[ln] (-2.0,1.25) -- (3.3,5.225);
+  \node[lab, tierin, anchor=east] at (-2.0,1.25) {$\ell$};
+  \draw[refl] (2.5625,4.672) -- (2.5625,-4.672);
+  \node[pt] at (-1,2) {};
+  \node[lab, anchor=south east] at (-1,2) {$P$};
+  \node[pt, tierin] at (2.5625,4.672) {};
+  \node[lab, tierin, anchor=south east] at (2.5625,4.672) {$R'$};
+  \node[pt, tierspend] at (2.5625,-4.672) {};
+  \node[lab, tierspend, anchor=west, xshift=2.5pt] at (2.5625,-4.672) {$[2]P$};
+\end{scope}
+\end{tikzpicture}
+\caption{The chord-and-tangent law of
+\cref{ellipticcurves:def-grouplaw-geom} on the real points of
+\(E : y^2 = x^3 + 5\). Left: the chord \(\ell\) through \(P\) and \(Q\)
+meets \(E\) a third time at \(R'\), and \(P + Q\) is the reflection of
+\(R'\) across the \(x\)-axis. Right: the tangent \(\ell\) at
+\(P = (-1, 2)\), of slope \(3/4\), meets \(E\) again at
+\(R' = (41/16, 299/64)\), so \([2]P = (41/16, -299/64)\), as
+\eqref{ellipticcurves:eq-double} computes.}
+\label{fig:ellipticcurves-chordtangent}
+\end{figure}
 
 The reflection turns the rule that \emph{the three intersection points of
 any line with the curve add up to \(\mathcal{O}\)} into a group law with
@@ -8174,11 +8355,6 @@ by the choice of \(\lambda\), so \(x_1\) is a repeated root of \(g\)
 \end{equation}
 \end{construction}
 
-% FIGURE (fig:ellipticcurves-vertical): the vertical-line cases escaping
-% to the point at infinity --- the line through P and -P, and the
-% vertical tangent at a point with y = 0, each with third point O.
-% Dedicated figures pass.
-
 The remaining cases are exactly those in which the line is vertical.
 \begin{itemize}
   \item If \(P = \mathcal{O}\), then \(P + Q = Q\); symmetrically if
@@ -8198,6 +8374,64 @@ inputs are affine with \(x_1 \neq x_2\)
 \(x_1 = x_2\), in which case either \(y_1 = -y_2\) (result
 \(\mathcal{O}\)) or \(y_1 = y_2 \neq 0\)
 (use~\eqref{ellipticcurves:eq-double}).
+\Cref{fig:ellipticcurves-vertical} draws the two vertical cases.
+
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (items 2, 5)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=0.5cm, font=\small,
+  ax/.style={->, black!35, text=black},
+  crv/.style={thick, black!70},
+  vert/.style={semithick, tierin, -{Stealth[length=2mm]}},
+  pt/.style={circle, fill, inner sep=1.5pt},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\def\arbcurve{plot[smooth] coordinates {
+(3.141,-6.000) (2.746,-5.069) (2.367,-4.272) (2.004,-3.613)
+(1.659,-3.093) (1.331,-2.712) (1.019,-2.461) (0.724,-2.319)
+(0.446,-2.256) (0.185,-2.237) (-0.059,-2.236) (-0.287,-2.231)
+(-0.497,-2.208) (-0.691,-2.161) (-0.868,-2.085) (-1.028,-1.978)
+(-1.171,-1.842) (-1.297,-1.678) (-1.407,-1.489) (-1.499,-1.276)
+(-1.575,-1.045) (-1.634,-0.797) (-1.676,-0.538) (-1.702,-0.271)
+(-1.710,0.000) (-1.702,0.271) (-1.676,0.538) (-1.634,0.797)
+(-1.575,1.045) (-1.499,1.276) (-1.407,1.489) (-1.297,1.678)
+(-1.171,1.842) (-1.028,1.978) (-0.868,2.085) (-0.691,2.161)
+(-0.497,2.208) (-0.287,2.231) (-0.059,2.236) (0.185,2.237) (0.446,2.256)
+(0.724,2.319) (1.019,2.461) (1.331,2.712) (1.659,3.093) (2.004,3.613)
+(2.367,4.272) (2.746,5.069) (3.141,6.000)}}
+\foreach \dx in {0,6.6} {
+  \begin{scope}[xshift=\dx cm]
+    \draw[ax] (-2.3,0) -- (3.5,0) node[right] {$x$};
+    \draw[ax] (0,-6.4) -- (0,6.6) node[above] {$y$};
+    \draw[crv] \arbcurve;
+    \node[lab, anchor=west] at (3.141,6) {$E$};
+  \end{scope}
+}
+% the line x = -1 through P = (-1, 2) and -P = (-1, -2)
+\draw[vert] (-1,-6.4) -- (-1,7.2) node[above, text=tierin] {$\mathcal{O}$};
+\node[pt] at (-1,2) {};
+\node[lab, anchor=south east] at (-1,2) {$P$};
+\node[pt] at (-1,-2) {};
+\node[lab, anchor=north east] at (-1,-2) {$-P$};
+% the tangent x = -5^(1/3) at the point of order two
+\begin{scope}[xshift=6.6cm]
+  \draw[vert] (-1.710,-6.4) -- (-1.710,7.2)
+    node[above, text=tierin] {$\mathcal{O}$};
+  \node[pt, tierspend] at (-1.710,0) {};
+  \node[lab, tierspend, anchor=south east] at (-1.710,0) {$P$};
+\end{scope}
+\end{tikzpicture}
+\caption{The vertical cases of the group law on the real points of
+\(E : y^2 = x^3 + 5\). Left: the line \(x = -1\) through \(P = (-1, 2)\)
+and \(-P = (-1, -2)\) meets \(E\) a third time only at the point at
+infinity \(\mathcal{O}\), so \(P + (-P) = \mathcal{O}\). Right: at
+\(P = (-\sqrt[3]{5}, 0)\), the only real point with \(y = 0\), the
+tangent \(x = -\sqrt[3]{5}\) is vertical, so \([2]P = \mathcal{O}\).
+Each arrow points in the vertical direction, where both lines pass
+through \(\mathcal{O}\)
+(\S\ref{ellipticcurves:subsec-infinity}).}
+\label{fig:ellipticcurves-vertical}
+\end{figure}
 
 \begin{proposition}[Closure]\label{ellipticcurves:prop-closure}
 For all \(P, Q \in E(K)\), the point \(P + Q\) computed by the case
@@ -8962,9 +9196,11 @@ For well-chosen curves, no unrestricted classical attack faster than
 \(O(\sqrt{r})\) is known; this is not an unconditional lower bound for
 all classical algorithms. In the classical generic-group model, however,
 Shoup's matching lower bound is proved
-(\cref{numbertheory:rem:dlp-generic}). For
-\(r \approx 2^{254}\)---the \(255\)-bit Pasta orders---this
-is about \(2^{127}\) operations, infeasible. Curves with special
+(\cref{numbertheory:rem:dlp-generic}). For the \(255\)-bit Pasta orders
+\(r\), slightly above \(2^{254}\), the square root is
+\(\sqrt r \approx 2^{127.0}\), and the expected cost of Pollard's rho on
+these curves is about \(2^{126}\) group operations
+(\cref{ellipticcurves:rem-pasta-rho}), infeasible. Curves with special
 structure can be weaker, and the known weak classes are avoided by
 design. \emph{Anomalous} curves, those with \(\#E(\Fp) = p\), admit a
 polynomial-time attack through the formal group. The MOV/Frey--Rück
@@ -9322,19 +9558,86 @@ For the running example \(y^2 = x^3 + 5\), with \(p\) and \(q\) the
     protocol specification.
 \end{itemize}
 The discrete logarithm problem in \(E_p(\Fp)\) and \(E_q(\Fq)\) is
-believed to require about \(2^{127}\) operations---\(\sqrt{r}\) for the
-\(255\)-bit orders \(r \approx 2^{254}\)
-(\cref{ellipticcurves:prop-ecdlp-sqrt})---with no faster attack known
-(\cref{ellipticcurves:rem-ecdlp-hardness}), slightly below the \(128\)-bit
-security level targeted by Halo~2 and Zcash Orchard.
+believed to require about \(2^{126}\) group operations: Pollard's rho,
+run on the classes of the automorphisms \(\pm\phi^i\), expects about
+\(2^{126.0}\) steps, against \(\sqrt r \approx 2^{127.0}\) for either order
+\(r \in \{p, q\}\) (\cref{ellipticcurves:rem-pasta-rho}, which follows), and
+no faster attack is known (\cref{ellipticcurves:rem-ecdlp-hardness}). This is
+slightly below the \(128\)-bit security level targeted by Halo~2 and Zcash
+Orchard.
 \end{example}
+
+% Source: .wip/deck-harvest/scripts/math-halo2/numbers.py (item 2)
+\begin{remark}[The expected cost of Pollard's rho on the Pasta curves]
+\label{ellipticcurves:rem-pasta-rho}
+We bound the expected step count of Pollard's rho under the modelling
+assumption of \cref{ellipticcurves:prop-ecdlp-sqrt}, applied to a walk on
+a set of \(N\) elements (a forward reference: the probability results used
+here belong to the closing section). The first \(k\) positions are pairwise
+distinct with probability \(\prod_{i<k}(1 - i/N)\), the equality of
+\cref{probability:prop-birthday}. The tail-sum formula
+(\cref{probability:lem-tailsum}), the bound \(1 - x \le e^{-x}\), and
+\(k(k-1) \ge (k-1)^2\) for \(k \ge 1\) give, for the index \(T\) of the
+first repeat,
+\[
+\E[T] = \sum_{k \ge 0}\, \prod_{i<k}\Bigl(1 - \frac{i}{N}\Bigr)
+\le 1 + \sum_{j \ge 0} e^{-j^2/(2N)}
+\le 2 + \int_0^\infty e^{-x^2/(2N)}\,dx
+= 2 + \sqrt{\pi N/2} ,
+\]
+the last sum bounded by the integral of its decreasing summand, which the
+substitution \(x = u\sqrt{2N}\) turns into \(\sqrt{2N}\) times the Gaussian
+integral \(\int_0^\infty e^{-u^2}\,du = \sqrt\pi/2\). Three
+walks apply to a Pasta group \(G = \langle P \rangle\) of prime order
+\(r\), each maintaining its position as \([a]P + [b]Q\) with known
+\(a, b\).
+\begin{itemize}
+\item The walk of \cref{ellipticcurves:prop-ecdlp-sqrt} runs on the
+  \(N = r\) points of \(G\).
+\item A walk on the classes \(\{R, -R\}\) replaces each position by a
+  representative of its class fixed by a rule, and runs on
+  \(N = (r-1)/2 + 1\) classes.
+\item A walk on the classes \(\{\pm\phi^i(R) : i = 0, 1, 2\}\) of the
+  automorphism \(\phi\) of \cref{ellipticcurves:prop-glv} does the same.
+  The automorphism acts on \(G\) as \([\lambda]\), and \(\lambda\) has
+  order \(3\) modulo \(r\) (as \(\lambda^2 + \lambda + 1 \equiv 0\) and
+  \(r > 3\)), so the six scalars \(\pm\lambda^i\) are
+  distinct (\(-1\), of order \(2\), is no power of \(\lambda\)); since a
+  point \(R \neq \mathcal O\) has order \(r\), its class has exactly six
+  points, and the walk runs on \(N = (r-1)/6 + 1\) classes.
+\end{itemize}
+In a class walk a repeat presents positions \(R = [a]P + [b]Q\) and
+\(R' = [a']P + [b']Q\) with \(R = [s]R'\) for a known
+\(s \in \{\pm\lambda^i\}\). Then \([a - s a']P = [(s b' - b)\,n]P\), and
+\(n \equiv (a - s a')(s b' - b)^{-1} \pmod r\) whenever
+\(s b' \not\equiv b\), as in the proof of
+\cref{ellipticcurves:prop-ecdlp-sqrt}. Both Pasta orders \(r\) satisfy
+\(\log_2 r = 254.0000\) to four places, so the bound, in which the
+additive \(2\) is negligible, gives
+\[
+\sqrt{\pi r/2} \approx 2^{127.3}, \qquad
+\sqrt{\pi r/4} \approx 2^{126.8}, \qquad
+\sqrt{\pi r/12} \approx 2^{126.0}
+\]
+expected steps to the first repeat for the three walks, against
+\(\sqrt r \approx 2^{127.0}\). A step is one group operation, plus, in a
+class walk, a few field operations to choose the representative; a class
+walk must also detect and leave the short cycles that the class map
+creates, which the modelling assumption ignores. Detecting the repeat, as
+the proof of \cref{ellipticcurves:prop-ecdlp-sqrt} does with a second walk
+at double speed, multiplies the count by a constant. Up to these
+constants, negation and the automorphism remove one bit from the bare
+square root: the best known attack on either curve costs about
+\(2^{126}\) group operations.
+\end{remark}
 
 Each Pasta curve is thus a cyclic group of prime \(255\)-bit order
 (\cref{ellipticcurves:thm-hasse} and \cref{groups:cor-prime-cyclic}),
 with a fast forward map (\cref{ellipticcurves:prop-dbladd}, accelerated
 by \cref{ellipticcurves:rem-glv-speedup}) whose inversion, the ECDLP,
-resists every known attack except the generic \(O(\sqrt{r})\) attacks of
-\cref{ellipticcurves:prop-ecdlp-sqrt}. Later volumes build on this pair.
+resists every known attack except the \(O(\sqrt{r})\) attacks of
+\cref{ellipticcurves:prop-ecdlp-sqrt}, at the cost computed in
+\cref{ellipticcurves:rem-pasta-rho}. Later volumes build on this pair.
 
 \section{Probability, asymptotics, and computation}\label{sec:probability}
 
@@ -9741,12 +10044,6 @@ summing the exponents via
 \(\Pr[C] = 1 - \Pr[\overline{C}] \ge 1 - e^{-k(k-1)/(2N)}\).
 \end{proof}
 
-% FIGURE (planned, dedicated figures pass): fig:probability-birthday ---
-% script-generated collision-probability curve: exact Pr[collision]
-% against the sample count k for a fixed set size N, with the two bounds
-% of \cref{probability:prop-birthday} overlaid and the sqrt(N) threshold
-% marked on the k-axis.
-
 \begin{example}\label{probability:exp-birthday}
 With \(N = 365\) and \(k = 23\), the classical birthday problem, the
 exact product gives \(\Pr[C] = 0.5073\), a probability above one half,
@@ -9754,8 +10051,56 @@ and the proposition brackets it as
 \(0.5000 \le \Pr[C] \le 0.6932\). The threshold appears at small
 scale as well: with \(N = 16\), the fifth sample, the first beyond
 \(\sqrt{16} = 4\), raises the collision probability above one half,
-\(\Pr[C] = 0.5001\) at \(k = 5\).
+\(\Pr[C] = 0.5001\) at \(k = 5\). \Cref{fig:probability-birthday} plots
+the exact probability and both bounds for \(N = 16\).
 \end{example}
+
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (item 6)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=0.85cm, y=5cm, font=\small,
+  ax/.style={->, black!40, text=black},
+  guide/.style={densely dotted, black!35},
+  bnd/.style={thick, smooth, samples=60},
+  pt/.style={circle, fill, inner sep=1.3pt},
+  lab/.style={font=\small, inner sep=2pt},
+]
+\foreach \y in {0.5,1} \draw[guide] (0,\y) -- (12.3,\y);
+\draw[guide, tierspend] (4,0) -- (4,1.04);
+\draw[ax] (0,0) -- (12.8,0) node[right] {$k$};
+\draw[ax] (0,0) -- (0,1.12) node[above] {$\Pr[C]$};
+\foreach \k in {0,...,12} {
+  \draw[black!40] (\k,0) -- (\k,-0.015);
+  \node[lab, anchor=north] at (\k,-0.015) {$\k$};
+}
+\node[lab, tierspend, anchor=north] at (4,-0.085) {$\sqrt{N}$};
+\foreach \y/\t in {0/0,0.5/{1/2},1/1}
+  \node[lab, anchor=east] at (0,\y) {$\t$};
+\draw[bnd, tierfull, domain=1:6.179] plot (\x, {(\x)*((\x)-1)/32});
+\draw[bnd, tierin, domain=1:12] plot (\x, {1-exp(-(\x)*((\x)-1)/32)});
+\draw[black!55] plot coordinates {(0,0.0000) (1,0.0000) (2,0.0625)
+  (3,0.1797) (4,0.3335) (5,0.5001) (6,0.6563) (7,0.7852) (8,0.8792)
+  (9,0.9396) (10,0.9736) (11,0.9901) (12,0.9969)};
+\foreach \k/\p in {0/0.0000,1/0.0000,2/0.0625,3/0.1797,4/0.3335,
+    5/0.5001,6/0.6563,7/0.7852,8/0.8792,9/0.9396,10/0.9736,11/0.9901,
+    12/0.9969}
+  \node[pt] at (\k,\p) {};
+\node[pt] at (7.3,0.40) {};
+\node[lab, anchor=west] at (7.6,0.40) {exact $\Pr[C]$};
+\draw[very thick, tierfull] (7.0,0.29) -- (7.5,0.29);
+\node[lab, anchor=west] at (7.6,0.29) {upper bound $k(k-1)/(2N)$};
+\draw[very thick, tierin] (7.0,0.18) -- (7.5,0.18);
+\node[lab, anchor=west] at (7.6,0.18) {lower bound $1 - e^{-k(k-1)/(2N)}$};
+\end{tikzpicture}
+\caption{The collision probability \(\Pr[C]\) of
+\cref{probability:prop-birthday} for \(N = 16\), against the sample
+count \(k\): the exact value at each \(k\), with the upper and lower
+bounds of the proposition. The upper bound exceeds \(1\), and so says
+nothing, from \(k = 7\) on. At \(k = 5\), the first count beyond the
+threshold \(\sqrt{N} = 4\), the exact probability passes one half
+(\cref{probability:exp-birthday}).}
+\label{fig:probability-birthday}
+\end{figure}
 
 \begin{remark}\label{probability:rem-birthday}
 The threshold \(k \approx \sqrt{N}\) is the reason an \(n\)-bit hash
@@ -9792,12 +10137,6 @@ The factor \(\tfrac12\) makes \(\Delta\) range over \([0,1]\) and
 makes it equal to the maximum advantage of a distinguisher, as part (3)
 of the next theorem establishes.
 
-% FIGURE (planned, dedicated figures pass): fig:probability-sd ---
-% statistical distance as area: two overlaid probability mass functions
-% on a common finite set drawn as bar charts; the pointwise differences
-% shaded, with the excess region S^+ highlighted, total shaded area
-% equal to 2*Delta(P,Q) so that Delta is half the L1 difference.
-
 \begin{theorem}[Properties of statistical distance]
 \label{probability:thm-sd}
 Let \(P, Q, R\) be distributions on a finite set \(S\). Then:
@@ -9827,7 +10166,8 @@ Let \(P, Q, R\) be distributions on a finite set \(S\). Then:
 \(\sum_{s \in S^+}(P(s) - Q(s))
 = \sum_{s \in S^-}(Q(s) - P(s)) =: D \ge 0\). Hence
 \(\Delta(P,Q) = \tfrac12\bigl(\sum_{S^+}(P - Q)
-+ \sum_{S^-}(Q - P)\bigr) = D\). As
++ \sum_{S^-}(Q - P)\bigr) = D\). \Cref{fig:probability-sd} draws the two
+sums as equal areas. As
 \(D = \sum_{S^+}(P(s) - Q(s)) \le \sum_{S^+} P(s) \le 1\), we get
 \(\Delta \le 1\). If \(\Delta = 0\) then every
 \(|P(s) - Q(s)| = 0\), so \(P = Q\); the converse is immediate.
@@ -9866,6 +10206,57 @@ fresh coins \(r\); apply the deterministic case to the joint variable
 distance \(\Delta(P, Q)\), the shared coin distribution contributing
 nothing.
 \end{proof}
+
+% Source: .wip/deck-harvest/scripts/math-figures/figures.py (item 7)
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1.1cm, y=8cm, font=\small,
+  ax/.style={->, black!40, text=black},
+  pl/.style={thick, black},
+  ql/.style={thick, black, densely dashed},
+  plus/.style={fill=tierspend!35},
+  minus/.style={fill=tierin!35},
+  lab/.style={font=\small, inner sep=2pt},
+]
+% P and Q in sixteenths on S = {1, ..., 6}
+\foreach \s/\p/\q in {1/5/2,2/4/3,3/1/3,4/3/2,5/2/3,6/1/3} {
+  \pgfmathsetmacro\lo{min(\p,\q)/16}
+  \pgfmathsetmacro\hi{max(\p,\q)/16}
+  \ifnum\p>\q \fill[plus] (\s-0.5,\lo) rectangle (\s+0.5,\hi);
+  \else \fill[minus] (\s-0.5,\lo) rectangle (\s+0.5,\hi); \fi
+  \draw[black!35] (\s-0.5,0) rectangle (\s+0.5,\hi);
+  \draw[pl] (\s-0.5,\p/16) -- (\s+0.5,\p/16);
+  \draw[ql] (\s-0.5,\q/16) -- (\s+0.5,\q/16);
+  \node[lab, anchor=north] at (\s,0) {$\s$};
+  \ifnum\p>\q \node[lab, tierspend, anchor=north] at (\s,-0.045) {$S^+$};
+  \else \node[lab, tierin, anchor=north] at (\s,-0.045) {$S^-$}; \fi
+}
+\draw[ax] (0.5,0) -- (6.8,0) node[right] {$s$};
+\draw[ax] (0.5,0) -- (0.5,0.36);
+\foreach \j in {0,...,5}
+  \draw[black!40] (0.5,\j/16) -- (0.45,\j/16);
+\node[lab, anchor=east] at (0.45,0) {$0$};
+\foreach \j in {1,...,5}
+  \node[lab, anchor=east] at (0.45,\j/16) {$\j/16$};
+\draw[pl] (7.3,0.30) -- (7.9,0.30);
+\node[lab, anchor=west] at (8.0,0.30) {$P(s)$};
+\draw[ql] (7.3,0.24) -- (7.9,0.24);
+\node[lab, anchor=west] at (8.0,0.24) {$Q(s)$};
+\fill[plus] (7.3,0.165) rectangle (7.9,0.195);
+\node[lab, anchor=west] at (8.0,0.18) {$P(s) - Q(s)$ on $S^+$};
+\fill[minus] (7.3,0.105) rectangle (7.9,0.135);
+\node[lab, anchor=west] at (8.0,0.12) {$Q(s) - P(s)$ on $S^-$};
+\end{tikzpicture}
+\caption{Statistical distance as area, for the distributions
+\(P = (5, 4, 1, 3, 2, 1)/16\) and \(Q = (2, 3, 3, 2, 3, 3)/16\) on
+\(S = \{1, \dots, 6\}\), drawn as overlaid bar charts of unit width. The
+shading between the two bar heights has total area
+\(\sum_{s} \abs{P(s) - Q(s)} = 10/16\). Its part over
+\(S^+ = \{1, 2, 4\}\), where \(P\) exceeds \(Q\), and its part over
+\(S^- = \{3, 5, 6\}\) each have area \(5/16\), and
+\(\Delta(P, Q) = 5/16\) is half the total.}
+\label{fig:probability-sd}
+\end{figure}
 
 \begin{remark}[Distinguishing interpretation]\label{probability:rem-sd}
 Part (3) states that \(\Delta(P,Q)\) is exactly the best advantage of
@@ -11138,7 +11529,11 @@ at one fixed size. Generic discrete-log attacks take
 \cref{probability:rem-birthday}; absent a faster structure-specific attack,
 an order near \(2^{2\lambda}\) therefore targets about \(\lambda\) bits of
 generic-group security. The Pasta orders lie slightly above \(2^{254}\), giving
-roughly \(2^{127}\) generic work. The asymptotic language permits the terms
+\(\sqrt q \approx 2^{127}\) generic work; negation, available on every curve,
+and the order-\(3\) automorphism of the Pasta curves together save a constant
+factor and lower the expected cost of Pollard's rho to about \(2^{126}\)
+(\cref{ellipticcurves:rem-pasta-rho}). The
+asymptotic language permits the terms
 ``negligible'' and ``polynomial''; concrete estimates remain conditional on
 the attacks presently known.
 \end{remark}
@@ -11182,8 +11577,8 @@ sufficiently large \(\lambda\); the practitioner then fixes a single
 value (commonly \(\lambda = 128\), targeting
 \(2^{128}\)-operation attacks) and checks the concrete estimates against
 that target: the Pallas/Vesta group orders, slightly above
-\(2^{254}\), give roughly \(2^{127}\) generic group operations
-(\cref{sec:ellipticcurves}; Zcash protocol specification
+\(2^{254}\), give about \(2^{126}\) group operations for the best known
+attack (\cref{ellipticcurves:rem-pasta-rho}; Zcash protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#pallasandvesta}{\S5.4.9.6}),
 hash outputs of \({\ge}256\) bits per the birthday bound of
 \cref{probability:prop-birthday}, and sampling slack of at least

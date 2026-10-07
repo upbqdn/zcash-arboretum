@@ -30,7 +30,15 @@
 \PolyglossiaSetup{english}{frenchspacing=true}
 \usepackage[protrusion=true,expansion=false]{microtype}
 \usepackage{booktabs,enumitem}
+% a float never precedes its place in the source
+\usepackage{flafter}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\definecolor{tierspend}{RGB}{200,60,60}
+\definecolor{tierfull}{RGB}{210,140,40}
+\definecolor{tierin}{RGB}{60,130,180}
+\definecolor{tierrecv}{RGB}{70,150,90}
 \usepackage[psdextra,hidelinks]{hyperref}
 % before \newtheorem, so each kind sharing the theorem counter keeps its name
 \usepackage[capitalise,nameinlink]{cleveref}
@@ -727,14 +735,6 @@ The standard formulation expresses a security definition as a
 the scheme, answers the adversary's queries, and finally declares the
 adversary a winner or loser by outputting a single bit.
 
-% FIGURE (planned, dedicated figures pass): fig:game --- the generic
-% challenger/adversary interaction: a challenger column (setup; oracle
-% query/response arrows crossing to the adversary column; challenge;
-% final output arrow back) ending in the win predicate and the output
-% bit, with the advantage read off the bit. Deliberately abstract ---
-% no scheme instantiated; the caption may forward-point to the
-% IND-CPA, PRF, and unforgeability instances of later sections.
-
 \begin{definition}[Security game and advantage]\label{model:def:game}
 A \emph{security game} (or \emph{experiment}) \(\mathsf{G}\) is a PPT
 interactive algorithm, the challenger, that takes \(1^\lambda\),
@@ -766,6 +766,75 @@ its precise form depends on the type of game:
   \]
 \end{itemize}
 \end{definition}
+
+Figure~\ref{fig:game} draws the interaction.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  who/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  msg/.style={->, line width=0.9pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[who=tierin] (g) at (2.6,0) {challenger $\mathsf{G}$\\input $1^{\lambda}$};
+\node[draw=black, fill=black!80, text=white, line width=0.7pt,
+  rounded corners=2pt, inner sep=3pt, minimum height=6mm, align=center]
+  (a) at (9.0,0) {adversary $\mathcal{A}$\\PPT};
+\begin{scope}[on background layer]
+\fill[black!6] (2.45,-1.3) rectangle (9.15,-2.6);
+\fill[black!6] (2.45,-3.3) rectangle (9.15,-4.6);
+\end{scope}
+\draw[black!30, line width=0.6pt] (g.south) -- (2.6,-5.45);
+\draw[black!30, line width=0.6pt] (a.south) -- (9.0,-5.15);
+\node[lb, anchor=north east, align=right] at (2.4,-0.6)
+  {setup: keys, parameters;\\in a distinguishing game,\\secret bit
+  $b \xleftarrow{\$} \{0,1\}$};
+\draw[msg] (2.7,-0.95) -- node[above, lb] {public part of the setup}
+  (8.9,-0.95);
+\foreach \y in {-1.65, -3.65} {
+  \draw[msg] (8.9,\y) -- node[above, lb] {query} (2.7,\y);
+  \draw[msg] (2.7,\y-0.6) -- node[above, lb] {answer} (8.9,\y-0.6);
+}
+\node[lb, anchor=west, align=left] at (9.7,-2.95)
+  {queries: adaptive,\\polynomially many,\\before and after\\the
+  message\\prepared with $b$};
+\draw[msg] (2.7,-3.0) -- node[above, lb] {in a distinguishing game, a message
+  prepared with $b$} (8.9,-3.0);
+\draw[msg] (8.9,-5.0) -- node[above, lb] {final output: a guess $b'$, or a
+  forgery, preimage or logarithm} (2.7,-5.0);
+\node[who=tierin, anchor=north] (w) at (2.6,-5.45)
+  {win predicate\\$b' = b$, or the object\\is valid};
+\node[lb, font=\footnotesize] (bit) at (6.2,-6.0)
+  {$\mathsf{G}^{\mathcal{A}}(\lambda) \in \{0,1\}$};
+\node[draw=black!70, line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+  align=left, font=\scriptsize] (adv) at (10.1,-6.0)
+  {distinguishing game:\\
+  $\mathrm{Adv}_{\mathsf{G}}(\mathcal{A},\lambda) =
+  \bigl|\Pr[\mathsf{G}^{\mathcal{A}}(\lambda) = 1] - \tfrac12\bigr|$\\[2pt]
+  search game:\\
+  $\mathrm{Adv}_{\mathsf{G}}(\mathcal{A},\lambda) =
+  \Pr[\mathsf{G}^{\mathcal{A}}(\lambda) = 1]$};
+\draw[msg] (w) -- node[above, lb] {output bit} (bit);
+\draw[msg] (bit) -- (adv);
+\end{tikzpicture}
+\caption{The security game of Definition~\ref{model:def:game}, with no scheme
+instantiated. The challenger (blue) runs the setup on $1^{\lambda}$, sampling
+the secret bit $b$ in a distinguishing game, and passes the public part of the
+setup to the adversary (black). It answers the adversary's queries (grey
+bands), before and after it sends, in a distinguishing game, a message prepared
+with $b$, and it receives the final output: a guess $b'$ in a distinguishing
+game; a forgery, preimage or discrete logarithm in a search game.
+The win predicate turns the run into the output bit
+$\mathsf{G}^{\mathcal{A}}(\lambda)$, and the advantage is read off its
+distribution. The pseudorandomness game of Example~\ref{model:exp:prg-game}, the
+PRF game of Definition~\ref{prf:def:prf}, the CPA game of
+Definition~\ref{symmetric:def-cpa} and the unforgeability game of
+Definition~\ref{signatures:def:eufcma} are instances.}
+\label{fig:game}
+\end{figure}
 
 \begin{definition}[Security relative to a game]\label{model:def:secure}
 A scheme is \emph{secure} with respect to the game \(\mathsf{G}\) if
@@ -887,14 +956,6 @@ through its input/output interface, making no use of
 \(\mathcal{A}\)'s code.
 \end{definition}
 
-% FIGURE (planned, dedicated figures pass): fig:reduction --- dataflow
-% of a black-box reduction: a random Pi-instance entering R from the
-% left; inside R, the instance embedded into a simulated security game
-% drawn as a wrapper around the (opaque) adversary A; A's winning
-% output flowing through the extraction step and leaving R as the
-% Pi-solution. The wrapper boundary marks what A sees (a faithful
-% game); the R boundary marks black-box access.
-
 Every reduction has the same structure. To prove ``if \(\Pi\) is hard
 then \(X\) is secure'':
 
@@ -914,6 +975,62 @@ then \(X\) is secure'':
   probability, contradicting the hardness of \(\Pi\). Therefore no
   such \(\mathcal{A}\) exists, and \(X\) is secure.
 \end{enumerate}
+
+Figure~\ref{fig:reduction} draws this structure.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  ed/.style={->, line width=0.9pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[lb] (inst) at (0,0)
+  {random\\instance of $\Pi$,\\from $\mathrm{Inst}(1^{\lambda})$};
+\node[op=tierin] (ch) at (3.5,0) {challenger of $\mathsf{G}_X$,\\played by
+  $\mathcal{R}$};
+\node[draw=black, fill=black!80, text=white, line width=0.7pt,
+  rounded corners=2pt, minimum width=13mm, minimum height=10mm]
+  (adv) at (6.7,0) {$\mathcal{A}$};
+\node[lb, anchor=north] at ([yshift=-1mm]adv.south) {advantage
+  $\varepsilon_X$};
+\draw[ed] ([yshift=2mm]ch.east) -- node[above, lb] {view}
+  ([yshift=2mm]adv.west);
+\draw[ed] ([yshift=-2mm]adv.west) -- node[below, lb] {queries}
+  ([yshift=-2mm]ch.west -| ch.east);
+\coordinate (lo) at ([yshift=-7mm]adv.south);
+\node[draw=tierin, dashed, line width=0.8pt, rounded corners=4pt,
+  inner sep=4pt, fit=(ch) (adv) (lo)] (wrap) {};
+\node[lb, anchor=south west] at (wrap.north west) {simulated game
+  $\mathsf{G}_X$: all that $\mathcal{A}$ sees, faithful to the real game};
+\node[op=tierin] (ex) at (9.45,0) {extract};
+\coordinate (hi) at ([yshift=5mm]wrap.north);
+\draw[ed] (adv.east) -- node[above, lb] {output} (ex);
+\node[draw=black!70, line width=1.1pt, rounded corners=4pt, inner sep=5pt,
+  fit=(wrap) (ex) (hi)] (red) {};
+\node[lb, anchor=south west] at ([yshift=0.5mm]red.north west)
+  {reduction $\mathcal{R}$: PPT, running $\mathcal{A}$ through its
+  input/output interface only};
+\draw[ed] (inst) -- node[above, lb] {embed} (ch);
+\node[lb] (sol) at (11.85,0) {solution,\\with probability\\$\ge
+  f(\varepsilon_X, \lambda)$};
+\draw[ed] (ex) -- (sol);
+\end{tikzpicture}
+\caption{A black-box reduction, Definition~\ref{model:def:reduction}, in the
+four-step structure of \S\ref{model:subsec:reductions}. The reduction
+$\mathcal{R}$ (outer frame) receives a random instance of $\Pi$ and embeds it in
+a simulated security game $\mathsf{G}_X$ (blue, dashed), whose challenger it
+plays. The adversary $\mathcal{A}$ (black) is opaque: the reduction reaches
+it only through its input/output interface. The dashed boundary is all that
+$\mathcal{A}$ sees; the simulation makes it faithful to the real game, so that
+the advantage $\varepsilon_X$ of $\mathcal{A}$ carries over. From the output of
+$\mathcal{A}$, the reduction extracts a solution to the instance, with success
+probability at least $f(\varepsilon_X, \lambda)$.}
+\label{fig:reduction}
+\end{figure}
 
 \begin{theorem}[Hard-core security of the Diffie--Hellman-style key,
 schematically]\label{model:thm:reduction-example}
@@ -1485,12 +1602,6 @@ subsection give
 so assuming DDH hard is the strongest commitment and assuming DLP hard
 the weakest.
 
-% TikZ figure placeholder --- fig:dh-hierarchy: reduction ordering
-% DLP >= CDH >= DDH (solver arrows pointing down the chain, assumption
-% strength increasing the other way), with the pairing separation edge
-% of Example~\ref{assumptions:exa:pairing} marking where DDH detaches
-% from CDH in gap groups. Dedicated figures pass supplies the drawing.
-
 \begin{theorem}[DLP is at least as hard as CDH]
 \label{assumptions:thm:dlp-le-cdh}
 If DLP is solvable in PPT, then CDH is solvable in PPT. Equivalently,
@@ -1576,6 +1687,65 @@ assumption is therefore strictly stronger than the CDH assumption: a
 ``DDH group'' must admit no efficiently computable pairing of this
 kind on \(G\) itself.
 \end{example}
+
+Figure~\ref{fig:dh-hierarchy} draws the ordering, with the separation of
+Example~\ref{assumptions:exa:pairing}.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  pb/.style={draw=black!70, line width=0.7pt, rounded corners=2pt,
+    inner sep=3pt, text width=5.2cm, align=flush center, minimum height=9mm},
+  sv/.style={->, line width=0.9pt, tierin},
+  as/.style={->, line width=0.9pt, tierrecv},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[pb] (dlp) at (0,0) {DLP\\from $g^{a}$, find $a$};
+\node[pb] (cdh) at (0,-2.2) {CDH\\from $g^{a}, g^{b}$, find $g^{ab}$};
+\node[pb] (ddh) at (0,-4.4)
+  {DDH\\tell $(g^{a}, g^{b}, g^{ab})$ from $(g^{a}, g^{b}, g^{c})$};
+\draw[sv] ([xshift=-12mm]dlp.south) -- ([xshift=-12mm]cdh.north)
+  node[midway, lb, left=1mm] {DLP solver $\to$ CDH solver:\\
+  recover $a$, output $(g^{b})^{a}$};
+\draw[sv] ([xshift=-12mm]cdh.south)
+  -- ([xshift=-12mm]ddh.north)
+  node[midway, lb, left=1mm] {CDH solver $\to$ DDH distinguisher:\\
+  compute $w$, accept iff $w = z$};
+\draw[as] ([xshift=12mm]cdh.north) -- ([xshift=12mm]dlp.south)
+  node[midway, lb, right=1mm] {CDH hard $\Rightarrow$ DLP hard};
+\draw[as] ([xshift=12mm]ddh.north) -- ([xshift=12mm]cdh.south)
+  node[midway, lb, right=1mm] {DDH hard $\Rightarrow$ CDH hard};
+\node[lb, text=black!65, anchor=east] at ([xshift=-3mm]dlp.west)
+  {hardest problem,\\weakest assumption};
+\node[lb, text=black!65, anchor=east] at ([xshift=-3mm]ddh.west)
+  {easiest problem,\\strongest assumption};
+\node[pb, draw=tierfull, fill=tierfull, fill opacity=0.1, text opacity=1,
+  text width=3.6cm] (pair) at (0,-6.4)
+  {gap group: a pairing\\$e \colon G \times G \to G_T$};
+\draw[->, line width=0.9pt, tierfull] (pair) -- (ddh)
+  node[midway, lb, left=1mm, text=black]
+  {$e(g^{a}, g^{b}) \stackrel{?}{=} e(g, z)$ decides DDH};
+\draw[->, dashed, line width=0.9pt, tierfull] (pair.east)
+  .. controls (7,-6.4) and (7,-2.2) .. (cdh.east)
+  coordinate[pos=0.5] (x);
+\draw[line width=1.2pt, tierfull] ($(x)+(-1.3mm,-1.3mm)$)
+  -- ($(x)+(1.3mm,1.3mm)$) ($(x)+(-1.3mm,1.3mm)$) -- ($(x)+(1.3mm,-1.3mm)$);
+\node[lb, anchor=east] at ([xshift=-2mm]x)
+  {no CDH solver:\\$g^{ab}$ appears\\only in $G_T$};
+\end{tikzpicture}
+\caption{The three problems of \S\ref{assumptions:subsec:dh} ordered by
+reduction. Each downward arrow (blue) converts a solver for the upper problem
+into one for the lower (Theorems~\ref{assumptions:thm:dlp-le-cdh}
+and~\ref{assumptions:thm:cdh-le-ddh}), so that
+$\mathrm{DDH} \le \mathrm{CDH} \le \mathrm{DLP}$. Each upward arrow (green)
+reads the same reduction as an implication between assumptions, the DDH
+assumption being the strongest and the DLP assumption the weakest. In a gap
+group (amber; Example~\ref{assumptions:exa:pairing}) the pairing $e$ decides
+DDH but yields $g^{ab}$ only in the target group $G_T$, so it gives no CDH
+solver (struck edge): there DDH detaches from CDH.}
+\label{fig:dh-hierarchy}
+\end{figure}
 
 \begin{remark}[The converses are open]
 \label{assumptions:rem:converse}
@@ -2446,13 +2616,7 @@ The family \(H\) is \emph{collision resistant} if for every PPT
 \]
 \end{definition}
 
-% TikZ figure placeholder --- fig:hash-hierarchy: implication diagram
-% collision resistance => second-preimage resistance => preimage
-% resistance (solid arrows down the chain, the second annotated with
-% the additive 2^{n-m} loss and the compression hypothesis), plus a
-% struck-through backward edge carrying the counterexample of
-% Example~\ref{hash:ex:nonreversal} (drop-last-bit H'). Dedicated
-% figures pass supplies the drawing.
+The three notions are ordered by the following proposition.
 
 \begin{proposition}[Hierarchy of notions]\label{hash:prop:hierarchy}
 Let \(H\) be a keyed hash family that is compressing, with challenge
@@ -2530,6 +2694,49 @@ Hence preimage resistance does not imply collision resistance. The
 other separations are constructed similarly; the implications of
 Proposition~\ref{hash:prop:hierarchy} are strictly one-directional.
 \end{example}
+
+Figure~\ref{fig:hash-hierarchy} draws the order and the separation that
+Example~\ref{hash:ex:nonreversal} gives.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  pb/.style={draw=black!70, line width=0.7pt, rounded corners=2pt,
+    inner sep=3pt, text width=4.2cm, align=flush center, minimum height=9mm},
+  im/.style={->, line width=0.9pt, tierrecv},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[pb] (col) at (0,0) {collision resistance\\game $\mathsf{COL}$};
+\node[pb] (sec) at (0,-2.2) {second-preimage resistance\\game $\mathsf{SEC}$};
+\node[pb] (pre) at (0,-4.4) {preimage resistance\\game $\mathsf{PRE}$};
+\draw[im] (col) -- (sec)
+  node[midway, lb, right=1mm, align=left] {no loss};
+\draw[im] (sec) -- (pre)
+  node[midway, lb, right=1mm, align=left] {additive loss $2^{n-m}$;
+  negligible\\when $m - n = \omega(\log \lambda)$};
+\draw[->, dashed, line width=0.9pt, tierfull] (pre.west)
+  .. controls (-4.2,-4.4) and (-4.2,0) .. (col.west)
+  coordinate[pos=0.5] (x);
+\draw[line width=1.2pt, tierfull] ($(x)+(-1.3mm,-1.3mm)$)
+  -- ($(x)+(1.3mm,1.3mm)$) ($(x)+(-1.3mm,1.3mm)$) -- ($(x)+(1.3mm,-1.3mm)$);
+\node[lb, anchor=east, align=right] at ([xshift=-2mm]x)
+  {the family $H'_{s}(x) := H_{s}(\bar{x})$\\is one-way, yet $x \,\|\, 0$
+  and $x \,\|\, 1$ collide};
+\end{tikzpicture}
+\caption{The implications of Proposition~\ref{hash:prop:hierarchy} for a
+compressing keyed family $H$ with challenge length $m > n$. Each solid arrow
+(green) is an implication, proved by a reduction that turns an adversary
+against the lower notion into one against the upper: collision resistance
+yields second-preimage resistance with no loss, and second-preimage
+resistance yields preimage resistance up to the additive loss $2^{n-m}$,
+negligible when $m - n = \omega(\log \lambda)$. The struck edge (amber) is
+Example~\ref{hash:ex:nonreversal}: the family $H'$, which deletes the last
+bit of its input before hashing, is one-way whenever $H$ is, yet $x \,\|\, 0$
+and $x \,\|\, 1$ collide for every $x$, so preimage resistance does not imply
+collision resistance.}
+\label{fig:hash-hierarchy}
+\end{figure}
 
 \begin{remark}[Which application needs which notion]
 \label{hash:rem:which-notion}
@@ -3019,15 +3226,6 @@ last step is vacuous---their
 cofactor is \(1\) (Definition~\ref{assumptions:def:pasta}).
 \end{construction}
 
-% TikZ figure placeholder --- fig:hashtocurve: pipeline dataflow.
-% Message m enters hash_to_field (tagged tau), which emits u0 and u1;
-% each passes through the simplified SWU box onto the isogenous curve
-% E' (drawn as a separate rail, labelled "ab != 0"); the two points
-% are summed on E'; the 3-isogeny arrow carries the sum onto E
-% (Pallas); a final faded box marks cofactor clearing, annotated
-% "h = 1 for Pasta: skipped". Dedicated figures pass supplies the
-% drawing.
-
 \begin{remark}[The isogeny required by \(j\)-invariant \(0\)]
 \label{hash:rem:isogeny}
 For the Pasta curves the SWU step cannot be applied directly. The
@@ -3055,7 +3253,66 @@ isogeny is a group homomorphism---sums \(Q_{0} + Q_{1}\) on \(E'\)
 first and transports the single sum
 (protocol specification
 \href{https://zips.z.cash/protocol/protocol.pdf\#concretegrouphashpallasandvesta}{\S~5.4.9.8}).
+Figure~\ref{fig:hashtocurve} draws the pipeline in this deployed form.
 \end{remark}
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=black!70, line width=0.7pt, rounded corners=2pt,
+    inner sep=3pt, minimum height=6mm, align=center, fill=white},
+  pt/.style={inner sep=2pt},
+  ed/.style={->, line width=0.7pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\begin{scope}[on background layer]
+\fill[tierfull, opacity=0.1] (0,-1.5) rectangle (12.4,-3.3);
+\fill[tierin, opacity=0.1] (0,-3.85) rectangle (12.4,-4.85);
+\end{scope}
+\node[lb, anchor=west, align=left] at (0.15,-2.3)
+  {$E' \colon y^{2} = x^{3} + a'x + b'$\\$a'b' \neq 0$};
+\node[lb, anchor=west, align=left] at (0.15,-4.35)
+  {$E \colon y^{2} = x^{3} + 5$\\Pallas or Vesta};
+\node[pt] (m) at (3.0,0) {$m$};
+\node[op] (h2f) at (5.6,0) {$\mathsf{hash\_to\_field}(m, 2)$};
+\node[pt] (tau) at (5.6,0.95) {tag $\tau$};
+\node[op] (swu0) at (4.75,-1.5) {SWU};
+\node[op] (swu1) at (6.45,-1.5) {SWU};
+\node[pt] (q0) at (4.75,-2.45) {$Q_{0}$};
+\node[pt] (q1) at (6.45,-2.45) {$Q_{1}$};
+\node[draw, circle, inner sep=0.5pt, fill=white] (sum) at (5.6,-2.45) {$+$};
+\node[pt] (r) at (5.6,-4.35) {$R$};
+\node[op, draw=gray, dashed, text=black!55, minimum width=14mm] (cof)
+  at (8.15,-4.35) {$[h]\,R$};
+\node[lb, text=black!55, anchor=north] at (8.15,-4.95)
+  {$h = 1$ for Pasta: skipped};
+\node[pt] (out) at (11.0,-4.35) {$\mathsf{hash\_to\_curve}(m)$};
+\draw[ed] (m) -- (h2f);
+\draw[ed] (tau) -- (h2f);
+\draw[ed] (h2f.south -| swu0) -- node[lb, left] {$u_{0}$} (swu0);
+\draw[ed] (h2f.south -| swu1) -- node[lb, right] {$u_{1}$} (swu1);
+\draw[ed] (swu0) -- (q0);
+\draw[ed] (swu1) -- (q1);
+\draw[ed] (q0) -- (sum);
+\draw[ed] (q1) -- (sum);
+\draw[ed, line width=1pt] (sum) -- (r);
+\node[lb, anchor=east] at (5.55,-3.0) {$Q_{0} + Q_{1}$};
+\node[lb, anchor=west] at (5.65,-3.575) {$3$-isogeny $E' \to E$};
+\draw[ed] (r) -- (cof);
+\draw[ed, gray] (cof) -- (out);
+\end{tikzpicture}
+\caption{The hash-to-curve pipeline of Construction~\ref{hash:con:h2c} in
+the deployed form of Remark~\ref{hash:rem:isogeny}. The message $m$ and the
+domain tag $\tau$ enter $\mathsf{hash\_to\_field}$, which emits the field
+elements $u_{0}$ and $u_{1}$. Simplified SWU (Construction~\ref{hash:con:swu})
+maps each to a point of the auxiliary curve $E'$ (amber rail), on which
+$a'b' \neq 0$, and $Q_{0} + Q_{1}$ is formed there. The degree-$3$ isogeny
+carries the sum to the point $R$ of the Pasta curve $E$ (blue rail), whose
+$a = 0$ excludes SWU. Cofactor clearing (faded) multiplies by $h = 1$ on the
+Pasta curves and is skipped.}
+\label{fig:hashtocurve}
+\end{figure}
 
 \begin{construction}[Nothing-up-my-sleeve generators]
 \label{hash:con:nums}
@@ -3131,15 +3388,63 @@ birthday bound of Lemma~\ref{hash:lem:birthday} applied to the
 \(p^{c}\) capacity states the adversary cannot see.
 \end{construction}
 
-% TikZ figure placeholder --- fig:sponge: Poseidon sponge dataflow.
-% State drawn as a t-element column split by a horizontal rule into
-% rate (top, r elements) and capacity (bottom, c elements); absorb
-% phase shows message blocks added into the rate with an f-permutation
-% box between consecutive blocks; squeeze phase reads output from the
-% rate. The capacity lane runs uninterrupted left to right, visibly
-% never touched by input or output arrows --- caption note: "the
-% capacity is never exposed". Dedicated figures pass supplies the
-% drawing.
+Figure~\ref{fig:sponge} draws the two phases.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  fb/.style={draw=black!70, line width=0.7pt, rounded corners=2pt,
+    fill=white, minimum width=7mm, minimum height=19mm, inner sep=0pt},
+  xr/.style={draw, circle, inner sep=0pt, minimum size=3.6mm, fill=white,
+    line width=0.6pt},
+  rl/.style={line width=1.1pt, tierfull},
+  cl/.style={line width=1.1pt, tierin},
+  io/.style={->, line width=0.7pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[draw=tierfull, line width=0.8pt, fill=tierfull, fill opacity=0.14,
+  text opacity=1, minimum width=23mm, minimum height=9mm, align=center,
+  inner sep=1pt] (rate) at (1.15,0) {rate\\$r$ elements};
+\node[draw=tierin, line width=0.8pt, fill=tierin, fill opacity=0.14,
+  text opacity=1, minimum width=23mm, minimum height=9mm, align=center,
+  inner sep=1pt, anchor=north] (cap) at (rate.south) {capacity\\$c = t - r$};
+\draw[line width=0.5pt] ([xshift=-1mm]rate.north west) -- ++(-1.5mm,0)
+  |- ([xshift=-1mm]cap.south west);
+\node[lb, anchor=east] at ([xshift=-3mm]rate.south west)
+  {state\\$t$ elements};
+\draw[rl] (rate.east) -- (11.4,0);
+\draw[cl] (cap.east) -- (11.4,-0.9);
+\draw[rl, ->] (11.4,0) -- (11.8,0);
+\draw[cl, ->] (11.4,-0.9) -- (11.8,-0.9);
+\node[lb, anchor=west] at (11.85,-0.45) {$\cdots$};
+\foreach \x/\k in {3.0/1, 5.0/2, 7.0/3} {
+  \node[xr] (a\k) at (\x,0) {$+$};
+  \node[lb] (m\k) at (\x,1.05) {block $\k$\\of $m$};
+  \draw[io] (m\k) -- (a\k);
+}
+\foreach \x in {4.0, 6.0, 8.0, 10.1} {
+  \node[fb] at (\x,-0.45) {$f$};
+}
+\foreach \x/\k in {9.1/1, 11.1/2} {
+  \node[lb] (z\k) at (\x,1.05) {output\\$\k$};
+  \draw[io] (\x,0) -- (z\k);
+  \fill (\x,0) circle (0.6mm);
+}
+\draw[dashed, gray] (8.6,1.6) -- (8.6,-1.5);
+\node[lb, anchor=east] at (8.5,-1.55) {absorb};
+\node[lb, anchor=west] at (8.7,-1.55) {squeeze};
+\end{tikzpicture}
+\caption{The sponge of Construction~\ref{hash:con:sponge} on a state of $t$
+field elements, a rate of $r$ (amber) above a capacity of $c = t - r$ (blue).
+The absorb phase adds successive $r$-element blocks of the message $m$ into
+the rate, with the permutation $f$ between blocks; the squeeze phase reads
+output from the rate, with $f$ between reads. The capacity is never exposed:
+no input enters it and no output is read from it, and it changes only inside
+$f$. Orchard's instance has $t = 3$, $r = 2$ and $c = 1$
+(Example~\ref{hash:ex:orchard}).}
+\label{fig:sponge}
+\end{figure}
 
 \begin{construction}[The Poseidon permutation]\label{hash:con:poseidon}
 The permutation \(f\) is a sequence of rounds, each comprising three
@@ -3345,14 +3650,77 @@ be trusted, is decisive for some of the constructions below
 (Remark~\ref{commitments:rem:setup-trust}).
 \end{remark}
 
-% FIGURE (planned, dedicated figures pass): fig:commit-phases ---
-% commit/reveal timeline. A horizontal time axis with three marked
-% intervals: setup (pp produced; trust question flagged), commit
-% (c crosses from sender to receiver; hiding shields the interval
-% after this point --- what the receiver holds reveals nothing), and
-% reveal ((m, r) crosses; binding constrains this point --- the sender
-% can produce no second valid opening). The peeker sits under the
-% post-commit interval, the equivocator under the reveal point.
+Figure~\ref{fig:commit-phases} draws the three phases on a time axis, with
+the threat that each property meets.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center,
+    preaction={fill=white, fill opacity=1}},
+  msg/.style={->, line width=0.9pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+% phases
+\foreach \x in {2.9, 8.0} {
+  \draw[dashed, gray] (\x,1.0) -- (\x,-3.2);
+}
+\node[lb, font=\footnotesize\itshape] at (1.35,1.2) {setup};
+\node[lb, font=\footnotesize\itshape] at (5.45,1.2) {commit};
+\node[lb, font=\footnotesize\itshape] at (10.0,1.2) {reveal};
+% lanes
+\node[lb, anchor=east, font=\footnotesize] at (-0.2,0) {sender};
+\node[lb, anchor=east, font=\footnotesize] at (-0.2,-2.2) {receiver};
+\begin{scope}[on background layer]
+\draw[tierspend!60, line width=0.6pt] (0,0) -- (12.0,0);
+\draw[tierrecv!60, line width=0.6pt] (0,-2.2) -- (12.0,-2.2);
+\end{scope}
+% setup
+\node[op=black!60] (su) at (1.35,-1.1) {$pp \gets \mathrm{Setup}(1^{\lambda})$};
+\draw[msg] (su.north) -- (1.35,-0.05);
+\draw[msg] (su.south) -- (1.35,-2.15);
+\node[lb, anchor=north, text=black!70] at (1.35,-2.35)
+  {runner and trust fixed\\by the setup model};
+% commit
+\node[op=tierspend] (cm) at (4.45,0) {$c = \mathrm{Commit}(pp, m; r)$};
+\draw[msg] (4.95,-0.35) -- node[lb, right=1mm] {$c$} (5.6,-2.15);
+\fill[tierrecv] (5.6,-2.2) circle (0.7mm);
+\begin{scope}[on background layer]
+\fill[tierin, opacity=0.16] (5.6,-1.95) rectangle (8.0,-2.45);
+\end{scope}
+\node[lb, anchor=north, text=tierin!70!black] at (6.8,-2.5) {hiding};
+% reveal
+\draw[msg] (8.15,-0.05) -- node[lb, right=1mm] {$(m, r)$} (8.55,-2.15);
+\fill[tierrecv] (8.55,-2.2) circle (0.7mm);
+\draw[tierfull, line width=1.6pt] (8.55,-1.85) -- (8.55,-2.55);
+\node[lb, anchor=north, text=tierfull!80!black] at (8.55,-2.55)
+  {binding};
+\node[op=tierrecv] (op) at (10.55,-2.2)
+  {$\mathrm{Open}(pp, c, m, r)$};
+% time axis and the two threats
+\draw[->, line width=0.6pt] (0,-3.2) -- (12.0,-3.2)
+  node[lb, anchor=north east] {time};
+\node[lb, anchor=north, text=tierin!70!black] at (6.8,-3.3)
+  {receiver as adversary:\\tries to learn $m$ from $c$\\before the reveal};
+\node[lb, anchor=north west, align=left, text=tierfull!80!black]
+  at (8.3,-3.3) {sender as adversary:\\tries a second opening\\$(m', r')$
+  of $c$ with $m' \ne m$};
+\end{tikzpicture}
+\caption{The three phases of Remark~\ref{commitments:rem:phases}. In the setup
+phase, $\mathrm{Setup}$ produces the public parameters $pp$ for both parties;
+who runs it, and whether that party is trusted, is fixed by the setup model
+(Remark~\ref{commitments:rem:setup-trust}). In the commit phase the sender
+(red), holding the secret $(m, r)$, transmits $c = \mathrm{Commit}(pp, m; r)$
+and nothing else; from that point until the reveal, hiding (blue) protects the
+sender against a receiver who tries to learn $m$ from $c$. In the reveal phase
+the sender transmits the opening $(m, r)$ and the receiver (green) runs
+$\mathrm{Open}$; at that point binding (amber) protects the receiver against a
+sender who could open $c$ to a second message.}
+\label{fig:commit-phases}
+\end{figure}
 
 \begin{remark}[Three setup models]\label{commitments:rem:setup-trust}
 Commitment schemes divide by how much trust their parameters demand.
@@ -3873,6 +4241,91 @@ homomorphism turns an arithmetic relation on hidden values into a
 group equation on public commitments, a pattern used throughout the
 rest of the volume.
 \end{remark}
+
+\begin{example}[Value balance and a wrap-around counterfeit in a group of
+order \(1019\)]
+\label{ex:pedersen-toy}
+We run the balance check of Remark~\ref{commitments:rem:homo-uses} in a
+group small enough to follow by hand. Take the primes \(q = 1019\) and
+\(p = 2q + 1 = 2039\). The group \(\F_{p}^{\times}\) is cyclic of order
+\(2q\) (\emph{Math Guide}, \S``Cyclicity of the multiplicative group''),
+so it has exactly one subgroup \(\G\) of the prime order \(q\): the
+nonzero squares modulo \(p\) (\emph{Math Guide}, \S``Quadratic residues
+and the Euler criterion''). We write \(\G\) multiplicatively, as in
+\S\ref{sec:assumptions}: the multiple \([a]P\) becomes the power
+\(P^{a}\), and the group operation is multiplication modulo \(p\). The
+squares \(g = 4\) and \(h = 9\) differ from \(1\) and so generate \(\G\),
+and Construction~\ref{commitments:def:pedersen} becomes
+\[
+C(v; r) := g^{v} h^{r} \bmod p .
+\]
+No discrete logarithm in \(\G\) is hard: trying the \(q\) exponents in
+turn gives \(\log_g h = 515\). The example therefore shows the algebra of
+balance, not its security, which at deployed size rests on the order of
+Pallas, close to \(2^{254}\) (\S\ref{assumptions:subsec:pasta}).
+
+A transaction spends a note of value \(v_1 = 200\) and creates two, of
+values \(v_2 = 150\) and \(v_3 = 45\); the remaining \(b = 5\) is its
+transparent value balance, so that \(v_1 = v_2 + v_3 + b\). With the
+trapdoors \(r_i\) below, the three commitments are
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+note & value \(v_i\) & trapdoor \(r_i\) & \(C_i = C(v_i; r_i)\) \\
+\midrule
+spent & \(200\) & \(731\) & \(566\) \\
+created & \(150\) & \(286\) & \(451\) \\
+created & \(45\) & \(517\) & \(139\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\emph{Cancellation.} The verifier divides the spent commitment by the
+created ones and by the balance under \(g\), \(g^{b} = 1024\):
+\[
+C_1\, (C_2 C_3)^{-1}\, g^{-b} = 1441 = h^{947},
+\qquad
+947 \equiv r_1 - r_2 - r_3 = -72 \pmod q .
+\]
+The exponents of \(g\) cancel, \(200 - 150 - 45 - 5 = 0\), and the
+residual is a commitment to zero. The difference \(r_1 - r_2 - r_3\) of
+the trapdoors is its discrete logarithm to the base \(h\). The author of
+the transaction, who drew the three trapdoors, knows this logarithm
+without computing one; the binding signature of
+\S\ref{signatures:subsec:binding} proves that knowledge without
+revealing it.
+
+\emph{Wrap-around.} Since \(g^{q} = 1\), the exponent of \(g\) matters
+only modulo \(q\), and a value congruent to zero modulo \(q\) commits like
+zero: \(C(q; r) = h^{r} = C(0; r)\) for every \(r\). A prover who raises
+the change from \(45\) to \(45 + q = 1064\) and keeps its trapdoor
+publishes the same commitment, \(C(1064; 517) = 139\), and the verifier
+obtains the same residual \(1441 = h^{947}\). Cancellation, and a binding
+signature under it, accept a transaction that creates
+\(150 + 1064 + 5 = 1219\) from a spent \(200\), minting \(q = 1019\).
+
+\emph{Range.} Requiring each of \(v_1, v_2, v_3, b\) to lie in
+\(\{0, \dots, 2^{8} - 1\}\) rejects \(1064\), and every other wrap: the
+integer \(D = v_1 - v_2 - v_3 - b\) then satisfies
+\(\abs{D} \le 3 \cdot 255 = 765 < q\), so \(D \equiv 0 \pmod q\) forces
+\(D = 0\). The deployed protocol argues in the same way, with \(64\)-bit
+values against an order near \(2^{254}\).
+
+\emph{Prime order.} Both theorems above use that \(q\) is prime: the
+hiding proof of Theorem~\ref{commitments:thm:pedersen-hiding} needs
+\(h \ne 1\) to generate the group, and the binding reduction of
+Theorem~\ref{commitments:thm:pedersen-binding} inverts \(r_1 - r_0\)
+modulo \(q\). In the whole group \(\F_{p}^{\times}\), of order \(2q\),
+the square \(h\) generates only \(\G\), and hiding fails. With the
+generator \(7\) of \(\F_{p}^{\times}\) in place
+of \(g\) and the square \(h\) kept, Euler's criterion gives
+\(c^{(p-1)/2} = (-1)^{v}\) for \(c = 7^{v} h^{r}\), so every commitment
+discloses the parity of its value. In a group of smooth order binding
+fails as well: Pohlig--Hellman (Theorem~\ref{assumptions:thm:pohlig})
+computes \(\log_g h\) at a cost set by the largest prime factor of the
+order, and the committer then equivocates by
+Remark~\ref{commitments:rem:equivocation}.
+\end{example}
 
 \subsection{Pedersen vector commitments}
 \label{commitments:subsec:pedersen-vector}
@@ -5181,17 +5634,6 @@ R_{i} = L_{i-1} \oplus F_{i}(R_{i-1}),
 and output \((L_{r}, R_{r})\).
 \end{definition}
 
-% TikZ figure placeholder --- fig:feistel: one balanced Feistel round
-% and its inversion. Left panel: the forward round --- inputs L_{i-1}
-% (left rail) and R_{i-1} (right rail); R_{i-1} branches into the
-% round-function box F_i, whose output meets L_{i-1} at an XOR node;
-% the rails cross so that L_i = R_{i-1} and R_i = L_{i-1} xor
-% F_i(R_{i-1}). Right panel: the same wiring read bottom-to-top,
-% recovering R_{i-1} = L_i and L_{i-1} = R_i xor F_i(L_i); annotate
-% that F_i is evaluated FORWARD in both directions --- read backwards
-% the diagram is the decryption direction. Dedicated figures pass
-% supplies the drawing.
-
 \begin{proposition}[Feistel is a bijection regardless of the round
 functions]\label{prf:prop:feistelbijection}
 For any round functions \(F_{1}, \dots, F_{r}\)---injective or
@@ -5219,6 +5661,74 @@ the round function required, and this permits a permutation to be
 built from a PRF that need not be invertible. The displayed
 backward recursion is exactly this inversion applied round by round.
 \end{proof}
+
+Figure~\ref{fig:feistel} draws one round and its inversion.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  fn/.style={draw=black!70, line width=0.7pt, rounded corners=2pt,
+    fill=white, minimum width=9mm, minimum height=6mm},
+  xr/.style={draw, circle, inner sep=0pt, minimum size=3.6mm, fill=white,
+    line width=0.6pt},
+  lw/.style={line width=1pt, tierin},
+  rw/.style={line width=1pt, tierfull},
+  gap/.style={preaction={draw, white, line width=4pt}},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+% forward round
+\node[lb, font=\footnotesize] at (1.3,1.15) {round $i$, forward};
+\node (l0) at (0,0.3) {$L_{i-1}$};
+\node (r0) at (2.6,0.3) {$R_{i-1}$};
+\node[xr] (x) at (0,-1.1) {$\oplus$};
+\node[fn] (f) at (1.3,-1.1) {$F_{i}$};
+\node (l1) at (0,-3.1) {$L_{i}$};
+\node (r1) at (2.6,-3.1) {$R_{i}$};
+\draw[lw, ->] (l0) -- (x);
+\draw[rw] (r0) -- (2.6,-1.6);
+\fill[tierfull] (2.6,-1.1) circle (0.7mm);
+\draw[rw, ->] (2.6,-1.1) -- (f);
+\draw[rw, ->] (f) -- (x);
+\draw[lw] (x) -- (0,-1.6);
+\draw[rw, ->] (2.6,-1.6) -- (0,-2.7) -- (l1);
+\draw[lw, gap, ->] (0,-1.6) -- (2.6,-2.7) -- (r1);
+\node[lb] at (1.3,-3.7)
+  {$L_{i} = R_{i-1}$,\quad $R_{i} = L_{i-1} \oplus F_{i}(R_{i-1})$};
+% inverted round, read bottom to top
+\begin{scope}[xshift=6.4cm]
+\node[lb, font=\footnotesize] at (1.3,1.15) {round $i$, inverted};
+\node (l0) at (0,0.3) {$L_{i-1}$};
+\node (r0) at (2.6,0.3) {$R_{i-1}$};
+\node[xr] (x) at (0,-1.1) {$\oplus$};
+\node[fn] (f) at (1.3,-1.1) {$F_{i}$};
+\node (l1) at (0,-3.1) {$L_{i}$};
+\node (r1) at (2.6,-3.1) {$R_{i}$};
+\draw[rw] (l1) -- (0,-2.7) -- (2.6,-1.6);
+\draw[lw, gap] (r1) -- (2.6,-2.7) -- (0,-1.6);
+\draw[rw, ->] (2.6,-1.6) -- (r0);
+\fill[tierfull] (2.6,-1.1) circle (0.7mm);
+\draw[rw, ->] (2.6,-1.1) -- (f);
+\draw[rw, ->] (f) -- (x);
+\draw[lw, ->] (0,-1.6) -- (x);
+\draw[lw, ->] (x) -- (l0);
+\node[lb] at (1.3,-3.7)
+  {$R_{i-1} = L_{i}$,\quad $L_{i-1} = R_{i} \oplus F_{i}(L_{i})$};
+\end{scope}
+\node[lb, text=black!65] at (4.5,-1.1) {both directions\\evaluate
+  $F_{i}$\\forward};
+\end{tikzpicture}
+\caption{One round of the balanced Feistel network of
+Definition~\ref{prf:def:feistel} (left) and its inversion (right). Forward,
+$R_{i-1}$ (amber) passes unchanged to $L_{i}$ and also enters $F_{i}$, whose
+output is XORed into $L_{i-1}$ (blue) to give $R_{i}$; the rails then cross.
+The right panel is the same wiring read from bottom to top, the decryption
+direction: $L_{i}$ returns to the right rail as $R_{i-1}$ and enters $F_{i}$,
+and XORing its output into $R_{i}$ recovers $L_{i-1}$
+(Proposition~\ref{prf:prop:feistelbijection}). In both directions $F_{i}$ is
+evaluated forward, so it need not be invertible.}
+\label{fig:feistel}
+\end{figure}
 
 In FF1 the round functions derive from a PRF---AES iterated in
 cipher-block-chaining fashion, as specified below---so AES is evaluated
@@ -6006,15 +6516,6 @@ with the \textsf{Poly1305} one-time MAC, in which the cipher derives
 \emph{both} the keystream and the one-time MAC key from the single
 \((k, \nu)\) input.
 
-% FIGURE (planned, dedicated figures pass): fig:aead ---
-% ChaCha20-Poly1305 dataflow. Left: (key k, nonce nu) feeding the
-% ChaCha20 block function; a column of keystream blocks for counters
-% 0, 1, 2, ...; block 0 peeled off and split into (r, s) [clamp on r
-% marked], blocks >= 1 XORed into the plaintext to give c. Right: the
-% Poly1305 lane hashing pad16(a) || pad16(c) || len(a) || len(c)
-% under r, then adding s to give the tag t. Output (c, t). Caption
-% notes the counter-0 reservation as domain separation.
-
 \begin{construction}[ChaCha20-Poly1305]\label{symmetric:def-chachapoly}
 Fix a \(256\)-bit key \(k\) and a \(96\)-bit nonce \(\nu\).
 Encryption of a message \(m\) with associated data \(a\) proceeds as
@@ -6042,6 +6543,93 @@ the tag from \((k, \nu, a, c)\), compares it to \(t\) in
 \emph{constant time}, returns \(\bot\) on mismatch, and otherwise
 outputs \(m = c \oplus \mathrm{KS}_{1}(k, \nu, |c|)\).
 \end{construction}
+
+Figure~\ref{fig:aead} draws the dataflow of the construction.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  cell/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, minimum height=6mm, inner sep=1pt, anchor=west,
+    align=center},
+  xr/.style={draw, circle, inner sep=0pt, minimum size=3.6mm, fill=white,
+    line width=0.6pt},
+  ed/.style={->, line width=0.7pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+% the block function
+\node[op=tierspend] (k) at (5.6,1.75) {key $k$};
+\node[lb, font=\footnotesize] (nu) at (7.6,1.75) {nonce $\nu$};
+\node[op=tierin] (cc) at (6.6,0.6)
+  {\textsf{ChaCha20} block function on $(k, \nu, j)$};
+\draw[ed] (k) -- (k |- cc.north);
+\draw[ed] (nu) -- (nu |- cc.north);
+% keystream blocks from counter 1
+\node[cell=tierin, minimum width=14mm] (b1) at (1.6,-0.9) {$j = 1$};
+\node[cell=tierin, minimum width=14mm] (b2) at (b1.east) {$j = 2$};
+\node[cell=tierin, minimum width=8mm] (b3) at (b2.east) {$\cdots$};
+\node[lb, anchor=east] at (b1.west) {keystream\\$\mathrm{KS}_{1}$};
+\draw[ed] (cc.west) -| node[lb, left, pos=0.75] {counters\\$j \ge 1$}
+  (b2.north);
+% block 0
+\node[cell=tierfull, minimum width=10mm] (r0) at (8.1,-0.9) {16 B};
+\node[cell=tierfull, minimum width=10mm] (s0) at (r0.east) {16 B};
+\node[cell=black!50, minimum width=20mm] (d0) at (s0.east)
+  {32 B, discarded};
+\draw[ed] (cc.east) -| node[lb, right, pos=0.75] {counter\\$j = 0$}
+  (s0.north east);
+% encryption
+\node[xr] (x) at (b2.west |- 0,-2.0) {$\oplus$};
+\node[lb, font=\footnotesize, anchor=east] (m) at (1.0,-2.0)
+  {plaintext $m$};
+\draw[ed] (m) -- (x);
+\draw[ed] (x |- b1.south) -- (x);
+\node[op=tierrecv] (c) at (4.9,-2.0) {$c$};
+\draw[ed] (x) -- (c);
+% the Poly1305 input
+\node[cell=black!60, fill=white, minimum width=19mm] (pa) at (1.6,-3.6)
+  {$a$, zero-padded};
+\node[cell=black!60, fill=white, minimum width=19mm] (pc) at (pa.east)
+  {$c$, zero-padded};
+\node[cell=black!60, fill=white, minimum width=11mm] (la) at (pc.east)
+  {$\abs{a}$, 8 B};
+\node[cell=black!60, fill=white, minimum width=11mm] (lc) at (la.east)
+  {$\abs{c}$, 8 B};
+\node[lb, font=\footnotesize, anchor=east] (a) at (1.0,-3.6)
+  {associated\\data $a$};
+\draw[ed] (a) -- (pa);
+\draw[ed] (c) -- (c |- pc.north);
+% Poly1305
+\node[op=tierfull] (h) at (r0.center |- pa) {$h_{r}$};
+\node[op=tierfull] (ps) at (10.85,-3.6) {$+\,s \bmod 2^{128}$};
+\node[op=tierrecv] (t) at (12.75,-3.6) {$t$};
+\draw[ed] (lc) -- (h);
+\draw[ed] (h) -- (ps);
+\draw[ed] (ps) -- (t);
+\node[op=tierfull, inner sep=2pt] (cl) at (r0.center |- 0,-2.0) {clamp};
+\draw[ed] (r0) -- (cl);
+\draw[ed] (cl) -- node[lb, right] {$r$} (h);
+\draw[ed] (s0.south) |- node[lb, above, pos=0.75] {$s$} (ps.north |- 0,-2.6)
+  -- (ps.north);
+\end{tikzpicture}
+\caption{The scheme \textsf{ChaCha20-Poly1305} of
+Construction~\ref{symmetric:def-chachapoly}. The \textsf{ChaCha20} block
+function (blue) on the key $k$ (red) and nonce $\nu$ yields one $64$-byte block
+per counter $j$. Block $0$ (amber) is the one-time \textsf{Poly1305} key: its
+first $16$ bytes, clamped, form $r$, the next $16$ form $s$, and the last $32$
+are discarded. The blocks from counter $1$ on form the keystream
+$\mathrm{KS}_{1}$, XORed into $m$ to give $c$. The \textsf{Poly1305} MAC (amber)
+hashes, under $r$, the zero-padded $a$ and $c$ followed by their $8$-byte
+little-endian lengths, and adds the pad $s$ modulo $2^{128}$ to give the tag
+$t$; the ciphertext is $(c, t)$ (green). Reserving counter $0$ for the MAC key
+is domain separation: the MAC key and the keystream are outputs of the cipher at
+distinct counters (Remark~\ref{symmetric:rem-single-key}).}
+\label{fig:aead}
+\end{figure}
 
 \begin{remark}[Length encoding prevents splicing]
 \label{symmetric:rem-length-encoding}
@@ -6746,12 +7334,55 @@ as \(A^{m}\); symmetrically Bob computes
 \(B^{m}\).
 \end{definition}
 
-% TikZ figure placeholder --- fig:mitm: man in the middle relaying two
-% independent DH sessions. Three columns (Alice, M, Bob); Alice's A
-% and Bob's B each terminate at M, who substitutes g^m in both
-% directions; the two half-session keys g^{am} and g^{bm} annotated at
-% M, with "believes she shares with Bob" / "believes he shares with
-% Alice" callouts. Dedicated figures pass supplies the drawing.
+Figure~\ref{fig:mitm} draws the two sessions.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  who/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, minimum width=14mm},
+  adv/.style={who=black, fill=black!80, fill opacity=1, text=white},
+  msg/.style={->, line width=0.9pt, #1},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[who=tierin] (a) at (0,0) {Alice};
+\node[adv] (m) at (5.4,0) {$\mathcal{M}$};
+\node[who=tierrecv] (b) at (10.8,0) {Bob};
+\foreach \n in {a, m, b} {
+  \draw[black!30, line width=0.6pt] (\n.south) -- ++(0,-3.6);
+}
+\node[lb, anchor=north west] at ([xshift=1mm]m.south)
+  {$m \xleftarrow{\$} \Z/q\Z$};
+\draw[msg=tierin] (0.1,-1.0) -- node[above, lb] {$A = g^{a}$, meant for Bob}
+  (5.3,-1.0);
+\draw[msg=tierrecv] (5.5,-1.6) -- node[above, lb] {$g^{m}$ in place of $A$}
+  (10.7,-1.6);
+\draw[msg=tierrecv] (10.7,-2.2) -- node[above, lb] {$B = g^{b}$, meant
+  for Alice} (5.5,-2.2);
+\draw[msg=tierin] (5.3,-2.8) -- node[above, lb] {$g^{m}$ in place of $B$}
+  (0.1,-2.8);
+\node[who=tierin, anchor=north, align=center] (ka) at (0,-3.9)
+  {$k_{A} = (g^{m})^{a} = g^{am}$};
+\node[adv, anchor=north, align=center] (km) at (5.4,-3.9)
+  {$A^{m} = g^{am}$\\$B^{m} = g^{bm}$};
+\node[who=tierrecv, anchor=north, align=center] (kb) at (10.8,-3.9)
+  {$k_{B} = (g^{m})^{b} = g^{bm}$};
+\node[lb, anchor=north] at (ka.south) {believes she shares\\$k_{A}$ with Bob};
+\node[lb, anchor=north] at (kb.south) {believes he shares\\$k_{B}$ with Alice};
+\node[lb, anchor=north] at (km.south) {holds both keys};
+\end{tikzpicture}
+\caption{The attack of Definition~\ref{keyagreement:def:mitm}. The adversary
+$\mathcal{M}$ (black) intercepts the messages of Alice and Bob and substitutes
+$g^{m}$ in each direction, so that two independent Diffie--Hellman sessions
+run: one between Alice and $\mathcal{M}$ (blue), with key
+$k_{A} = g^{am}$, and one between $\mathcal{M}$ and Bob (green), with key
+$k_{B} = g^{bm}$. The adversary computes both keys from its own $m$ and the
+received $A$ and $B$; each victim's view is an honest run of the
+protocol.}
+\label{fig:mitm}
+\end{figure}
 
 \begin{proposition}[The attack defeats unauthenticated
 Diffie--\allowbreak Hellman]
@@ -7012,13 +7643,74 @@ the output \(\bot\) except with negligible probability. Anyone holding
 \(B\) can encrypt; only the holder of \(b\) can decrypt.
 \end{construction}
 
-% TikZ figure placeholder --- fig:hpke: hybrid encryption dataflow.
-% Sender lane: e sampled, E_pk = [e]P published; B (recipient's
-% static key) enters Agree to give S = [eb]P; S and context (E_pk,
-% labels) enter KDF to give K; K, nonce N, ad, and m enter AEAD Enc
-% to give c; wire carries (E_pk, c). Recipient lane mirrors it:
-% [b]E_pk -> S' -> KDF -> K' -> Dec -> m or bot. Dedicated figures
-% pass supplies the drawing.
+Figure~\ref{fig:hpke} draws both directions of the construction.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  ed/.style={->, line width=0.7pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\begin{scope}[on background layer]
+\fill[black!6] (-1.0,-1.05) rectangle (11.6,-1.95);
+\end{scope}
+\node[lb, anchor=west] at (9.2,-1.5) {ciphertext $(E_{\mathrm{pk}}, c)$};
+\node[lb, font=\footnotesize\itshape] at (0,0.75) {sender};
+\node[lb, font=\footnotesize\itshape] at (0,-3.75) {recipient};
+% sender lane
+\node[op=tierspend] (e) at (0,0) {$e \xleftarrow{\$} \Z/q\Z$};
+\node[lb] (B) at (2.6,1.15) {$B = [b]P$, published};
+\node[op=tierin] (ag) at (2.6,0) {$\mathrm{Agree}(e, B)$};
+\node[op=tierin] (kdf) at (5.6,0) {$\mathrm{KDF}$};
+\node[lb] (cx) at (5.6,1.15) {context:\\$E_{\mathrm{pk}}$, labels};
+\node[op=tierin] (enc) at (8.4,0) {$\mathrm{Enc}_{K}$};
+\node[lb] (nam) at (8.4,1.15) {$N$, $\mathit{ad}$, $m$};
+\draw[ed] (e) -- (ag);
+\draw[ed] (B) -- (ag);
+\draw[ed] (ag) -- node[lb, above] {$S = [eb]P$} (kdf);
+\draw[ed] (cx) -- (kdf);
+\draw[ed] (kdf) -- node[lb, above] {$K$} (enc);
+\draw[ed] (nam) -- (enc);
+% the wire
+\node[lb, fill=white, draw=black!50, rounded corners=2pt, inner sep=2pt]
+  (epk) at (0,-1.5) {$E_{\mathrm{pk}} = [e]P$};
+\node[lb, fill=white, draw=black!50, rounded corners=2pt, inner sep=2pt]
+  (c) at (8.4,-1.5) {$c$};
+\draw[ed] (e) -- (epk);
+\draw[ed] (enc) -- (c);
+% recipient lane
+\node[op=tierspend] (b) at (0,-3.0) {$b$};
+\node[op=tierrecv] (dh) at (2.6,-3.0) {$[b]\,E_{\mathrm{pk}}$};
+\node[op=tierrecv] (kdf2) at (5.6,-3.0) {$\mathrm{KDF}$};
+\node[lb] (cx2) at (5.6,-4.15) {context:\\$E_{\mathrm{pk}}$, labels};
+\node[op=tierrecv] (dec) at (8.4,-3.0) {$\mathrm{Dec}_{K'}$};
+\node[lb] (na2) at (8.4,-4.15) {$N$, $\mathit{ad}$};
+\node[lb, font=\footnotesize] (out) at (10.85,-3.0) {$m$ or $\bot$};
+\draw[ed] (b) -- (dh);
+\draw[ed] (epk) -- (dh);
+\draw[ed] (dh) -- node[lb, below] {$S'$} (kdf2);
+\draw[ed] (cx2) -- (kdf2);
+\draw[ed] (kdf2) -- node[lb, below] {$K'$} (dec);
+\draw[ed] (c) -- (dec);
+\draw[ed] (na2) -- (dec);
+\draw[ed] (dec) -- (out);
+\end{tikzpicture}
+\caption{Hybrid public-key encryption, Construction~\ref{keyagreement:def:hpke}.
+The sender (blue lane) samples the ephemeral $e$, publishes
+$E_{\mathrm{pk}} = [e]P$, agrees $S = [eb]P$ with the recipient's static key
+$B$, derives $K$ from $S$ and a context containing $E_{\mathrm{pk}}$, and
+encrypts $m$ under $K$ with nonce $N$ and associated data $\mathit{ad}$. The
+ciphertext $(E_{\mathrm{pk}}, c)$ (grey band) is all that crosses the
+channel. The recipient (green lane) mirrors the sender with its secret $b$:
+$S' = [b]\,E_{\mathrm{pk}}$, then $K'$, then decryption, which returns $m$ on
+an honest ciphertext and, except with negligible probability, $\bot$ on a
+tampered one. Red marks the two secret scalars.}
+\label{fig:hpke}
+\end{figure}
 
 \begin{theorem}[Correctness of hybrid encryption]
 \label{keyagreement:thm:hpke-correct}
@@ -7451,10 +8143,13 @@ Remark~\ref{keyagreement:rem:auth-supplied}: the address is part of
 the recipient's verified payment credential, so no
 man-in-the-middle substitution of the key is possible; and, as noted
 there, this authenticates the recipient rather than the sender. The
-complementary guarantees on the note's \emph{contents}---that the
-value is well-formed and conserved, that the commitment on chain
-matches the plaintext delivered---come not from the encryption but
-from the accompanying zero-knowledge proof.
+encryption hides the note's \emph{contents} but certifies nothing about
+them. That the value inside the note commitment is in range and is the
+value that enters the published value commitment comes from the accompanying
+zero-knowledge proof, whose statement reads no ciphertext. That the
+plaintext delivered matches the commitment on chain comes from the
+recipient's recomputation above: by the binding of the note commitment,
+a plaintext that reproduces it is the one the sender committed to.
 \end{remark}
 
 The signatures that authorise the transaction carrying the note
@@ -7701,6 +8396,8 @@ protocol is \emph{public-coin}: the verifier keeps no secrets and
 exercises no discretion.
 \end{construction}
 
+Figure~\ref{fig:schnorr} draws the three moves and the verifier's check.
+
 \begin{proposition}[Perfect completeness]
 \label{signatures:prop:completeness}
 If prover and verifier are honest, the verifier accepts with
@@ -7717,6 +8414,40 @@ scalar multiplication gives
 which is exactly \eqref{eq:signatures-verify}. The computation holds
 identically for every choice of \(r\) and \(c\).
 \end{proof}
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  who/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  msg/.style={->, line width=0.9pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[who=tierspend] (p) at (2.6,0) {prover\\holds $x$, $X = [x]G$};
+\node[who=tierrecv] (v) at (9.0,0) {verifier\\holds $X$};
+\draw[black!30, line width=0.6pt] (p.south) -- (2.6,-3.8);
+\draw[black!30, line width=0.6pt] (v.south) -- (9.0,-3.8);
+\node[lb, anchor=east, align=right] at (2.4,-1.2)
+  {$r \xleftarrow{\$} \Fq$\\[2pt]$R = [r]G$};
+\draw[msg] (2.7,-1.2) -- node[above, lb] {commitment $R$} (8.9,-1.2);
+\node[lb, anchor=west, align=left] at (9.2,-2.2) {$c \xleftarrow{\$} \Fq$};
+\draw[msg] (8.9,-2.2) -- node[above, lb] {challenge $c$} (2.7,-2.2);
+\node[lb, anchor=east, align=right] at (2.4,-3.2) {$s = r + cx$};
+\draw[msg] (2.7,-3.2) -- node[above, lb] {response $s$} (8.9,-3.2);
+\node[who=tierrecv, anchor=north] at (9.0,-3.8)
+  {accept iff $[s]G = R + [c]X$};
+\end{tikzpicture}
+\caption{The three moves of Construction~\ref{signatures:con:schnorrid} in
+$\G = \langle G \rangle$ of prime order $q$. The prover, holding the witness
+$x$ of the statement $X = [x]G$, commits to a fresh nonce $r$ by sending
+$R = [r]G$; the verifier answers with a uniform challenge $c$; the prover
+responds with $s = r + cx$ in $\Fq$. The verifier accepts iff
+$[s]G = R + [c]X$, equation~\eqref{eq:signatures-verify}; only the prover
+holds a secret (red).}
+\label{fig:schnorr}
+\end{figure}
 
 \begin{theorem}[2-special soundness]
 \label{signatures:thm:specialsound}
@@ -7964,16 +8695,6 @@ forgery into \emph{two} accepting transcripts on the same commitment,
 as Theorem~\ref{signatures:thm:specialsound} requires. The tool is the
 forking lemma, in the game-based form due to Bellare and Neven.
 
-% FIGURE (planned, dedicated figures pass): fig:forking --- rewinding
-% a forger to two accepting transcripts sharing a prefix. Two
-% horizontal runs of the same algorithm B with the same coins rho,
-% drawn as parallel timelines; identical prefix c_1..c_{I-1} shaded as
-% a shared band; the fork at index I where run 1 receives c_I and run
-% 2 receives a fresh c'_I; both runs ending at the same critical query
-% R*||X||m* with different challenge answers, yielding transcripts
-% (R*, c*, s*) and (R*, c'*, s'*) feeding the special-soundness
-% extractor box that emits x.
-
 \begin{theorem}[General forking lemma]\label{signatures:thm:forking}
 Fix an integer \(Q \ge 1\), a finite set \(C\) with
 \(\abs{C} = h \ge 2\), and a randomised input generator
@@ -8076,8 +8797,9 @@ So \(B\) outputs the index \(I\) of the critical query together with
 \(\mathit{out} = (R^{\star}, c^{\star}, s^{\star}, m^{\star})\), and
 \(\mathit{acc} \ge \varepsilon\) minus the loss terms above.
 
-It remains to fork. Both runs of \(F_B\) share the coins \(\rho\) and the
-challenge prefix \(c_1, \dots, c_{I-1}\), which together determine
+It remains to fork; Figure~\ref{fig:forking} draws the two runs. Both
+runs of \(F_B\) share the coins \(\rho\) and the challenge prefix
+\(c_1, \dots, c_{I-1}\), which together determine
 \(\mathcal A\)'s behaviour up to the moment it produces the critical
 query; both runs therefore query the \emph{same} critical input
 \(R^{\star} \| X \| m^{\star}\) at index \(I\), but receive
@@ -8096,6 +8818,77 @@ the discrete logarithm of \(X\). Substituting \(\mathit{acc}\),
 stated bound; the running time is two runs of \(\mathcal A\) plus
 bookkeeping.
 \end{proof}
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  run/.style={line width=0.9pt, black!70},
+  ed/.style={->, line width=0.7pt},
+  tk/.style={line width=0.7pt, black!70},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\begin{scope}[on background layer]
+\fill[black!6] (0.0,0.75) rectangle (3.55,-2.95);
+\end{scope}
+\node[lb, anchor=east, font=\footnotesize] at (-0.15,0) {run 1};
+\node[lb, anchor=east, font=\footnotesize] at (-0.15,-2.2) {run 2};
+\foreach \y in {0, -2.2} {
+  \draw[run, ->] (0,\y) -- (6.6,\y);
+  \foreach \x in {0.55, 1.35, 3.1, 4.45, 5.75} {
+    \draw[tk] (\x,\y+0.12) -- (\x,\y-0.12);
+  }
+}
+% shared prefix
+\foreach \y/\p in {0/above, -2.2/below} {
+  \node[lb, \p=1mm] at (0.55,\y) {$c_{1}$};
+  \node[lb, \p=1mm] at (1.35,\y) {$c_{2}$};
+  \node[lb, \p=1mm] at (2.2,\y) {$\cdots$};
+  \node[lb, \p=1mm] at (3.1,\y) {$c_{I-1}$};
+}
+\node[lb] at (1.8,-1.1) {same input $y = X$, coins $\rho$,\\answers
+  $c_{1}, \dots, c_{I-1}$:\\identical prefix};
+% the fork
+\draw[dashed, gray] (4.45,0.75) -- (4.45,-2.95);
+\node[lb, fill=white] at (4.45,-1.1) {critical query\\$R^{\star} \| X \|
+  m^{\star}$};
+\node[lb, above=1mm, fill=white, text=tierin!70!black] at (4.45,0)
+  {$c_{I} = c^{\star}$};
+\node[lb, below=1mm, fill=white, text=tierfull!80!black] at (4.45,-2.2)
+  {$c'_{I} = c'^{\star}$};
+\node[lb, anchor=south] at (4.45,0.75) {index $I$};
+% suffixes
+\node[lb, above=1mm] at (5.75,0) {$c_{I+1}, \dots, c_{Q}$};
+\node[lb, below=1mm] at (5.75,-2.2) {$c'_{I+1}, \dots, c'_{Q}$};
+% outputs
+\node[op=tierin, anchor=west] (o1) at (6.75,0)
+  {$(R^{\star}, c^{\star}, s^{\star})$};
+\node[op=tierfull, anchor=west] (o2) at (6.75,-2.2)
+  {$(R^{\star}, c'^{\star}, s'^{\star})$};
+\node[op=tierrecv] (ext) at (10.75,-1.1) {special-soundness\\extractor:\\
+  $x = (s^{\star} - s'^{\star})(c^{\star} - c'^{\star})^{-1}$};
+\draw[ed] (o1.east) -- (ext);
+\draw[ed] (o2.east) -- (ext);
+\node[op=tierspend] (x) at (10.75,-2.75) {$x$};
+\draw[ed] (ext) -- (x);
+\end{tikzpicture}
+\caption{The fork in the proof of Theorem~\ref{signatures:thm:schnorr-euf}, an
+execution of the forking algorithm $F_{B}$ of
+Theorem~\ref{signatures:thm:forking}. Both runs of $B$ take the same input $y =
+X$ and coins $\rho$, and answer the first $I - 1$ distinct hash queries with the
+same $c_{1}, \dots, c_{I-1}$ (grey band), so they coincide up to the $I$-th
+query, the critical input $R^{\star} \| X \| m^{\star}$. There run 1 receives
+$c_{I} = c^{\star}$ (blue) and run 2 a fresh $c'_{I} = c'^{\star}$ (amber), and
+each continues with its own remaining challenges. When both forge with the same
+index $I$ and $c^{\star} \ne c'^{\star}$, the outputs are two accepting
+transcripts with the common commitment $R^{\star}$ and distinct challenges, from
+which the extractor of Theorem~\ref{signatures:thm:specialsound} computes the
+discrete logarithm $x$ of $X$ (red).}
+\label{fig:forking}
+\end{figure}
 
 \begin{example}[The tightness loss, in numbers]
 \label{signatures:exa:tightness}
@@ -8600,7 +9393,14 @@ curve are the general machinery of the \emph{Math Guide},
 \S``Elliptic curves'' and \S``The elliptic-curve discrete logarithm
 problem''; the hardness assumption is
 Definition~\ref{assumptions:def:dlog} in the group
-\(\langle G \rangle\).
+\(\langle G \rangle\). The primes \(p\) and \(n\) have two-adicity \(1\)
+and \(6\)---the exponent of the largest power of \(2\) dividing \(p - 1\)
+and \(n - 1\) (\emph{Math Guide}, \S``Roots of unity and evaluation
+domains'')---against \(32\) for both Pasta primes
+(Definition~\ref{assumptions:def:pasta}). Power-of-two evaluation
+domains, on which proof systems run fast polynomial arithmetic, therefore
+have at most \(2\) and \(64\) points over the secp256k1 fields, against
+\(2^{32}\) over the Pasta fields.
 
 \begin{construction}[ECDSA over secp256k1, schematically]
 \label{signatures:con:ecdsa}
@@ -9051,16 +9851,6 @@ prover---the ability to run it, feed it messages, and \emph{rewind} it
 to an earlier state to try different continuations---can compute the
 witness from it.
 
-% FIGURE (planned, dedicated figures pass): fig:extractor --- the
-% extractor cloning and rewinding a prover across challenges. A boxed
-% extractor E containing two (or more) parallel copies of the same
-% prover P* run from a cloned state: a shared prefix band up to the
-% commitment a, then divergent challenge arrows e and e' into the two
-% copies, responses z and z' flowing out, and both transcripts feeding
-% a witness-computation box that emits w. A caption note that E holds
-% P* as a subroutine --- rewinding is legitimate because the prover is
-% code, not a live counterparty.
-
 \begin{definition}[Knowledge soundness; proof of knowledge]
 \label{zk:def:knowledge}
 Let \((P, V)\) be an interactive protocol and \(R\) an NP-relation.
@@ -9209,22 +9999,33 @@ larger system, whose surrounding state becomes the \(z\) of the
 analysis. Practice and this volume adopt the auxiliary-input
 formulation.
 
+\begin{remark}[Zero knowledge hides the witness, not the instance]
+\label{rem:zk-instance}
+The simulator of Definition~\ref{zk:def:zk} receives the instance \(x\):
+zero knowledge bounds what the interaction reveals \emph{beyond} \(x\)
+and says nothing about what \(x\) itself reveals. Let \(x\) contain a
+public value \(y = f(y')\), for an efficiently computable deterministic
+map \(f\) and a value \(y'\) published earlier. Anyone links \(y\) to
+\(y'\) by evaluating \(f(y')\) and comparing, whatever proof accompanies
+\(x\), a perfectly zero-knowledge one included; the link lies in the
+statement, not in the transcript. A published value escapes such links
+only if it reveals nothing, to anyone lacking a secret, about the earlier
+values from which it is derived. A commitment under fresh randomness has
+this property by hiding (Definition~\ref{commitments:def:hiding}), the
+output of a pseudorandom function under a secret key, on an input not
+evaluated before, by pseudorandomness (Definition~\ref{prf:def:prf}), and
+a re-randomised verification key by Theorem~\ref{signatures:thm:unlink}.
+The unlinkability of a system that
+publishes its instances therefore rests on these properties of the
+instances, and on zero knowledge only for the proof.
+\end{remark}
+
 \subsection{Sigma-protocols}\label{zk:subsec:sigma}
 
 Sigma-protocols realise the preceding definitions with three moves and
 public coins, every property following from algebraic relations among
 the messages; the name refers to the capital \(\Sigma\) that the
 message flow traces.
-
-% FIGURE (planned, dedicated figures pass): fig:sigma --- the
-% three-move Sigma-protocol message flow and its Fiat--Shamir
-% collapse. Left panel: prover and verifier columns, arrows a (down
-% to V), e (back to P, stamped uniform from C), z (down to V), with
-% Verify(x,a,e,z) at the bottom; the a-e-z zigzag traces the capital
-% sigma. Right panel: the same protocol collapsed by Fiat--Shamir ---
-% a single proof string pi = (a, z) with e = H(x, a) computed locally
-% on both sides, the hash box replacing the verifier's arrow.
-% Caption ties to Definition zk:def:fs.
 
 \begin{definition}[Sigma-protocol]\label{zk:def:sigma}
 Let \(R\) be an NP-relation. A \emph{Sigma-protocol} for \(R\) with
@@ -9317,6 +10118,70 @@ from the new accepting transcript (a fresh \emph{phase}).
 \emph{Step 3.} Apply the special-soundness algorithm of
 Definition~\ref{zk:def:sigma} to the collision and output the
 witness.
+
+Figure~\ref{fig:extractor} draws the extractor on a run that ends in a
+collision.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  op/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  ed/.style={->, line width=0.7pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\begin{scope}[on background layer]
+\fill[black!6] (0.0,0.3) rectangle (4.25,-2.5);
+\end{scope}
+\node[op=black, fill=black!80, fill opacity=1, text=white] (p) at (0.75,-1.1)
+  {$P^{*}$\\tape $\rho$};
+\node[op=black!60] (st) at (3.35,-1.1) {state\\after $a$};
+\draw[ed] (p) -- node[lb, above] {$a = a(\rho)$} (st);
+\node[lb, anchor=north] at (2.1,-1.75) {shared prefix};
+\node[op=black, fill=black!80, fill opacity=1, text=white] (p1) at (5.6,0)
+  {copy of $P^{*}$};
+\node[op=black, fill=black!80, fill opacity=1, text=white] (p2) at (5.6,-2.2)
+  {copy of $P^{*}$};
+\draw[ed] (st) |- node[lb, above, pos=0.75] {replay} (p1);
+\draw[ed] (st) |- node[lb, below, pos=0.75] {replay} (p2);
+\node[lb] (e1) at (5.6,1.25) {$e \xleftarrow{\$} C$};
+\node[lb] (e2) at (5.6,-3.45) {$e' \xleftarrow{\$} C \setminus \{e\}$};
+\draw[ed, tierin] (e1) -- (p1);
+\draw[ed, tierfull] (e2) -- (p2);
+\node[op=tierin] (t1) at (8.3,0) {$(a, e, z)$};
+\node[op=tierfull] (t2) at (8.3,-2.2) {$(a, e', z')$};
+\draw[ed] (p1) -- node[lb, above] {$z$} (t1);
+\draw[ed] (p2) -- node[lb, below] {$z'$} (t2);
+\node[lb, anchor=west] at (t1.east) {accepts};
+\node[lb, anchor=west] at (t2.east) {accepts};
+\node[op=tierrecv] (ss) at (10.4,-1.1) {special-\\soundness\\algorithm};
+\draw[ed] (t1.south) |- ([yshift=1.5mm]ss.west);
+\draw[ed] (t2.north) |- ([yshift=-1.5mm]ss.west);
+\coordinate (top) at (0,1.75);
+\coordinate (bot) at (0,-3.9);
+\node[draw=tierrecv, line width=1.1pt, rounded corners=4pt, inner sep=4pt,
+  fit=(p) (ss) (top) (bot)] (E) {};
+\node[lb, anchor=north west, font=\footnotesize]
+  at ([shift={(1mm,-1mm)}]E.north west) {extractor $\mathcal{E}$};
+\node[op=tierspend] (w) at (12.65,-1.1) {$w$};
+\draw[ed] (ss) -- (w);
+\node[lb, anchor=north] at (w.south) {$w \in R(x)$};
+\end{tikzpicture}
+\caption{The extractor in the proof of Theorem~\ref{zk:thm:special}, on a run
+that ends in a collision. The extractor $\mathcal{E}$ (frame) holds the prover
+$P^{*}$ (black) as a subroutine. Fixing the random tape $\rho$ fixes the
+commitment $a = a(\rho)$, and $\mathcal{E}$ replays $P^{*}$ from the state just
+after $a$ was emitted (grey band), once with the challenge $e$ and once with a
+fresh $e' \ne e$. If both transcripts $(a, e, z)$ and $(a, e', z')$ accept,
+they form a collision, from which the special-soundness algorithm of
+Definition~\ref{zk:def:sigma} computes a witness $w \in R(x)$ (red). The
+rewinding is legitimate because $P^{*}$ is code that $\mathcal{E}$ runs, not a
+live counterparty (Remark~\ref{zk:rem:rewinding}). The fresh probes by which the
+proof bounds the expected running time are not drawn.}
+\label{fig:extractor}
+\end{figure}
 
 \emph{Analysis.} Call a row \(\rho\) \emph{heavy} if its acceptance
 density \(\delta_\rho := \Pr_e\bigl[H[\rho, e] = 1\bigr]\) is at
@@ -9591,6 +10456,64 @@ each challenge hashing the \emph{entire} transcript prefix. To bind
 a message \(m\) to the proof---turning it into a signature---one
 includes \(m\) in the hash: \(e := H(x, a, m)\).
 \end{definition}
+
+Figure~\ref{fig:sigma} draws a Sigma-protocol beside its transform.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  who/.style={draw=#1, fill=#1, fill opacity=0.14, text opacity=1,
+    line width=0.7pt, rounded corners=2pt, inner sep=3pt,
+    minimum height=6mm, align=center},
+  hs/.style={draw=tierfull, fill=white, line width=0.7pt, rounded corners=2pt,
+    inner sep=3pt, minimum height=6mm},
+  msg/.style={->, line width=0.9pt},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+% interactive
+\node[lb, font=\footnotesize\itshape] at (1.85,1.2) {interactive};
+\node[who=tierspend] (p) at (0,0) {prover\\holds $(x, w) \in R$};
+\node[who=tierrecv] (v) at (3.7,0) {verifier\\holds $x$};
+\draw[black!30, line width=0.6pt] (p.south) -- (0,-4.0);
+\draw[black!30, line width=0.6pt] (v.south) -- (3.7,-4.0);
+\draw[msg] (0.1,-0.8) -- node[lb, above, sloped] {commitment $a$}
+  (3.6,-1.5);
+\draw[msg] (3.6,-1.75) -- node[lb, above, sloped] {challenge
+  $e \xleftarrow{\$} C$} (0.1,-2.45);
+\draw[msg] (0.1,-2.7) -- node[lb, above, sloped] {response $z$}
+  (3.6,-3.4);
+\node[who=tierrecv, anchor=north] at (3.7,-4.0)
+  {$\mathrm{Verify}(x, a, e, z)$};
+% Fiat--Shamir
+\draw[dashed, gray] (5.6,1.4) -- (5.6,-4.7);
+\begin{scope}[xshift=7.4cm]
+\node[lb, font=\footnotesize\itshape] at (1.85,1.2) {Fiat--Shamir};
+\node[who=tierspend] (p) at (0,0) {prover\\holds $(x, w) \in R$};
+\node[who=tierrecv] (v) at (3.7,0) {verifier\\holds $x$};
+\draw[black!30, line width=0.6pt] (p.south) -- (0,-4.0);
+\draw[black!30, line width=0.6pt] (v.south) -- (3.7,-4.0);
+\node[lb, anchor=west] at (0.15,-0.8) {commitment $a$};
+\node[hs] at (0,-1.45) {$e := H(x, a)$};
+\node[lb, anchor=west] at (0.15,-2.05) {response $z$};
+\draw[msg] (0.1,-2.7) -- node[lb, above] {proof $\pi = (a, z)$}
+  (3.6,-2.7);
+\node[hs] at (3.7,-3.35) {$e := H(x, a)$};
+\node[who=tierrecv, anchor=north] at (3.7,-4.0)
+  {$\mathrm{Verify}(x, a, e, z)$};
+\end{scope}
+\end{tikzpicture}
+\caption{A Sigma-protocol (left), Definition~\ref{zk:def:sigma}, and its
+Fiat--Shamir transform (right), Definition~\ref{zk:def:fs}. Left: the prover,
+holding $w$ with $(x, w) \in R$, sends the commitment $a$; the verifier answers
+with a uniform challenge $e \in C$; the prover sends the response $z$, and the
+verifier decides by $\mathrm{Verify}(x, a, e, z)$. The three messages trace the
+zigzag of a capital $\Sigma$. Right: the hash $H$ (amber) replaces the
+verifier's challenge. The prover computes $e := H(x, a)$ itself and sends the
+single proof string $\pi = (a, z)$; the verifier recomputes $e$ from $x$ and $a$
+and applies the same predicate. Only the prover holds a secret (red).}
+\label{fig:sigma}
+\end{figure}
 
 \begin{remark}[Weak Fiat--Shamir]\label{zk:rem:weakfs}
 The definition's insistence that each challenge hash \emph{all}
@@ -9922,6 +10845,21 @@ earlier proof systems---the BCTV14 Sprout circuit and the Groth16
 Sapling circuits (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#bctvparameters}{\S\S~5.7}--\href{https://zips.z.cash/protocol/protocol.pdf\#grothparameters}{5.8})---and each
 remains sound only on that one-honest-participant assumption.
 
+A subverted setup costs soundness but need not cost zero knowledge.
+Bellare, Fuchsbauer, and Scafuro (2016) separate the two against a
+reference string chosen by the adversary: soundness against such a string
+cannot coexist with zero knowledge, except for languages whose membership
+is efficiently decidable, whereas zero knowledge against it, together with
+ordinary soundness, is attainable. Deployed BCTV14 attains the
+zero-knowledge half of that combination. The specification's note on
+the BCTV14 vulnerability, a flaw that admitted false proofs before the
+activation of Sapling, records that zero knowledge holds even under
+subversion of the parameter generation (protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#bctv}{\S~5.4.10.1},
+citing Bowe, Gabizon, and Green, 2017, Theorem~4.10). A holder of the
+BCTV14 toxic waste could thus forge proofs, and with them value, but
+could learn nothing about the witnesses of honest proofs.
+
 The other route rests on the discrete logarithm alone. The
 inner-product commitment of Construction~\ref{commitments:def:ipa}
 needs no pairing and no trusted setup---its generators are derived by
@@ -9929,6 +10867,44 @@ hashing, with no secret behind them---at the price of logarithmic
 proofs and a linear-time opening check
 (Proposition~\ref{commitments:prop:ipa-props}); the Halo~2 proving
 system deployed in Orchard takes this route.
+
+Table~\ref{tab:zk-deployed} lists the three proof systems Zcash has
+deployed (protocol specification
+\href{https://zips.z.cash/protocol/protocol.pdf\#abstractzk}{\S``Zero-Knowledge
+Proving System''}). The curve of BCTV14 is BN-254, a Barreto--Naehrig
+pairing-friendly curve over a \(254\)-bit prime field
+(\href{https://zips.z.cash/protocol/protocol.pdf\#bnpairing}{\S~5.4.9.1});
+Halo~2 commits with points of Vesta, the Pasta curve whose scalar field
+is the base field of Pallas (Definition~\ref{assumptions:def:pasta}).
+The sizes are those of the specification's encodings. A BCTV14 proof is
+seven points of \(33\) bytes and one of \(65\)
+(\href{https://zips.z.cash/protocol/protocol.pdf\#bctvencoding}{\S~5.4.10.1}),
+and a Groth16 proof two points of \(48\) bytes and one of \(96\)
+(\href{https://zips.z.cash/protocol/protocol.pdf\#grothencoding}{\S~5.4.10.2}).
+One Halo~2 proof covers all \(n\) Actions of a transaction in
+\(2720 + 2272\,n\) bytes
+(\href{https://zips.z.cash/protocol/protocol.pdf\#actionencodingandconsensus}{\S``Action
+Description Encoding and Consensus''}; ZIP~225): \(4992\) bytes for one
+Action, \(7264\) for two.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{The proof systems of deployed Zcash; \(n\) is the number of
+Actions in the transaction.}
+\label{tab:zk-deployed}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+system & curve & setup & proof size (bytes) & proves \\
+\midrule
+BCTV14 & BN-254 & per circuit, ceremony & \(296 = 7 \cdot 33 + 65\)
+  & Sprout, before Sapling \\
+Groth16 & BLS12-381 & per circuit, ceremony & \(192 = 48 + 96 + 48\)
+  & Sapling; Sprout after \\
+Halo~2 & Vesta & transparent & \(2720 + 2272\,n\) & Orchard \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsubsection*{Polynomial interactive oracle proofs}
 
@@ -10355,13 +11331,6 @@ collision resistance forces the winning probability to be negligible.
 \subsection{Authentication paths and membership proofs}
 \label{merkle:sec-auth}
 
-% TikZ figure placeholder --- fig:merkle-path: the depth-2 tree of
-% Example~\ref{merkle:exp-depth2} with the authentication path for
-% leaf index 2 highlighted: path nodes N_{0,2}, N_{1,1}, N_{2,0}
-% emphasised, siblings s_0 = N_{0,3} and s_1 = N_{1,0} in the accent
-% colour, direction bits b_0 = 0, b_1 = 1 annotated on the edges.
-% Dedicated figures pass supplies the drawing.
-
 Membership needs a certificate relating one leaf to the root: the
 siblings along the leaf's path, which are exactly the data needed to
 recompute the root from the leaf.
@@ -10480,7 +11449,64 @@ a_2 = h\bigl(h(L_0 \,\|\, L_1) \,\|\, a_1\bigr) = \mathsf{root}(L),
 and the verifier accepts. The verifier never receives \(L_0\) or
 \(L_1\), only their digest \(h(L_0 \,\|\, L_1)\), and is nevertheless
 convinced that \(L_2\) occupies index \(2\) of the committed list.
+Figure~\ref{fig:merkle-path} draws this path.
 \end{example}
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  nd/.style={draw=black!70, line width=0.6pt, rounded corners=2pt,
+    inner sep=2pt, minimum height=6mm, minimum width=11mm},
+  rt/.style={nd, draw=tierfull, line width=1.4pt, fill=tierfull,
+    fill opacity=0.2, text opacity=1},
+  sb/.style={nd, draw=tierin, line width=1pt, fill=tierin,
+    fill opacity=0.2, text opacity=1},
+  ed/.style={line width=0.5pt, gray},
+  fold/.style={->, line width=1.4pt, tierfull},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[nd] (L0) at (0,0) {$N_{0,0}$};
+\node[nd] (L1) at (1.6,0) {$N_{0,1}$};
+\node[rt] (L2) at (3.2,0) {$N_{0,2}$};
+\node[sb] (L3) at (4.8,0) {$N_{0,3}$};
+\foreach \j in {0,...,3} {
+  \node[lb, anchor=north] at ([yshift=-1mm]L\j.south) {$L_{\j}$};
+}
+\node[sb] (A) at (0.8,1.6) {$N_{1,0}$};
+\node[rt] (B) at (4.0,1.6) {$N_{1,1}$};
+\node[rt] (R) at (2.4,3.2) {$N_{2,0}$};
+\node[lb, anchor=west] at ([xshift=1mm]R.east) {$\mathsf{root}(L)$};
+\draw[ed] (L0) -- (A);
+\draw[ed] (L1) -- (A);
+\draw[ed] (L3) -- (B);
+\draw[ed] (A) -- (R);
+\draw[fold] (L2) -- node[lb, anchor=east, xshift=-1mm] {$b_{0} = 0$} (B);
+\draw[fold] (B) -- node[lb, anchor=west, xshift=1mm] {$b_{1} = 1$} (R);
+\node[lb, anchor=west, text=tierin] at ([xshift=1mm]L3.east) {$s_{0}$};
+\node[lb, anchor=east, text=tierin] at ([xshift=-1mm]A.west) {$s_{1}$};
+\node[anchor=west, align=left] at (6.4,1.6)
+  {$a_{0} = L_{2}$\\[2pt]
+  $a_{1} = h(a_{0} \,\|\, s_{0}) = h(L_{2} \,\|\, L_{3})$\\[2pt]
+  $a_{2} = h(s_{1} \,\|\, a_{1}) = \mathsf{root}(L)$};
+\foreach \s/\t/\x in {rt/leaf-to-root path/0.0, sb/sibling/3.3} {
+  \node[\s, minimum width=5mm, minimum height=3mm, inner sep=0pt]
+    (lg) at (\x,-1.4) {};
+  \node[lb, anchor=west] at ([xshift=1mm]lg.east) {\t};
+}
+\draw[fold] (5.0,-1.4) -- (5.7,-1.4);
+\node[lb, anchor=west] at (5.8,-1.4) {fold};
+\end{tikzpicture}
+\caption{The authentication path of Example~\ref{merkle:exp-proof} in the
+depth-$2$ tree of Example~\ref{merkle:exp-depth2}. The path from the leaf at
+index $i = 2 = (10)_2$ to the root, $N_{0,2}$, $N_{1,1}$, $N_{2,0}$, is
+amber; the siblings $s_{0} = N_{0,3}$ and $s_{1} = N_{1,0}$, which form
+$\pi_{2}$ with the bits, are blue. The bit $b_{0} = 0$ places the running
+value on the left at level $0$ and $b_{1} = 1$ on the right at level $1$;
+the fold~\eqref{merkle:eq-fold} at the right recomputes the root from $L_{2}$
+and the two siblings alone.}
+\label{fig:merkle-path}
+\end{figure}
 
 \subsection{Soundness: forging a path implies a collision}
 \label{merkle:sec-soundness}
@@ -10795,14 +11821,6 @@ at level \(t\) combines two height-\(t\) subtrees into one of height
 \(t+1\), and the chain of carries is as long as the run of trailing
 \(1\)-bits of \(m\).
 
-% TikZ figure placeholder --- fig:frontier: the frontier as a binary
-% counter across three appends at depth 3. Three panels (m = 1, 2, 3)
-% of the same depth-3 tree outline; filled leaves v_0, v_1, v_2;
-% carried labels f_0/f_1 highlighted at their levels; below each
-% panel the binary counter 001 -> 010 -> 011 with set bits aligned to
-% the occupied frontier levels. Dedicated figures pass supplies the
-% drawing.
-
 \begin{proposition}[Incremental append in logarithmic time]
 \label{merkle:prop-incremental}
 From the frontier of an append-only tree holding \(m < 2^d\) leaves,
@@ -10868,6 +11886,85 @@ script replays it symbolically and checks the occupied frontier
 levels against the set bits of \(m\) at every step.)
 \end{example}
 
+Figure~\ref{fig:frontier} draws the three appends of
+Example~\ref{merkle:exp-frontier}.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, x=0.46cm, y=0.62cm,
+  lf/.style={draw=black!70, line width=0.5pt, minimum size=3.6mm,
+    inner sep=0pt, font=\scriptsize},
+  em/.style={lf, draw=gray!80, fill=gray!15, text=black!60},
+  ix/.style={draw=black!50, line width=0.5pt, circle, minimum size=2.2mm,
+    inner sep=0pt},
+  fr/.style={draw=tierfull, line width=1.2pt, fill=tierfull, fill opacity=0.25,
+    text opacity=1},
+  bt/.style={font=\scriptsize, inner sep=1pt, minimum size=3.2mm},
+  ed/.style={line width=0.4pt, gray},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\foreach \p/\m/\bits/\bin in {0/1/{1,0,0}/001, 1/2/{0,1,0}/010,
+    2/3/{1,1,0}/011} {
+  \begin{scope}[xshift=\p*4.6cm]
+  % the depth-3 outline: level t, node j sits over leaves j 2^t .. (j+1) 2^t - 1
+  \foreach \j in {0,...,3} { \node[ix] (n1\j) at (2*\j+0.5,1) {}; }
+  \foreach \j in {0,1} { \node[ix] (n2\j) at (4*\j+1.5,2) {}; }
+  \node[ix] (n30) at (3.5,3) {};
+  \foreach \j in {0,...,7} {
+    \pgfmathtruncatemacro{\pj}{int(\j/2)}
+    \ifnum\j<\m
+      \node[lf] (n0\j) at (\j,0) {$v_{\j}$};
+    \else
+      \node[em] (n0\j) at (\j,0) {$\bot_{0}$};
+    \fi
+    \draw[ed] (n0\j) -- (n1\pj);
+  }
+  \foreach \j in {0,...,3} {
+    \pgfmathtruncatemacro{\pj}{int(\j/2)}
+    \draw[ed] (n1\j) -- (n2\pj);
+  }
+  \draw[ed] (n20) -- (n30);
+  \draw[ed] (n21) -- (n30);
+  \foreach \b [count=\t from 0] in \bits {
+    \ifnum\b=1
+      \node[bt, draw=tierfull, line width=0.8pt, fill=tierfull,
+        fill opacity=0.25, text opacity=1] at (8.4,\t) {$1$};
+    \else
+      \node[bt, text=black!55] at (8.4,\t) {$0$};
+    \fi
+  }
+  \node[lb] at (8.4,3) {$b_{t}$};
+  \node[lb] at (3.5,4.05) {after $\mathsf{Append}(v_{\the\numexpr\m-1\relax})$};
+  \node[lb, font=\footnotesize] at (4.2,-1.45)
+    {$m = \m = (\bin)_{2}$};
+  \end{scope}
+}
+% the frontier at each step
+\node[lf, fr] at (0,0) {$v_{0}$};
+\node[lb, text=tierfull!80!black, anchor=north] at (0,-0.35) {$f_{0}$};
+\begin{scope}[xshift=4.6cm]
+\node[ix, fr] at (0.5,1) {};
+\node[lb, text=tierfull!80!black, anchor=south east] at (0.35,1.15) {$f_{1}$};
+\end{scope}
+\begin{scope}[xshift=9.2cm]
+\node[ix, fr] at (0.5,1) {};
+\node[lb, text=tierfull!80!black, anchor=south east] at (0.35,1.15) {$f_{1}$};
+\node[lf, fr] at (2,0) {$v_{2}$};
+\node[lb, text=tierfull!80!black, anchor=north] at (2,-0.35) {$f_{0}$};
+\end{scope}
+\end{tikzpicture}
+\caption{The frontier of Definition~\ref{merkle:def-frontier} across the
+three appends of Example~\ref{merkle:exp-frontier}, on a tree of depth
+$d = 3$; grey leaves hold the empty-leaf value $\bot_{0}$. The frontier
+labels (amber) sit at the levels $t$ of the set bits $b_{t}$ of the leaf count
+$m$, shown beside each tree: after $v_{0}$ it is $f_{0} = v_{0}$; appending
+$v_{1}$ carries $f_{0}$ into $f_{1} = \mathsf{NodeHash}_{1}(v_{0}, v_{1})$, as
+$(001)_2 + 1$ carries into $(010)_2$; appending $v_{2}$ deposits
+$f_{0} = v_{2}$ and leaves $f_{1}$ in place.}
+\label{fig:frontier}
+\end{figure}
+
 Appending changes the root; the following definition fixes the root
 against which a proof is valid.
 
@@ -10889,9 +11986,16 @@ historical anchor: consensus requires the anchor named by a
 transaction to be the root of the Orchard note-commitment tree as it
 stood at the end of some earlier block, checked by membership in the
 set of recorded anchors (protocol specification \href{https://zips.z.cash/protocol/protocol.pdf\#actions}{\S~3.7}, `Action Transfers and their
-Descriptions'). The frontier is likewise the deployed representation of
-the growing tree (in the \texttt{incrementalmerkletree} crate; the
-\texttt{orchard} crate precomputes the empty-subtree labels).
+Descriptions'). The deployed representation of the growing tree (in the
+\texttt{incrementalmerkletree} crate; the \texttt{orchard} crate
+precomputes the empty-subtree labels) is equivalent to the frontier,
+not identical to it. It stores the newest leaf with its left siblings
+on the path to the root. When \(m\) is odd these labels are exactly the
+carries of Definition~\ref{merkle:def-frontier}. When \(m\) is even,
+with lowest set bit \(z \ge 1\), the leaf and its left siblings at
+levels below \(z\) hash to the single carry \(f_z\), and the remaining
+siblings are the carries above \(z\). Either form serves both purposes
+(i) and (ii) of the definition.
 
 \begin{remark}[Why append-only, and what it costs]
 \label{merkle:rem-append-only}
@@ -11025,13 +12129,62 @@ extractor), and \emph{zero knowledge} (the proof reveals nothing
 beyond the truth of the statement, formalised by a simulator).
 \end{definition}
 
-% TikZ figure placeholder --- fig:zkpath: the statement/witness split
-% of R_mem drawn on the depth-2 tree. The root rt above a horizontal
-% public/private divider; below it, greyed-out leaf v at index i with
-% its authentication path and direction bits, boxed and labelled
-% "witness (v, i, pi)"; the root alone labelled "statement rt"; an
-% arrow from witness to root through the fold (dagger). Dedicated
-% figures pass supplies the drawing.
+Figure~\ref{fig:zkpath} draws the statement and the witness for the path of
+Example~\ref{merkle:exp-proof}.
+
+\begin{figure}[tp]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >={Stealth[length=2mm]},
+  nd/.style={draw=black!30, dotted, line width=0.6pt, rounded corners=2pt,
+    inner sep=2pt, minimum height=6mm, minimum width=11mm},
+  wt/.style={nd, solid, draw=black!60, fill=black!12},
+  pub/.style={nd, solid, draw=tierrecv, line width=1.2pt, fill=tierrecv,
+    fill opacity=0.2, text opacity=1},
+  ed/.style={line width=0.5pt, black!30},
+  fold/.style={->, line width=1.4pt, tierfull},
+  lb/.style={font=\scriptsize, inner sep=1.5pt, align=center},
+]
+\node[nd] (L0) at (0,0) {};
+\node[nd] (L1) at (1.6,0) {};
+\node[wt] (L2) at (3.2,0) {$v$};
+\node[wt] (L3) at (4.8,0) {$s_{0}$};
+\node[wt] (A) at (0.8,1.6) {$s_{1}$};
+\node[nd] (B) at (4.0,1.6) {$a_{1}$};
+\node[pub] (R) at (2.4,4.5) {$\mathit{rt}$};
+\node[lb, anchor=north] (ix) at ([yshift=-1mm]L2.south) {index $i$};
+\coordinate (top) at (2.4,2.3);
+\draw[ed] (L0) -- (A);
+\draw[ed] (L1) -- (A);
+\draw[ed] (L3) -- (B);
+\draw[ed] (A) -- (R);
+\draw[fold] (L2) -- node[lb, anchor=east, xshift=-1mm,
+  text=tierfull!80!black] {$b_{0}$} (B);
+\draw[fold] (B) -- (R);
+\node[lb, anchor=east, text=tierfull!80!black] at (3.62,2.15) {$b_{1}$};
+\node[lb, anchor=west] at (3.5,2.85)
+  {fold, checked in $C_{\mathrm{mem}}$: $a_{2} = \mathit{rt}$};
+\node[draw=black!60, dashed, line width=0.8pt, rounded corners=4pt,
+  inner sep=5pt, fit=(L0) (L3) (A) (B) (ix) (top)] (wit) {};
+\node[lb, anchor=north west] at (wit.south west)
+  {witness $(v, i, \pi)$: leaf, index and authentication path};
+\draw[black!70, line width=0.8pt] (-1.4,3.35) -- (7.6,3.35);
+\node[lb, anchor=south west] at (-1.4,3.4) {public};
+\node[lb, anchor=north west] at (-1.4,3.3) {private};
+\node[lb, anchor=west] at ([xshift=1mm]R.east) {statement $\mathit{rt}$};
+\end{tikzpicture}
+\caption{The relation $R_{\mathrm{mem}}$ of
+Definition~\ref{merkle:def-zk-relation} on the depth-$2$ tree, for the path of
+Example~\ref{merkle:exp-proof} ($i = 2$). Above the divider, the root
+$\mathit{rt}$ alone is the public statement (green). Below it, the witness
+(grey, boxed) is the leaf $v$, its index $i$, entering the circuit only
+through the bits $b_{0}$ and $b_{1}$, and the siblings $s_{0}$ and $s_{1}$.
+The circuit $C_{\mathrm{mem}}$ of Construction~\ref{merkle:def-circuit}
+performs the fold~\eqref{merkle:eq-fold} (amber) through the intermediate
+value $a_{1}$ and enforces $a_{2} = \mathit{rt}$; dotted nodes are neither
+public nor part of the witness.}
+\label{fig:zkpath}
+\end{figure}
 
 \begin{construction}[In-circuit path verification]
 \label{merkle:def-circuit}
