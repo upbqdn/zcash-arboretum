@@ -112,7 +112,7 @@
 \title{Zcash for Bitcoiners}
 \subtitle{how a shielded transaction is verified without being seen}
 \author{m@rek.onl}
-\date{NU7 draft: 23 September 2026}
+\date{NU7 draft: 6 October 2026}
 
 \begin{document}
 
@@ -1573,7 +1573,7 @@ each pool & the note commitment tree & append every $\cmx$; a root per
     rescan, and rebuild the transaction. The rebuilt spend reveals the
     same nullifiers, because each is a fixed function of its note.
   \item Re-anchoring a signed transaction with its txid unchanged is
-    specified --- ZIP-374 v2 makes v6 anchors deferrable, the proof
+    specified --- ZIP-229 makes v6 anchors authorizing data, the proof
     rather than the signature pins them --- with wallet support
     pending.
   \item Bitcoin: a reorged transaction stays valid wherever its inputs
@@ -1595,7 +1595,7 @@ each pool & the note commitment tree & append every $\cmx$; a root per
     and the graph remains --- every output is a child of the whole
     input set.
   \item What narrows the set here is not the proof but metadata:
-    publicly known dummy or spent leaves, timing, fees, transparent
+    notes known to the observer, timing, fees, transparent
     components (Part H). Tree size alone does not measure it.
 \end{itemize}
 \src{\emph{Ironwood Guide}, ``The note commitment tree''; ``Anchor choice as
@@ -2471,8 +2471,8 @@ $\cmx$ & Bob's $1.5$ ZEC note & Alice's $0.4999$ ZEC change note, at
   her internal address \\
 $\epk, \Ecenc$ & to Bob's $\pkd$; opened with his $\ivk$ & to Alice's
   internal $\pkd$; found with $\ivk^{\mathsf{int}}$ \\
-$\Ecout$ & under Alice's $\ovk$: she can re-read it & no $\ovk$ for
-  change (wallet default):\newline unrecoverable \\
+$\Ecout$ & under Alice's $\ovk$: she can re-read it & under Alice's
+  internal $\ovk$ (ZIP-316) \\
 \addlinespace
 bundle & \multicolumn{2}{p{12.1cm}@{}}{one Ironwood anchor; flags
   $(1, 1, 1)$; $v_{\mathrm{balance}} = +10\,000$ zatoshi; one proof;
@@ -2712,7 +2712,8 @@ node cannot read.
 %   Orchard pool: enableCrossAddress = 0 -> delta = 1; A10 coordinate
 %     equalities: 2 points * 2 coordinates = 4
 %   Ironwood flags (spends, outputs, cross) = (1, 1, 1) -> delta = 0
-%   disableCrossAddress: instance index 9, the tenth of 10 public inputs
+%   disableCrossAddress: one further public input; no normative text fixes
+%     its position
 % compute/b_seal.py:
 %   flags byte: Orchard 0b011 (bit 2 = 0b100 clear), Ironwood 0b111
 %     (bit 2 set)
@@ -2724,8 +2725,8 @@ node cannot read.
 \delta \cdot \bigl(y(\Eold{\pkd}) - y(\Enew{\pkd})\bigr) = 0
 \end{gather*}
 \begin{itemize}
-  \item The flag $\delta := \Eflag{disableCrossAddress}$ is the tenth
-    public input, the last of the ten. On the wire it travels
+  \item The flag $\delta := \Eflag{disableCrossAddress}$ is one more
+    public input, its position unspecified. On the wire it travels
     negated, as $\Eflag{enableCrossAddress}$, bit $2$ of the flags
     byte.
   \item With $\delta = 1$ the four products force the new note to pay
@@ -3022,7 +3023,7 @@ node per transaction component.
   anchor joins the proofs and signatures in authorizing data. The proof
   pins it as a public input (A3), and the block commits to authorizing
   data (Part H); a transaction can be re-anchored without changing its
-  txid: specified (ZIP-374 v2), wallet support pending (Part H).
+  txid: specified (ZIP-229), wallet support pending (Part H).
 \item Without transparent inputs, the signature digest is the txid.
   Bitcoin's sighash byte chooses coverage per input; so do Zcash's
   transparent inputs, but every shielded signature covers all of it.
@@ -3168,7 +3169,7 @@ payment''; ``The transaction format''}
   \foreach \i/\l in {0/$\mathsf{anchor}$,1/$\cvsym.x$,2/$\cvsym.y$,
       3/$\nfsym$,4/$\rksym.x$,5/$\rksym.y$,6/$\cmx$,
       7/$\mathsf{enableSpends} = 1$,8/$\mathsf{enableOutputs} = 1$,
-      9/$\mathsf{disableCrossAddress} = 0$}
+      9/{}}
     {\node[anchor=west] at (5.1,3.415-\i*0.31) {\l};}
   \node[anchor=west,text=arbdim] at (5.1,0.075) {$0$ below};
   \draw[-{Stealth}] (-0.2,3.6) -- (-0.2,0)
@@ -3368,7 +3369,8 @@ Halo 2 protocol''}
 \end{frame}
 
 % g_toy.py: roots of D: [22, 75, 96]; 3/97 = 0.0309; general bound
-%   9/97 = 0.0928; cheat at z = 20: G*(z) = 20, t*(z)*Z_H(z) = 64
+%   deck_toy_bound.py: deg t* <= 7 -> deg D <= 11: 11/97 = 0.1134, attained
+%   cheat at z = 20: G*(z) = 20, t*(z)*Z_H(z) = 64
 %   log2(p_Pallas) = 254.000; deg D = 2^14 -> log2(2^14 / p) = -240.0
 \begin{frame}{One random point: why a lie is caught}
 Cheat: $D := G^{*} - t^{*} \GZH$ is nonzero and \emph{frozen} before
@@ -3382,7 +3384,7 @@ $\deg D$ roots (Schwartz--Zippel), so
 \begin{itemize}
   \item For the $c_0 = 10$ cheat, $D = 24(1 + X + X^2 + X^3)$ has roots
     $\{22, 75, 96\}$ --- the three rows where the tampered gate still
-    held: $3/97$ for that $t^{*}$, $9/97$ for any admissible $t^{*}$.
+    held: $3/97$ for that $t^{*}$, $11/97$ for any admissible $t^{*}$.
   \item At $z = 20$: $G^{*}(20) = 20$ but $t^{*}(20)\,\GZH(20) = 64$.
     Caught.
   \item Over $\Fpp$ with $\deg D \approx 2^{14}$ the term is about
@@ -3533,7 +3535,7 @@ normalisation''}
 %   round 1: L_1 = 52, R_1 = 58, u_1 = 5; a^(0) = [11], b^(0) = [21],
 %     G^(0) = [42]; fold check 12 = 12, r* = 30
 \begin{frame}{The fold by hand: two rounds}
-The Halo 2 Guide's symbolic $d = 4$ example with numbers: the toy
+A $d = 4$ fold with numbers: the toy
 $p(X) = 5 + X + X^3$ opened at $x = 3$, so $v = 35$. Stand-in group
 $\mathbb{Z}_{97}$ written additively --- a ``point'' is a residue and $[k]G = kG
 \bmod 97$; it has no discrete-log hardness, only the fold's algebra.
@@ -3782,7 +3784,7 @@ output declares; this one runs a verifier keyed to one fixed circuit.
 
 % Ironwood Guide, "The Action statement, formally": eight named public
 %   inputs; instance elements 1+2+1+2+1+1+1+1 = 10; disableCrossAddress
-%   at index 9. ep_actions.py: per-Action sums +50000000 (Action 1).
+%   at no fixed position. ep_actions.py: per-Action sums +50000000 (Action 1).
 %   g_sizes.py: rows = 2^11 = 2048
 \begin{frame}{Alice's Action as an instance}
 \begin{columns}[c]
@@ -4394,7 +4396,7 @@ leaks only through what the wallet sends after detecting.
   \item The rebuilt transaction re-reveals the same nullifiers, because
     their derivation is deterministic: the notes are the same, so the
     serial numbers are.
-  \item Re-anchoring with the txid unchanged is specified (ZIP-374 v2,
+  \item Re-anchoring with the txid unchanged is specified (ZIP-229,
     anchors in authorizing data); wallet support is pending.
   \item \emph{Bitcoin contrast:} a reorganised Bitcoin transaction is
     simply mined again, since it names its inputs and no anchor. Here a
@@ -4420,8 +4422,8 @@ Action 2, \Fenc & Alice & \Fivkint & change $0.4999$ ZEC, at her internal
   address \tabularnewline
 Action 1, \Fout & Alice & \ovk & $(\pkd, \esk)$, hence Bob's note as he
   reads it \tabularnewline
-Action 2, \Fout & nobody & --- & random: the wallet default seals change
-  under no \ovk{} \tabularnewline
+Action 2, \Fout & Alice & internal \ovk & $(\pkd, \esk)$, hence her change
+  (ZIP-316) \tabularnewline
 \bottomrule
 \end{tabular}
 \end{center}
@@ -4534,7 +4536,7 @@ component alone: $a = 2$ Actions, $7264$ proof bytes, $9166$ bytes in all.
     a proof or a signature changes nothing the identifier names.
   \item Because the anchor is authorizing data, a v6 transaction can be
     \emph{re-anchored} --- its membership proof rebased onto a later
-    root --- with its txid unchanged: specified (ZIP-374 v2), wallet
+    root --- with its txid unchanged: specified (ZIP-229), wallet
     support pending.
   \item NU7 permits v5 and v6, not v4 (draft ZIP-259).
     The Orchard-pool seal applies independently of the version.
@@ -5603,8 +5605,8 @@ per-block retargeting and the block spacing are not.
 \end{frame}
 
 \begin{frame}{NU7: time and state}
-Draft ZIPs 218 and 259; activation heights still unassigned
-(23 September 2026).
+Draft ZIPs 218 and 259; Testnet activation height $4\,465\,026$, Mainnet
+unassigned (6 October 2026).
 \[
   \text{target spacing}:\quad 25\,\mathrm{s}
 \]
@@ -5627,15 +5629,15 @@ to the halving-based subsidy.
 \begin{frame}{Where the deployed rule departs from the model}
 \begin{itemize}
 \item \textbf{The tie-break.} The specification and Rosenfeld break
-  equal-work ties first-seen. Zebra downloads blocks in parallel and
-  tracks no arrival times, so it prefers the larger tip hash --- its
-  own documentation calls this a departure from the consensus rules.
-\item \textbf{What that does to $r$.} At equal work an attacker whose
-  private tip hash wins may reveal at once; the strict-overtake
-  boundary $z = -1$ does not count that success. So $r(q, n)$ is exact
-  for the strict-overtake model and a lower bound if only the tie-break
-  is replaced by Zebra's --- not a bound on the full deployed process,
-  where difficulty moves and rollback is capped.
+  equal-work ties first-seen, as Zebra does from 6.4.0, comparing tip
+  hashes only where it cannot order arrivals. Earlier versions preferred
+  the larger tip hash.
+\item \textbf{What that did to $r$.} Before 6.4.0, at equal work an
+  attacker whose private tip hash won could reveal at once; the
+  strict-overtake boundary $z = -1$ does not count that success. So
+  $r(q, n)$ is exact for the strict-overtake model and a lower bound if
+  only the tie-break is replaced by the hash rule --- not a bound on the
+  full deployed process, where difficulty moves and rollback is capped.
 \item \textbf{Equihash and memorylessness.} Each candidate solution
   faces a fresh SHA-256d lottery, so headers are the Bernoulli trials
   of the model; what Equihash changes is granularity --- candidates
@@ -6639,7 +6641,8 @@ bind every transaction \emph{regardless of its version} (ZIP-258):
 %   flag bits: enableSpends=0b001, enableOutputs=0b010,
 %     enableCrossAddress=0b100
 %   canonical flags: Orchard 0b011=3, Ironwood 0b111=7
-%   instance elements: 1+2+1+2+1+1+1+1 = 10; disableCrossAddress at index 9
+%   instance elements: 1+2+1+2+1+1+1+1 = 10; disableCrossAddress position
+%     unfixed
 %   A10 product constraints: 2 points x 2 coordinates = 4
 \begin{frame}{Backup: the cross-address restriction, A10, in full}
 \vspace*{-5pt}
@@ -6655,7 +6658,7 @@ affine coordinates of a Pallas point, A10 is four equalities in \Fpp:
 \delta \cdot \bigl(y(\pkd_{\mathrm{old}}) - y(\pkd_{\mathrm{new}})\bigr) = 0.
 \end{gather*}
 \begin{itemize}\small\setlength{\itemsep}{0pt}
-  \item The input $\delta$ is the tenth public input (index $9$), after
+  \item The input $\delta$ is a public input of unfixed position, beside
     $\mathsf{anchor}$, the two coordinates of $\cvsym$, $\nfsym$, the two
     of $\rksym$, $\cmx$, $\mathsf{enableSpends}$, $\mathsf{enableOutputs}$.
     With $\delta \ne 0$ the receivers are equal as full points, not merely

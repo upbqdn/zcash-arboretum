@@ -298,7 +298,7 @@ authorised & a proof of key knowledge and a re-randomised signature \\
 \end{tabular}
 \end{center}
 \vfill
-One zero-knowledge statement per Action carries all four; one proof per bundle.
+A zero-knowledge statement per Action carries part of each; one proof per bundle.
 \end{frame}
 
 % ====================================================================
@@ -347,7 +347,7 @@ C(v, r) := [v]\,V + [r]\,R \qquad V, R \text{ independent points}
     $[v]\,V + [r]\,R$ has the same distribution for every $v$.
   \item \textbf{Binding:} two openings of one $C$ give
     $[v_0 - v_1]\,V = [r_1 - r_0]\,R$, hence the forbidden
-    $\lambda = (v_0 - v_1)(r_1 - r_0)^{-1}$ with $V = [\lambda]\,R$.
+    $\lambda = (v_0 - v_1)(r_1 - r_0)^{-1}$ with $R = [\lambda]\,V$.
   \item \textbf{Homomorphic:} $C(v_1, r_1) + C(v_2, r_2) = C(v_1 + v_2,\ r_1 + r_2)$.
 \end{itemize}
 \vfill
@@ -647,7 +647,7 @@ gated & A8--A10 & spends, outputs, cross-address payments switched by flags \\
 \end{center}
 \vfill
 The witness: both notes, the path and position, the keys, $\alpha$, $\rcv$.\\
-The one check the proof cannot make: has this $\nfsym$ been seen before.
+The checks the proof cannot make: is the anchor an earlier block's, is $\nfsym$ new.
 \end{frame}
 
 \begin{frame}{Conservation is a cancellation}
@@ -677,7 +677,7 @@ $\bvk = [k]\,R$. With $s := \sum_i \rcv_i$:
 \vfill
 \begin{itemize}\itemsep6pt
   \item Balanced: $\Delta = 0$, and the author knows $k = s$.
-  \item Unbalanced: $\Delta \ne 0$ gives $\lambda = \Delta\,(k - s)^{-1}$
+  \item Unbalanced: $\Delta \ne 0$ gives $\lambda = (k - s)\,\Delta^{-1}$
     with $V = [\lambda]\,R$, the forbidden relation.
 \end{itemize}
 \vfill
@@ -735,7 +735,7 @@ K := \mathsf{KDF}(\mathsf{s}, \epk)
     ChaCha20-Poly1305.
   \item No address on chain: the recipient trial-decrypts every output
     with $\ivk$. A wrong key is rejected by the tag.
-  \item The ciphertext $\Ecout$ is the sender's own copy, under $\ovk$.
+  \item The ciphertext $\Ecout$ holds $(\pkd, \esk)$ under a key from $\ovk$.
 \end{itemize}
 \end{frame}
 
@@ -782,7 +782,7 @@ The same shape as the UTXO set: an ordered, stateful check --- over serial
 numbers that name no output.
 \end{frame}
 
-\begin{frame}{Why one fork wins}
+\begin{frame}{The catch-up probability}
 {\centering\Kwalk\par}
 \vspace{4pt}
 Honest lead $z$; each block moves it $+1$ with probability $p$, $-1$ with
@@ -791,8 +791,7 @@ probability $q$.
 a_z = \Pr[\text{lead ever reaches } -1] = (q/p)^{\,z+1}\qquad (q < p)
 \]
 \types{here $p, q \in [0,1]$ are hashrate shares, $p + q = 1$, not the primes.}
-Each block of deficit multiplies the chance by $q/p$: two forks cannot
-compete for long, and one quickly wins.
+Each block of deficit multiplies the attacker's chance by $q/p$.
 \end{frame}
 
 % ====================================================================

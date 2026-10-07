@@ -716,7 +716,7 @@ for a polynomial quotient $t$.
 Math Guide, Polynomial arithmetic. The product sign means multiply
 one factor per h in H. A root h gives a factor X-h; the four factors
 are distinct. Both implications follow from this factorisation.
-The degree bound on t must be enforced, not merely requested.}
+The commitment enforces only deg t at most 7 (two pieces of degree below 4).}
 \end{frame}
 
 \begin{frame}{Change one cell; the identity breaks}
@@ -767,7 +767,7 @@ worked polynomial. No lines are drawn between residues. The general
 root bound is: a nonzero degree-d polynomial over a field has at most
 d roots, by repeated division by X-root. This particular quotient
 gives a degree-3 remainder; an arbitrary admissible cheating t gives
-degree at most 9 and therefore the weaker general bound 9/97.
+degree at most 11 and therefore the general bound 11/97, attained.
 This is a toy gate-test probability, not Halo 2's security level.}
 \end{frame}
 
@@ -783,8 +783,8 @@ G(z)\stackrel{?}{=}t(z)(z^4-1).
 \text{altered:}&20\ne64&\pmod{97}.
 \end{array}
 \]
-For any nonzero residual of degree at most $9$,
-the acceptance probability is at most $9/97$.
+For any nonzero residual of degree at most $11$,
+the acceptance probability is at most $11/97$.
 \note{Source: Halo 2 Guide, The random-point check.
 This probability is for an independent uniform field challenge and
 pre-fixed bounded-degree polynomials. The four-row example is

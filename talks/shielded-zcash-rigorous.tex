@@ -502,7 +502,7 @@ binding signature & $\RO$ & no \\
 \vfill
 Sign normalisation: if $[\asksym]\,\GS$ has odd $y$, replace $\asksym$ by
 $-\asksym$. The point $\akP$ is recovered from $\aksym$ by the even-$y$ lift.
-\types{$\sksym \in \{0,1\}^{256}$ uniform; key generation redraws $\sksym$ if $\asksym = 0$ or $\ivk \in \{0, \bot\}$.}
+\types{$\sksym \in \{0,1\}^{256}$ uniform; key generation redraws $\sksym$ if $\asksym = 0$, $\ivk \in \{0, \bot\}$ or the ZIP 32 internal key's $\ivk \in \{0, \bot\}$.}
 \end{frame}
 
 \begin{frame}{Viewing keys}
@@ -588,7 +588,7 @@ key & computes & cannot \\
 $\sksym$, $\asksym$ & signatures: spend & --- \\
 $\fvk$ & nullifiers: detect spends & sign \\
 $(\dk, \ivk)$ & decrypt received notes, derive addresses & detect spends \\
-$\ovk$ & recover sent notes & decrypt received ones \\
+$\ovk$ & recover sent notes & derive $\ivk$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1103,7 +1103,8 @@ they are authorising data, and the proof binds the anchor.}
 
 \begin{frame}{Verification}
 \small
-A version-$6$ transaction is accepted, for its Orchard-protocol bundles, iff:
+A version-$5$ or version-$6$ transaction is accepted, for its
+Orchard-protocol bundles, iff:
 \begin{enumerate}\itemsep3pt
 \item every field parses canonically; counts, reserved bits, flags, ranges;
 \item the proof verifies on the $n$ primary inputs
@@ -1131,9 +1132,9 @@ its tree, and the pool's balance decreases by $\vb$.
   $75$\,s.
 \item Version-$4$ transactions are invalid (ZIP 2003); versions $5$ and $6$
   remain, with no new format (ZIP 259).
-\item Per-block shielded limits (ZIP 218): $\mathsf{OrchardBlockActionLimit}
-  = \mathsf{GlobalShieldedBudget} = 330$, as written counting
-  Orchard-pool Actions only.
+\item Per-block shielded limits (ZIP 218):
+  $\mathsf{OrchardProtocolBlockActionLimit} = 330$ per pool; Orchard-pool and
+  Ironwood-pool Actions share one $\mathsf{GlobalShieldedBudget} = 330$.
 \item The Orchard pool stays sealed, as from NU6.3 (ZIP 258): no
   Orchard-pool Actions in coinbase, $\delta = 1$ in every Orchard-pool
   Action, and $\mathsf{valueBalanceOrchard} \ge 0$.
@@ -1256,11 +1257,12 @@ Action is indistinguishable from a real one.}
 replace & justified by \\
 \midrule
 the proof by a simulated one & zero knowledge \\
-$\cvnet$, $\rk$ by uniform points & perfect hiding; uniform $\alpha$ \\
+$\rk$ by uniform points & uniform $\alpha$ \\
 $\nfsym$ by $\Ext([u]\,\KO + \cmsym)$ & Poseidon PRF, joint hiding \\
 $\Ecout$ by an encryption of a fixed string & $\mathsf{PRF}^{\mathsf{ock}}$ oracle, AEAD \\
 $\epk^{\star}, \Ecenc$ by random ones & DDH, KDF oracle, AEAD \\
 $\cmx$ by $\Ext$ of a uniform point & PRF expansion, then perfect hiding \\
+$(\cvnet_i)_i$ and $\bsk$ jointly & perfect: bijection fixing $\sum_i \rcv_i$ \\
 \bottomrule
 \end{tabular}
 \end{center}

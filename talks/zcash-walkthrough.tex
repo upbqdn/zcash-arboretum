@@ -465,7 +465,8 @@ up in trust.
 For a secret key $k$, outputs look uniform and independent. A wide output
 is reduced into the field that uses it:
 \[
-\PRF{k}(t) := \mathrm{BLAKE2b}(k \,\|\, t) \in \{0,1\}^{512}
+\PRF{k}^{\mathsf{expand}}(t) :=
+\mathrm{BLAKE2b\text{-}512}(\texttt{Zcash\_ExpandSeed},\ k \,\|\, t) \in \{0,1\}^{512}
 \]
 \[
 \mathrm{ToBase}(x) := x \bmod \pP \in \FP, \qquad
@@ -571,7 +572,8 @@ s := [\esk]\,\pkd = [\esk \cdot \ivk]\,\gd = [\ivk]\,\epk
 K := \KDF(s, \epk), \qquad C := \Enc_K(\text{plaintext})
 \]
 \types{$\KDF$ hashes $s$ with $\epk$ into a uniform cipher key; $\Enc$ is
-authenticated encryption: decryption under a wrong key fails.}
+authenticated encryption: decryption of an honestly made ciphertext under a
+wrong key fails.}
 \vfill
 Diffie--Hellman on a base chosen by the recipient: $s$ needs $\ivk$ or
 $\esk$. The pair $(\epk, C)$ names no one.
@@ -731,9 +733,10 @@ Path $m/32'/133'/a'$: purpose, coin type, account.
 \nksym &:= \mathrm{ToBase}\bigl(\PRF{\sksym}(\mathtt{nk})\bigr) \in \FP \\
 \rivk &:= \mathrm{ToScalar}\bigl(\PRF{\sksym}(\mathtt{rivk})\bigr) \in \FV
 \end{align*}
-\[
+\begin{gather*}
+\asksym \leftarrow -\asksym \ \text{ if } [\asksym]\,\GS \text{ has odd } y \\
 \akP := [\asksym]\,\GS, \qquad \aksym := \Ext(\akP)
-\]
+\end{gather*}
 \vfill
 The key $\asksym$ signs spends; $\nksym$ keys nullifiers; $\rivk$ blinds the
 viewing key.
@@ -763,7 +766,7 @@ $\ovk$ & recover what it sent \\
 For an index $j$:
 \[
 d := \mathsf{FF1}_{\dk}(j), \qquad
-\gd := \GroupHash(d), \qquad
+\gd := \DivH(d), \qquad
 \pkd := [\ivk]\,\gd
 \]
 The address is $(d, \pkd)$.
@@ -831,7 +834,7 @@ For every Action on the chain, the wallet tries its $\ivk$:
   $(d, v, \rseed, \mathsf{memo}) := \Dec_K(C_{\mathrm{enc}})$;
 \item $\rho := \nfsym$ of the same Action; $\esk$, $\psi$ from $\rseed$ and
   $\rho$;
-\item $\gd := \GroupHash(d)$, \quad $\pkd := [\ivk]\,\gd$, \quad $\rcm$ from
+\item $\gd := \DivH(d)$, \quad $\pkd := [\ivk]\,\gd$, \quad $\rcm$ from
   $\rseed$ and $(\gd, \pkd, v, \rho, \psi)$;
 \item accept only if $[\esk]\,\gd = \epk$ and
   $\Ext\bigl(\NoteCommit_{\rcm}(\gd, \pkd, v, \rho, \psi)\bigr) = \cmx$.

@@ -1008,8 +1008,8 @@ state width $3$, S-box $x^{5}$, $8$ full and $56$ partial rounds.
     deterministic; two notes, one tag $\Rightarrow$ DL relation on
     \Pallas{}; no PRF property used (forger holds $\nksym$)
   \item unlinkability: without $\nksym$, $[F_{\nksym}(\rho) + \psi]\,
-    G^{\mathsf{nf}}$ masks $\cmsym$ --- Poseidon PRF or DDH on \Pallas{};
-    either suffices
+    G^{\mathsf{nf}}$ masks $\cmsym$ --- Poseidon PRF; DDH on \Pallas{}
+    only the specification's aim, with an entropy assumption
   \item Bitcoin: spent marker $=$ the outpoint, unique and public
 \end{enumerate}
 \Say
@@ -1025,8 +1025,8 @@ No PRF property is used here: the forger holds $\nksym$.
 
 \textbf{Unlinkability.} Without $\nksym$ the term $[F_{\nksym}(\rho) +
 \psi]\,G^{\mathsf{nf}}$ masks $\cmsym$ with a value that looks random ---
-by Poseidon's PRF security or, independently, by DDH on \Pallas{}. Either
-assumption suffices.
+by Poseidon's PRF security. DDH on \Pallas{} is only the specification's
+backup aim, under an extra entropy assumption.
 
 \textbf{Bitcoin contrast:} the spent marker is the outpoint itself,
 unique and public; a nullifier must be unique \emph{and} say nothing. The
@@ -1542,8 +1542,8 @@ commitment?
     second needs a secret.
   \item Deployed: $\nfsym = \Extract([\,F_{\nksym}(\rho) + \psi\,]\,
     G^{\mathsf{nf}} + \cmsym)$ --- keyed by $\nksym$, so only its holder
-    can compute it; the discrete-log structure keeps uniqueness provable
-    and defends unlinkability twice over.
+    can compute it; the discrete-log structure keeps uniqueness provable,
+    and Poseidon's PRF security gives unlinkability.
 \end{itemize}
 \Avoid
 The seed $\rho$ as a tree position, when writing the deployed formula in
@@ -1758,8 +1758,9 @@ balance is at least zero --- net value may leave the pool, never enter.
 verifying key, which consensus selects by branch, so no transaction
 version bypasses it.
 
-\textbf{Why seal it.} Legacy notes are unrecoverable under a quantum
-break (Part I); consensus stops their circulation and drains the pool
+\textbf{Why seal it.} First, supply integrity after the Orchard soundness
+bug (ZIP-257); second, legacy notes are unrecoverable under a quantum
+break (Part I). Consensus stops their circulation and drains the pool
 through a public turnstile (Part H).
 
 \textbf{Bitcoin contrast:} a soft fork that narrows what an output type
@@ -2200,7 +2201,7 @@ Part E.
   \item uniqueness: ingredients fixed at creation; two notes, one
     $\nfsym$ $\Rightarrow$ discrete-log relation on Pallas
   \item unlinkability: without $\nksym$ the masking term looks random ---
-    DDH on Pallas, or Poseidon as a PRF
+    Poseidon as a PRF
 \end{enumerate}
 \Say
 \textbf{The chain's rule on $\rho$ closes the loop.} Duplicate
@@ -2215,8 +2216,8 @@ the membership check, not an input to $\nfsym$.
 because each ingredient is fixed once the note exists and two notes
 sharing one $\nfsym$ would yield a discrete-log relation on Pallas.
 Unlinkability, because without $\nksym$ the masking term looks random ---
-under decisional Diffie--Hellman on Pallas, or independently under
-Poseidon as a PRF: either suffices, defence in depth.
+under Poseidon as a PRF. Decisional Diffie--Hellman on Pallas is only the
+specification's backup aim, under an extra entropy assumption.
 
 \textbf{Bitcoin's marker is unique because it is the coin's name;} this
 one is unique because two names would break discrete log.
@@ -3542,7 +3543,8 @@ Same box as Board 1; box the $\wbEcv$ field on the rim in red.
 \Write
 \[
 \wbEcv = [\wbEold{v} - \wbEnew{v}]\,V + [\rcv]\,R, \qquad
-\wbEold{v}, \wbEnew{v} \in [0, 2^{64}),\quad \text{sign} \in \{-1, +1\}
+\wbEold{v}, \wbEnew{v} \in [0, 2^{64})\ \text{(witness typing)},\quad
+\text{sign} \in \{-1, +1\}
 \]
 \begin{itemize}
   \item group order $\approx 2^{254}$: a value near the order is a small
@@ -3601,17 +3603,18 @@ rules''; ``Bundle flags''}
 \delta \cdot \bigl(y(\wbEold{\pkd}) - y(\wbEnew{\pkd})\bigr) = 0
 \end{gather*}
 \begin{itemize}
-  \item $\delta := \wbEflag{disableCrossAddress}$, the tenth public
-    input; on the wire negated as $\wbEflag{enableCrossAddress}$, bit
-    $2$ of the flags byte
+  \item $\delta := \wbEflag{disableCrossAddress}$, a public input; on
+    the wire negated as $\wbEflag{enableCrossAddress}$, bit $2$ of
+    $\mathsf{flagsIronwood}$ (reserved, $0$, in $\mathsf{flagsOrchard}$)
   \item Ironwood $\mathtt{0b111}$: $\delta = 0$ (Alice); Orchard pool
     $\mathtt{0b011}$: $\delta = 1$
 \end{itemize}
 \Say
-\textbf{The tenth public input.} The flag
-$\delta := \wbEflag{disableCrossAddress}$ is the last of the ten. On the
+\textbf{One more public input.} The flag
+$\delta := \wbEflag{disableCrossAddress}$ joins the instance. On the
 wire it travels negated, as $\wbEflag{enableCrossAddress}$, bit $2$ of
-the flags byte.
+the Ironwood flags byte; in the Orchard byte that bit is reserved and
+$0$.
 
 \textbf{Mechanism.} With $\delta = 1$ the four products force the new
 note to pay the spent note's own receiver, as full points. With
@@ -3752,7 +3755,7 @@ publishes two envelopes for three notes and declares the net flow
 Pedersen commitment''}
 \end{board}
 
-\begin{board}{Cancellation is modular: why A4 range-checks}{conserved}
+\begin{board}{Cancellation is modular: why the Action range-checks}{conserved}
 \Write
 \begin{enumerate}
 \item Wrap-around: $C(q + 3;\, 5) = C(3;\, 5) = 76$; $q$ units
@@ -3763,7 +3766,7 @@ Pedersen commitment''}
   9\,876)$.
 \item Toy cancellation accepts it: $20\,000 - 15\,000 - 70\,536 - 1 =
   -65\,537 \equiv 0 \pmod q$.
-\item A4: $\wbEpvold, \wbEpvnew \in [0, 2^{64})$,
+\item Witness typing: $\wbEpvold, \wbEpvnew \in [0, 2^{64})$,
   $\mathrm{sign} \in \{-1, +1\}$; Pallas order: 255 bits.
 \end{enumerate}
 \Say
@@ -3776,7 +3779,8 @@ commits like zero.} Show it: $C(q + 3;\, 5)$ equals $C(3;\, 5)$, both
 move, $12\,555$ either way, and the value sum is $-65\,537$, which is
 $0 \bmod q$.
 
-\textbf{A4 closes the gap inside the Action proof.} Old and new values
+\textbf{The witness typing closes the gap inside the Action proof.} Old
+and new values
 lie in $[0, 2^{64})$ and the sign is $\pm 1$, so every net value is a
 small signed integer; the Pallas order has 255 bits, and a bundle's
 bounded sum of bounded values cannot reach it.
@@ -4117,7 +4121,7 @@ transaction''; ``The transaction format''}
   \foreach \i/\l in {0/$\mathsf{anchor}$,1/$\cvsym.x$,2/$\cvsym.y$,
       3/$\nfsym$,4/$\rksym.x$,5/$\rksym.y$,6/$\cmx$,
       7/$\mathsf{enableSpends} = 1$,8/$\mathsf{enableOutputs} = 1$,
-      9/$\mathsf{disableCrossAddress} = 0$}
+      9/$\mathsf{disableCrossAddress} = 0$ (position unspecified)}
     {\node[anchor=west] at (5.1,3.415-\i*0.31) {\l};}
   \node[anchor=west,text=arbdim] at (5.1,0.075) {$0$ below};
   \draw[-{Stealth}] (-0.2,3.6) -- (-0.2,0)
@@ -4406,7 +4410,7 @@ Halo 2 protocol''}
   \item[] $\Pr_{z}[\text{cheat accepted}] = \Pr_z[D(z) = 0] \le
     \dfrac{\deg D}{|\F|}$ \quad (Schwartz--Zippel)
   \item Roots of $D = 24(1 + X + X^2 + X^3)$: $\{22, 75, 96\}$;
-    $3/97$ for that $t^{*}$, $9/97$ for any admissible $t^{*}$.
+    $3/97$ for that $t^{*}$, $11/97$ for any admissible $t^{*}$.
   \item At $z = 20$: $G^{*}(20) = 20$ but $t^{*}(20)\,\wbGZH(20) =
     64$. Caught.
   \item Over $\Fpp$, $\deg D \approx 2^{14}$: about $2^{-240}$; the
@@ -4420,7 +4424,7 @@ polynomial has at most $\deg D$ roots --- Schwartz--Zippel.
 
 \textbf{On the toy.} For the $c_0 = 10$ cheat the roots are $22$, $75$
 and $96$: the three rows where the tampered gate still held. That is
-$3/97$ for this quotient, $9/97$ for any admissible one. At $z = 20$
+$3/97$ for this quotient, $11/97$ for any admissible one. At $z = 20$
 the two sides read $20$ and $64$: caught.
 
 \textbf{At scale.} Over $\Fpp$ with $\deg D$ around $2^{14}$ the term is
@@ -4432,9 +4436,9 @@ it disagrees with the truth almost everywhere, and one probe lands
 where it disagrees. Bitcoin never needs this; its validator sees the
 data.
 \Ask
-Why $3/97$ for this cheat but $9/97$ in general? --- This $D$ has
+Why $3/97$ for this cheat but $11/97$ in general? --- This $D$ has
 exactly three roots, the rows where the tampered gate still held; the
-general bound is $\deg D \le 9$.
+general bound is $\deg D \le 11$.
 \Avoid
 Quoting $2^{-240}$ as the security level. It is one Schwartz--Zippel
 term; the system rests on discrete log at about $126$ bits.
@@ -4635,72 +4639,73 @@ Write the setup line first, then the table, one round per row:
 round & $L_j$ & $R_j$ & $u_j$ & $\vec a'$ & $\vec b'$ & $\vec G'$
   & fold check \\
 \midrule
-$j = 2$ ($\ell_2, r_2 = 19, 23$) & $13$ & $4$ & $3$ & $(15, 68)$
-  & $(92, 82)$ & $(48, 22)$ & $25 = 25$ \\
-$j = 1$ ($\ell_1, r_1 = 29, 31$) & $52$ & $58$ & $5$ & $(11)$ & $(21)$
-  & $(42)$ & $12 = 12$ \\
+$j = 2$ ($\ell_2, r_2 = 44, 16$) & $(74, 6)$ & $(38, 72)$ & $52$
+  & $(58, 61)$ & $(70, 42)$ & $(54, 40), (30, 71)$ & $(72, 23)$ \\
+$j = 1$ ($\ell_1, r_1 = 12, 37$) & $(28, 25)$ & $(39, 25)$ & $20$
+  & $(33)$ & $(19)$ & $(12, 25)$ & $(54, 39)$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 \Write
 \begin{enumerate}
-  \item Toy: $p(X) = 5 + X + X^3$ opened at $x = 3$, so $v = 35$.
-    Group: $\mathbb{Z}_{97}$ written additively, $[k]G = kG \bmod 97$.
-  \item[] $\vec a = (5, 1, 0, 1), \quad \vec b = (1, 3, 9, 27), \quad
-    \vec G = (2, 3, 5, 7)$
-  \item[] $H = 11, \quad U = 13, \quad r = 17, \qquad
-    P = \ip{\vec a}{\vec G} + [r]H = 13$
+  \item Toy: $a(X) = 90 + 61X + 22X^2 + 24X^3$ opened at $z = 20$, so
+    $v = 59$. Group: $y^2 = x^3 + 3$ over $\F_{79}$, $97$ points.
+  \item[] $\vec a = (90, 61, 22, 24), \quad \vec b = (1, 20, 12, 46),
+    \quad r = 10, \quad H = (78, 9), \quad U = (53, 26)$
+  \item[] $\vec G = ((12, 25), (17, 27), (71, 26), (49, 10)), \qquad
+    P = \ip{\vec a}{\vec G} + [r]H = (39, 25)$
   \item Fold check per row: $\ip{\vec a'}{\vec G'} + [r^{*}]H +
     [\ip{\vec a'}{\vec b'}]U = P + [v]U + [u^2]L + [u^{-2}]R$.
 \end{enumerate}
 \Say
-\textbf{The Halo 2 Guide's symbolic example, with numbers.} The toy
-polynomial $5 + X + X^3$ is opened at $x = 3$, so the claimed value is
-$35$. The stand-in group is $\mathbb{Z}_{97}$ written additively: a
-``point'' is a residue and a scalar multiple is a product mod $97$. It
-has no discrete-log hardness, only the fold's algebra.
+\textbf{The Halo 2 Guide's toy opening.} The advice polynomial $a(X)$
+of the running example is opened at the verifier's point $z = 20$, so
+the claimed value is $59$. The group is the curve $y^2 = x^3 + 3$ over
+$\F_{79}$, with $97$ points, so its scalars are in $\F_{97}$. Every
+discrete log on it is a short search: only the fold's algebra shows.
 
 \textbf{Round two, then round one.} With four coefficients there are
 two rounds. Each row shows the cross terms, the challenge, the three
 folded vectors, and the fold check: the folded claim on the left equals
-the accumulated commitment on the right --- $25 = 25$, then $12 = 12$.
+the accumulated commitment on the right --- $(72, 23)$, then $(54, 39)$.
 
 \textbf{The one thing to keep.} Each row's check is exactly the
 one-fold identity from three boards back, instantiated.
 \Avoid
-Calling $\mathbb{Z}_{97}$ a curve, or claiming the toy is binding or
-hiding. Anyone can divide in $\mathbb{Z}_{97}$; the numbers show only
-the algebra.
+Opening the statement polynomial at the witness $3$: the proof opens a
+column polynomial at the verifier's point. Claiming the toy is binding
+or hiding: on $97$ points every discrete log is a short search.
 \src{\emph{Halo 2 Guide}, ``The inner-product polynomial commitment''}
 \end{board}
 
 \begin{board}{The fold by hand: the final check}{all four checks}
 \Write
 \begin{enumerate}
-  \item Prover sends $a = 11$ and $r^{*} = 30$.
+  \item Prover sends $a = 33$ and $r^{*} = 40$.
   \item[] $\vec s = (u_1^{-1}u_2^{-1},\ u_1 u_2^{-1},\ u_1^{-1}u_2,\
-    u_1 u_2) = (13, 34, 20, 15), \qquad G^{(0)} = \ip{\vec s}{\vec G}
-    = 42$
-  \item[] $b^{(0)} = g(x; u_1, u_2) = (u_1^{-1} + u_1 x)(u_2^{-1} + u_2
-    x^2) = 21$
+    u_1 u_2) = (79, 75, 22, 70), \qquad G^{(0)} = \ip{\vec s}{\vec G}
+    = (12, 25)$
+  \item[] $b^{(0)} = g(z; u_1, u_2) = (u_1^{-1} + u_1 z)(u_2^{-1} + u_2
+    z^2) = 19$
   \item[] $P + [v]U + [u_1^2]L_1 + [u_1^{-2}]R_1 + [u_2^2]L_2 +
-    [u_2^{-2}]R_2 = 12$
-  \item[] $[a]\,G^{(0)} + [r^{*}]\,H + [a \cdot b^{(0)}]\,U = 12$
+    [u_2^{-2}]R_2 = (54, 39)$
+  \item[] $[a]\,G^{(0)} + [r^{*}]\,H + [a \cdot b^{(0)}]\,U = (54, 39)$
 \end{enumerate}
 \Say
 \textbf{The verifier works from the challenges alone.} It builds the
 weight vector $\vec s$ from products of the challenges and their
-inverses, takes the inner product with $\vec G$ to get $G^{(0)} = 42$,
-and evaluates the folded $b$ polynomial to get $b^{(0)} = 21$.
+inverses, takes the inner product with $\vec G$ to get $G^{(0)} = (12,
+25)$, and evaluates the folded $b$ polynomial to get $b^{(0)} = 19$.
 
 \textbf{Compare the two sides.} The accumulated commitment comes to
-$12$; the prover's claimed side comes to $12$. Equal: accepted.
+$(54, 39)$; the prover's claimed side comes to $(54, 39)$. Equal:
+accepted.
 
 \textbf{What travelled.} Four coefficients were never sent; four points
 and two scalars were.
 
-\textbf{The contrast, and the caveat.} In $\mathbb{Z}_{97}$ anyone can
-divide, so nothing here is hidden or binding; on Vesta the same
+\textbf{The contrast, and the caveat.} On $97$ points every discrete
+log is a short search, so nothing here is hidden or binding; on Vesta the same
 equations are, and $G^{(0)}$ is a length-$2^{11}$ multi-scalar
 multiplication.
 \src{\emph{Halo 2 Guide}, ``The inner-product polynomial commitment''}
@@ -4990,7 +4995,7 @@ transaction format''; \emph{Halo 2 Guide}, ``The complete Halo 2 protocol''}
     $v_{\mathrm{old}}$ (A3).
   \item Poseidon: the nullifier PRF; only non-linearity $x \mapsto x^5$
     (A5).
-  \item Decomposition: $v \in [0, 2^{64})$ and the sign bit (A4);
+  \item Decomposition: $v \in [0, 2^{64})$ (typing) and the sign bit (A4);
     canonicity of witnessed encodings.
   \item Three versions: original, a correction, the Ironwood circuit
     with the cross-address input. Verifying key selected by branch.
@@ -5194,8 +5199,8 @@ there is nothing hidden to bind.
   \item $\mathsf{PRFexpand}$ as a random oracle; every field enters
     $\wbFpre$
   \item derivation $+$ \NoteCommit{} $=$ post-quantum binding
-  \item \emph{provided a verifier checks the derivation} --- no deployed
-    clause does
+  \item \emph{provided a verifier checks the derivation} --- consensus
+    does for coinbase outputs only
   \item Ironwood note: recoverable; Orchard-/Sapling-pool note: not
 \end{enumerate}
 \Say
@@ -5677,7 +5682,8 @@ Three columns: observable, reveals, mitigation status. Rows in order:
 \begin{enumerate}
   \item peer IP, connection timing --- endpoint, activity windows --- Tor
     capability; deployment unknown
-  \item lowest range start --- approximate account birthday --- none
+  \item lowest range start --- approximate account birthday --- imported
+    seed starts at Sapling activation (ZIP-307)
   \item range boundaries --- scan state and progress --- bucketing
     proposed, unimplemented
 \end{enumerate}
@@ -5696,8 +5702,8 @@ is outside its scope.
 timing give the endpoint and its activity windows; the lowest range
 start gives an approximate account birthday; the range boundaries give
 scan state and progress. A Tor capability exists, with deployment
-unknown; bucketing is proposed and unimplemented; for the birthday
-there is nothing.
+unknown; bucketing is proposed and unimplemented; for the birthday,
+ZIP-307 starts an imported seed's scan at Sapling activation.
 
 \textbf{Bitcoin contrast.} A BIP-157 client shows a peer the same kind
 of schedule --- which filter ranges it pulls, and when --- and then
@@ -5818,14 +5824,14 @@ it never leaves the device.
 \Write
 \begin{enumerate}
   \item $H$ $=$ target height $=$ tip $+ 1$
-  \item anchor $=$ newest shared checkpoint at or below $H - 3$
+  \item anchor $=$ root at height $A = H - c_{\mathrm{tr}} = H - 3$
     (wallet policy, not consensus)
   \item spendable: 3 confirmations trusted, 10 untrusted, from the
     mined block; shard fully scanned; note's block at or below the
     anchor
 \end{enumerate}
 \Say
-\textbf{The anchor is the newest shared checkpoint at or below $H - 3$.}
+\textbf{The anchor is the root at height $A = H - 3$.}
 Here $H$ is the target height, one above the tip. This is wallet
 policy, not consensus; ZIP-315's stated reasons and the Guide's
 anonymity-set argument are Part C's.
@@ -5854,14 +5860,15 @@ policy''; ``The transaction plan''}
 \begin{enumerate}
   \item expiry height (ZIP-203): $0$ $=$ none; included above it $\to$
     block invalid
-  \item ZIP-218 recommendation: target $+ 120$
+  \item ZIP-218 node default: target $+ 120$; ZIP-315 wallet: $40$; open
   \item store $\to$ lock inputs $\to$ broadcast, one call
   \item expired unmined $\to$ inputs released, notes spendable again
 \end{enumerate}
 \Say
 \textbf{Every transaction carries an expiry height.} Zero means none; a
-block that includes it above that height is invalid. ZIP-218 recommends
-target $+ 120$; a uniform delta, like a uniform fee, is not a fingerprint.
+block that includes it above that height is invalid. ZIP-218 sets target
+$+ 120$ for nodes; ZIP-315 still says $40$ for wallets, so the wallet
+default is open. A uniform delta, like a uniform fee, is not a fingerprint.
 
 \textbf{Store, then broadcast.} The wallet persists the transaction and
 locks its inputs before the network sees it, then submits it in one
@@ -6257,8 +6264,11 @@ signatures and her binding signature all sign her txid.
   \item Two vertical arrows between transparent and Ironwood: up,
     labelled \emph{shielding: $\wbHvb < 0$}; down, labelled
     \emph{unshielding: $\wbHvb > 0$}.
-  \item Bottom right, a note: ``every arrow: amount public; Sapling's own
-    doors omitted: only the Orchard pool is sealed''.
+  \item Orchard's other exits, labelled \emph{exit}: to transparent, and
+    over the top to Sapling. Coinbase also into Sapling, and from below
+    into transparent.
+  \item Bottom right, a note: ``every arrow: amount public;
+    Sapling's other doors omitted: only the Orchard pool is sealed''.
 \end{enumerate}
 \begin{center}
 \resizebox{0.6\textwidth}{!}{%
@@ -6276,12 +6286,18 @@ signatures and her binding signature all sign her txid.
 \draw[flow] (o) -- (i) node[midway,above,lbl]{turnstile};
 \draw[flow] (s) -- (i) node[midway,above,lbl]{migration};
 \draw[flow] (cb) -- (i);
+\node[lbl] (cbt) at (0,-19.5) {coinbase};
+\draw[flow] (cbt) -- (t);
+\draw[flow] (cb.east) -| ([xshift=-6mm]s.north);
+\draw[flow] (o.south) |- (t.west) node[pos=0.75,above,lbl]{exit};
+\draw[flow] (o.north) -- ++(0,9) -| ([xshift=6mm]s.north)
+  node[pos=0.25,above,lbl]{exit};
 \draw[flow] ([xshift=-5mm]t.north) -- ([xshift=-5mm]i.south)
   node[midway,left,lbl]{shielding: $\wbHvb < 0$};
 \draw[flow] ([xshift=5mm]i.south) -- ([xshift=5mm]t.north)
   node[midway,right,lbl]{unshielding: $\wbHvb > 0$};
 \node[lbl,align=right] at (52,-13) {every arrow: amount public;\\
-  Sapling's own doors omitted:\\only the Orchard pool is sealed};
+  Sapling's other doors omitted:\\only the Orchard pool is sealed};
 \end{tikzpicture}}
 \end{center}
 \Write
@@ -6311,7 +6327,8 @@ read what issuance entered which pool.
 latter through the turnstile; both balancing fields are cleartext.
 
 \textbf{Emphasise: every arrow on the board prints its amount.} Only the
-Orchard pool is sealed; Sapling's own doors are left off the drawing.
+Orchard pool is sealed; Sapling's other doors are left off the
+drawing.
 \src{\emph{Ironwood Guide}, ``The balancing value''; ``Chain state and pool
   rules''}
 \end{board}
@@ -6398,7 +6415,9 @@ metered gate.
 whatever the transaction version: no issuance; no circulation,
 $\mathsf{enableCrossAddress} = 0$; no entry, $\wbHvbo \ge 0$.
 
-\textbf{The reason is Part F's one note-level difference.} A legacy note,
+\textbf{The main reason is supply integrity after the Orchard soundness
+bug (ZIP-257); the other is Part F's one note-level difference.} A legacy
+note,
 lead byte $\mathtt{0x02}$, is not quantum-recoverable; an Ironwood note,
 lead byte $\mathtt{0x03}$ with the hashed \rcm, is. So consensus stops
 the old notes circulating and funnels their value out through the
@@ -6515,9 +6534,10 @@ a $2$ ZEC note}; write the rows top to bottom:
   \item Ironwood Actions --- $2$ (one real spend, one dummy; shuffled)
   \item nullifiers, commitments --- $2$ and $2$
   \item \wbHvbi{} --- $+10\,000$ zatoshi $=$ the fee
-  \item anchor --- the Ironwood root at the newest shared checkpoint at or
-    below $H - 3$
-  \item expiry --- target height $+\,120$ blocks, about $50$ minutes
+  \item anchor --- the Ironwood root at height $A = H - c_{\mathrm{tr}} =
+    H - 3$
+  \item expiry --- target height $+\,40$ or $120$ blocks; wallet default
+    open
   \item signatures --- $2$ spend-authorisation $+$ $1$ binding
   \item size --- $9166$ bytes, $7264$ of them proof
 \end{enumerate}
@@ -6538,8 +6558,8 @@ printed, as \wbHvbi.
 Orchard parts empty. Two Ironwood Actions, one real spend and one dummy,
 shuffled. Two nullifiers and two commitments. The balancing field
 $+10\,000$ zatoshi, which is the fee. The anchor is the Ironwood root at
-the newest shared checkpoint at or below $H - 3$. ZIP-218 recommends expiry
-at target height $+\,120$ blocks, about $50$ minutes. Two spend-authorisation signatures
+height $H - 3$. The expiry is the target height plus a delta of $40$ or
+$120$ blocks; the wallet default is open. Two spend-authorisation signatures
 and one binding signature. Then $9166$ bytes, $7264$ of them proof.
 
 \textbf{Emphasise what stays inside the commitments:} the $2$ ZEC, the
@@ -6564,7 +6584,7 @@ two Actions, and the dummy pads the single spend.
     MUST use the most preferred it supports: Orchard-protocol (Ironwood
     pool) $>$ Sapling $>$ transparent. TEX address $\Rightarrow$ two
     transactions via an ephemeral transparent output, both public
-  \item Timing: ZIP-218 recommends expiry $=$ target $+\,120$ blocks.
+  \item Timing: one shared expiry delta ($40$ or $120$ blocks, open).
     Migration: denominations $m \cdot 10^{k}$ ZEC, $m \in \{1, 2, 5\}$;
     anchors and expiries from shared grids
   \item ``Uniformity is the strategy''
@@ -6583,11 +6603,11 @@ into the Ironwood pool, over Sapling over transparent. A TEX address
 demands transparent funds, so the wallet builds two transactions through
 an ephemeral transparent output --- both public.
 
-\textbf{Timing.} ZIP-218 recommends expiry at target $+\,120$ blocks:
-an idiosyncratic delta fingerprints a transaction as an
-idiosyncratic fee would. Migration wallets split value into canonical
-denominations $m \cdot 10^{k}$ ZEC, $m \in \{1, 2, 5\}$, and draw anchors
-and expiries from shared grids for the same reason.
+\textbf{Timing.} Wallets share one expiry delta, $40$ or $120$ blocks
+while the default is open: an idiosyncratic delta fingerprints a
+transaction as an idiosyncratic fee would. Migration wallets split value
+into canonical denominations $m \cdot 10^{k}$ ZEC, $m \in \{1, 2, 5\}$,
+and draw anchors and expiries from shared grids for the same reason.
 
 \textbf{Emphasise: uniformity is the strategy.} The defaults protect only
 while everyone keeps them.
@@ -6883,9 +6903,9 @@ at constant difficulty.
 wins however deep the fork; the rest of this part measures how likely
 that is.
 \Avoid
-``Ties go to the block received first'' as deployed behaviour: that is
-the specification's rule and Rosenfeld's; the deployed node departs
-from it (the departure board, later in this part).
+``Ties go to the block received first'' as every node's behaviour: Zebra
+applies it from 6.4.0; earlier versions took the larger tip hash (the
+departure board, later in this part).
 \src{\emph{Consensus Guide}, ``Work, and the best chain''; protocol
   specification, ``The Block Chain''; ``Definition of Work''}
 \end{board}
@@ -7430,7 +7450,8 @@ risk below $0.1\%$; both figures are arbitrary.
 %   K6   q=20%:   4   8  13
 %   K6   q=30%:   9  20  32
 %   K6   q=40%:  34  82 133
-%   K6   q=45%: 135 331 539  (3.74 h)
+%   K6   q=45%: 135 331 539  (3.74 h nominal; expected wait n T0/p = 6.81 h
+%     against a withholding 45% attacker)
 \begin{board}{Pick the adversary and the risk; read off $n$}{not twice}
 \Draw
 Four columns; write the rows top to bottom:
@@ -7448,7 +7469,7 @@ Four columns; write the rows top to bottom:
   \item least $n$ with $r(q, n)$ below target: logarithmic in the
     inverse risk, explosive in $q$
   \item $10\%$ attacker $\to$ $6$ confirmations; $45\%$ attacker $\to$
-    $539$ ($\approx 3.74$ h of $25$-second blocks)
+    $539$ ($3.74$ h nominal; $\approx 6.81$ h while he withholds)
   \item no finite count is final: $r(q, n) \geq 2q^{n} > 0$
   \item $r(1/2, n) = 1$ for every $n$: required $n \to \infty$ as
     $q \uparrow 1/2$
@@ -7457,8 +7478,9 @@ Four columns; write the rows top to bottom:
 \textbf{Turn the table round: pick the adversary and the risk, and read
 off $n$.} The least $n$ pushing $r(q, n)$ below each target is
 logarithmic in the inverse risk and explosive in $q$. A $10\%$ attacker
-is answered by $6$ confirmations, a $45\%$ attacker by $539$ --- about
-$3.74$ hours of $25$-second blocks.
+is answered by $6$ confirmations, a $45\%$ attacker by $539$ --- $3.74$
+hours of $25$-second blocks nominally, about $6.81$ hours while he
+withholds his blocks.
 
 \textbf{No finite count is final:} $r(q, n) \geq 2q^{n} > 0$, since the
 attacker may simply find the first $n$ blocks.
@@ -7654,7 +7676,7 @@ an established implementation default.
   \text{difficulty window}:\quad 102\cdot25 = 2550\,\mathrm{s}
 \]
 \[
-  \text{expiry recommendation}:\quad
+  \text{node expiry default}:\quad
   120\cdot25 = 3000\,\mathrm{s}
 \]
 \Say
@@ -7666,7 +7688,8 @@ the \emph{Consensus Guide}, ``NU7: 25-second blocks and bounded shielded
 work''.
 \Avoid
 Do not call the draft active: activation heights remain unassigned.
-Expiry is a wallet recommendation, not a consensus default.
+Expiry is a node default (ZIP-218), not consensus; the wallet default is
+open.
 \src{\href{https://github.com/zcash/zips/pull/1363}{ZIP-259};
   \href{https://zips.z.cash/zip-0218}{ZIP-218};
   \href{https://github.com/zcash/zips/pull/1354}{ZIP-237}}
@@ -7675,28 +7698,28 @@ Expiry is a wallet recommendation, not a consensus default.
 \begin{board}{Where the deployed rule departs from the model}{not twice}
 \Write
 \begin{itemize}
-  \item tie-break: specification and Rosenfeld $=$ first seen; Zebra
-    $=$ the larger tip hash (no arrival times tracked)
+  \item tie-break: specification, Rosenfeld and Zebra from 6.4.0 $=$
+    first received; tip hash only when receipt times cannot be ordered
   \item $r(q, n)$: exact for the strict-overtake model; a lower bound
-    if only the tie-break is replaced by Zebra's; not a bound on the
+    under pre-6.4.0 Zebra's larger-hash tie-break; not a bound on the
     full deployed process
   \item Equihash: each candidate solution $=$ a fresh SHA-256d lottery;
     headers are the model's Bernoulli trials; granularity per solver
     run against the NU7 target spacing of $25$ seconds
 \end{itemize}
 \Say
-\textbf{Bitcoin's nodes keep the first-seen rule; the deployed Zcash
-node does not.} The specification and Rosenfeld break equal-work ties
-first-seen. Zebra downloads blocks in parallel and tracks no arrival
-times, so it prefers the larger tip hash --- its own documentation
-calls this a departure from the consensus rules.
+\textbf{Bitcoin's nodes keep the first-seen rule; so does Zebra from
+6.4.0.} The specification and Rosenfeld break equal-work ties
+first-seen. Zebra from version 6.4.0 keeps the tip it received first and
+compares tip hashes only when it cannot order receipt times; earlier
+versions preferred the larger tip hash.
 
-\textbf{What that does to $r$.} At equal work an attacker whose private
-tip hash wins may reveal at once; the strict-overtake boundary $z = -1$
-does not count that success. So $r(q, n)$ is exact for the
-strict-overtake model and a lower bound if only the tie-break is
-replaced by Zebra's --- not a bound on the full deployed process, where
-difficulty moves and rollback is capped.
+\textbf{What the old rule did to $r$.} At equal work an attacker whose
+private tip hash won could reveal at once; the strict-overtake boundary
+$z = -1$ does not count that success. So $r(q, n)$ is exact for the
+strict-overtake model and was a lower bound under the old tie-break ---
+not a bound on the full deployed process, where difficulty moves and
+rollback is capped.
 
 \textbf{Equihash and memorylessness.} Each candidate solution faces a
 fresh SHA-256d lottery, so headers are the Bernoulli trials of the
@@ -7707,8 +7730,8 @@ against the NU7 target spacing of $25$ seconds.
 \textbf{Emphasise the Bitcoin contrast:} its hash trials are the
 model's ideal.
 \Avoid
-The first-seen tie-break as deployed: it is the specification's and
-Rosenfeld's; Zebra breaks equal-work ties by the larger tip hash.
+The larger-tip-hash tie-break as current: Zebra dropped it in 6.4.0; the
+hash now orders only tips whose receipt times it cannot order.
 \src{\emph{Consensus Guide}, ``Chain selection and the tie-break''; ``Equihash
   and the memoryless model''}
 \end{board}
@@ -8311,9 +8334,9 @@ Protocol''}
     one commitment = a collision event; bound $O(q^3/N)$, about
     $2^{-74}$ at $q = 2^{60}$.''
   \item ``Post-quantum binding \emph{provided a verifier checks the
-    derivation} --- no deployed clause does.''
+    derivation} --- consensus does for coinbase outputs only.''
   \item Legacy $\mathtt{0x02}$ notes: $\mathtt{0x05} \,\|\, \rho$ only
-    $\Rightarrow$ unrecoverable $\Rightarrow$ the seal.
+    $\Rightarrow$ unrecoverable $\Rightarrow$ one reason for the seal.
 \end{enumerate}
 \Say
 \textbf{Recall the one note-level difference between the pools.} An
@@ -8329,12 +8352,12 @@ bound is $O(q^3/N)$ in the QROM, about $2^{-74}$ at $q = 2^{60}$
 queries.
 
 \textbf{The binding is conditional.} The composite is post-quantum
-binding \emph{provided a verifier checks the derivation}. No deployed
+binding \emph{provided a verifier checks the derivation}. No Action
 clause does --- the circuit checks the commitment, not the derivation
 behind its trapdoor. That check is the Recovery Statement's job.
 
 \textbf{Legacy notes hash only $\mathtt{0x05} \,\|\, \rho$.} They are
-unrecoverable, and that is why the Orchard pool is sealed.
+unrecoverable, and that is one reason the Orchard pool is sealed.
 
 \textbf{The contrast.} Bitcoin ownership is a public key exposed at
 spend. The hardened derivation behind it is symmetric too, but no rule
@@ -8484,7 +8507,8 @@ Two columns --- name, bin as the volume states it --- row by row:
   \item FROST: \emph{specified} --- RFC 9591 and ZIP-312 (Draft); shipped
     as a library; no consensus rule names it; key generation in no ZIP.
   \item FlyClient: commitment \emph{deployed and consensus-critical}
-    (ZIP-221, its root committed in every header since Heartwood);
+    (ZIP-221, its root committed in every header after Heartwood's
+    activation block);
     proofs \emph{unbuilt} --- no server serves one, no client asks; the
     Zcash instantiation designed, not specified.
   \item ZSA: core \emph{specified} in Draft ZIPs 226 and 227; the carrier
@@ -8504,7 +8528,8 @@ implementation and the specification instead''.
 specified --- RFC 9591 and ZIP-312, a Draft --- and shipped as a
 library; no consensus rule names it, and key generation is in no ZIP.
 FlyClient's commitment is deployed and consensus-critical: ZIP-221's
-root sits in every header since Heartwood. Its proofs are unbuilt ---
+root sits in every header after Heartwood's activation block. Its proofs
+are unbuilt ---
 no server serves one, no client asks --- and the Zcash instantiation is
 designed, not specified.
 
@@ -8801,8 +8826,8 @@ layer's schemes: ECDSA and BIP-340 over secp256k1''}
   \item A node rail = Zebra, named only for the reorg window and the
     tie-break.
   \item Three toys: a prime-order group (balance); the $\F_{97}$ circuit
-    (the proof system); the additive $\mathbb{Z}_{97}$ stand-in (the IPA
-    fold, no discrete-log hardness). One mechanism each; no soundness
+    (the proof system); the $97$-point curve (the IPA fold, discrete
+    logs a short search). One mechanism each; no soundness
     estimated.
   \item Bins: \emph{specified} (a published artefact pins it down);
     \emph{designed but unspecified} (an informal source describes it);
@@ -8819,8 +8844,8 @@ same job: a claim about a default is a claim about one version.
 
 \textbf{The three toys isolated one mechanism each.} The prime-order
 group stood in for balance, the $\F_{97}$ circuit for the proof system,
-the additive $\mathbb{Z}_{97}$ group for the IPA fold --- that last one
-with no discrete-log hardness at all. None of them estimates soundness.
+the $97$-point curve for the IPA fold --- its discrete logs a short
+search. None of them estimates soundness.
 
 \textbf{The bins are the volumes' bins.} Specified: a published artefact
 pins it down. Designed but unspecified: an informal source describes it.
@@ -8830,8 +8855,8 @@ Open problem: no artefact exists.
 that here a deployed rule may still carry a Draft ZIP, so the bin and
 the deployment are tracked separately.
 \Ask
-Which toy had no discrete-log hardness? The additive $\mathbb{Z}_{97}$
-stand-in for the IPA fold.
+Which toys had no discrete-log hardness? The balance group, and the
+$97$-point curve of the IPA fold.
 \src{\emph{Ironwood Guide}, ``Scope and status''; \emph{Consensus Guide},
 ``Sources and their standing''}
 \end{board}
@@ -8844,10 +8869,10 @@ stand-in for the IPA fold.
     \emph{role}.
   \item \Fpv{} (Pallas \emph{scalar} field): $\asksym, \rivk, \rcm,
     \rcv, \alpha, \rsk, \esk, \mathsf{bsk}$ --- multiply points.
-  \item \Fpp{} (Pallas \emph{base} field): $\nksym, \rho, \psi, \ivk,
-    \cmx, \nfsym$ --- the circuit's native field.
-  \item $\Ep(\Fpp)$ (Pallas points): $\aksym, \rksym, \gd, \pkd, \epk,
-    \cmsym, \cvsym$ --- group elements.
+  \item \Fpp{} (Pallas \emph{base} field): $\aksym, \nksym, \rho, \psi,
+    \ivk, \cmx, \nfsym$ --- the circuit's native field.
+  \item $\Ep(\Fpp)$ (Pallas points): $\aksym^{\mathbb{P}}, \rksym, \gd,
+    \pkd, \epk, \cmsym, \cvsym$ --- group elements.
   \item bit strings: $\mathsf{sk}, \mathsf{rseed}, \dk, \ovk$ ($256$);
     $d$ ($88$) --- keys, seeds, the diversifier.
 \end{enumerate}
@@ -9000,7 +9025,7 @@ Function''}
   + [r]\,H_D,\\
 \mathsf{ShortCommit}_r(D, M) := \Extract\bigl(\mathsf{SinsemillaCommit}_r(D,
   M)\bigr), \\
-\mathsf{ShortHash}_D(M) := \Extract\bigl(\mathsf{Sinsemilla}_D(M)\bigr),
+\mathsf{SinsemillaHash}(D, M) := \Extract\bigl(\mathsf{Sinsemilla}_D(M)\bigr),
 \qquad
 H_D := \GroupHash^{\G}(D \,\|\, \texttt{-r},\ \varepsilon)
 \end{gather*}
@@ -9010,7 +9035,7 @@ H_D := \GroupHash^{\G}(D \,\|\, \texttt{-r},\ \varepsilon)
   \item Key commitment $\CommitIvk$ --- $\mathsf{ShortCommit}$ over
     $\mathrm{LE}_{255}(\Extract(\aksym)) \,\|\, \mathrm{LE}_{255}(\nksym)$,
     $510$ bits, $51$ rounds.
-  \item Tree node hash --- $\mathsf{ShortHash}$ over $520$ bits, $52$
+  \item Tree node hash --- $\mathsf{SinsemillaHash}$ over $520$ bits, $52$
     rounds.
 \end{itemize}
 \Say
@@ -9030,8 +9055,8 @@ anyone knows --- Pedersen's split of message base from blinding base.
 $\NoteCommit$ is this commitment in its own domain: a point, of which
 the chain stores $\cmx$. The key commitment $\CommitIvk$ is the short
 commitment over $\Extract(\aksym)$ and $\nksym$, $510$ bits, $51$
-rounds. The tree's node hash is the short hash over $520$ bits, $52$
-rounds.
+rounds. The tree's node hash is $\mathsf{SinsemillaHash}$ over $520$
+bits, $52$ rounds.
 
 \textbf{The Bitcoin bridge comes next.} Confidential Transactions'
 $[v]V + [r]R$ is the one-slot Pedersen ancestor of this shape.
@@ -9242,14 +9267,15 @@ the affine coordinates of a Pallas point:
 \delta \cdot \bigl(y(\pkd_{\mathrm{old}}) - y(\pkd_{\mathrm{new}})\bigr) = 0.
 \end{gather*}
 \begin{itemize}
-  \item Public inputs, in order: $\mathsf{anchor}$; $\cvsym$ ($x$, $y$);
-    $\nfsym$; $\rksym$ ($x$, $y$); $\cmx$; $\mathsf{enableSpends}$;
-    $\mathsf{enableOutputs}$; $\delta$ (index $9$) --- ten in all.
+  \item Public inputs: $\mathsf{anchor}$; $\cvsym$ ($x$, $y$); $\nfsym$;
+    $\rksym$ ($x$, $y$); $\cmx$; $\mathsf{enableSpends}$;
+    $\mathsf{enableOutputs}$; $\delta$ --- ten field elements; no normative
+    instance position for $\delta$.
   \item Same gate shape as A3: $v_{\mathrm{old}} \cdot (\mathsf{root} -
     \mathsf{anchor}) = 0$.
   \item Flags byte: $\mathtt{0b001}$ spends, $\mathtt{0b010}$ outputs,
-    $\mathtt{0b100}$ cross-address; canonical $\mathtt{0b011}$ Orchard
-    pool, $\mathtt{0b111}$ Ironwood.
+    $\mathtt{0b100}$ cross-address (Ironwood; reserved in Orchard);
+    canonical $\mathtt{0b011}$ Orchard pool, $\mathtt{0b111}$ Ironwood.
 \end{itemize}
 \Say
 \textbf{A10 is four equalities in the base field.} With $\delta$ the
@@ -9258,17 +9284,19 @@ the old receiver equals the same coordinate of the new one. Four rows
 cover $x$ and $y$ of $\gd$ and of $\pkd$, so with $\delta \ne 0$ the
 receivers are equal as full points, not merely in $x$.
 
-\textbf{The flag is the tenth public input.} Write the instance in order:
-anchor, the two coordinates of $\cvsym$, $\nfsym$, the two of $\rksym$,
-$\cmx$, $\mathsf{enableSpends}$, $\mathsf{enableOutputs}$, and $\delta$
-at index $9$. The gate shape is A3's $v_{\mathrm{old}} \cdot
-(\mathsf{root} - \mathsf{anchor}) = 0$ on four more rows.
+\textbf{The flag is one more public input.} Write them: anchor, the two
+coordinates of $\cvsym$, $\nfsym$, the two of $\rksym$, $\cmx$,
+$\mathsf{enableSpends}$, $\mathsf{enableOutputs}$, and $\delta$; no
+normative text fixes its position in the encoded instance. The gate
+shape is A3's $v_{\mathrm{old}} \cdot (\mathsf{root} - \mathsf{anchor})
+= 0$ on four more rows.
 
-\textbf{On the wire the polarity is reversed.} Bit $2$ of the flags byte
-is $\mathsf{enableCrossAddress}$ --- bits $\mathtt{0b001}$ spends,
-$\mathtt{0b010}$ outputs, $\mathtt{0b100}$ cross-address --- and the
-canonical bytes are $\mathtt{0b011}$ for the Orchard pool and
-$\mathtt{0b111}$ for Ironwood. Bit $2 = 0$ is what a v5 signer treating
+\textbf{On the wire the polarity is reversed.} Bit $2$ of the Ironwood
+flags byte is $\mathsf{enableCrossAddress}$ --- bits $\mathtt{0b001}$
+spends, $\mathtt{0b010}$ outputs, $\mathtt{0b100}$ cross-address; in the
+Orchard byte bit $2$ stays reserved and $0$ --- and the canonical bytes
+are $\mathtt{0b011}$ for the Orchard pool and $\mathtt{0b111}$ for
+Ironwood. Bit $2 = 0$ is what a v5 signer treating
 it as reserved-zero already produces, so hardware signers keep signing
 Orchard-pool unshielding unchanged.
 
@@ -9339,10 +9367,11 @@ restriction fixes that note's receiver.
   \item Inside a PCZT: recipient, value, $\mathsf{rseed}$ explicit
     $\Rightarrow$ signer classifies it as a tolerable dummy.
   \item \emph{Specified}: the flag's encoding, its consensus rule, the
-    verifying-key selection by branch (ZIP-229, ZIP-258).
-  \item \emph{Designed but unspecified}: the semantics of ``equal
-    receivers'', the flag-to-instance mapping, the dummy-spend
-    treatment.
+    verifying-key selection by branch (ZIP-229, ZIP-258); ``equal
+    receivers'' and $\delta = 1 - \mathsf{enableCrossAddress}$
+    (protocol specification).
+  \item \emph{Designed but unspecified}: $\delta$'s instance position,
+    the dummy-spend treatment.
   \item ZIP-2006: a Reserved stub.
 \end{itemize}
 \Say
@@ -9360,9 +9389,10 @@ dummy rather than an opaque payment.
 \textbf{Its standing is split.} The restriction is deployed and enforced
 by consensus, yet its owning ZIP-2006 is a Reserved stub. Specified: the
 flag's encoding, its consensus rule, the verifying-key selection by
-branch, in ZIP-229 and ZIP-258. Designed but unspecified: the normative
-semantics of ``equal receivers'', the flag-to-instance mapping, the
-dummy-spend treatment.
+branch, in ZIP-229 and ZIP-258; the semantics of ``equal receivers''
+and the flag's negation into the statement, in the protocol
+specification. Designed but unspecified: the flag's position in the
+instance, the dummy-spend treatment.
 
 \textbf{The Bitcoin contrast is what a signer can see.} A Bitcoin signer
 sees every output in the clear; a shielded signer needs the format to
