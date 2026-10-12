@@ -424,6 +424,12 @@ with tempfile.TemporaryDirectory() as tmp:
         assert html.count(sitegen.PAGE_SCRIPT) == 1
         assert '<html lang="en-GB">' in html
         assert '<link rel="icon" href="favicon.svg"' in html
+        assert f'<meta property="og:image" content="{sitegen.SITE_URL}og.png">' in html
+        assert '<meta name="twitter:card" content="summary_large_image">' in html
+    assert (out / "favicon.svg").is_file() and (out / "og.png").is_file()  # the build host copies neither
+    desc = re.search(r'<meta property="og:description" content="([^"]*)"',
+                     (out / "index.html").read_text()).group(1)
+    assert desc and "<" not in desc and "&lt;" not in desc  # the intro, its link stripped
     assert "warm: 'light'" in sitegen.THEME_INIT and "midnight: 'dark'" in sitegen.THEME_INIT
 
     landing = (out / "index.html").read_text()
@@ -598,6 +604,8 @@ Volume summary.
     assert "e.key === 'Escape' && search.open" in html
     assert '<body data-arb="vol">' in html
     assert "MathJax" not in html
+    assert html.count('<meta property="og:title"') == 1
+    assert f'<meta property="og:image" content="{sitegen.SITE_URL}og.png">' in html
     for script in (sitegen.TOC_SCRIPT, sitegen.PAGE_SCRIPT, sitegen.TRIM_SCRIPT):
         assert html.count(script) == 1
     assert 'href="../arboretum.css?v=' in html

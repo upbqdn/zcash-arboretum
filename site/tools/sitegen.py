@@ -1248,13 +1248,40 @@ def ver():
                           cwd=ROOT).stdout.strip() or "0"
 
 
-def page_head(title):
+# Platforms fetch a shared link's card image by absolute URL, so it names the primary host.
+SITE_URL = "https://arboretum.z.cash/"
+CARD_ALT = ("A line drawing of a small note commitment tree as a pressed plant: filled leaves "
+            "committed, empty subtrees dashed, one leaf's path to the root in green; beneath it, "
+            "The Zcash Arboretum, Documentation of the Zcash protocol.")
+COMPLETE_SUB = "The nine volumes in one, in reading order"
+INTRO = """Non-normative documentation of the
+<a href="https://zips.z.cash/protocol/protocol.pdf">Zcash protocol</a>."""
+
+
+def social(title, description):
+    """The description and Open Graph tags: what a platform shows for a shared link."""
+    t = escape(unescape(re.sub(r"<[^>]+>", "", title)))
+    d = escape(" ".join(unescape(re.sub(r"<[^>]+>", "", description)).split()))
+    return f"""<meta name="description" content="{d}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Zcash Arboretum">
+<meta property="og:title" content="{t}">
+<meta property="og:description" content="{d}">
+<meta property="og:image" content="{SITE_URL}og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{CARD_ALT}">
+<meta name="twitter:card" content="summary_large_image">"""
+
+
+def page_head(title, description):
     """The head of a page at the site root."""
     return f"""<!doctype html>
 <html lang="en-GB"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+{social(title, description)}
 {THEME_INIT}
 <link rel="stylesheet" href="arboretum.css?v={ver()}">"""
 
@@ -1373,17 +1400,16 @@ def landing(outdir):
 <li class="plate">
 <div class="label"><span class="acc">I–{ROMANS[n - 1]}</span></div>
 <a class="title" href="complete/">The Complete Arboretum</a>
-<p class="sub">The nine volumes in one, in reading order</p>
+<p class="sub">{COMPLETE_SUB}</p>
 <div class="links"><a href="pdf/arboretum-complete.pdf" aria-label="The Complete Arboretum, PDF">PDF</a></div></li>
 </ol>"""
-    html = f"""{page_head("The Zcash Arboretum")}
+    html = f"""{page_head("The Zcash Arboretum", INTRO)}
 <link href="pagefind/pagefind-ui.css" rel="stylesheet">
 <script src="pagefind/pagefind-ui.js"></script>
 </head><body>
 <main class="arb-landing">
 <div class="arb-heading"><h1>The Zcash Arboretum</h1></div>
-<p class="tag">Non-normative documentation of the
-<a href="https://zips.z.cash/protocol/protocol.pdf">Zcash protocol</a>.</p>
+<p class="tag">{INTRO}</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{
@@ -1408,6 +1434,8 @@ window.addEventListener('DOMContentLoaded', () => {{
     if comp.exists():
         (out / "pdf").mkdir(parents=True, exist_ok=True)
         shutil.copy(comp, out / "pdf" / comp.name)
+    for asset in ("favicon.svg", "og.png"):
+        shutil.copy(ROOT / "site" / asset, out / asset)
     (out / "index.html").write_text(html)
     print(f"wrote {out / 'index.html'}")
 
@@ -1463,13 +1491,14 @@ def concordance(outdir):
             f'<td>{places(zips[z])}</td></tr>' for z in sorted(zips)]
     srows = [f'<tr><td class="zk">&sect; {".".join(map(str, sp))}</td>'
              f'<td>{places(specs[sp])}</td></tr>' for sp in sorted(specs)]
-    html = f"""{page_head("Concordance &mdash; The Zcash Arboretum")}
+    tag = """Every ZIP and protocol-specification section cited across
+the volumes, and the sections that treat it. Generated from the sources."""
+    html = f"""{page_head("Concordance &mdash; The Zcash Arboretum", tag)}
 </head><body>
 <main class="arb-landing zc">
 <p class="up"><a href="./">The Zcash Arboretum</a></p>
 <div class="arb-heading"><h1>Concordance</h1></div>
-<p class="tag">Every ZIP and protocol-specification section cited across
-the volumes, and the sections that treat it. Generated from the sources.</p>
+<p class="tag">{tag}</p>
 <h2>ZIPs</h2>
 <table>{"".join(rows)}</table>
 <h2>Protocol specification</h2>
@@ -1500,13 +1529,13 @@ def postprocess(outdir):
             "--timeout=1800", "build/web/arboretum-complete.tex",
         ], cwd=ROOT, check=True)
     # The accession numeral: a volume's place in the reading order; the edition takes the range.
-    documents = [(vol, vol_title(vol)[0], vol, ROMANS[i])
+    documents = [(vol, *vol_title(vol), vol, ROMANS[i])
                  for i, (vol, _group) in enumerate(VOLUME_META)]
-    documents.append(("complete", "The Complete Arboretum",
+    documents.append(("complete", "The Complete Arboretum", COMPLETE_SUB,
                       "arboretum-complete", f"I–{ROMANS[len(VOLUME_META) - 1]}"))
     references = reference_index(out)
     reading_order = 0
-    for vol, title, pdf, acc in documents:
+    for vol, title, sub, pdf, acc in documents:
         vdir = out / vol
         if not vdir.is_dir():
             continue
@@ -1601,12 +1630,13 @@ class="arb-volname"> {title}</span></a>
             t2 = re.sub(r'href="(?:[^"]*/)?arboretum\.css(?:\?[^"]*)?"',
                         f'href="../arboretum.css?v={ver()}"', t2, count=1)
             # "3 Keys and addresses — V Ironwood Guide"
-            t2 = re.sub(r"<title>(.*?)</title>",
-                        lambda m: "<title>" + (m.group(1).split(" ‣ ")[0] + " — "
-                                               if " ‣ " in m.group(1) else "")
-                        + f"{acc} {title}</title>\n"
-                        '<link rel="icon" href="../favicon.svg" type="image/svg+xml">',
-                        t2, count=1, flags=re.S)
+            def titled(m):
+                page_title = (m.group(1).split(" ‣ ")[0] + " — " if " ‣ " in m.group(1)
+                              else "") + f"{acc} {title}"
+                return (f"<title>{page_title}</title>\n"
+                        '<link rel="icon" href="../favicon.svg" type="image/svg+xml">\n'
+                        + social(page_title, sub))
+            t2 = re.sub(r"<title>(.*?)</title>", titled, t2, count=1, flags=re.S)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)
             if vol == "complete":
                 t2 = re.sub(r"<body", '<body data-pagefind-ignore', t2,
