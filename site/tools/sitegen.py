@@ -1280,7 +1280,7 @@ def page_head(title, description):
 <html lang="en-GB"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg?v={ver()}" type="image/svg+xml">
 {social(title, description)}
 {THEME_INIT}
 <link rel="stylesheet" href="arboretum.css?v={ver()}">"""
@@ -1634,7 +1634,7 @@ class="arb-volname"> {title}</span></a>
                 page_title = (m.group(1).split(" ‣ ")[0] + " — " if " ‣ " in m.group(1)
                               else "") + f"{acc} {title}"
                 return (f"<title>{page_title}</title>\n"
-                        '<link rel="icon" href="../favicon.svg" type="image/svg+xml">\n'
+                        f'<link rel="icon" href="../favicon.svg?v={ver()}" type="image/svg+xml">\n'
                         + social(page_title, sub))
             t2 = re.sub(r"<title>(.*?)</title>", titled, t2, count=1, flags=re.S)
             t2 = re.sub(r"<body", '<body data-arb=\"vol\"', t2, count=1)

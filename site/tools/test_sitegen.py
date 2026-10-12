@@ -423,7 +423,7 @@ with tempfile.TemporaryDirectory() as tmp:
         assert html.count('class="arb-theme"') == 1
         assert html.count(sitegen.PAGE_SCRIPT) == 1
         assert '<html lang="en-GB">' in html
-        assert '<link rel="icon" href="favicon.svg"' in html
+        assert '<link rel="icon" href="favicon.svg?v=' in html  # a new icon is fetched, not cached
         assert f'<meta property="og:image" content="{sitegen.SITE_URL}og.png">' in html
         assert '<meta name="twitter:card" content="summary_large_image">' in html
     assert (out / "favicon.svg").is_file() and (out / "og.png").is_file()  # the build host copies neither
@@ -612,7 +612,7 @@ Volume summary.
     assert 'href="_site/math-guide/arboretum.css"' not in html
     assert '<html lang="en-GB">' in html
     assert '<title>1 Notation — I Math Guide</title>' in html
-    assert '<link rel="icon" href="../favicon.svg"' in html
+    assert '<link rel="icon" href="../favicon.svg?v=' in html
     assert '<p class="arb-nav-tools"><a href="../pdf/math-guide.pdf">PDF</a></p>' in html
     assert ('<a href="./" class="ltx_ref arb-start" rel="start"><span class="arb-acc">I</span> '
             'Math Guide<span class="arb-start-sub">Foundations</span></a>') in html
