@@ -1382,9 +1382,10 @@ def landing(outdir):
 </head><body>
 <main class="arb-landing">
 <div class="arb-heading"><h1>The Zcash Arboretum</h1></div>
-<p class="tag">Non-normative documentation of the deployed Zcash protocol.
-The <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a>,
-applicable ZIPs, and consensus rules remain authoritative.</p>
+<p class="tag">Non-normative documentation of the Zcash protocol and of protocols proposed for it.
+The <a href="https://zips.z.cash/protocol/protocol.pdf">protocol specification</a> and the
+<a href="https://zips.z.cash/">ZIPs</a> are authoritative and prevail wherever this
+documentation disagrees with&nbsp;them.</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{
