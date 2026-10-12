@@ -1255,7 +1255,7 @@ CARD_ALT = ("A line drawing of a small note commitment tree as a pressed plant: 
             "The Zcash Arboretum, Documentation of the Zcash protocol.")
 COMPLETE_SUB = "The nine volumes in one, in reading order"
 INTRO = """Non-normative documentation of the
-<a href="https://zips.z.cash/protocol/protocol.pdf">Zcash protocol</a>."""
+<a href="https://zips.z.cash/protocol/protocol.pdf">Zcash protocol</a>"""
 
 
 def social(title, description):
@@ -1409,7 +1409,7 @@ def landing(outdir):
 </head><body>
 <main class="arb-landing">
 <div class="arb-heading"><h1>The Zcash Arboretum</h1></div>
-<p class="tag">{INTRO}</p>
+<p class="tag subtitle">{INTRO}</p>
 <div id="search"></div>
 <script>
 window.addEventListener('DOMContentLoaded', () => {{
