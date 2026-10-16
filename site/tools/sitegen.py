@@ -1254,7 +1254,7 @@ CARD_ALT = ("A line drawing of a small note commitment tree as a pressed plant: 
             "committed, empty subtrees dashed, one leaf's path to the root in green; beneath it, "
             "The Zcash Arboretum, Documentation of the Zcash protocol.")
 COMPLETE_SUB = "The nine volumes in one, in reading order"
-INTRO = """Evolving, self-contained, non-normative documentation of the
+INTRO = """Evolving, non-normative documentation of the
 <a href="https://zips.z.cash/protocol/protocol.pdf">Zcash protocol</a>"""
 
 
