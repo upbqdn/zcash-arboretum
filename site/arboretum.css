@@ -331,7 +331,9 @@ main.arb-landing {
 }
 .arb-landing .tag { margin: 1.2em 0 1.4em; }
 /* the landing's one line is the title's subtitle, as on a title page: no stop, close under it */
-.arb-landing .tag.subtitle { margin: .5em 0 1.4em; font-size: 1.2em; text-align: left; hyphens: manual; }
+.arb-landing .tag.subtitle {
+  margin: .5em 0 1.4em; font-size: 1.2em; text-align: left; hyphens: manual; text-wrap: balance;
+}
 .arb-landing #search { margin-bottom: 1rem; }
 /* a layer: its name, then what it covers and rests on */
 .arb-landing .grp {
