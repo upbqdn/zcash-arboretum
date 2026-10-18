@@ -714,7 +714,7 @@ Two designs beyond the deployed core carry quantum-relevant structure
 their own volumes state but do not analyse; the closing volume must.
 
 \paragraph{Crosslink finality.} The trailing-finality prototype
-(\emph{Crosslink Guide}, \S``Finalizer keys'') gives each finalizer a
+(\emph{Crosslink Guide}, \S``Finaliser keys'') gives each finalizer a
 single ed25519 key and makes a roster vote a plain ed25519 signature
 over a $76$-byte payload (\texttt{zebra-crosslink/src/lib.rs:2011}
 onward, at the prototype pin). The construction's whole point is to
@@ -729,7 +729,7 @@ over their group, RFC~9591's \textsf{FROST}(Ed25519, SHA-512), would
 itself be classical.
 Crosslink's safety is a disjunction --- assured finality from the
 proof-of-work prefix \emph{or} the BFT agreement (\emph{Crosslink
-Guide}, \S``The safety theorems and their assumptions''). In that
+Guide}, \S``Consequences of the two routes''). In that
 theoretical construction, a complete break of BFT signatures need not
 destroy the proof-of-work safety branch, provided its other assumptions
 and objective-validity rules continue to hold. This does not transfer
