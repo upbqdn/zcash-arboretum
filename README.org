@@ -43,8 +43,9 @@ beside it.
    ZIP 2005).
 
 [[file:arboretum-complete.pdf][The Complete Arboretum]] joins all nine. The =parked/= directory holds research
-snapshots outside the series (Voting, Tachyon, PQ, Crosslink), which the site,
-the concordance and the complete edition omit; =talks/= holds slide decks.
+snapshots outside the series (Voting, Tachyon, PQ, Crosslink, with a short
+version of the Crosslink Guide), which the site, the concordance and the
+complete edition omit; =talks/= holds slide decks.
 
 * NU7
 

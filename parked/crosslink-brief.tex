@@ -1,0 +1,1228 @@
+\documentclass[11pt,a4paper]{article}
+% head height 14pt: the italic Th ligature of a running head stands 13.01pt
+\usepackage[margin=35mm,top=32mm,bottom=45mm,headheight=14pt]{geometry}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{fontspec}
+\usepackage[mathsf=sym]{unicode-math}
+\setmainfont{EBGaramond}[Path=../fonts/, Extension=.otf,
+  UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic,
+  FontFace={sb}{n}{*-SemiBold}, Numbers=Lining,
+  SmallCapsFeatures={LetterSpace=4}]
+% no sans text face in the family: \textsf (crate names) is code, in the mono
+\defaultfontfeatures[Iosevka]{Path=../fonts/, Extension=.ttf,
+  UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold,
+  FontFace={sb}{n}{*-SemiBold}, Scale=MatchLowercase}
+\setsansfont{Iosevka}
+\setmonofont{Iosevka}
+% stylistic set 3: the calligraphic \mathcal (the default is a roundhand
+% script). This copy maps capitals shared with Greek to the Latin, so copy
+% and search see Latin (fonts/README-Garamond-Math.txt)
+\setmathfont{Garamond-Math-Latin.otf}[Path=../fonts/, StylisticSet=3]
+% the math sans is 6 % larger-eyed than the text; scaled to the text x-height
+\setmathfont{Garamond-Math-Latin.otf}[Path=../fonts/,
+  range=\mathsfup/{latin,Latin,num}, Scale=0.94]
+% each \mathsf is one atom, as with a classic math alphabet, so a subscripted
+% identifier such as \rivk takes a further subscript
+\AtBeginDocument{\let\arbsymsf\mathsf\protected\def\mathsf#1{{\arbsymsf{#1}}}}
+\usepackage{polyglossia}
+\setmainlanguage[variant=british,ordinalmonthday=false]{english}
+\PolyglossiaSetup{english}{frenchspacing=true}
+\usepackage[protrusion=true,expansion=false]{microtype}
+\usepackage{booktabs,enumitem}
+\usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\definecolor{tierspend}{RGB}{200,60,60}
+\definecolor{tierfull}{RGB}{210,140,40}
+\definecolor{tierin}{RGB}{60,130,180}
+\definecolor{tierrecv}{RGB}{70,150,90}
+\usepackage[psdextra,hidelinks]{hyperref}
+
+\emergencystretch=3em
+\hbadness=10000
+\hfuzz=2pt
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{construction}[theorem]{Construction}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+% kind-coded theorem blocks: the rule weight codes the kind, in ink, no fill:
+% proved statements 1.6pt, definitions and constructions 0.4pt, assumptions
+% dashed 0.8pt; remarks and examples run unframed with an italic head
+\usepackage{etoolbox,framed}
+\makeatletter
+\providecolor{tierin}{RGB}{60,130,180}
+\providecolor{tierfull}{RGB}{210,140,40}
+\providecolor{tierspend}{RGB}{200,60,60}
+\providecolor{muted}{HTML}{5E5E5E}
+% a left rule 0.9em from the text; framed spaces it like a list. Inside,
+% \topsep is cleared so the statement's own list adds nothing, and
+% FrameRestore's \sloppy is dropped so statements break like prose. A frame
+% split across pages counts the last line's depth, which framed's
+% \boxmaxdepth=0 turns into height
+\setlength{\OuterFrameSep}{7pt plus 2pt minus 2pt}
+\patchcmd{\fb@put@frame}{\splittopskip\z@}{\splittopskip\z@\splitmaxdepth\z@}{}{\PatchFailed}
+% the frame sits flush left, as framed would centre it
+\def\arb@flushleft#1{\hbox to\hsize{#1\hfil}}
+\patchcmd{\fb@putboxa}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\patchcmd{\fb@put@frame}{\centerline}{\arb@flushleft}{}{\PatchFailed}
+\newcommand\arb@kind[2]{%
+  \BeforeBeginEnvironment{#2}{\def\FrameCommand{#1}%
+    \MakeFramed{\advance\hsize-\width\let\sloppy\relax\FrameRestore\topsep\z@}}%
+  \AfterEndEnvironment{#2}{\endMakeFramed}}
+\newcommand\arb@dashed[1]{\setbox\z@\hbox{#1}\hbox{\vbox to\ht\z@{\cleaders
+  \vbox{\hrule\@width.8pt\@height3pt\vskip2pt}\vfill}\hspace{.9em}\box\z@}}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{definition}
+\arb@kind{\vrule\@width.4pt\hspace{.9em}}{construction}
+\arb@kind{\arb@dashed}{assumption}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{theorem}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{lemma}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{proposition}
+\arb@kind{\vrule\@width1.6pt\hspace{.9em}}{corollary}
+\AtBeginEnvironment{remark}{\thm@headfont{\itshape}}
+\AtBeginEnvironment{example}{\thm@headfont{\itshape}}
+% a proof head breaks and hyphenates as the text it opens: amsthm sets it as a
+% list label, one unbreakable box
+\renewenvironment{proof}[1][\proofname]{\par\pushQED{\qed}\normalfont
+  \topsep6\p@\@plus6\p@\relax\trivlist\item\relax{\itshape#1\@addpunct{.}}%
+  \hskip\labelsep\ignorespaces}{\popQED\endtrivlist\@endpefalse}
+% 11/14.5 pt; small (captions, tables, footnotes) 0.875; both size commands
+% are robust, so the patches go to their inner macros. A 10pt class (the
+% figure render's standalone) keeps its sizes
+\ifnum\@ptsize=1
+\expandafter\patchcmd\csname normalsize \endcsname{{13.6}}{{14.5}}{}{\PatchFailed}
+\expandafter\patchcmd\csname small \endcsname{\@xpt\@xiipt}{{9.625}{12.7}}{}{\PatchFailed}
+\fi
+% the hyperref package wraps \@footnotetext; the size is set in the wrapped
+% original
+\patchcmd{\H@@footnotetext}{\footnotesize}{\small}{}{\PatchFailed}
+\normalsize
+\setlength{\parindent}{1.2em}
+% operator spacing shrinks by 1mu at most, so tight lines keep their operators
+\medmuskip=4mu plus 2mu minus 1mu
+\thickmuskip=5mu plus 3mu minus 1mu
+% headings on the 1.2 scale, semibold
+\usepackage{titlesec}
+\titleformat*{\section}{\fontsize{15.84}{19}\fontseries{sb}\selectfont}
+\titleformat*{\subsection}{\fontsize{13.2}{16}\fontseries{sb}\selectfont}
+% no heading below subsection: \subsubsection runs in, like \paragraph
+\titleformat{\subsubsection}[runin]{\normalfont\bfseries}{\thesubsubsection}{0.5em}{}[.]
+% a part (the complete edition) opens as a title page does: numeral, name,
+% subtitle; its title reads "Name: subtitle"
+\titleformat{\part}[display]{\raggedright}%
+  {\fontsize{47.3}{50}\selectfont\thepart}{6mm}{\arb@parttitle}
+\titlespacing*{\part}{0pt}{0pt}{12mm}
+\def\arb@parttitle#1{\arb@partsplit#1\@nil}
+\def\arb@partsplit#1: #2\@nil{{\fontsize{22.8}{27}\selectfont#1\par}%
+  \vspace{3mm}{\fontsize{13.2}{17}\selectfont#2\par}}
+% captions small, flush left, bold label; table captions above, wherever the
+% source puts them
+\usepackage{float}
+\floatstyle{plaintop}
+\restylefloat{table}
+\usepackage[font=small,labelfont=bf,labelsep=period,
+  justification=raggedright,singlelinecheck=false]{caption}
+\captionsetup[table]{position=top}
+% tables are small, set in \@floatboxreset, after the float's \normalsize
+\def\arb@table{table}
+\g@addto@macro\@floatboxreset{\ifx\@captype\arb@table\small\fi}
+% a table's paragraph columns are set ragged, as narrow measures want; \\ still ends
+% the row
+\g@addto@macro\@arrayparboxrestore{\raggedright\let\\\tabularnewline}
+% links: a conifer underline on screen, nothing in print
+\hypersetup{pdfborder={0 0 0.6},pdfborderstyle={/S/U/W 0.6},
+  allbordercolors={0.110 0.353 0.227},pdflinkmargin=0pt}
+% contents: no link underlines; part and section entries in the heading
+% weight, ragged right
+\patchcmd{\l@part}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@section}{\bfseries}{\fontseries{sb}\selectfont}{}{\PatchFailed}
+\patchcmd{\l@part}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@section}{\rightskip\@pnumwidth}{\rightskip\@pnumwidth\@plus1fil}{}{\PatchFailed}
+\patchcmd{\l@part}{\hfil}{\hfill}{}{\PatchFailed}
+\patchcmd{\l@section}{\hfil}{\hfill}{}{\PatchFailed}
+\let\arb@tableofcontents\tableofcontents
+\renewcommand{\tableofcontents}{{\hypersetup{pdfborderstyle={/S/U/W 0}}%
+  \arb@tableofcontents}}
+% abstract: a flush-left head like the contents', body-size text
+\AtBeginDocument{\renewenvironment{abstract}{\section*{\abstractname}}{\par}}
+% identity from the title line: name, subtitle, accession numeral
+\providecommand{\accession}{}
+\def\arb@name#1#2\@nil{\def\arbvolname{#2}}
+\def\arb@parsetitle\textbf#1\\[#2]#3#4\@nil{\arb@name#1\@nil\def\arb@sub{#4}}
+\providecommand{\arbvolname}{}
+\renewcommand{\maketitle}{\expandafter\arb@parsetitle\@title\@nil
+  \hypersetup{pdftitle={\arbvolname: \arb@sub},pdfauthor={Marek}}%
+  \thispagestyle{empty}\begingroup\raggedright
+  {\fontsize{13.2}{16}\selectfont\scshape The Zcash Arboretum\par}
+  \vspace*{50mm}
+  {\fontsize{47.3}{50}\selectfont\accession\par}
+  \vspace{6mm}
+  {\fontsize{22.8}{27}\selectfont\arbvolname\par}
+  \vspace{3mm}
+  {\fontsize{13.2}{17}\selectfont\arb@sub\par}
+  \vspace{18mm}
+  {\fontsize{13.2}{17}\selectfont Marek\par}
+  {\small\@author\par}
+  \endgroup\clearpage}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\scshape\ifdefempty{\accession}{}{\accession\quad}\arbvolname}
+\fancyhead[R]{\small\itshape\nouppercase{\leftmark}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\makeatother
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ \ #1}{}}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\G}{\mathbb{G}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\PP}{\mathbb{P}}
+\renewcommand{\Pr}{\mathrm{Pr}}
+\newcommand{\Fp}{\F_p}
+\newcommand{\Fq}{\F_q}
+\newcommand{\ip}[2]{\langle #1,\, #2 \rangle}
+\newcommand{\Comm}{\mathsf{Commit}}
+\newcommand{\Open}{\mathsf{Open}}
+\newcommand{\Setup}{\mathsf{Setup}}
+\newcommand{\Verify}{\mathsf{Verify}}
+\newcommand{\negl}{\mathsf{negl}}
+\newcommand{\poly}{\mathsf{poly}}
+\newcommand{\PPT}{\mathsf{PPT}}
+\newcommand{\Adv}{\mathcal{A}}
+\newcommand{\Prov}{\mathcal{P}}
+\newcommand{\Ver}{\mathcal{V}}
+\newcommand{\Sim}{\mathcal{S}}
+\newcommand{\Ext}{\mathcal{E}}
+\newcommand{\Rel}{\mathcal{R}}
+\newcommand{\Lang}{\mathcal{L}}
+\newcommand{\nfsym}{\mathsf{nf}}
+\newcommand{\cmsym}{\mathsf{cm}}
+\newcommand{\cmx}{\mathsf{cmx}}
+\newcommand{\cvsym}{\mathsf{cv}}
+\newcommand{\rk}{\mathsf{rk}}
+\newcommand{\Pallas}{\ensuremath{\mathsf{Pallas}}}
+\newcommand{\Vesta}{\ensuremath{\mathsf{Vesta}}}
+\newcommand{\Ep}{\ensuremath{\mathcal{E}}}
+\newcommand{\NoteCommit}{\ensuremath{\mathsf{NoteCommit}}}
+\newcommand{\Sinsemilla}{\ensuremath{\mathsf{Sinsemilla}}}
+\newcommand{\ShortCommit}{\ensuremath{\mathsf{ShortCommit}}}
+\newcommand{\CommitIvk}{\ensuremath{\mathsf{Commit}^{\mathsf{ivk}}}}
+\newcommand{\Extract}{\ensuremath{\mathsf{Extract}}}
+\newcommand{\Acc}{\ensuremath{\mathsf{Acc}}}
+\newcommand{\GroupHash}{\ensuremath{\mathsf{GroupHash}}}
+\newcommand{\ask}{\ensuremath{\mathsf{ask}}}
+\newcommand{\aksym}{\ensuremath{\mathsf{ak}}}
+\newcommand{\nksym}{\ensuremath{\mathsf{nk}}}
+\newcommand{\ivk}{\ensuremath{\mathsf{ivk}}}
+\newcommand{\fvk}{\ensuremath{\mathsf{fvk}}}
+\newcommand{\ovk}{\ensuremath{\mathsf{ovk}}}
+\newcommand{\dk}{\ensuremath{\mathsf{dk}}}
+\newcommand{\pkd}{\ensuremath{\mathsf{pk_d}}}
+\newcommand{\gd}{\ensuremath{\mathsf{g_d}}}
+\newcommand{\rcv}{\ensuremath{\mathsf{rcv}}}
+\newcommand{\rcm}{\ensuremath{\mathsf{rcm}}}
+\newcommand{\rivk}{\ensuremath{\mathsf{r_{ivk}}}}
+\newcommand{\rsk}{\ensuremath{\mathsf{rsk}}}
+
+\renewenvironment{abstract}{%
+  \small\begin{center}{\bfseries\abstractname}\end{center}\medskip\noindent\ignorespaces
+}{\par\medskip}
+
+% Crosslink notation (one meaning per symbol; see architecture.md, Notation)
+% chain kinds, genesis blocks and prefix orders; italic x ranges over the two
+% kinds (no star placeholder)
+\newcommand{\bc}{\mathrm{bc}}
+\newcommand{\bft}{\mathrm{bft}}
+\newcommand{\Origin}{\mathcal{O}}
+\newcommand{\Obc}{\Origin_{\bc}}
+\newcommand{\Obft}{\Origin_{\bft}}
+\newcommand{\preceqbc}{\preceq_{\bc}}
+\newcommand{\preceqbft}{\preceq_{\bft}}
+\newcommand{\precbc}{\prec_{\bc}}
+\newcommand{\precbft}{\prec_{\bft}}
+\newcommand{\agrees}{\mathrel{\preceq\mkern-9mu\succeq}}
+% C truncated by k: C\trunc{k}, or C\trunc[\bc]{k}; an ordinary atom, so a
+% following relation keeps its space
+\NewDocumentCommand{\trunc}{o m}{\mathord{\lceil}\IfValueT{#1}{_{#1}}^{#2}}
+\newcommand{\lca}{\mathsf{lca}}
+\newcommand{\score}{\mathsf{score}}
+\newcommand{\work}{\mathsf{work}}
+\newcommand{\ch}{\mathsf{ch}}
+% the sub-protocols and the paper's protocols
+\newcommand{\Piorigbc}{\Pi_{\mathrm{origbc}}}
+\newcommand{\Piorigbft}{\Pi_{\mathrm{origbft}}}
+\newcommand{\Pibc}{\Pi_{\bc}}
+\newcommand{\Pibft}{\Pi_{\bft}}
+\newcommand{\Pilc}{\Pi_{\mathrm{lc}}}
+\newcommand{\Pisac}{\Pi_{\mathrm{sac}}}
+% the paper's ledgers; the option is the node: \LOGfin[i]^t
+\newcommand{\LOG}{\mathsf{LOG}}
+\NewDocumentCommand{\LOGfin}{o}{\LOG_{\mathrm{fin}\IfValueT{#1}{,#1}}}
+\NewDocumentCommand{\LOGda}{o}{\LOG_{\mathrm{da}\IfValueT{#1}{,#1}}}
+\NewDocumentCommand{\LOGlc}{o}{\LOG_{\mathrm{lc}\IfValueT{#1}{,#1}}}
+\NewDocumentCommand{\LOGba}{o}{\LOG_{\mathrm{ba}\IfValueT{#1}{,#1}}}
+\newcommand{\sanitize}{\mathsf{sanitize}}
+\newcommand{\flatten}{\mathsf{flatten}}
+\newcommand{\Ch}{\mathsf{Ch}}
+\newcommand{\GST}{\mathsf{GST}}
+\newcommand{\GAT}{\mathsf{GAT}}
+\newcommand{\Tconfirm}{T_{\mathrm{confirm}}}
+\newcommand{\Env}{\mathcal{Z}}
+% the BFT interface
+\newcommand{\proofsym}{\mathsf{proof}}
+\newcommand{\bftlastfinal}{\mathsf{bft\text{-}last\text{-}final}}
+\newcommand{\origbftlastfinal}{\mathsf{origbft\text{-}last\text{-}final}}
+% the construction
+\newcommand{\isstalledblock}{\mathsf{is\text{-}stalled\text{-}block}}
+\newcommand{\iscoinbaseonlyblock}{\mathsf{is\text{-}coinbase\text{-}only\text{-}block}}
+\newcommand{\contextbft}{\mathsf{context\_bft}}
+\newcommand{\headersbc}{\mathsf{headers\_bc}}
+\newcommand{\snapshot}{\mathsf{snapshot}}
+\newcommand{\LF}{\mathsf{LF}}
+\newcommand{\candidate}{\mathsf{candidate}}
+\newcommand{\finalitydepth}{\mathsf{finality\text{-}depth}}
+% the ledgers: \fin_i^t, (\ba_\mu)_i^t
+\newcommand{\fin}{\mathsf{fin}}
+\newcommand{\ba}{\mathsf{ba}}
+\newcommand{\updatefin}{\mathsf{update\text{-}fin}}
+\newcommand{\Bckpt}{B_{\mathrm{ckpt}}}
+% lower volumes and ZIPs: the Wallet Guide's confirmation policy, ZIP 237
+\newcommand{\ctr}{c_{\mathrm{tr}}}
+\newcommand{\cuntr}{c_{\mathrm{untr}}}
+\newcommand{\removed}{\mathsf{removed}}
+
+
+\title{\textbf{\Huge Crosslink in Brief}\\[6pt]\large The core ideas of the Crosslink~2 construction}
+\author{m@rek.onl}
+\date{}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+This short version of the \emph{Crosslink Guide} states the core of
+Crosslink~2, the construction of the design book \emph{Zcash Trailing
+Finality Layer} of N.~Wilcox and D.-E.~Hopwood, which adds a
+Byzantine-fault-tolerant finality protocol to Zcash's proof-of-work best
+chain. It states the problem the construction addresses, its cross-links and
+validity rules, the two chains each node derives from them, what is proved
+of their safety and what is only argued of liveness, Stalled Mode, the
+departures of Shielded Labs' design, the finaliser set, and what ``final''
+means to a client. It gives definitions and statements without proofs; each
+is cited to the section of the \emph{Crosslink Guide} that treats it and
+gives the complete rules and sources. The design runs only on Shielded
+Labs' test network. The document assumes the
+\emph{Consensus Guide} for work, the best chain and confirmations. It is
+non-normative: the Zcash Protocol Specification and the ZIPs are
+authoritative, and neither specifies Crosslink.
+\end{abstract}
+\clearpage \tableofcontents \clearpage
+
+\section{Scope and status}\label{sec:scope}
+
+Crosslink~2 is the construction of N.~Wilcox and D.-E.~Hopwood, \emph{Zcash
+Trailing Finality Layer}, called \emph{the book} below, whose Crosslink~2
+chapters are unchanged since 13 December 2024; the book calls itself ``an
+early and incomplete protocol design proposal''. It is a hybrid of Zcash's
+proof-of-work best chain and a \emph{Byzantine-fault-tolerant} (BFT)
+protocol: a protocol whose participants decide by votes and which remains
+safe while fewer than a fixed fraction of them deviate arbitrarily from it.
+The \emph{Crosslink Guide} gives the construction in full, with every rule,
+proof and source; this document states its core and cites, for each item,
+the section of the \emph{Crosslink Guide} that treats it.
+
+As of 26 October 2026, no ZIP specifies Crosslink. Draft Crosslink texts
+exist in an open, unmerged draft pull request to the ZIP repository, each
+marked ``ZIP: Unassigned''; they are not ZIPs, they weaken or drop several
+rules of the book, and they are not used here. The design runs only on
+Shielded Labs' test network, relaunched on 1 October 2026: there is no
+deployment on Mainnet or Testnet, no activation decision and no production
+value of any parameter. The network upgrade NU7 (ZIP 259, Proposed) does not
+include Crosslink. Its 25-second block target spacing (ZIP 218, Proposed)
+makes every Crosslink parameter counted in blocks cover a third of its
+earlier duration. As the \emph{Crosslink Guide} records as of 16 October
+2026 (\S``Scope and status''), no security audit firm has reviewed the
+design, and no paper on arXiv or in the IACR ePrint archive analyses it.
+
+Classes and status words are those of the \emph{Crosslink Guide},
+\S``Epistemic classes''. A component, that is, a data structure, rule,
+parameter or check, is \emph{specified} when normative text of the protocol
+specification or of a ZIP fixes it, \emph{designed but unspecified} when a
+published design with an analysis exists but no normative text fixes it, and
+an \emph{open problem} when no design exists. No Crosslink rule is
+specified: every component of Crosslink is designed but unspecified or an
+open problem. A result carries one status word: ``proved ($S$)'' when the
+source $S$ gives a complete proof, $S$ being the ebb-and-flow paper of Neu,
+Tas and Tse (\S\ref{sec:problem}), the TFL book or the \emph{Crosslink
+Guide}; ``argued ($S$)'' when $S$ gives a prose argument only;
+``assumption''; or ``open problem''. Every Crosslink result below concerns
+a designed-but-unspecified construction. A proved result is an implication
+about a design and makes no component specified.
+
+\section{The availability-finality dilemma}\label{sec:problem}
+
+Under proof of work, a block gains confirmations as blocks are mined above
+it, and the probability that it is reversed falls with their number but
+never reaches zero (\emph{Consensus Guide}, \S``Confirmation requirements'',
+Proposition ``No finite count is final''). No count of confirmations makes a
+block final. A BFT protocol decides by a quorum of votes, and its decisions
+are not reversed while fewer than a fixed fraction of its participants, a
+third in the protocols considered here, deviate from it; but when too few
+participants are online, no quorum forms and the protocol stops.
+
+A \emph{ledger} is a sequence of transactions that a node outputs. A ledger
+protocol is \emph{safe} when the ledgers of honest nodes never conflict, one
+always being a prefix of the other, and \emph{live} when every transaction
+given to honest nodes eventually enters the ledger of every honest node.
+Under \emph{dynamic participation}, honest nodes stop and resume taking part
+without notice; a \emph{network partition} is an interval during which
+messages between two sets of honest nodes are not delivered. The
+\emph{availability-finality dilemma} is the statement that no ledger
+protocol is both live under dynamic participation and safe under network
+partition: a node cannot tell sleeping peers from partitioned ones, so it
+either keeps extending its ledger and loses safety under partition, or waits
+for a quorum and loses liveness when many nodes sleep. The dilemma is used
+here as a statement, not as a theorem (\emph{Crosslink Guide}, \S``The
+availability-finality dilemma'').
+
+J.~Neu, E.~N.~Tas and D.~Tse, ``Ebb-and-Flow Protocols: A Resolution of the
+Availability-Finality Dilemma'', resolve the dilemma by giving each node two
+ledgers: a \emph{finalised} ledger, safe under network partition, and a
+\emph{dynamically available} ledger, live under dynamic participation, of
+which the finalised ledger is a prefix. Each client chooses which of the two
+to trust. Their construction, \emph{snap-and-chat}, runs a longest-chain
+protocol and a BFT protocol together. A BFT proposal references a block of
+the longest chain, whose chain is the proposal's \emph{snapshot}; an honest
+node votes for a proposal only if it sees its snapshot as confirmed in its
+own longest chain; and the finalised ledger is the transactions of the
+finalised snapshots in order, with duplicates and transactions invalid at
+their position removed, a step called sanitisation. The paper proves its
+security theorem for a permissioned instance: proved (ebb-and-flow paper).
+Its statement for proof of work is supported by one sentence: argued
+(ebb-and-flow paper). The paper proves no theorem about Crosslink or about
+proof of work (\emph{Crosslink Guide}, \S``The snap-and-chat construction''
+and \S``The proof-of-work setting'').
+
+\begin{remark}[From snap-and-chat to Crosslink~2]\label{rem:deficiencies}
+Four of the respects in which the book departs from snap-and-chat determine
+the construction of Crosslink~2 (\emph{Crosslink Guide}, \S``From
+snap-and-chat to Crosslink 2'').
+\begin{enumerate}[label=(\arabic*)]
+\item \emph{Target.} The finalised ledger is to remain safe even when the
+  BFT protocol is entirely subverted, provided the adversary holds less
+  than half of the hash rate.
+\item \emph{Checkable confirmation.} A proposal carries the headers of a
+  fixed number of best-chain blocks above its snapshot, so that any party
+  can check from their proof of work that the snapshot is confirmed.
+\item \emph{No sanitisation.} Sanitisation can filter the concatenated
+  transactions of all snapshots, or remove duplicate snapshot blocks first;
+  the two readings coincide when a transaction invalid at a position stays
+  invalid at every later one, as for a double spend or a missing input. A
+  Zcash shielded transaction names an \emph{anchor}, the root of a pool's
+  note commitment tree after some earlier block (\emph{Ironwood Guide},
+  \S``Anchors''), and the same root can arise from unrelated transactions,
+  so a transaction invalid at its position for a missing anchor can become
+  valid at a later one. Both ledgers are therefore plain block chains, and
+  no transaction is reordered or removed.
+\item \emph{Spending finalised outputs.} Validity of a block may depend only
+  on the block and its ancestors, so each best-chain block commits to a BFT
+  block from which its finalised prefix is computable, and that commitment
+  never moves backwards along a chain.
+\end{enumerate}
+
+Status: argued (TFL book).
+\end{remark}
+
+\section{The two sub-protocols}\label{sec:sub}
+
+\begin{definition}[Crosslink~2]\label{def:crosslink}
+Crosslink~2 keeps a best-chain protocol $\Piorigbc$ and a BFT protocol
+$\Piorigbft$ as black boxes and transforms them into protocols $\Pibc$ and
+$\Pibft$ by structural additions, changed validity rules and changed rules of
+honest behaviour, so that the blocks of each commit to blocks of the other.
+These mutual commitments are the \emph{cross-links}. Every node takes part in
+both protocols.
+\end{definition}
+
+The blocks, chains and genesis blocks of the two protocols are bc-blocks,
+bc-chains and $\Obc$, and bft-blocks, bft-chains and $\Obft$. A node $i$ is
+\emph{honest at time $t$} in an execution if it has followed the protocol up
+to $t$ and the adversary has not cut it off from the network, for example by
+an eclipse; an eclipsed node is not honest, and no guarantee below covers
+it. No synchrony is assumed unless a sub-protocol imports it. The properties
+below are properties of single executions, and the results are implications
+between them: when every execution with property $\mathcal{P}$ has property
+$\mathcal{Q}$, the probability that $\mathcal{Q}$ fails is at most that of
+$\mathcal{P}$ failing. No probabilistic security theorem in the sense of the
+ebb-and-flow paper exists for Crosslink~2 (\emph{Crosslink Guide}, \S``The
+hybrid construction'', \S``Executions, chains and prefix order'', \S``The
+best-chain protocol'' and \S``From snap-and-chat to Crosslink 2'').
+
+A block is identified with the chain of which it is the tip, and the
+\emph{height} $\mathsf{height}(B)$ of a block $B$ is its number of
+predecessors, so that a genesis block has height~$0$. For a chain $C$ and
+$k \in \N$, the chain $C\trunc{k}$, with subscript $\bc$ or $\bft$ where the
+kind matters, is the prefix of $C$ whose tip has height
+$\max\{0, \mathsf{height}(C) - k\}$: the chain $C$ without its last $k$
+blocks. A chain $B$ is a prefix of $C$, written $B \preceq C$ (with subscript
+$\bc$ or $\bft$), when $B$ is an initial segment of $C$, equality included;
+$B$ and $C$ \emph{agree}, written $B \agrees C$, when one is a prefix of the
+other, and \emph{conflict} otherwise. Agreement is not transitive: the
+genesis block agrees with two chains that conflict.
+
+\subsection{The best-chain protocol}\label{sec:sub-bc}
+
+The view of a node in $\Piorigbc$ is a set of bc-chains rooted at $\Obc$;
+validity of a block depends only on the block and its ancestors; and the
+best chain $\ch_i^t$ of node $i$ at time $t$ is a valid chain of highest
+score in its view. For Zcash the score is accumulated work and the best
+chain is the valid chain of most work (\emph{Consensus Guide}, \S``Work, and
+the best chain''). The proof of work of a block is checkable from its header
+given a valid parent chain.
+
+\begin{definition}[Prefix Consistency and Prefix Agreement]\label{def:pa}
+Let $k \in \N$. An execution of a best-chain protocol has \emph{Prefix
+Consistency at depth $k$} iff $\ch_i^t\trunc[\bc]{k} \preceqbc \ch_j^u$ for
+all times $t \le u$, every node $i$ honest at $t$ and every node $j$ honest
+at $u$, $i = j$ permitted. It has \emph{Prefix Agreement at depth $k$} iff
+$\ch_i^t\trunc[\bc]{k} \agrees \ch_j^u\trunc[\bc]{k}$ for all times $t$ and
+$u$ and the same nodes.
+\end{definition}
+
+Prefix Consistency at depth $k$ implies Prefix Agreement at depth $k$.
+Assuming Prefix Consistency at depth $k$ for proof of work excludes network
+partitions longer than about $k$ block times: once the best chain on one side
+of a partition has grown by more than $k$ blocks, its truncation contains
+blocks that the other side cannot know (\emph{Crosslink Guide}, \S``The
+best-chain protocol'').
+
+\begin{remark}[The prefix properties for Zcash]\label{rem:pow-prefix}
+For Zcash proof of work, Prefix Consistency and Prefix Agreement at any
+depth are assumptions, not results. No source proves either property for
+Zcash, and no source computes an adequate depth under the 25-second spacing.
+Every result below whose premise is a prefix property is therefore
+conditional for Zcash.
+
+Status: open problem.
+\end{remark}
+
+\subsection{The BFT protocol}\label{sec:sub-bft}
+
+An execution of $\Piorigbft$ proceeds in BFT epochs. In each, a proposer may
+make a \emph{proposal}, which names its parent bft-block and its BFT epoch
+and is signed by its proposer; for a proposal $P$, as for a bft-block,
+$P\trunc[\bft]{1}$ denotes its parent. Each BFT epoch has $n$ \emph{voting
+units},
+distributed among the \emph{validators} of the BFT protocol; the holders of
+a BFT epoch's units form its \emph{finaliser set}, each being a
+\emph{finaliser}. A proposal is \emph{notarised} by ballots cast for it by
+at least $q = \lceil 2n/3 \rceil$ units of its BFT epoch, a protocol being
+free to require more, and a bft-block is a notarised proposal together with
+its notarisation proof. By the \emph{Parent rule}, a bft-block other than
+$\Obft$ is valid only if its parent is valid.
+
+\begin{definition}[Finality in context]\label{def:blf}
+The protocol supplies an efficiently computable function $\bftlastfinal$
+that maps each valid bft-block $C$ to a prefix $\bftlastfinal(C)
+\preceqbft C$, the \emph{last final block in the context of $C$}, with
+$\bftlastfinal(\Obft) = \Obft$ and $\bftlastfinal(C) \preceqbft
+\bftlastfinal(D)$ whenever $C \preceqbft D$ are valid. A bft-block $B$ is
+\emph{final in the context of $C$} iff $B \preceqbft \bftlastfinal(C)$. No
+bft-block is final other than in a context.
+\end{definition}
+
+\begin{assumption}[One-third bound]\label{ass:one-third}
+In the execution considered, for every BFT epoch, strictly fewer than one
+third of its voting units are ever cast non-honestly. A unit is cast
+non-honestly when a party other than its holder casts it, for example after
+a key compromise, when it is cast for two distinct proposals of the BFT
+epoch, or when its holder casts it against the rules of honest voting.
+
+Status: assumption.
+\end{assumption}
+
+The bound covers all time: a key compromised long after its BFT epoch can
+still cast that BFT epoch's units.
+
+\begin{definition}[Final Agreement]\label{def:fa}
+An execution of a BFT protocol has \emph{Final Agreement} iff
+$\bftlastfinal(C) \agrees \bftlastfinal(C')$ for all valid bft-blocks $C$
+and $C'$ in honest view at any times.
+\end{definition}
+
+If Assumption~\ref{ass:one-third} fails at some time, Final Agreement may
+fail from that time on. Unlike the prefix properties of proof of work, Final
+Agreement can hold in an asynchronous network (\emph{Crosslink Guide},
+\S``The BFT protocol'').
+
+\section{The construction}\label{sec:cons}
+
+\begin{definition}[Parameters]\label{def:params}
+Crosslink~2 has a \emph{confirmation depth} $\sigma \in \N^{+}$, a
+\emph{finalisation gap bound} $L \in \N^{+}$, and a predicate
+$\isstalledblock$ on bc-blocks. No value of $\sigma$ or $L$ is fixed: the
+values are an open problem.
+\end{definition}
+
+The book requires $L$ to be ``significantly greater than $\sigma$'' and
+``\emph{at least} $2\sigma$'' in practice, without derivation; the
+\emph{Crosslink Guide} proves that $L \ge \sigma + 1$ is necessary for
+Stalled Mode to end while the BFT protocol is live (\S\ref{sec:live}).
+
+\begin{definition}[Cross-link fields]\label{def:fields}
+Each bc-header carries a field $\contextbft$, a commitment to a bft-block,
+the \emph{context} of the block. Each proposal and each bft-block $B$ other
+than $\Obft$ carries a field $B.\headersbc$, a sequence of $\sigma$
+bc-headers, deepest first. The \emph{$\sigma$-block tail} of a bc-chain $T$
+of at least $\sigma + 1$ blocks is the sequence of the headers of
+$T\trunc{\sigma-1}, \ldots, T\trunc{1}, T$.
+\end{definition}
+
+\begin{definition}[Derived quantities]\label{def:derived}
+For a proposal or bft-block $B$, the \emph{snapshot} $\snapshot(B)$ is the
+parent of the deepest header that $B$ carries, and $\snapshot(\Obft) = \Obc$;
+when $B$ carries the $\sigma$-block tail of $T$,
+$\snapshot(B) = T\trunc{\sigma}$.
+For a bc-block $H$,
+\begin{align*}
+  \LF(H) &:= \bftlastfinal(H.\contextbft),\\
+  \finalitydepth(H) &:= \mathsf{height}(H) -
+    \mathsf{height}\bigl(\snapshot(\LF(H))\bigr),\\
+  \candidate(H) &:= \lca\bigl(\snapshot(\LF(H)),\, H\trunc{\sigma}\bigr),
+\end{align*}
+where $\lca$ is the last common ancestor. The block $\LF(H)$ is the
+\emph{last final context} of $H$, and $\snapshot(\LF(H))$ is its \emph{final
+snapshot}.
+\end{definition}
+
+A bft-block thus points down into the best chain through its carried
+headers, and a bc-block points up into the BFT chain through its context
+(Figure~\ref{fig:crosslinks}; \emph{Crosslink Guide}, \S``Parameters'' and
+\S``Structural additions''); each node computes its finalised chain from
+these quantities (\S\ref{sec:ledgers}).
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=12mm, y=10mm,
+  blk/.style={draw, rectangle, minimum width=5.5mm, minimum height=5.5mm,
+    inner sep=0pt, fill=white},
+  fin/.style={blk, fill=tierin!25}, hdr/.style={blk, fill=tierfull!30},
+  dts/.style={inner sep=1pt}, lnk/.style={-{Stealth[length=2mm]}, thick},
+  snp/.style={-{Stealth[length=2mm]}, dashed},
+  ctx/.style={-{Stealth[length=2mm]}, thick, tierrecv},
+  lbl/.style={font=\footnotesize},
+]
+% bc-chain
+\node[blk] (g) at (0,0) {};
+\node[dts] (d1) at (1,0) {$\cdots$};
+\node[fin] (s1) at (2,0) {};
+\node[dts] (d2) at (3,0) {$\cdots$};
+\node[blk] (s2) at (4,0) {};
+\node[hdr] (h0) at (5,0) {};
+\node[dts] (d3) at (6,0) {$\cdots$};
+\node[hdr] (hs) at (7,0) {};
+\node[dts] (d4) at (8,0) {$\cdots$};
+\node[blk] (H) at (9,0) {};
+\draw[lnk] (d1) -- (g);
+\draw[lnk] (s1) -- (d1);
+\draw[lnk] (d2) -- (s1);
+\draw[lnk] (s2) -- (d2);
+\draw[lnk] (h0) -- (s2);
+\draw[lnk] (d3) -- (h0);
+\draw[lnk] (hs) -- (d3);
+\draw[lnk] (d4) -- (hs);
+\draw[lnk] (H) -- (d4);
+\node[lbl, below=1mm of g] {$\Obc$};
+\node[lbl, below=1mm of s1, align=center]
+  {$\snapshot(B_1)$\\$=\snapshot(\LF(H))$};
+\node[lbl, below=1mm of s2] {$\snapshot(B_2)$};
+\node[lbl, below=1mm of h0] {$[0]$};
+\node[lbl, below=1mm of hs] {$[\sigma - 1]$};
+\node[lbl, below=1mm of H] {$H$};
+% the sigma carried headers of B2
+\draw (4.7,0.45) -- (4.7,0.6) -- (7.3,0.6) -- (7.3,0.45);
+\node[lbl, above] (hl) at (6,0.6) {$B_2.\headersbc$};
+% bft-chain
+\node[blk] (o) at (1,2.4) {};
+\node[fin] (b1) at (3.5,2.4) {};
+\node[blk] (b2) at (6,2.4) {};
+\draw[lnk] (b1) -- (o);
+\draw[lnk] (b2) -- (b1);
+\node[lbl, above=1mm of o] {$\Obft$};
+\node[lbl, above=1mm of b1] {$B_1 = \LF(H)$};
+\node[lbl, above=1mm of b2] {$B_2$};
+\draw[snp] (o) -- (g);
+\draw[snp] (b1) -- (s1);
+\draw[snp] (b2) -- (s2);
+\draw[dotted] (b2) -- (hl);
+\draw[ctx] (H) to[out=90, in=0]
+  node[lbl, pos=0.4, right=1mm] {$H.\contextbft$} (b2);
+\end{tikzpicture}
+\caption{The cross-links. Solid black arrows point from child to parent on
+the bc-chain (below) and the bft-chain $\Obft$, $B_1$, $B_2$ (above); dashed
+arrows point from a bft-block to its snapshot. The bracket marks the
+$\sigma$ headers $B_2.\headersbc[0]$ to $B_2.\headersbc[\sigma - 1]$ (orange)
+that $B_2$ carries, and $\snapshot(B_2)$ is the parent of the deepest of
+them. The green arrow is $H.\contextbft = B_2$. In the case drawn, the last
+block final in the context of $B_2$ is $B_1$ (blue), so $\LF(H) = B_1$ and
+the final snapshot of $H$ is $\snapshot(B_1)$ (blue). The Linearity rule
+appears as $\snapshot(B_1)$ lying at or below $\snapshot(B_2)$ on one
+bc-chain.}
+\label{fig:crosslinks}
+\end{figure}
+
+\subsection{The rules}\label{sec:cons-rules}
+
+\begin{definition}[Validity in $\Pibft$]\label{def:bft-validity}
+A proposal or bft-block $B$ other than $\Obft$ is valid in $\Pibft$ iff it
+is valid in $\Piorigbft$ and
+\begin{enumerate}[label=(\roman*)]
+\item \emph{Linearity rule}: $\snapshot(B\trunc[\bft]{1}) \preceqbc
+  \snapshot(B)$, so that snapshots never move backwards along a bft-chain;
+\item \emph{Tail Confirmation rule}: $B.\headersbc$ is the $\sigma$-block
+  tail of a bc-valid chain.
+\end{enumerate}
+The function $\bftlastfinal$ of $\Pibft$ is that of $\Piorigbft$.
+\end{definition}
+
+\begin{definition}[Honest voting]\label{def:honest-voting}
+A validator $v$ at time $t$ first adds the bc-blocks of the carried headers
+of a proposal $P$ to its view, checking their validity, and then votes for
+$P$ only if $P$ is valid in $\Pibft$ and the \emph{Confirmed best-chain
+criterion} holds:
+\[
+  \snapshot(P) \preceqbc \ch_v^t\trunc{\sigma},
+\]
+that is, the snapshot is $\sigma$-confirmed in the validator's own best
+chain.
+\end{definition}
+
+\begin{definition}[Validity in $\Pibc$]\label{def:bc-validity}
+The genesis block has $\Obc.\contextbft = \Obft$. A bc-block $H \neq \Obc$ is
+valid in $\Pibc$ iff it is valid in $\Piorigbc$ and
+\begin{enumerate}[label=(\roman*)]
+\item \emph{Valid context rule}: $H.\contextbft$ is a valid bft-block;
+\item \emph{Extension rule}: $\LF(H\trunc[\bc]{1}) \preceqbft \LF(H)$, so
+  that the last final context never moves backwards along a bc-chain;
+\item \emph{Last Final Snapshot rule}: $\snapshot(\LF(H)) \preceqbc H$, so
+  that the final snapshot lies on the block's own chain;
+\item \emph{Finality depth rule}: $\finalitydepth(H) \le L$ or
+  $\isstalledblock(H)$.
+\end{enumerate}
+The rules on transactions are those of $\Piorigbc$, unchanged.
+\end{definition}
+
+\begin{definition}[Unchanged fork choice]\label{def:fork-choice}
+An honest node uses no information from $\Pibft$ other than the validity
+rules of Definition~\ref{def:bc-validity} to choose the bc-chain it follows:
+$\ch_i^t$ is a bc-valid chain of highest score in its view, as in
+$\Piorigbc$.
+\end{definition}
+
+The BFT protocol steers the best chain only through validity: a chain whose
+blocks cite contexts that move finality backwards, or place the final
+snapshot off the chain, is invalid, and the most-work rule chooses among the
+rest. The rules answer items~2 to~4 of Remark~\ref{rem:deficiencies}: the
+Tail Confirmation rule makes confirmation checkable by any party (item~2),
+while the Confirmed best-chain criterion keeps snap-and-chat's voting
+condition; the Linearity rule makes the snapshots of a valid
+bft-chain extend one another, so that the finalised history is one bc-chain
+and needs no sanitisation (item~3); and the Extension and Last Final
+Snapshot rules make the finalised prefix computable from a block's own chain
+(item~4). The Linearity rule also carries the safety argument of
+\S\ref{sec:safety-fa}, and the Finality depth rule bounds availability
+(\S\ref{sec:cons-stalled}). All of these
+definitions are designed but unspecified (\emph{Crosslink Guide},
+\S``Validity rules of the BFT protocol'' to \S``Honest block production and
+fork choice'').
+
+\subsection{Stalled Mode}\label{sec:cons-stalled}
+
+\begin{definition}[Stalled Mode]\label{def:stalled}
+A bc-block $H$ is in \emph{Stalled Mode} iff $\finalitydepth(H) > L$. By
+the Finality depth rule, every valid bc-block in Stalled Mode is
+\emph{stalled}: it satisfies $\isstalledblock$.
+\end{definition}
+
+For Zcash the book proposes that a stalled block be \emph{coinbase-only}: it
+has exactly one transaction, which only distributes newly issued funds and
+has no inputs; the book never fixes the predicate. Stalled Mode is an
+objective property of each block, not a network-wide switch. In Stalled Mode
+the best chain can grow only by stalled blocks, which under the proposed
+policy carry no ordinary spends, and that it keeps growing is argued (TFL
+book) (\S\ref{sec:live}); a block that cites a context whose
+final snapshot lies on its chain at most $L$ blocks below it is not in
+Stalled Mode, whatever its parent (\emph{Crosslink Guide}, \S``Stalled
+Mode'').
+
+\section{The two chains of a node}\label{sec:ledgers}
+
+From its best chain, each node derives two chains, which play the roles of
+the finalised and the available ledger of the ebb-and-flow model
+(\emph{Crosslink Guide}, \S``The locally finalised chain'' and \S``The
+locally bounded-available chain'').
+
+\begin{definition}[Locally finalised chain]\label{def:fin}
+Each node $i$ keeps a bc-chain $\fin_i^t$, starting at $\fin_i^0 = \Obc$. At
+each time $t$ at which its best chain changes, with $s$ the time of the
+previous change, or $0$ if there is none,
+\[
+  \fin_i^t :=
+  \begin{cases}
+    \candidate(\ch_i^t), & \text{if } \fin_i^s \preceqbc
+      \candidate(\ch_i^t),\\
+    \fin_i^s, & \text{otherwise};
+  \end{cases}
+\]
+if $\candidate(\ch_i^t)$ conflicts with $\fin_i^s$, the node records a
+\emph{finalisation safety hazard}. Between changes of its best chain,
+$\fin_i$ is constant.
+\end{definition}
+
+\begin{lemma}[Local finalization linearity]\label{lem:fin-linear}
+A node that follows the update rule of Definition~\ref{def:fin} has
+$\fin_i^t \preceqbc \fin_i^u$ for all $t \le u$: its finalised chain never
+rolls back.
+
+Status: proved (Crosslink Guide).
+\end{lemma}
+
+The chain $\fin_i^t$ is state of the node, not a field of any block, and no
+consensus rule reads it. A BFT decision alone changes nothing at a node. For
+a node $i$ honest at $t$, a bc-block $X \neq \Obc$ lies in $\fin_i^t$ exactly
+when four conditions hold: $X$ lies in the snapshot of a proposal; the
+bft-block formed from that proposal is final in the context of some valid
+bft-block; some valid bc-block $H$ with $X \preceqbc H\trunc{\sigma}$ has a
+last final context that extends that bft-block; and $H$ has become the
+node's best tip, by time $t$, at an update that set $\fin_i$ to
+$\candidate(H)$ (\emph{Crosslink Guide}, \S``Finality as a status'',
+Proposition ``Path to finality''). When $\LF(H) \neq \Obft$ and the headers
+carried by $\LF(H)$ are ancestors of $H$, $\candidate(H)$ is the final
+snapshot of $H$, so an update
+to it leaves $\fin_i$ trailing the tip by $\finalitydepth(H) \ge \sigma + 1$
+blocks; the bound is attained (\emph{Crosslink Guide}, \S``Computation of
+the finalised prefix'', Proposition ``Finalisation lag'').
+
+\begin{definition}[Locally bounded-available chain]\label{def:ba}
+Each node chooses a depth $\mu$ with $0 < \mu \le \sigma$, by default $\mu =
+\sigma$. Its \emph{locally bounded-available chain} at time $t$ is
+\[
+  (\ba_\mu)_i^t :=
+  \begin{cases}
+    \ch_i^t\trunc{\mu}, & \text{if } \fin_i^t \preceqbc \ch_i^t\trunc{\mu},\\
+    \fin_i^t, & \text{otherwise}.
+  \end{cases}
+\]
+\end{definition}
+
+\begin{proposition}[Ledger prefix property]\label{prop:ledger-prefix}
+For every node $i$ honest at time $t$, $\fin_i^t \preceqbc (\ba_\mu)_i^t$.
+
+Status: proved (TFL book).
+\end{proposition}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=11mm, y=10mm,
+  blk/.style={draw, rectangle, minimum width=5.5mm, minimum height=5.5mm,
+    inner sep=0pt, fill=white},
+  fin/.style={blk, fill=tierin!30}, stl/.style={blk, fill=tierspend!30},
+  dts/.style={inner sep=1pt}, lnk/.style={-{Stealth[length=2mm]}, thick},
+  lbl/.style={font=\footnotesize}, bar/.style={line width=2.5pt},
+]
+\node[blk] (g) at (0,0) {};
+\node[dts] (d1) at (1,0) {$\cdots$};
+\node[fin] (s) at (2,0) {};
+\node[dts] (d2) at (3,0) {$\cdots$};
+\node[blk] (l) at (4,0) {};
+\node[stl] (f) at (5,0) {};
+\node[dts] (d3) at (6,0) {$\cdots$};
+\node[stl] (ts) at (7,0) {};
+\node[dts] (d4) at (8,0) {$\cdots$};
+\node[stl] (tm) at (9,0) {};
+\node[dts] (d5) at (10,0) {$\cdots$};
+\node[stl] (H) at (11,0) {};
+\draw[lnk] (d1) -- (g);
+\draw[lnk] (s) -- (d1);
+\draw[lnk] (d2) -- (s);
+\draw[lnk] (l) -- (d2);
+\draw[lnk] (f) -- (l);
+\draw[lnk] (d3) -- (f);
+\draw[lnk] (ts) -- (d3);
+\draw[lnk] (d4) -- (ts);
+\draw[lnk] (tm) -- (d4);
+\draw[lnk] (d5) -- (tm);
+\draw[lnk] (H) -- (d5);
+\node[lbl, below=1mm of g] {$\Obc$};
+\node[lbl, below=1mm of s, align=center]
+  {$\snapshot(\LF(H))$\\$= \candidate(H)$};
+\node[lbl, below=1mm of ts] {$H\trunc{\sigma}$};
+\node[lbl, below=1mm of tm] {$H\trunc{\mu}$};
+\node[lbl, below=1mm of H] {$H$};
+% brackets above the chain
+\draw (1.7,0.45) -- (1.7,0.6) -- (4.3,0.6) -- (4.3,0.45);
+\node[lbl, above] at (3,0.6) {$L$};
+\draw (6.7,0.45) -- (6.7,0.6) -- (11.3,0.6) -- (11.3,0.45);
+\node[lbl, above] at (9,0.6) {$\sigma$};
+\node[lbl, text=tierspend] at (5.5,0.75) {stalled};
+\draw (1.7,1.25) -- (1.7,1.4) -- (11.3,1.4) -- (11.3,1.25);
+\node[lbl, above] at (6.5,1.4)
+  {$\finalitydepth(H) \ge \sigma + 1$};
+% the two chains of node i
+\draw[bar, tierin] (0,-1.6) -- (2,-1.6);
+\node[lbl, anchor=west] at (2.1,-1.6) {$\fin_i^t$};
+\draw[bar, tierrecv] (0,-2.0) -- (9,-2.0);
+\node[lbl, anchor=west] at (9.1,-2.0) {$(\ba_\mu)_i^t$};
+\end{tikzpicture}
+\caption{The two chains of node $i$ at an update with best tip
+$H = \ch_i^t$ in Stalled Mode, when the headers that $\LF(H)$ carries are
+ancestors of $H$ and the update sets $\fin_i^t$ to $\candidate(H)$. Arrows
+point from child to parent. The final snapshot $\snapshot(\LF(H))$ is the
+lower of itself and $H\trunc{\sigma}$, hence $\candidate(H)$; $\fin_i^t$
+(blue) ends there, $\finalitydepth(H) \ge \sigma + 1$ blocks below $H$. The
+chain $(\ba_\mu)_i^t$ (green) is $H\trunc{\mu}$, and $\fin_i^t$ is a prefix of
+it. The blocks more than $L$ above the final snapshot, up to $H$, are stalled
+(red). Positions are symbolic and represent no value of $\sigma$, $\mu$ or
+$L$.}
+\label{fig:two-ledgers}
+\end{figure}
+
+\section{Safety}\label{sec:safety}
+
+\begin{definition}[Assured Finality]\label{def:af}
+An execution has \emph{Assured Finality} iff $\fin_i^t \agrees \fin_j^u$ for
+all times $t$ and $u$, every node $i$ honest at $t$ and every node $j$
+honest at $u$, $i = j$ permitted.
+\end{definition}
+
+Assured Finality is the book's main safety goal: the finalised chains of
+honest nodes may differ in length, but never conflict (\emph{Crosslink
+Guide}, \S``Assured Finality''). Two routes lead to it, one through each
+sub-protocol.
+
+\subsection{The Prefix Agreement route}\label{sec:safety-pa}
+
+\begin{theorem}[Prefix Agreement implies Assured Finality]\label{thm:pa-af}
+In every execution of Crosslink~2 in which $\Pibc$ has Prefix Agreement at
+depth $\sigma$, Assured Finality holds.
+
+Status: proved (TFL book).
+\end{theorem}
+
+\begin{corollary}[Safety under subversion of the BFT protocol]
+\label{cor:bft-subversion}
+In every execution in which $\Pibc$ has Prefix Agreement at $\sigma$,
+Assured Finality holds whatever the holders of voting units do, including
+executions in which every voting unit is cast non-honestly and signatures
+are forged.
+
+Status: proved (Crosslink Guide).
+\end{corollary}
+
+The proof of Theorem~\ref{thm:pa-af} uses nothing of the BFT protocol: each
+finalised chain of a node is a prefix of one of its earlier best chains
+truncated by $\sigma$, and Prefix Agreement makes those truncations agree.
+This meets the target of item~1 of Remark~\ref{rem:deficiencies},
+conditionally on Prefix Agreement of $\Pibc$, whose transfer from
+$\Piorigbc$ to $\Pibc$ is open (\emph{Crosslink Guide}, \S``The Prefix
+Agreement route'').
+
+\subsection{The Final Agreement route}\label{sec:safety-fa}
+
+\begin{theorem}[Final Agreement implies Assured Finality]\label{thm:fa-af}
+In every execution of Crosslink~2 in which $\Pibft$ has Final Agreement,
+Assured Finality holds.
+
+Status: proved (Crosslink Guide).
+\end{theorem}
+
+The book states this theorem, but its printed proof is a copy of its proof
+of Theorem~\ref{thm:pa-af}; the \emph{Crosslink Guide} gives a proof, which
+uses neither $\sigma$ nor Prefix Agreement but needs the Linearity rule
+(\emph{Crosslink Guide}, \S``The Final Agreement route'').
+
+\begin{proposition}[Necessity of the Linearity rule]\label{prop:fa-needs-lin}
+Let the Linearity rule be removed. For every $\sigma$ there is an execution
+in which $\Pibft$ has Final Agreement, the best chains of two honest nodes
+$i$ and $j$ satisfy the Valid context, Extension and Last Final Snapshot
+rules, the voters of every bft-block they cite meet the Confirmed best-chain
+criterion, and $\fin_i$ and $\fin_j$ conflict.
+
+Status: proved (Crosslink Guide).
+\end{proposition}
+
+\subsection{Consequences}\label{sec:safety-either}
+
+\begin{corollary}[Assured Finality under either premise]\label{cor:af-either}
+Assured Finality holds in every execution in which $\Pibc$ has Prefix
+Agreement at $\sigma$ or $\Pibft$ has Final Agreement.
+
+Status: proved (Crosslink Guide).
+\end{corollary}
+
+The finalised chains of two honest nodes can therefore conflict only in an
+execution in which both premises fail. A partition of the network, which
+breaks Prefix Agreement, together with an adversary holding more than a
+third of the units of a BFT epoch and voting with each side, which breaks
+Final Agreement, is such an execution; the book calls this attack
+unavoidable, since no best-chain protocol keeps finality under partition
+(argued (TFL book); \emph{Crosslink Guide}, \S``Consequences of the two
+routes''). For Zcash, both premises are open: Prefix Agreement of proof of
+work is an assumption (Remark~\ref{rem:pow-prefix}), and no concrete BFT
+protocol, hence no proof of its Final Agreement, is fixed; that Final
+Agreement of $\Piorigbft$ carries over to $\Pibft$ is argued (TFL book)
+(\emph{Crosslink Guide}, \S``Liveness of the sub-protocols'', Proposition
+``Transfer by erasure''). Crosslink is thus
+not proved safe for Zcash; it is proved safe under either of two premises,
+each of which is open for Zcash.
+
+The bounded-available chain is less safe than the finalised chain.
+Agreement of the chains $\ba_\mu$ of honest nodes follows from Prefix
+Agreement at depth $\mu$ (proved (Crosslink Guide)), and not from Final
+Agreement (\emph{Crosslink Guide}, \S``Safety of the bounded-available
+chain'').
+
+\section{Liveness and bounded availability}\label{sec:live}
+
+No liveness statement of Crosslink~2 is proved. The book argues that the
+best chain of $\Pibc$ grows whenever that of $\Piorigbc$ does, given that a
+coinbase-only stalled block can always be produced; that $\Pibft$ is live
+whenever $\Piorigbft$ is; and that Stalled Mode is not entered while there
+are enough honest block producers, proposers and validators and $L$ is large
+enough: argued (TFL book), each. The transfer of the prefix properties from
+$\Piorigbc$ to $\Pibc$, the advance of finalisation and a rule for choosing
+$L$ are open problems. Three proved results bound what any liveness argument
+can claim (\emph{Crosslink Guide}, \S``Liveness of the sub-protocols'',
+\S``Progress of finalisation'' and \S``Stalled Mode''):
+\begin{enumerate}[label=(\roman*)]
+\item if $L \le \sigma$, Stalled Mode persists even while $\Pibft$ is live,
+  so $L \ge \sigma + 1$ is necessary;
+\item block producers that never advance $\contextbft$ over $L$ consecutive
+  heights force a stalled block whatever $\Pibft$ does;
+\item holders of more than one third of the units of a BFT epoch who
+  withhold their votes, and whose units no one else casts, prevent every
+  notarisation of that BFT epoch.
+\end{enumerate}
+
+\emph{Bounded availability} is the book's informal weakening of dynamic
+availability: during a finalisation stall, the number of best-chain blocks
+above the final snapshot of the best tip may grow only up to a bound,
+beyond which ordinary spends stop. The book argues for it that under unbounded
+availability the cost of rolling back spent funds grows without limit while
+finality stalls, and that halting the chain instead would give an attacker
+unbounded time to build a fork of the recent tail: argued (TFL book)
+(\emph{Crosslink Guide}, \S``Bounded availability''). The book does not
+prove the bound; the \emph{Crosslink Guide} proves it for a node whose
+finalised chain lies on its best chain.
+
+\begin{proposition}[Bounded non-stalled run]\label{prop:bounded-run}
+Let $H = \ch_i^t$, and let node $i$ have followed the update rule of
+Definition~\ref{def:fin} up to $t$. Suppose that the Extension, Last Final
+Snapshot and Finality depth rules hold along $H$, that the Parent and
+Linearity rules hold along the bft-chain that ends at $\LF(H)$, that $\sigma
+\le L$, and that $\fin_i^t \preceqbc H$. Then every block of $H$ at height
+greater than $\mathsf{height}(\fin_i^t) + L$ is stalled.
+
+Status: proved (Crosslink Guide).
+\end{proposition}
+
+For some best-chain protocol with the properties of \S\ref{sec:sub-bc} the
+constraint $\sigma \le L$ cannot be dropped (proved (Crosslink Guide)); the
+case in which $\fin_i^t$ is not a prefix of the best chain is open
+(\emph{Crosslink Guide}, \S``The bounded non-stalled run''). A \emph{finality
+override}, a deliberate reversal of finalised blocks in response to a failure
+of the protocol, has no rule, message or state in the construction: it is a
+change of the consensus rules, a hard fork outside the protocol, and Assured
+Finality binds executions of the protocol only. The book's case for
+formalising overrides is argued (TFL book) (\emph{Crosslink Guide},
+\S``Finality overrides'').
+
+\section{The Shielded Labs design}\label{sec:sl}
+
+The design that Shielded Labs is building, described in its \emph{Zcash
+Crosslink Design Overview} (draft~10, 14 September 2026), keeps the Tail
+Confirmation, Linearity, Valid context, Extension and Last Final Snapshot
+rules and the update rule of $\fin$. It drops the Finality depth rule,
+Stalled Mode, the bound $L$ and the chain $\ba_\mu$. It adds a \emph{sticky
+fork choice}, under which a node follows the heaviest valid chain that
+contains its finalised chain; an \emph{Inclusion Depth rule}, a lower bound
+$\finalitydepth(H) \ge \sigma + 1$, not an upper bound; the BFT protocol
+Tenderlink, derived from Tendermint and without a specification, whose
+bft-blocks, called \emph{certificates}, carry no signatures: a best-chain
+block cites a certificate through a reference that carries its notarisation
+signatures; and \emph{slash forks}, hard forks that node operators may adopt
+to punish named finalisers (\S\ref{sec:fs}). Every component is designed
+but unspecified (\emph{Crosslink Guide}, \S``The Shielded Labs design'').
+
+Under its rules, both routes to Assured Finality are proved (Crosslink
+Guide), but neither premise is: Final Agreement of Tenderlink is an open
+problem, and Prefix Agreement of the best chain under sticky fork choice is
+unproved, while one formal model exhibits its failure on a small instance in
+which more than a third of the BFT voting power is subverted. Sticky fork
+choice never records a finalisation hazard (proved (Crosslink Guide)); its
+safety and liveness in general are open (\emph{Crosslink Guide},
+\S``Sticky fork choice''). Without the Finality depth rule,
+the run of best-chain blocks above $\fin$ is unbounded: for every $d$ there
+is an execution in which the best chain extends $d$ blocks beyond the
+finalised chain (proved (Crosslink Guide); \emph{Crosslink Guide},
+\S``Theorems under the Shielded Labs design'').
+
+\section{The finaliser set}\label{sec:fs}
+
+The book models only $n$ voting units per BFT epoch and a two-thirds
+threshold, and lists the selection of a proof-of-stake sub-protocol and the
+rewards of stakers as missing. Every concrete element of the finaliser set
+below is Shielded Labs' design and is designed but unspecified, with the open
+problems noted (\emph{Crosslink Guide}, \S``The finaliser set'').
+\begin{itemize}
+\item \emph{Voting power.} The finalisers are the participants of
+  Tenderlink. A finaliser's voting power is the stake delegated to it; the
+  $N$ finalisers of largest power form the active roster, and a certificate
+  needs two thirds of the active roster's stake. Every fraction is a
+  fraction of stake, never of the number of finalisers. The value of $N$
+  and the selection rule are open.
+\item \emph{Roster.} The roster of each BFT height, the height of a
+  certificate in the bft-chain, derives from the staking state at the
+  snapshot of the certificate decided at the preceding BFT height. That
+  snapshot generally lies above a node's finalised chain and may lie off
+  its best chain; the roster cannot change while no new certificate is
+  decided, except by a slash fork.
+\item \emph{Delegation.} A staker locks shielded ZEC into a bond, whose
+  amount is a power of ten ZEC, delegated to one finaliser and redelegable
+  at any time. Leaving takes two steps, unbonding and withdrawing, in
+  different \emph{staking windows}, recurring ranges of best-chain heights to
+  which the creation of bonds, unbonding and withdrawal are confined, so
+  that misbehaviour can be punished before the funds leave.
+\item \emph{Privacy.} Batching in staking windows and amounts quantised at
+  creation are meant to keep an observer from linking a bond to the shielded
+  notes that funded it. The totals of each finaliser and the amount and
+  target of each bond are public; hiding the delegation itself is an open
+  problem.
+\item \emph{Rewards.} Staking is paid from the existing block subsidy, with
+  no new issuance and no change to the distribution of fees. The published
+  split gives 40 per cent of the subsidy to miners, 40 per cent to stakers
+  and 20 per cent to Zcash's development fund, which is not a Crosslink
+  share; of the stakers' part, 90 per cent goes to bonds and 10 per cent to
+  finalisers as commission. Whether payment depends on new finality is open.
+\item \emph{Slashing.} No rule of the protocol punishes a finaliser. Node
+  operators may instead adopt a slash fork, a hard fork that burns the
+  bonds delegated to named finalisers and removes those finalisers from the
+  roster.
+\end{itemize}
+
+\begin{proposition}[Power of a finaliser coalition]\label{prop:coalition}
+When ballots cannot be forged and notarisation proofs are sound, holders of
+more than one third of a BFT epoch's units can prevent every notarisation of
+that BFT epoch by withholding. In every execution, whatever the holders of
+voting units do, they cannot make the finalised chains of honest nodes
+conflict while $\Pibc$ has Prefix Agreement at $\sigma$.
+
+Status: proved (Crosslink Guide).
+\end{proposition}
+
+\section{What ``final'' means to a client}\label{sec:client}
+
+\begin{definition}[Final]\label{def:final}
+A bc-block $X$ is \emph{final at node $i$ at time $t$} iff $X \preceqbc
+\fin_i^t$. A transaction is final at $i$ at $t$ iff a block that contains
+it is final at $i$ at $t$.
+\end{definition}
+
+This is the book's assured finality: the protocol cannot revert a final
+transaction, while a fork made outside the protocol, a finality override
+among them, still can. Finality of a bc-block is relative to one node, and
+differs from finality of a bft-block in a context (Definition~\ref{def:blf};
+\emph{Crosslink Guide}, \S``Finality as a status'').
+
+\begin{proposition}[Guarantee of finality]\label{prop:final-guarantee}
+Let $X$ be final at node $i$ at time $t$, with $i$ honest at $t$. Then $X$ is
+final at $i$ at every later time at which $i$ is honest. In every execution
+in which $\Pibc$ has Prefix Agreement at $\sigma$ or $\Pibft$ has Final
+Agreement, moreover, $X$ and $\fin_j^u$ agree for every time $u$ and every
+node $j$ honest at $u$.
+
+Status: proved (Crosslink Guide).
+\end{proposition}
+
+At each time, a block is in exactly one of three states at a node: final; not
+yet final, when it strictly extends the node's finalised chain; or never
+final, when it conflicts with it. The state is decided by ancestry, not by
+height, and a block not yet final has no promise of becoming final
+(\emph{Crosslink Guide}, \S``Finality as a status'', Proposition ``Finality
+status'').
+
+Finality is distinct from confirmation depth. A deep block outside
+$\fin_i^t$ is not final, and a block of $\fin_i^t$ is final at any depth;
+confirmation counts still measure proof-of-work depth. A block that becomes
+final at an update under the hypotheses of the lag bound of
+\S\ref{sec:ledgers} has at least $\sigma + 2$ confirmations at that time
+(proved (Crosslink Guide); \emph{Crosslink Guide}, \S``Finality and
+confirmation depth'').
+
+An application reads one of two views, $\fin_i^t$ or $(\ba_\mu)_i^t$, never
+the best chain itself. The choice sets its behaviour during a finalisation
+stall: with $\fin$ it stops at once; with $\ba_\mu$ it keeps processing user
+transactions until $L$ blocks have passed. Shielded Labs' design has neither
+$\ba_\mu$ nor $L$: an application there either stops with $\fin$ or follows
+the best chain, which can run unboundedly ahead of it (\emph{Crosslink
+Guide}, \S``Ledger views and stalls''). A light client that verifies block
+headers only cannot verify finality in any current design: no design places
+in the header chain both the notarisation signatures and a commitment to
+the finalisers against which they are counted. This is an open problem
+(\emph{Crosslink Guide}, \S``Light clients'').
+
+\section{Open problems}\label{sec:open}
+
+A specification of Crosslink~2 for Zcash must fix each of the following
+components, and no source fixes any of them (\emph{Crosslink Guide},
+\S``Components a specification must fix''): the concrete BFT protocol, the
+assignment of its voting units and the format of its notarisation proofs;
+the values of $\sigma$ and $L$, with $\sigma + 1 \le L$; the predicate
+$\isstalledblock$; the encoding and placement of the cross-link fields; the
+mapping from stake to voting units and the selection of the roster; the
+staking calendar; the format of bond transactions, the quantised amounts and
+a minimum stake; the reward rule and the division of the commission; the
+fees of staking transactions; the rotation of finaliser keys and the initial
+roster; and activation on the existing chain. Four partial formal models
+exist, in Lean, Quint and TLA$^{+}$; none machine-checks Assured Finality or
+either theorem of \S\ref{sec:safety} (\emph{Crosslink Guide}, \S``Coverage
+of the formal models'').
+
+\begin{table}[ht]
+\caption{Status by goal (\emph{Crosslink Guide}, \S``Status by goal and by
+rule'').}
+\label{tab:status}
+\begin{tabular}{@{}p{0.36\textwidth}p{0.36\textwidth}p{0.22\textwidth}@{}}
+\toprule
+Goal & Result & Status \\
+\midrule
+$\fin_i$ never rolls back & Lemma~\ref{lem:fin-linear} & proved (Crosslink
+  Guide) \\
+$\fin_i^t \preceqbc (\ba_\mu)_i^t$ & Proposition~\ref{prop:ledger-prefix} &
+  proved (TFL book) \\
+Assured Finality & Theorem~\ref{thm:pa-af}, Theorem~\ref{thm:fa-af},
+  Corollary~\ref{cor:af-either} & proved (TFL book); proved (Crosslink
+  Guide) \\
+Safety with the BFT protocol subverted & Corollary~\ref{cor:bft-subversion} &
+  proved (Crosslink Guide) \\
+Bounded availability & Proposition~\ref{prop:bounded-run}, finalised chain
+  on the best chain & proved (Crosslink Guide); otherwise open problem \\
+Liveness & \S\ref{sec:live} & argued (TFL book) \\
+The premises for Zcash & Remark~\ref{rem:pow-prefix}; no BFT protocol fixed
+  & open problem \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

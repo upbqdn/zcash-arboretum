@@ -128,7 +128,8 @@ if shutil.which("node"):
             run = subprocess.run(["node", "--check", str(js)], capture_output=True, text=True)
             assert run.returncode == 0, (name, run.stderr)
 
-PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide")
+PARKED = ("pq-guide", "tachyon-guide", "voting-guide", "crosslink-guide",
+          "crosslink-brief")
 MERGED = ("halo2-intuition-guide", "sync-guide")
 assert all((sitegen.ROOT / "parked" / f"{vol}.tex").is_file()
            for vol in PARKED)
